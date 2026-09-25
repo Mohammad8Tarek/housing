@@ -55,6 +55,7 @@ import {
   FileText,
   FileSpreadsheet,
   Trash2,
+  Printer,
 } from "lucide-react";
 import {
   ColumnChooser,
@@ -62,6 +63,8 @@ import {
 } from "@/components/ui/column-chooser";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
+import { ReportPrintStudioModal } from "@/pages/reports/components/ReportPrintStudioModal";
+import type { ReportColumnConfig, ReportKpiItem } from "@/pages/reports/components/PrintableReportDocument";
 import * as XLSX from "xlsx";
 import { exportExcel as exportExcelUtil } from "@/pages/reports/utils/export";
 
@@ -136,6 +139,11 @@ export default function HistoryPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  // Print Studio Modal state
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioRows, setStudioRows] = useState<any[]>([]);
+  const [isFetchingStudio, setIsFetchingStudio] = useState(false);
 
   const { data: assignmentsData, isLoading } = useQuery({
     queryKey: [
@@ -369,71 +377,136 @@ export default function HistoryPage() {
     });
   };
 
-  const exportPDF = async () => {
-    const rawRows = exportTarget();
+  const activePropObj = properties.find((p: any) => p.id === activePropertyId);
+
+  const formatHistoryRow = (a: any) => {
+    const emp = empMap[a.profileId];
+    const room = roomMap[a.roomId];
+    const building = a.buildingName || (room ? buildingMap[room.buildingId] : null);
+    const floorNum = a.floorNumber ?? (room && floorMap[room.floorId] ? String(floorMap[room.floorId].number) : "—");
+    const roomNum = a.roomNumber || room?.roomNumber || String(a.roomId);
+
+    const empName = ar
+      ? (a.profileFirstNameAr && a.profileLastNameAr ? `${a.profileFirstNameAr} ${a.profileLastNameAr}` : (emp?.firstNameAr ? `${emp.firstNameAr} ${emp.lastNameAr || ""}`.trim() : (emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`)))
+      : (a.profileFirstName && a.profileLastName ? `${a.profileFirstName} ${a.profileLastName}` : (emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`));
+
+    const empCode = a.profileCode || emp?.profileId || "";
+    const nationalId = a.profileNationalId || emp?.nationalId || "";
+    const department = ar
+      ? (a.profileDepartmentAr || emp?.departmentAr || a.profileDepartment || emp?.department || "—")
+      : (a.profileDepartment || emp?.department || "—");
+
+    const checkOutDate = a.checkOutDate || (a as any).actualCheckOutDate;
+    const daysStayed =
+      a.checkInDate && checkOutDate
+        ? Math.max(
+            0,
+            Math.round(
+              (new Date(checkOutDate).getTime() -
+                new Date(a.checkInDate).getTime()) /
+                86400000,
+            ),
+          )
+        : null;
+
+    return {
+      empName,
+      empCode,
+      nationalId,
+      department,
+      building: building || "—",
+      floor: floorNum,
+      room: roomNum,
+      bed: a.bedNumber ? String(a.bedNumber) : "—",
+      checkIn: formatDate(a.checkInDate),
+      checkOut: formatDate(checkOutDate),
+      days: daysStayed !== null ? daysStayed : "—",
+      status: formatStatus(a.status, ar),
+    };
+  };
+
+  const studioColumns: ReportColumnConfig[] = [
+    { key: "empName", header: "Employee Name", headerAr: "اسم الموظف", type: "text", align: "right" },
+    { key: "empCode", header: "Code", headerAr: "كود الموظف", type: "badge", align: "center", width: "85px" },
+    { key: "nationalId", header: "National ID", headerAr: "الرقم القومي", type: "text", align: "center", width: "110px" },
+    { key: "department", header: "Department", headerAr: "القسم", type: "text", align: "right" },
+    { key: "building", header: "Building", headerAr: "المبنى", type: "text", align: "right" },
+    { key: "floor", header: "Floor", headerAr: "الدور", type: "text", align: "center", width: "55px" },
+    { key: "room", header: "Room", headerAr: "الغرفة", type: "badge", align: "center", width: "65px" },
+    { key: "bed", header: "Bed", headerAr: "السرير", type: "text", align: "center", width: "55px" },
+    { key: "checkIn", header: "Check-in", headerAr: "تاريخ التسكين", type: "date", align: "center", width: "95px" },
+    { key: "checkOut", header: "Check-out", headerAr: "تاريخ المغادرة", type: "date", align: "center", width: "95px" },
+    { key: "days", header: "Days", headerAr: "المدة (أيام)", type: "number", align: "center", width: "70px" },
+    { key: "status", header: "Status", headerAr: "حالة السجل", type: "status", align: "center", width: "90px" },
+  ];
+
+  const studioKpis: ReportKpiItem[] = [
+    {
+      label: "Total Records",
+      labelAr: "إجمالي السجلات",
+      value: (studioRows.length || totalItems).toLocaleString(),
+      color: "blue",
+    },
+    {
+      label: "Checked Out",
+      labelAr: "تمت المغادرة",
+      value: (studioRows.filter((r) => r.status && (r.status.includes("مغادرة") || r.status.toLowerCase().includes("out"))).length || 0).toLocaleString(),
+      color: "amber",
+    },
+    {
+      label: "Transferred",
+      labelAr: "منقولون",
+      value: (studioRows.filter((r) => r.status && (r.status.includes("منقول") || r.status.toLowerCase().includes("transfer"))).length || 0).toLocaleString(),
+      color: "emerald",
+    },
+  ];
+
+  const openPrintStudio = async () => {
+    let rawRows: any[] = [];
+    if (selectedRows.size > 0) {
+      rawRows = paged.filter((a) => selectedRows.has(a.id));
+    } else {
+      setIsFetchingStudio(true);
+      try {
+        const qs = new URLSearchParams();
+        if (activePropertyId) qs.set("propertyId", activePropertyId.toString());
+        qs.set("page", "1");
+        qs.set("limit", "2000");
+        if (debouncedSearch) qs.set("search", debouncedSearch);
+        if (filterStatus && filterStatus !== "ALL") qs.set("status", filterStatus);
+
+        const token = localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const res = await fetch(`/api/assignments/history?${qs.toString()}`, {
+          headers,
+          credentials: "include",
+        });
+        if (res.ok) {
+          const json = await res.json();
+          rawRows = json.data || paged;
+        } else {
+          rawRows = paged;
+        }
+      } catch {
+        rawRows = paged;
+      } finally {
+        setIsFetchingStudio(false);
+      }
+    }
+
     if (!rawRows.length) {
       toast.error(ar ? "لا توجد سجلات لتصديرها" : "No records to export");
       return;
     }
 
-    const rows = rawRows.map((a) => {
-      const emp = empMap[a.profileId];
-      const room = roomMap[a.roomId];
-      const building = a.buildingName || (room ? buildingMap[room.buildingId] : null);
-      const floorNum = a.floorNumber ?? (room && floorMap[room.floorId] ? String(floorMap[room.floorId].number) : "—");
-      const roomNum = a.roomNumber || room?.roomNumber || String(a.roomId);
-
-      const empName = ar
-        ? (a.profileFirstNameAr && a.profileLastNameAr ? `${a.profileFirstNameAr} ${a.profileLastNameAr}` : (emp?.firstNameAr ? `${emp.firstNameAr} ${emp.lastNameAr || ""}`.trim() : (emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`)))
-        : (a.profileFirstName && a.profileLastName ? `${a.profileFirstName} ${a.profileLastName}` : (emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`));
-
-      const empCode = a.profileCode || emp?.profileId || "";
-      const nationalId = a.profileNationalId || emp?.nationalId || "";
-      const department = ar
-        ? (a.profileDepartmentAr || emp?.departmentAr || a.profileDepartment || emp?.department || "—")
-        : (a.profileDepartment || emp?.department || "—");
-
-      const checkOutDate = a.checkOutDate || (a as any).actualCheckOutDate;
-      const daysStayed =
-        a.checkInDate && checkOutDate
-          ? Math.max(
-              0,
-              Math.round(
-                (new Date(checkOutDate).getTime() -
-                  new Date(a.checkInDate).getTime()) /
-                  86400000,
-              ),
-            )
-          : null;
-
-      return {
-        [ar ? "اسم الموظف" : "Employee Name"]: empName,
-        [ar ? "كود الموظف" : "Code"]: empCode,
-        [ar ? "الرقم القومي" : "National ID"]: nationalId,
-        [ar ? "القسم" : "Department"]: department,
-        [ar ? "المبنى" : "Building"]: building || "—",
-        [ar ? "الطابق" : "Floor"]: floorNum,
-        [ar ? "الغرفة" : "Room"]: roomNum,
-        [ar ? "السرير" : "Bed"]: a.bedNumber ? String(a.bedNumber) : "—",
-        [ar ? "تاريخ التسكين" : "Check-in"]: formatDate(a.checkInDate),
-        [ar ? "تاريخ المغادرة" : "Check-out"]: formatDate(checkOutDate),
-        [ar ? "مدة الإقامة (أيام)" : "Days"]: daysStayed !== null ? String(daysStayed) : "—",
-        [ar ? "حالة السجل" : "Status"]: formatStatus(a.status, ar),
-      };
-    });
-
-    await printLuxuryReport({
-      activeTab: "history",
-      title: ar ? "سجل التسكين وحركات الإقامة التاريخية" : "Housing Historical Stays & Movements Archive",
-      language: ar ? "ar" : "en",
-      properties,
-      activePropertyId,
-      settings,
-      rows,
-      orientation: "landscape",
-      search: debouncedSearch,
-    });
+    const formatted = rawRows.map(formatHistoryRow);
+    setStudioRows(formatted);
+    setIsStudioOpen(true);
   };
+
+  const exportPDF = openPrintStudio;
 
   const HIST_COLS = [
     {
@@ -523,11 +596,12 @@ export default function HistoryPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={exportPDF}
-            className="gap-2 text-red-700 border-red-200 hover:bg-red-50"
+            onClick={openPrintStudio}
+            disabled={isFetchingStudio}
+            className="gap-2 text-primary border-primary/20 hover:bg-primary/5"
           >
-            <FileText className="w-4 h-4" />
-            {ar ? "تصدير PDF" : "Export PDF"}
+            <Printer className="w-4 h-4" />
+            {isFetchingStudio ? (ar ? "جاري التجهيز..." : "Preparing...") : (ar ? "استوديو الطباعة و PDF" : "Print Studio & PDF")}
           </Button>
         </div>
       </div>
@@ -553,11 +627,11 @@ export default function HistoryPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={exportPDF}
-            className="gap-1.5 text-red-700 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/40"
+            onClick={openPrintStudio}
+            className="gap-1.5 text-primary border-primary/20 hover:bg-primary/5"
           >
-            <FileText className="w-3.5 h-3.5" />
-            {ar ? "PDF" : "PDF"}
+            <Printer className="w-3.5 h-3.5" />
+            {ar ? "استوديو الطباعة" : "Print Studio"}
           </Button>
         }
         ar={ar}
@@ -969,6 +1043,29 @@ export default function HistoryPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Unified Report Print Studio Modal */}
+      <ReportPrintStudioModal
+        open={isStudioOpen}
+        onOpenChange={setIsStudioOpen}
+        title="Housing Historical Stays Archive"
+        titleAr="سجل التسكين وحركات الإقامة التاريخية"
+        subtitle={ar ? "سجل تاريخي بكافة تسكينات ومغادرات الموظفين" : "Historical record of staff stays, movements and departures"}
+        subtitleAr="سجل تاريخي بكافة تسكينات ومغادرات الموظفين"
+        propertyName={activePropObj?.displayName || activePropObj?.name}
+        propertyCode={activePropObj?.code}
+        systemLogoUrl={settings?.systemLogo}
+        propertyLogoUrl={activePropObj?.logo}
+        filtersSummary={{
+          [ar ? "الحالة" : "Status"]: filterStatus === "ALL" ? (ar ? "كل الحالات" : "All Status") : formatStatus(filterStatus, ar),
+          ...(debouncedSearch ? { [ar ? "البحث" : "Search"]: debouncedSearch } : {}),
+        }}
+        kpis={studioKpis}
+        availableColumns={studioColumns}
+        allRows={studioRows}
+        currentPageRows={paged.map(formatHistoryRow)}
+        initialLanguage={ar ? "ar" : "en"}
+      />
     </div>
   );
 }

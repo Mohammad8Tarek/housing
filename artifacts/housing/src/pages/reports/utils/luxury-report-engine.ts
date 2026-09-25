@@ -2695,89 +2695,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     }
   };
 
-  // ── Dynamic Page Allocation (Available Height Budgeting) ──
-  const pageChunks: any[][][] = [];
-  const pageStartIndexes: number[] = [];
-
-  if (isSinglePage || tableRows.length === 0) {
-    pageChunks.push(tableRows);
-    pageStartIndexes.push(0);
-  } else {
-    const totalRowsCount = tableRows.length;
-    let cursor = 0;
-
-    while (cursor < totalRowsCount) {
-      const pageNum = pageChunks.length + 1;
-
-      // 1. Check if ALL remaining rows fit on this page as the FINAL page (with signatures & totals)
-      let remainingTotalHeight = 0;
-      for (let i = cursor; i < totalRowsCount; i++) {
-        remainingTotalHeight += estimateRowHeightMm(tableRows[i]);
-      }
-
-      const availableIfFinal = getAvailableTableHeightMm(pageNum, true);
-      const remainingCount = totalRowsCount - cursor;
-      const finalPageCap = maxRowsAllowedOnPage(pageNum, true);
-      if (remainingTotalHeight <= availableIfFinal && remainingCount <= finalPageCap) {
-        // Fits entirely on this page!
-        pageStartIndexes.push(cursor);
-        pageChunks.push(tableRows.slice(cursor));
-        cursor = totalRowsCount;
-        break;
-      }
-
-      // 2. Otherwise, fill this page completely to its maximum dynamic available height
-      const availableTableHeight = getAvailableTableHeightMm(pageNum, false);
-      const normalPageCap = maxRowsAllowedOnPage(pageNum, false);
-      let accumulatedHeight = 0;
-      let count = 0;
-
-      while (cursor + count < totalRowsCount && count < normalPageCap) {
-        const nextH = estimateRowHeightMm(tableRows[cursor + count]);
-        // Break only when the next row physically cannot fit on this page
-        if (accumulatedHeight + nextH > availableTableHeight && count >= 5) {
-          break;
-        }
-        accumulatedHeight += nextH;
-        count++;
-      }
-
-      // Ensure at least 1 row moves forward
-      if (count === 0 && cursor < totalRowsCount) {
-        count = 1;
-      }
-
-      pageStartIndexes.push(cursor);
-      pageChunks.push(tableRows.slice(cursor, cursor + count));
-      cursor += count;
-    }
-
-    // ── Phase 2: Merge trailing orphan rows into previous page if possible ──
-    if (pageChunks.length >= 2) {
-      const lastIdx = pageChunks.length - 1;
-      const prevIdx = lastIdx - 1;
-      const lastChunk = pageChunks[lastIdx];
-      const prevChunk = pageChunks[prevIdx];
-
-      // If the last page has few rows, check if it can merge cleanly into previous page
-      const combined = [...prevChunk, ...lastChunk];
-      let combinedHeight = 0;
-      for (const r of combined) {
-        combinedHeight += estimateRowHeightMm(r);
-      }
-
-      const prevPageAvailableIfFinal = getAvailableTableHeightMm(prevIdx + 1, true);
-      const prevPageCap = maxRowsAllowedOnPage(prevIdx + 1, true);
-      // Allow slight 8% elasticity for merging trailing rows into 1 single page
-      if (combinedHeight <= prevPageAvailableIfFinal * 1.08 && combined.length <= prevPageCap + 3) {
-        pageChunks[prevIdx] = combined;
-        pageChunks.pop();
-        pageStartIndexes.pop();
-      }
-    }
-  }
-
-  const totalPages = Math.max(1, pageChunks.length);
+  // ── Unified Continuous Document Allocation ──
+  const pageChunks: any[][][] = [tableRows];
+  const pageStartIndexes: number[] = [0];
+  const totalPages = 1;
 
   // Render a Single Formal Opera PMS Page (Header, optional KPIs, Table Chunk, optional Signatures, and Pinned Footer)
   function renderSinglePageHtml(
@@ -2898,75 +2819,93 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       `;
     }
 
-    const tableHtml = (tableRows.length > 0 || headers.length > 0)
-      ? `<table class="opera-table">
-          ${theadHtml}
-          <tbody>
-            ${rowsHtml}
-            ${totalsRowHtml}
-          </tbody>
-        </table>`
-      : "";
-
-    // Signatures Block (Rendered strictly on final page)
-    const sigsHtml = isLastPage ? `
-      <div class="sig-section" id="sigSection" style="${initialShowSigs ? "" : "display: none !important;"}">
-        <div class="sig-grid">
-          <div class="sig-card">
-            <div class="sig-role">${sig1}</div>
-            <div class="sig-line"></div>
-            <div class="sig-date">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
+    // Signatures Block (Rendered in tfoot)
+    const sigsHtml = initialShowSigs ? `
+      <div class="sig-section" id="sigSection" style="margin-top: 8px; padding-top: 6px; page-break-inside: avoid; break-inside: avoid;">
+        <div class="sig-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+          <div class="sig-card" style="text-align: center; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 6px 8px; background: #fdfdfd;">
+            <div class="sig-role" style="font-size: 7.2pt; font-weight: 800; color: #0f2a44; margin-bottom: 22px;">${sig1}</div>
+            <div class="sig-line" style="border-top: 1px solid #94a3b8; width: 80%; margin: 0 auto 3px auto;"></div>
+            <div class="sig-date" style="font-size: 6.5pt; color: #64748b;">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
           </div>
-          <div class="sig-card">
-            <div class="sig-role">${sig2}</div>
-            <div class="sig-line"></div>
-            <div class="sig-date">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
+          <div class="sig-card" style="text-align: center; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 6px 8px; background: #fdfdfd;">
+            <div class="sig-role" style="font-size: 7.2pt; font-weight: 800; color: #0f2a44; margin-bottom: 22px;">${sig2}</div>
+            <div class="sig-line" style="border-top: 1px solid #94a3b8; width: 80%; margin: 0 auto 3px auto;"></div>
+            <div class="sig-date" style="font-size: 6.5pt; color: #64748b;">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
           </div>
-          <div class="sig-card">
-            <div class="sig-role">${sig3}</div>
-            <div class="sig-line"></div>
-            <div class="sig-date">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
+          <div class="sig-card" style="text-align: center; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 6px 8px; background: #fdfdfd;">
+            <div class="sig-role" style="font-size: 7.2pt; font-weight: 800; color: #0f2a44; margin-bottom: 22px;">${sig3}</div>
+            <div class="sig-line" style="border-top: 1px solid #94a3b8; width: 80%; margin: 0 auto 3px auto;"></div>
+            <div class="sig-date" style="font-size: 6.5pt; color: #64748b;">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
           </div>
         </div>
       </div>
     ` : "";
 
-    // Footer Layout pinned at bottom of EVERY page with real Page X of Y
+    // Footer Layout pinned in tfoot
     const pageFooterHtml = `
-      <div class="opera-footer">
-        <div class="opera-footer-left">
-          <span class="opera-filter-tag">${isArabic ? "عوامل التصفية:" : "Filter:"}</span>
+      <div class="opera-footer" style="display: flex; justify-content: space-between; align-items: center; padding-top: 4px; border-top: 1px solid #cbd5e1; font-size: 6.8pt; color: #64748b; direction: ltr; margin-top: 6px;">
+        <div class="opera-footer-left" style="display: flex; align-items: center; gap: 4px; font-size: 6.8pt; max-width: 65%; overflow: hidden; white-space: nowrap;">
+          <span class="opera-filter-tag" style="font-weight: 700; color: #0f2a44;">${isArabic ? "عوامل التصفية:" : "Filter:"}</span>
           <span class="opera-filter-desc-inline">
             <span>${propName}</span>
             <span class="opera-meta-sep">·</span>
             <span>${dateFrom || dateTo ? `${dateFrom || "All"} — ${dateTo || "All"}` : operaDateStr}</span>
             <span class="opera-meta-sep">·</span>
             <span>${search ? `"${search}"` : (isArabic ? "الحالة: الكل" : "Status: All")}</span>
-            <span class="opera-meta-sep">·</span>
-            <span>${isArabic ? "الترتيب: رقم الغرفة" : "Sort: Room No."}</span>
           </span>
         </div>
-        <div class="opera-footer-center">
-          <span class="opera-page-indicator">${isArabic ? `صفحة ${pageNumber} من ${totalPagesCount}` : `Page ${pageNumber} of ${totalPagesCount}`}</span>
-        </div>
-        <div class="opera-footer-right">
-          <span class="opera-report-slug">${operaCode}</span>
+        <div class="opera-footer-right" style="direction: ${dir}; font-weight: 600;">
+          <span>Sunrise Staff Housing Management System</span>
         </div>
       </div>
     `;
 
+    const tableHtml = (tableRows.length > 0 || headers.length > 0)
+      ? `<table class="opera-table sunrise-report-table" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+          <colgroup>
+            <col class="opera-col-seq" style="width: ${seqWidthPct}%;" />
+            ${headers.map((_, i) => `<col style="width: ${colWidthsPct[i]}%;" />`).join("")}
+          </colgroup>
+          <thead style="display: table-header-group !important;">
+            <tr>
+              <th colspan="${headers.length + 1}" style="padding: 0 0 6px 0; background: transparent; border: none; font-weight: normal; text-align: ${isArabic ? 'right' : 'left'};">
+                ${pageHeaderHtml}
+                ${kpisHtml}
+                ${customSectionsHtml ? `<div style="margin-bottom: 6px;">${customSectionsHtml}</div>` : ""}
+              </th>
+            </tr>
+            <tr class="opera-thead-row" style="background: #0f2a44; color: #ffffff;">
+              <th class="opera-seq-col" style="width: ${seqWidthPct}%; text-align: center; background: #0f2a44 !important; color: #ffffff !important; padding: ${printPadding}; font-size: ${Math.max(6.5, printFontSizePt - 0.2)}pt; font-weight: 800; border: 1px solid #0f2a44;">#</th>
+              ${headers
+                .map((h, i) => {
+                  const raw = rawHeaders[i] || h;
+                  const align = getOperaColumnAlign(raw, isArabic);
+                  return `<th style="width: ${colWidthsPct[i]}%; text-align: ${align}; background: #0f2a44 !important; color: #ffffff !important; padding: ${printPadding}; font-size: ${Math.max(6.5, printFontSizePt - 0.2)}pt; font-weight: 800; border: 1px solid #1e3a5a; white-space: normal; line-height: 1.15;">${h}</th>`;
+                })
+                .join("")}
+            </tr>
+          </thead>
+          <tbody style="display: table-row-group;">
+            ${rowsHtml}
+            ${totalsRowHtml}
+          </tbody>
+          <tfoot style="display: table-footer-group !important;">
+            <tr>
+              <td colspan="${headers.length + 1}" style="padding: 6px 0 0 0; background: transparent; border: none;">
+                ${customBottomSectionsHtml ? `<div style="margin-top: 8px;">${customBottomSectionsHtml}</div>` : ""}
+                ${sigsHtml}
+                ${pageFooterHtml}
+              </td>
+            </tr>
+          </tfoot>
+        </table>`
+      : "";
+
     return `
-      <div class="sheet opera-page ${isSinglePage ? "single-page" : ""}" data-page="${pageNumber}">
+      <div class="sheet opera-page sunrise-sheet" data-page="${pageNumber}">
         <div class="opera-page-main">
-          ${pageHeaderHtml}
-          ${isFirstPage ? kpisHtml : ""}
-          ${isFirstPage ? (customSectionsHtml || "") : ""}
           ${tableHtml}
-        </div>
-        <div class="opera-page-bottom">
-          ${isLastPage ? (customBottomSectionsHtml || "") : ""}
-          ${sigsHtml}
-          ${pageFooterHtml}
         </div>
       </div>
     `;
@@ -2991,7 +2930,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   <style>
     @page {
       size: A4 ${orientation};
-      margin: 0mm !important;
+      margin: 8mm 10mm;
       marks: none;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -3163,11 +3102,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       line-height: 1.1;
     }
     .opera-report-title {
-      font-size: 14.5pt;
-      font-weight: 900;
-      color: #000000;
-      letter-spacing: 0;
-      line-height: 1.15;
+      font-size: 11.5pt !important;
+      font-weight: 800 !important;
+      color: #0f2a44 !important;
+      letter-spacing: 0.2px;
+      line-height: 1.2;
     }
     .opera-report-submeta {
       font-size: 7.5pt;
@@ -3516,7 +3455,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     @media print {
       @page {
         size: A4 ${orientation};
-        margin: 0mm !important;
+        margin: 8mm 10mm !important;
         marks: none;
       }
       html, body {
@@ -3540,21 +3479,19 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       .sheet.opera-page {
         width: 100% !important;
         max-width: 100% !important;
-        height: ${orientation === "landscape" ? "208mm" : "295mm"} !important;
-        max-height: ${orientation === "landscape" ? "208mm" : "295mm"} !important;
-        min-height: ${orientation === "landscape" ? "208mm" : "295mm"} !important;
+        height: auto !important;
+        max-height: none !important;
+        min-height: 0 !important;
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 3.5mm 5mm 3.5mm 5mm !important;
-        overflow: hidden !important;
+        padding: 0 !important;
+        overflow: visible !important;
         border-radius: 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important;
-        page-break-after: always !important;
-        break-after: page !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
+        display: block !important;
+        page-break-after: auto !important;
+        break-after: auto !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
         box-sizing: border-box !important;
       }
       .sheet.opera-page:last-child {
@@ -3817,7 +3754,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       if (existingStyle) existingStyle.remove();
       const styleEl = document.createElement("style");
       styleEl.id = "dynamicPageOrientation";
-      styleEl.innerHTML = "@page { size: A4 " + currentOrientation + " !important; margin: 0mm !important; marks: none; }";
+      styleEl.innerHTML = "@page { size: A4 " + currentOrientation + " !important; margin: 8mm 10mm !important; marks: none; }";
       document.head.appendChild(styleEl);
     }
 
@@ -3860,45 +3797,6 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     };
 
     ${autoPrint ? `
-    function reflowOperaSheets() {
-      // Measured reflow: move rows that overflow a fixed-height sheet into
-      // the next sheet. Fixes rows visually cut/eaten at page boundaries
-      // when estimated heights undershoot real rendering.
-      try {
-        var sheets = Array.prototype.slice.call(document.querySelectorAll('.sheet.opera-page'));
-        if (sheets.length === 0) return;
-        var guard = 0;
-        var moved = true;
-        while (moved && guard < 300) {
-          moved = false;
-          guard++;
-          for (var i = 0; i < sheets.length; i++) {
-            var sheet = sheets[i];
-            var table = sheet.querySelector('table.opera-table');
-            if (!table) continue;
-            var tbody = table.querySelector('tbody');
-            if (!tbody) continue;
-            var bottomEl = sheet.querySelector('.opera-page-bottom');
-            var sheetRect = sheet.getBoundingClientRect();
-            var bottomH = bottomEl ? bottomEl.getBoundingClientRect().height : 0;
-            var limit = sheetRect.top + sheetRect.height - bottomH - 10;
-            var next = sheets[i + 1] || null;
-            var nextTbody = next ? next.querySelector('table.opera-table tbody') : null;
-            var rows = tbody.querySelectorAll('tr');
-            while (rows.length > 1) {
-              var last = rows[rows.length - 1];
-              if (last.classList && last.classList.contains('opera-totals-row')) break;
-              var r = last.getBoundingClientRect();
-              if (r.bottom <= limit + 1) break;
-              if (!nextTbody) break;
-              nextTbody.insertBefore(last, nextTbody.firstChild);
-              moved = true;
-              rows = tbody.querySelectorAll('tr');
-            }
-          }
-        }
-      } catch (e) { /* never block printing */ }
-    }
     function triggerPrintWhenReady() {
       const imgs = Array.from(document.images);
       const imgPromises = imgs.map(function(img) {
@@ -3910,9 +3808,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       });
       Promise.all([document.fonts.ready, ...imgPromises]).then(function() {
         setTimeout(function() {
-          try { reflowOperaSheets(); } catch (e) {}
           window.print();
-        }, 400);
+        }, 350);
       });
     }
     if (document.readyState === "complete") {

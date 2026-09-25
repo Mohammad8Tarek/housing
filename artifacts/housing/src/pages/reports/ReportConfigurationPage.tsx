@@ -76,6 +76,8 @@ import {
 import { exportExcel } from "./utils/export";
 import { printLuxuryReport, ReportKpiCard } from "./utils/luxury-report-engine";
 import { formatDate } from "@/lib/date-utils";
+import { ReportPrintStudioModal } from "./components/ReportPrintStudioModal";
+import type { ReportColumnConfig, ReportKpiItem } from "./components/PrintableReportDocument";
 
 export default function ReportConfigurationPage() {
   const { propertySlug, properties, activePropertyId } = useProperty();
@@ -519,10 +521,158 @@ export default function ReportConfigurationPage() {
     }
   };
 
-  // ─── Export Luxury PDF ────────────────────────────────────────────────────
+  // ─── Studio State & Mappings ─────────────────────────────────────────────
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioRows, setStudioRows] = useState<any[]>([]);
+  const [isFetchingStudio, setIsFetchingStudio] = useState(false);
+
+  const activePropObj = useMemo(() => {
+    return properties?.find((p: any) => p.id === effectivePropId) || properties?.[0];
+  }, [properties, effectivePropId]);
+
+  const studioColumns: ReportColumnConfig[] = useMemo(() => {
+    const cols: ReportColumnConfig[] = [
+      {
+        key: "#",
+        header: "#",
+        headerAr: "م",
+        type: "index",
+        align: "center",
+        width: "38px",
+      },
+    ];
+
+    activeColumns.forEach((c) => {
+      let type: ReportColumnConfig["type"] = "text";
+      let align: ReportColumnConfig["align"] = ar ? "right" : "left";
+      let width: string | undefined = undefined;
+
+      if (c.type === "date") {
+        type = "date";
+        align = "center";
+        width = "82px";
+      } else if (c.type === "number") {
+        type = "number";
+        align = "center";
+        width = "64px";
+      } else if (c.type === "status") {
+        type = "status";
+        align = "center";
+        width = "78px";
+      } else if (c.type === "boolean") {
+        type = "text";
+        align = "center";
+        width = "52px";
+      } else if (/phone|هاتف|موبايل/i.test(c.key)) {
+        align = "center";
+        width = "88px";
+      } else if (/notes|ملاحظات|details|تفاصيل/i.test(c.key)) {
+        width = "125px";
+      }
+
+      cols.push({
+        key: c.key,
+        header: c.label,
+        headerAr: c.labelAr,
+        type,
+        align,
+        width,
+      });
+    });
+
+    return cols;
+  }, [activeColumns, ar]);
+
+  const studioFormattedRows = useMemo(() => {
+    return studioRows.map((r, idx) => {
+      const obj: Record<string, any> = { "#": idx + 1 };
+      activeColumns.forEach((col) => {
+        let val = r[col.key];
+        if ((col.type === "date" || (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val))) && val) {
+          val = formatDate(val);
+        } else if (val === true) {
+          val = ar ? "نعم" : "Yes";
+        } else if (val === false) {
+          val = ar ? "لا" : "No";
+        } else if (val === null || val === undefined) {
+          val = "—";
+        }
+        obj[col.key] = val;
+      });
+      return obj;
+    });
+  }, [studioRows, activeColumns, ar]);
+
+  const studioCurrentPageRows = useMemo(() => {
+    return reportRows.map((r, idx) => {
+      const obj: Record<string, any> = { "#": (page - 1) * pageSize + idx + 1 };
+      activeColumns.forEach((col) => {
+        let val = r[col.key];
+        if ((col.type === "date" || (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val))) && val) {
+          val = formatDate(val);
+        } else if (val === true) {
+          val = ar ? "نعم" : "Yes";
+        } else if (val === false) {
+          val = ar ? "لا" : "No";
+        } else if (val === null || val === undefined) {
+          val = "—";
+        }
+        obj[col.key] = val;
+      });
+      return obj;
+    });
+  }, [reportRows, activeColumns, page, pageSize, ar]);
+
+  const studioKpis: ReportKpiItem[] = useMemo(() => {
+    if (!showStats) return [];
+    const k: ReportKpiItem[] = [
+      {
+        label: "Total Records",
+        labelAr: "إجمالي السجلات",
+        value: totalCount,
+        color: "amber",
+      },
+    ];
+    if (reportStats.activeCount !== undefined) {
+      k.push({
+        label: "Active",
+        labelAr: "الحالات النشطة",
+        value: reportStats.activeCount,
+        color: "emerald",
+      });
+    }
+    if (reportStats.overallOccupancyPct) {
+      k.push({
+        label: "Occupancy Rate",
+        labelAr: "نسبة الإشغال",
+        value: reportStats.overallOccupancyPct,
+        color: "blue",
+      });
+    }
+    if (reportStats.totalRooms) {
+      k.push({
+        label: "Total Rooms",
+        labelAr: "إجمالي الغرف",
+        value: reportStats.totalRooms,
+        color: "purple",
+      });
+    }
+    if (reportStats.pendingCount !== undefined) {
+      k.push({
+        label: "Pending",
+        labelAr: "قيد الانتظار",
+        value: reportStats.pendingCount,
+        color: "amber",
+      });
+    }
+    return k;
+  }, [showStats, totalCount, reportStats]);
+
+  // ─── Export Studio PDF ───────────────────────────────────────────────────
   const handleExportPDF = async () => {
     try {
-      toast.loading(ar ? "جاري تجهيز تقرير PDF الفاخر..." : "Generating Luxury PDF...");
+      setIsFetchingStudio(true);
+      toast.loading(ar ? "جاري تحضير استوديو الطباعة..." : "Preparing Print Studio...");
       const fullRows = await fetchAllRowsForExport();
       toast.dismiss();
 
@@ -531,99 +681,13 @@ export default function ReportConfigurationPage() {
         return;
       }
 
-      const currentSrcDef = DATA_SOURCES.find((s) => s.id === selectedSource);
-      const repTitleAr = customReportTitleAr || (ar ? currentSrcDef?.labelAr : currentSrcDef?.label) || "تقرير مخصص";
-      const repTitleEn = customReportTitleEn || currentSrcDef?.label || "Custom Configured Report";
-
-      // Build KPI cards from stats
-      const kpis: ReportKpiCard[] = [];
-      if (showStats) {
-        kpis.push({
-          label: "Total Records",
-          labelAr: "إجمالي السجلات",
-          value: totalCount,
-          color: "gold",
-        });
-        if (reportStats.activeCount !== undefined) {
-          kpis.push({
-            label: "Active",
-            labelAr: "الحالات النشطة",
-            value: reportStats.activeCount,
-            color: "green",
-          });
-        }
-        if (reportStats.overallOccupancyPct) {
-          kpis.push({
-            label: "Occupancy Rate",
-            labelAr: "نسبة الإشغال",
-            value: reportStats.overallOccupancyPct,
-            color: "blue",
-          });
-        }
-        if (reportStats.totalRooms) {
-          kpis.push({
-            label: "Total Rooms",
-            labelAr: "إجمالي الغرف",
-            value: reportStats.totalRooms,
-            color: "purple",
-          });
-        }
-        if (reportStats.pendingCount !== undefined) {
-          kpis.push({
-            label: "Pending",
-            labelAr: "قيد الانتظار",
-            value: reportStats.pendingCount,
-            color: "orange",
-          });
-        }
-      }
-
-      // Headers
-      const headers = activeColumns.map((c) => (ar ? c.labelAr : c.label));
-
-      // Rows 2D
-      const rows2D = fullRows.map((r, idx) => {
-        return activeColumns.map((col) => {
-          let val = r[col.key];
-          if ((col.type === "date" || (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val))) && val) return formatDate(val);
-          if (val === true) return ar ? "نعم" : "Yes";
-          if (val === false) return ar ? "لا" : "No";
-          if (val === null || val === undefined || val === "") return "—";
-          return val;
-        });
-      });
-
-      await printLuxuryReport({
-        activeTab: "custom_configuration",
-        title: repTitleEn,
-        titleAr: repTitleAr,
-        subtitle: customNotes || (ar ? "تقرير مخصص من إدارة السكن" : "Staff Housing Configured Report"),
-        subtitleAr: customNotes || (ar ? "تقرير مخصص من إدارة السكن" : "Staff Housing Configured Report"),
-        language: ar ? "ar" : "en",
-        orientation,
-        showKpis: showStats,
-        showSignatures,
-        properties,
-        activePropertyId: effectivePropId,
-        settings,
-        kpiCards: kpis,
-        headers,
-        rows: rows2D,
-        signatures: {
-          role1: "Prepared By: Housing Supervisor",
-          role1Ar: "إعداد: مسؤول الإسكان",
-          role2: "Reviewed By: Housing Manager",
-          role2Ar: "مراجعة: مدير إدارة السكن",
-          role3: "Approved By: HR Director",
-          role3Ar: "اعتماد: مدير الموارد البشرية",
-        },
-        autoPrint: true,
-      });
-
-      toast.success(ar ? "تم فتح نافذة طباعة PDF الفاخر" : "Luxury PDF opened");
+      setStudioRows(fullRows);
+      setIsStudioOpen(true);
     } catch (err: any) {
       toast.dismiss();
-      toast.error(err.message || (ar ? "فشل طباعة التقرير" : "Failed to print PDF"));
+      toast.error(err.message || (ar ? "فشل تجهيز التقرير" : "Failed to prepare report"));
+    } finally {
+      setIsFetchingStudio(false);
     }
   };
 
@@ -1149,12 +1213,12 @@ export default function ReportConfigurationPage() {
           <div className="flex items-center gap-2">
             <Button
               onClick={handleExportPDF}
-              disabled={isLoading || !reportRows.length}
+              disabled={isLoading || isFetchingStudio || !reportRows.length}
               size="sm"
               className="bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white rounded-xl shadow-xs flex items-center gap-1.5"
             >
-              <FileText className="w-4 h-4" />
-              <span>{ar ? "تصدير PDF فاخر" : "Export Luxury PDF"}</span>
+              <Printer className="w-4 h-4" />
+              <span>{ar ? "استوديو الطباعة و PDF" : "Print Studio & PDF"}</span>
             </Button>
 
             <Button
@@ -1440,6 +1504,32 @@ export default function ReportConfigurationPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Unified Report Print Studio Modal */}
+      <ReportPrintStudioModal
+        open={isStudioOpen}
+        onOpenChange={setIsStudioOpen}
+        title={customReportTitleEn || currentSourceDef?.label || "Custom Configured Report"}
+        titleAr={customReportTitleAr || (ar ? currentSourceDef?.labelAr : currentSourceDef?.label) || "تقرير مخصص"}
+        subtitle={customNotes || (ar ? "تقرير مخصص من إدارة السكن" : "Staff Housing Configured Report")}
+        subtitleAr={customNotes || (ar ? "تقرير مخصص من إدارة السكن" : "Staff Housing Configured Report")}
+        propertyName={activePropObj?.displayName || activePropObj?.name}
+        propertyCode={activePropObj?.code}
+        systemLogoUrl={settings?.systemLogo}
+        propertyLogoUrl={activePropObj?.logo}
+        filtersSummary={{
+          [ar ? "مصدر البيانات" : "Data Source"]: ar ? currentSourceDef?.labelAr : currentSourceDef?.label,
+          ...(searchTerm ? { [ar ? "بحث" : "Search"]: searchTerm } : {}),
+          ...(filterStatus !== "all" ? { [ar ? "الحالة" : "Status"]: filterStatus } : {}),
+          ...(dateFrom ? { [ar ? "من تاريخ" : "From"]: formatDate(dateFrom) } : {}),
+          ...(dateTo ? { [ar ? "إلى تاريخ" : "To"]: formatDate(dateTo) } : {}),
+        }}
+        kpis={studioKpis}
+        availableColumns={studioColumns}
+        allRows={studioFormattedRows}
+        currentPageRows={studioCurrentPageRows}
+        initialLanguage={ar ? "ar" : "en"}
+      />
     </div>
   );
 }
