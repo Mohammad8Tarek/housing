@@ -1158,15 +1158,17 @@ router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
       return;
     }
     const evaluationId = Number(req.params.id);
-    const { profileRating, profileResponse, itemResponses } = req.body as {
-      profileRating?: number;
-      profileResponse?: string;
-      itemResponses?: Array<{
-        itemId: number;
-        ratingValue?: number;
-        textValue?: string;
-      }>;
-    };
+    const rawRating = req.body?.profileRating !== undefined 
+      ? req.body.profileRating 
+      : req.body?.employeeRating;
+    const rawResponse = req.body?.profileResponse !== undefined 
+      ? req.body.profileResponse 
+      : req.body?.employeeResponse;
+    const itemResponses = (req.body?.itemResponses as Array<{
+      itemId: number;
+      ratingValue?: number;
+      textValue?: string;
+    }>) || [];
 
     if (!evaluationId) {
       res
@@ -1217,20 +1219,20 @@ router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
       });
     }
 
-    // Also save old-style rating/response if provided (backward compat)
+    // Save rating/response (support both profileRating and employeeRating)
     const updateData: Record<string, unknown> = {};
-    if (profileRating !== undefined) {
-      const r = Number(profileRating);
+    if (rawRating !== undefined && rawRating !== null && rawRating !== "") {
+      const r = Number(rawRating);
       if (!isNaN(r) && r >= 1 && r <= 5) {
         updateData.profileRating = r;
       }
     }
     if (
-      profileResponse &&
-      typeof profileResponse === "string" &&
-      profileResponse.trim()
+      rawResponse &&
+      typeof rawResponse === "string" &&
+      rawResponse.trim()
     ) {
-      updateData.profileResponse = profileResponse.trim();
+      updateData.profileResponse = rawResponse.trim();
     }
 
     if (
@@ -1248,12 +1250,16 @@ router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
             ),
           );
 
-        if (existing && Object.keys(updateData).length > 0) {
+        if (existing) {
           await tenantDb
             .update(evaluationsTable)
-            .set(updateData)
+            .set({
+              ...updateData,
+              status: "completed",
+              submittedAt: new Date(),
+            })
             .where(eq(evaluationsTable.id, existing.id));
-        } else if (!existing && Object.keys(updateData).length > 0) {
+        } else {
           await tenantDb.insert(evaluationsTable).values({
             surveyTemplateId: evaluationId,
             profileId: sess.profileDbId,
@@ -1264,6 +1270,8 @@ router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
             descriptionEn: template.descriptionEn,
             department: template.department,
             expiresAt: template.expiresAt,
+            status: "completed",
+            submittedAt: new Date(),
             ...updateData,
           } as any);
         }

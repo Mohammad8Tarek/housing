@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Star, Send, Loader2, Info, BadgeCheck, Search, X } from "lucide-react";
+import { toast } from "sonner";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
 
@@ -169,21 +170,24 @@ export default function TabEvaluations({ evaluations, onCommentAdded }: Props) {
             : itemTexts[`${evaluationId}-${item.id}`] || null;
         return { itemId: item.id, textValue: val };
       }
-    });
+    }).filter((ir) => ir.ratingValue != null || (ir.textValue && ir.textValue.trim().length > 0));
+
+    const gRating = globalRatings[evaluationId];
+    const gComment = globalComment[evaluationId]?.trim();
+
+    // Require at least a rating, comment, or an answered question
+    if (!gRating && !gComment && itemResponses.length === 0) {
+      toast.error(isRtl ? "يرجى الإجابة على الأسئلة أو إضافة تقييم" : "Please answer questions or provide a rating");
+      return;
+    }
 
     const body: Record<string, unknown> = {
       itemResponses,
-      employeeRating: globalRatings[evaluationId] || undefined,
-      employeeResponse: globalComment[evaluationId]?.trim() || undefined,
+      profileRating: gRating || undefined,
+      employeeRating: gRating || undefined,
+      profileResponse: gComment || undefined,
+      employeeResponse: gComment || undefined,
     };
-
-    // Require at least a rating or a comment
-    if (
-      !body.employeeRating &&
-      !body.employeeResponse &&
-      itemResponses.length === 0
-    )
-      return;
 
     setLoadingIds((prev) => [...prev, evaluationId]);
     try {
@@ -204,9 +208,10 @@ export default function TabEvaluations({ evaluations, onCommentAdded }: Props) {
 
       setGlobalComment((prev) => ({ ...prev, [evaluationId]: "" }));
       setSubmitted((prev) => new Set(prev).add(evaluationId));
+      toast.success(isRtl ? "تم إرسال تقييمك بنجاح! شكراً لمشاركتك." : "Evaluation submitted successfully! Thank you.");
       onCommentAdded?.();
-    } catch {
-      // silent
+    } catch (err: any) {
+      toast.error(err?.message || (isRtl ? "حدث خطأ أثناء إرسال التقييم" : "Failed to submit evaluation"));
     } finally {
       setLoadingIds((prev) => prev.filter((id) => id !== evaluationId));
     }
@@ -530,7 +535,11 @@ export default function TabEvaluations({ evaluations, onCommentAdded }: Props) {
                         disabled={
                           isLoading ||
                           (!globalRatings[evaluation.id] &&
-                            !globalComment[evaluation.id]?.trim())
+                            !globalComment[evaluation.id]?.trim() &&
+                            !items.some((item) => {
+                              const k = `${evaluation.id}-${item.id}`;
+                              return itemRatings[k] || itemTexts[k]?.trim() || itemYesNo[k];
+                            }))
                         }
                         className="px-4 py-3 rounded-xl bg-accent2 text-accent2-foreground font-bold hover:scale-[1.01] active:scale-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2 flex-shrink-0"
                       >
