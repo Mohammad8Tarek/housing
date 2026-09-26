@@ -14,12 +14,20 @@ import { pool } from "@workspace/db";
 import { ensureProfilePortalAccount } from "./portal-accounts.js";
 
 // Canonical sessions storage directory
-const SESSIONS_DIR = fs.existsSync(path.resolve(process.cwd(), "artifacts/api-server/storage/whatsapp_sessions"))
-  ? path.resolve(process.cwd(), "artifacts/api-server/storage/whatsapp_sessions")
-  : path.resolve(process.cwd(), "storage/whatsapp_sessions");
-if (!fs.existsSync(SESSIONS_DIR)) {
-  fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+function getCanonicalSessionsDir(): string {
+  const cwd = process.cwd();
+  let baseDir: string;
+  if (cwd.includes("artifacts") && cwd.includes("api-server")) {
+    baseDir = path.resolve(cwd, "storage/whatsapp_sessions");
+  } else {
+    baseDir = path.resolve(cwd, "artifacts/api-server/storage/whatsapp_sessions");
+  }
+  if (!fs.existsSync(baseDir)) {
+    fs.mkdirSync(baseDir, { recursive: true });
+  }
+  return baseDir;
 }
+const SESSIONS_DIR = getCanonicalSessionsDir();
 
 interface SessionState {
   propertyId: number;
@@ -286,11 +294,13 @@ export async function processOutboxQueue(
     }
 
     // Anti-ban check: Quiet hours (23:00 to 07:30)
-    if (isQuietHoursNow()) {
+    // Transactional messages (TEST, CHECKIN_WELCOME, RESERVATION_CONFIRM, DIRECT) are dispatched immediately.
+    // Non-urgent bulk broadcasts are held until morning.
+    const inQuietHours = isQuietHoursNow();
+    if (inQuietHours) {
       console.log(
-        `[WhatsApp Anti-Ban] 🌙 Night quiet hours active in Egypt (23:00 - 07:30). Holding pending messages in outbox to prevent spam reports.`
+        `[WhatsApp Anti-Ban] 🌙 Night quiet hours active in Egypt (23:00 - 07:30). Allowing urgent transactional messages (Check-in / Reservation / Test) while holding broadcasts.`
       );
-      return { processed: 0, failed: 0, pendingRemaining: await getPendingQueueCount(propertyId) };
     }
 
     let processed = 0;
@@ -304,14 +314,19 @@ export async function processOutboxQueue(
         break;
       }
 
-      const { rows: pendingItems } = await pool.query(
-        `SELECT id, property_id, recipient_phone, recipient_name, message_type, message_content, retry_count
-         FROM public.whatsapp_outbox_queue
-         WHERE property_id = $1 AND status = 'PENDING'
-         ORDER BY id ASC
-         LIMIT 50`,
-        [propertyId]
-      );
+      const querySql = inQuietHours
+        ? `SELECT id, property_id, recipient_phone, recipient_name, message_type, message_content, retry_count
+           FROM public.whatsapp_outbox_queue
+           WHERE property_id = $1 AND status = 'PENDING' AND message_type IN ('TEST', 'CHECKIN_WELCOME', 'RESERVATION_CONFIRM', 'DIRECT')
+           ORDER BY id ASC
+           LIMIT 50`
+        : `SELECT id, property_id, recipient_phone, recipient_name, message_type, message_content, retry_count
+           FROM public.whatsapp_outbox_queue
+           WHERE property_id = $1 AND status = 'PENDING'
+           ORDER BY id ASC
+           LIMIT 50`;
+
+      const { rows: pendingItems } = await pool.query(querySql, [propertyId]);
 
       if (pendingItems.length === 0) {
         break;
@@ -488,7 +503,8 @@ export async function getWhatsAppSession(propertyId: number): Promise<SessionSta
 export async function connectPropertyWhatsApp(
   propertyId: number,
   forceRestart: boolean = false,
-  phoneNumberForPairingCode?: string
+  phoneNumberForPairingCode?: string,
+  resetSession: boolean = false
 ): Promise<SessionState> {
   let session = activeSessions.get(propertyId);
   if (!session) {
@@ -523,11 +539,22 @@ export async function connectPropertyWhatsApp(
   session.pairingCode = undefined;
 
   const sessionFolder = path.join(SESSIONS_DIR, `property_${propertyId}`);
+  const credsPath = path.join(sessionFolder, "creds.json");
+  let hasValidCreds = false;
+  if (fs.existsSync(credsPath)) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(credsPath, "utf-8"));
+      hasValidCreds = Boolean(raw?.registered && raw?.me);
+    } catch {
+      hasValidCreds = false;
+    }
+  }
+
   if (!fs.existsSync(sessionFolder)) {
     fs.mkdirSync(sessionFolder, { recursive: true });
-  } else if (forceRestart) {
-    // Only purge session directory if explicitly requested (e.g. user clicked Reconnect / Connect)
-    console.log(`[WhatsApp] Force restart: purging previous session directory for property ${propertyId}`);
+  } else if (resetSession || (forceRestart && !hasValidCreds)) {
+    // Only purge session directory if explicitly requested to reset, OR if credentials are not registered
+    console.log(`[WhatsApp] Purging unauthenticated session directory for property ${propertyId}`);
     try {
       fs.rmSync(sessionFolder, { recursive: true, force: true });
       fs.mkdirSync(sessionFolder, { recursive: true });
@@ -560,7 +587,7 @@ export async function connectPropertyWhatsApp(
       keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
     generateHighQualityLinkPreview: false,
-    browser: Browsers.windows("Desktop"),
+    browser: Browsers.ubuntu("Chrome"),
     markOnlineOnConnect: false,
     syncFullHistory: false,
     getMessage: async () => undefined,
@@ -668,17 +695,31 @@ export async function connectPropertyWhatsApp(
 
       const err = lastDisconnect?.error as any;
       const statusCode = err?.output?.statusCode ?? err?.statusCode ?? err?.status;
-      const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401;
-      const isRestartRequired = statusCode === DisconnectReason.restartRequired || statusCode === 515;
-
-      console.log(
-        `[WhatsApp] Property ${propertyId} connection closed (code ${statusCode}), isLoggedOut: ${isLoggedOut}, isRestartRequired: ${isRestartRequired}`
-      );
-
       const wasPairing = session.status === "pairing";
       session.status = "disconnected";
 
-      if (isLoggedOut) {
+      // 401 can happen during pairing stream restart. Only treat as permanent logout if NOT pairing
+      const isLoggedOut = (statusCode === DisconnectReason.loggedOut || statusCode === 401) && !wasPairing;
+      const isRestartRequired =
+        statusCode === DisconnectReason.restartRequired ||
+        statusCode === 515 ||
+        statusCode === 428 ||
+        statusCode === DisconnectReason.connectionLost ||
+        wasPairing;
+
+      console.log(
+        `[WhatsApp] Property ${propertyId} connection closed (code ${statusCode}), isLoggedOut: ${isLoggedOut}, isRestartRequired: ${isRestartRequired}, wasPairing: ${wasPairing}`
+      );
+
+      if (isRestartRequired || wasPairing) {
+        // Pairing handshake or stream restart requested! WhatsApp requires immediate reconnect with saved credentials
+        console.log(`[WhatsApp] Pairing handshake / stream restart in progress (code ${statusCode}) for property ${propertyId}. Immediate reconnect with saved credentials...`);
+        setTimeout(() => {
+          connectPropertyWhatsApp(propertyId, false).catch((err) => {
+            console.error(`[WhatsApp] Reconnect after restartRequired error:`, err);
+          });
+        }, 500);
+      } else if (isLoggedOut) {
         console.log(`[WhatsApp] Property ${propertyId} logged out. Resetting session credentials.`);
         session.qrCode = undefined;
         session.pairingCode = undefined;
@@ -692,18 +733,10 @@ export async function connectPropertyWhatsApp(
            WHERE property_id = $1`,
           [propertyId]
         ).catch(() => {});
-      } else if (isRestartRequired || statusCode === 515 || wasPairing) {
-        // QR Code was scanned or stream restart requested! WhatsApp requires immediate reconnect with saved credentials
-        console.log(`[WhatsApp] Pairing handshake in progress (code ${statusCode}) for property ${propertyId}. Immediate reconnect with saved credentials...`);
-        setTimeout(() => {
-          connectPropertyWhatsApp(propertyId, false).catch((err) => {
-            console.error(`[WhatsApp] Reconnect after restartRequired error:`, err);
-          });
-        }, 50);
       } else {
         // Infinite auto-reconnect with exponential backoff!
         session.reconnectAttempts++;
-        const delay = Math.min(session.reconnectAttempts * 2000, 20000);
+        const delay = Math.min(session.reconnectAttempts * 2000, 15000);
         console.log(`[WhatsApp] Auto-reconnecting property ${propertyId} (attempt #${session.reconnectAttempts}) in ${delay}ms...`);
         setTimeout(() => {
           connectPropertyWhatsApp(propertyId, false).catch((err) => {
@@ -860,30 +893,37 @@ async function executeSendHumanLike(
 
   try {
     // 1. Anti-ban: Pre-validate that destination phone number is registered on WhatsApp
-    const [exists] = await session.sock.onWhatsApp(jid);
-    if (!exists || !exists.exists) {
-      console.warn(`[WhatsApp Anti-Ban] Number ${cleanPhone} is NOT registered on WhatsApp. Skipping send to protect number.`);
-      await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "NOT_REGISTERED", "Number not on WhatsApp");
-      return { success: false, reason: "NOT_REGISTERED" };
+    let verifiedJid = jid;
+    try {
+      const onWaResult = await session.sock.onWhatsApp(jid);
+      if (Array.isArray(onWaResult) && onWaResult.length > 0) {
+        if (!onWaResult[0]?.exists) {
+          console.warn(`[WhatsApp Anti-Ban] Number ${cleanPhone} is NOT registered on WhatsApp. Skipping send to protect number.`);
+          await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "NOT_REGISTERED", "Number not on WhatsApp");
+          return { success: false, reason: "NOT_REGISTERED" };
+        }
+        if (onWaResult[0]?.jid) {
+          verifiedJid = onWaResult[0].jid;
+        }
+      }
+    } catch (onWaErr: any) {
+      console.warn(`[WhatsApp] onWhatsApp pre-check warning (proceeding directly):`, onWaErr?.message);
     }
 
-    const verifiedJid = exists.jid;
+    // 2. Anti-ban: Realistic human simulation (quick for TEST messages)
+    if (messageType === "TEST") {
+      await new Promise((r) => setTimeout(r, 600));
+    } else {
+      await session.sock.sendPresenceUpdate("available").catch(() => {});
+      await new Promise((r) => setTimeout(r, 1000 + Math.floor(Math.random() * 1000)));
 
-    // 2. Anti-ban: Realistic human simulation (reading delay -> composing -> pre-send pause)
-    await session.sock.sendPresenceUpdate("available").catch(() => {});
-    // Simulate user reading/preparing to type (1.5s to 3s)
-    await new Promise((r) => setTimeout(r, 1500 + Math.floor(Math.random() * 1500)));
+      await session.sock.sendPresenceUpdate("composing", verifiedJid).catch(() => {});
+      const baseTyping = Math.min(Math.max(text.length * 15, 2500), 5500);
+      await new Promise((r) => setTimeout(r, baseTyping));
 
-    await session.sock.sendPresenceUpdate("composing", verifiedJid).catch(() => {});
-
-    // Realistic human typing delay (proportional to message length, 3.2s to 7s)
-    const baseTyping = Math.min(Math.max(text.length * 18, 3200), 6800);
-    const typingDelay = baseTyping + Math.floor(Math.random() * 1500);
-    await new Promise((r) => setTimeout(r, typingDelay));
-
-    // Natural human pause right before hitting send (1s to 1.8s)
-    await session.sock.sendPresenceUpdate("paused", verifiedJid).catch(() => {});
-    await new Promise((r) => setTimeout(r, 1000 + Math.floor(Math.random() * 800)));
+      await session.sock.sendPresenceUpdate("paused", verifiedJid).catch(() => {});
+      await new Promise((r) => setTimeout(r, 800));
+    }
 
     // 3. Anti-ban: Inject unique invisible zero-width fingerprint & hash salt
     // Each dispatched message gets an entirely unique cryptographic hash on WhatsApp servers
