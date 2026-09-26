@@ -2862,19 +2862,17 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     let pageContentHtml = "";
     if (tableRows.length > 0 || headers.length > 0) {
       pageContentHtml = `
+        <div class="opera-first-page-header" style="margin-bottom: 6px; page-break-after: avoid; break-after: avoid;">
+          ${pageHeaderHtml}
+          ${kpisHtml}
+          ${customSectionsHtml ? `<div style="margin-bottom: 6px;">${customSectionsHtml}</div>` : ""}
+        </div>
         <table class="opera-table sunrise-report-table" style="width: 100%; border-collapse: collapse; table-layout: fixed;">
           <colgroup>
             <col class="opera-col-seq" style="width: ${seqWidthPct}%;" />
             ${headers.map((_, i) => `<col style="width: ${colWidthsPct[i]}%;" />`).join("")}
           </colgroup>
           <thead style="display: table-header-group !important;">
-            <tr>
-              <th colspan="${headers.length + 1}" style="padding: 0 0 6px 0; background: transparent; border: none; font-weight: normal; text-align: ${isArabic ? 'right' : 'left'};">
-                ${pageHeaderHtml}
-                ${kpisHtml}
-                ${customSectionsHtml ? `<div style="margin-bottom: 6px;">${customSectionsHtml}</div>` : ""}
-              </th>
-            </tr>
             <tr class="opera-thead-row" style="background: #0f2a44; color: #ffffff;">
               <th class="opera-seq-col" style="width: ${seqWidthPct}%; text-align: center; background: #0f2a44 !important; color: #ffffff !important; padding: ${printPadding}; font-size: ${Math.max(6.5, printFontSizePt - 0.2)}pt; font-weight: 800; border: 1px solid #0f2a44;">#</th>
               ${headers

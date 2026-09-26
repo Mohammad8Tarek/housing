@@ -181,6 +181,230 @@ export const PrintableReportDocument = forwardRef<
         }
       `}</style>
 
+      {/* Top Corporate Branding Header — First Page Only */}
+      <div
+        className="sunrise-report-first-page-header"
+        style={{
+          marginBottom: "6px",
+          pageBreakAfter: "avoid",
+          breakAfter: "avoid",
+        }}
+      >
+        {/* Top Corporate Branding Bar — strictly direction: ltr so logos never flip in Arabic RTL */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderBottom: "1.5px solid #0f2a44",
+            paddingBottom: "4px",
+            marginBottom: "5px",
+            direction: "ltr",
+          }}
+        >
+          {/* Left: System / Brand Logo */}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", direction: "ltr" }}>
+            {systemLogoUrl ? (
+              <img
+                src={systemLogoUrl}
+                alt="System Logo"
+                style={{ maxHeight: "26px", maxWidth: "110px", objectFit: "contain" }}
+              />
+            ) : (
+              <div
+                style={{
+                  background: "#0f2a44",
+                  color: "#ffffff",
+                  fontWeight: 900,
+                  padding: "2px 6px",
+                  borderRadius: "3px",
+                  fontSize: "8.5pt",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                SUNRISE
+              </div>
+            )}
+            {propertyName && (
+              <div
+                style={{
+                  fontSize: "7.5pt",
+                  color: "#0f2a44",
+                  fontWeight: 700,
+                  lineHeight: 1.2,
+                  textAlign: "left",
+                }}
+              >
+                {propertyName}{" "}
+                {propertyCode && (
+                  <span style={{ fontFamily: "monospace", fontSize: "7pt", color: "#64748b" }}>
+                    [{propertyCode}]
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Center: Report Title & Subtitle */}
+          <div style={{ textAlign: "center", flex: 1, padding: "0 10px" }}>
+            <div
+              style={{
+                fontSize: fontSizes.title,
+                fontWeight: 800,
+                color: "#0f2a44",
+                lineHeight: 1.15,
+                letterSpacing: "0.2px",
+              }}
+            >
+              {displayTitle}
+            </div>
+            {displaySubtitle && (
+              <div
+                style={{
+                  fontSize: fontSizes.subtitle,
+                  color: "#475569",
+                  fontWeight: 600,
+                  marginTop: "1px",
+                  lineHeight: 1.15,
+                }}
+              >
+                {displaySubtitle}
+              </div>
+            )}
+          </div>
+
+          {/* Right: Metadata & Property Logo (Pinned strictly on the right) */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              direction: "ltr",
+              justifyContent: "flex-end",
+            }}
+          >
+            <div style={{ fontSize: "6.8pt", color: "#64748b", lineHeight: 1.25, textAlign: "right" }}>
+              <div>
+                <span style={{ fontWeight: 700 }}>
+                  {isAr ? "التاريخ:" : "Date:"}
+                </span>{" "}
+                {formattedDate}
+              </div>
+              {generatedBy && (
+                <div>
+                  <span style={{ fontWeight: 700 }}>
+                    {isAr ? "المستخدم:" : "User:"}
+                  </span>{" "}
+                  {generatedBy}
+                </div>
+              )}
+              <div>
+                <span style={{ fontWeight: 700 }}>
+                  {isAr ? "السجلات:" : "Records:"}
+                </span>{" "}
+                {rows.length}
+              </div>
+            </div>
+            {propertyLogoUrl && propertyLogoUrl !== systemLogoUrl && (
+              <img
+                src={propertyLogoUrl}
+                alt="Property Logo"
+                style={{ maxHeight: "26px", maxWidth: "90px", objectFit: "contain" }}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Active Filter Indicators Bar */}
+        {filtersSummary && Object.keys(filtersSummary).length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: "6px",
+              background: "#f1f5f9",
+              border: "1px solid #e2e8f0",
+              borderRadius: "4px",
+              padding: "3px 8px",
+              marginBottom: "8px",
+              fontSize: "7pt",
+            }}
+          >
+            <span style={{ fontWeight: 800, color: "#0f2a44" }}>
+              🔍 {isAr ? "المحددات النشطة:" : "Active Filters:"}
+            </span>
+            {Object.entries(filtersSummary).map(([key, val]) => (
+              <span
+                key={key}
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "3px",
+                  padding: "1px 5px",
+                  color: "#334155",
+                  fontWeight: 600,
+                }}
+              >
+                <strong style={{ color: "#0f2a44" }}>{key}:</strong> {val}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Optional KPI Summary Strip */}
+        {showKpis && kpis.length > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${Math.min(
+                kpis.length,
+                6,
+              )}, minmax(0, 1fr))`,
+              gap: "6px",
+              marginBottom: "8px",
+            }}
+          >
+            {kpis.map((kpi, idx) => (
+              <div
+                key={idx}
+                style={{
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "4px",
+                  padding: "4px 6px",
+                  background: "#f8fafc",
+                  textAlign: "center",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: fontSizes.kpiVal,
+                    fontWeight: 900,
+                    color: "#0f2a44",
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {kpi.value}
+                </div>
+                <div
+                  style={{
+                    fontSize: fontSizes.kpiLabel,
+                    color: "#475569",
+                    fontWeight: 700,
+                    marginTop: "1px",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {isAr ? kpi.labelAr || kpi.label : kpi.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Main Document Table layout for flawless multi-page repeat */}
       <table
         className="sunrise-report-table w-full border-collapse"
@@ -191,235 +415,8 @@ export const PrintableReportDocument = forwardRef<
           fontSize: fontSizes.body,
         }}
       >
-        {/* Table Header containing Branded Header & Column Names */}
+        {/* Table Header containing ONLY Column Names so they repeat cleanly on subsequent pages */}
         <thead style={{ display: "table-header-group" }}>
-          <tr>
-            <th
-              colSpan={columns.length}
-              style={{
-                padding: 0,
-                fontWeight: "normal",
-                textAlign: isAr ? "right" : "left",
-                border: "none",
-                background: "transparent",
-              }}
-            >
-              {/* Top Corporate Branding Bar — strictly direction: ltr so logos never flip in Arabic RTL */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  borderBottom: "1.5px solid #0f2a44",
-                  paddingBottom: "4px",
-                  marginBottom: "5px",
-                  direction: "ltr",
-                }}
-              >
-                {/* Left: System / Brand Logo */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", direction: "ltr" }}>
-                  {systemLogoUrl ? (
-                    <img
-                      src={systemLogoUrl}
-                      alt="System Logo"
-                      style={{ maxHeight: "26px", maxWidth: "110px", objectFit: "contain" }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        background: "#0f2a44",
-                        color: "#ffffff",
-                        fontWeight: 900,
-                        padding: "2px 6px",
-                        borderRadius: "3px",
-                        fontSize: "8.5pt",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
-                      SUNRISE
-                    </div>
-                  )}
-                  {propertyName && (
-                    <div
-                      style={{
-                        fontSize: "7.5pt",
-                        color: "#0f2a44",
-                        fontWeight: 700,
-                        lineHeight: 1.2,
-                        textAlign: "left",
-                      }}
-                    >
-                      {propertyName}{" "}
-                      {propertyCode && (
-                        <span style={{ fontFamily: "monospace", fontSize: "7pt", color: "#64748b" }}>
-                          [{propertyCode}]
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Center: Report Title & Subtitle */}
-                <div style={{ textAlign: "center", flex: 1, padding: "0 10px" }}>
-                  <div
-                    style={{
-                      fontSize: fontSizes.title,
-                      fontWeight: 800,
-                      color: "#0f2a44",
-                      lineHeight: 1.15,
-                      letterSpacing: "0.2px",
-                    }}
-                  >
-                    {displayTitle}
-                  </div>
-                  {displaySubtitle && (
-                    <div
-                      style={{
-                        fontSize: fontSizes.subtitle,
-                        color: "#475569",
-                        fontWeight: 600,
-                        marginTop: "1px",
-                        lineHeight: 1.15,
-                      }}
-                    >
-                      {displaySubtitle}
-                    </div>
-                  )}
-                </div>
-
-                {/* Right: Metadata & Property Logo (Pinned strictly on the right) */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    direction: "ltr",
-                    justifyContent: "flex-end",
-                  }}
-                >
-                  <div style={{ fontSize: "6.8pt", color: "#64748b", lineHeight: 1.25, textAlign: "right" }}>
-                    <div>
-                      <span style={{ fontWeight: 700 }}>
-                        {isAr ? "التاريخ:" : "Date:"}
-                      </span>{" "}
-                      {formattedDate}
-                    </div>
-                    {generatedBy && (
-                      <div>
-                        <span style={{ fontWeight: 700 }}>
-                          {isAr ? "المستخدم:" : "User:"}
-                        </span>{" "}
-                        {generatedBy}
-                      </div>
-                    )}
-                    <div>
-                      <span style={{ fontWeight: 700 }}>
-                        {isAr ? "السجلات:" : "Records:"}
-                      </span>{" "}
-                      {rows.length}
-                    </div>
-                  </div>
-                  {propertyLogoUrl && propertyLogoUrl !== systemLogoUrl && (
-                    <img
-                      src={propertyLogoUrl}
-                      alt="Property Logo"
-                      style={{ maxHeight: "26px", maxWidth: "90px", objectFit: "contain" }}
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Active Filter Indicators Bar */}
-              {filtersSummary && Object.keys(filtersSummary).length > 0 && (
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                    gap: "6px",
-                    background: "#f1f5f9",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "4px",
-                    padding: "3px 8px",
-                    marginBottom: "8px",
-                    fontSize: "7pt",
-                  }}
-                >
-                  <span style={{ fontWeight: 800, color: "#0f2a44" }}>
-                    🔍 {isAr ? "المحددات النشطة:" : "Active Filters:"}
-                  </span>
-                  {Object.entries(filtersSummary).map(([key, val]) => (
-                    <span
-                      key={key}
-                      style={{
-                        background: "#ffffff",
-                        border: "1px solid #cbd5e1",
-                        borderRadius: "3px",
-                        padding: "1px 5px",
-                        color: "#334155",
-                        fontWeight: 600,
-                      }}
-                    >
-                      <strong style={{ color: "#0f2a44" }}>{key}:</strong> {val}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Optional KPI Summary Strip */}
-              {showKpis && kpis.length > 0 && (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: `repeat(${Math.min(
-                      kpis.length,
-                      6,
-                    )}, minmax(0, 1fr))`,
-                    gap: "6px",
-                    marginBottom: "8px",
-                  }}
-                >
-                  {kpis.map((kpi, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        border: "1px solid #cbd5e1",
-                        borderRadius: "4px",
-                        padding: "4px 6px",
-                        background: "#f8fafc",
-                        textAlign: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: fontSizes.kpiVal,
-                          fontWeight: 900,
-                          color: "#0f2a44",
-                          lineHeight: 1.1,
-                        }}
-                      >
-                        {kpi.value}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: fontSizes.kpiLabel,
-                          color: "#475569",
-                          fontWeight: 700,
-                          marginTop: "1px",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {isAr ? kpi.labelAr || kpi.label : kpi.label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </th>
-          </tr>
-
           {/* Actual Column Headers Row */}
           <tr
             style={{
