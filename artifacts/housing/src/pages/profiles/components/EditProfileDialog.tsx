@@ -670,10 +670,11 @@ export function EditProfileDialog({
 
             {/* National ID, Nationality, Phone, Gender, DOB */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <FormRow label={ar ? "رقم الهوية / الإقامة *" : "National ID *"}>
+              <FormRow label={ar ? "رقم الهوية / جواز السفر *" : "National ID / Passport *"}>
                 <Input
                   value={form.nationalId}
                   onChange={(e) => set("nationalId", e.target.value)}
+                  placeholder={ar ? "الرقم القومي (14 رقم) أو رقم الجواز..." : "14-digit National ID or Passport..."}
                   className={
                     duplicates.nationalId
                       ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
