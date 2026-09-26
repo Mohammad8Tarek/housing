@@ -1,7 +1,7 @@
 import { pool, withTenant, profilesTable, propertiesTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { logger } from "./logger.js";
-import { enrichProfileBilingual } from "./bilingual-translator.js";
+import { enrichProfileBilingual, splitCompoundName } from "./bilingual-translator.js";
 
 export interface SunriseEsignConfig {
   id?: string;
@@ -224,28 +224,6 @@ export async function resolveHotelId(config: SunriseEsignConfig, token: string, 
 }
 
 /**
- * Split full name into name parts (first, second/third, last)
- */
-function splitFullName(fullName: string): { first: string; second: string; third: string; last: string } {
-  const parts = (fullName || "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-
-  if (parts.length === 0) return { first: "", second: "", third: "", last: "" };
-  if (parts.length === 1) return { first: parts[0], second: "", third: "", last: "" };
-  if (parts.length === 2) return { first: parts[0], second: "", third: "", last: parts[1] };
-  if (parts.length === 3) return { first: parts[0], second: parts[1], third: "", last: parts[2] };
-
-  return {
-    first: parts[0],
-    second: parts[1],
-    third: parts[2],
-    last: parts.slice(3).join(" "),
-  };
-}
-
-/**
  * Normalize raw employee record from Sunrise e-Signature into standard profile format
  */
 export function normalizeEsignRecord(
@@ -256,10 +234,9 @@ export function normalizeEsignRecord(
   const employeeCode = raw.EmployeeCode ?? raw.clock_no ?? raw.clockNumber ?? "";
   const profileId = String(employeeCode).trim();
 
-  // English Name decomposition
-  const enSplit = splitFullName(raw.Name || "");
-  // Arabic Name decomposition
-  const arSplit = splitFullName(raw.Arabic_Name || "");
+  // Decompose compound names (Abd El Atay, Abu Bakr, Salah Eldin, etc.)
+  const enSplit = splitCompoundName(raw.Name || "", false);
+  const arSplit = splitCompoundName(raw.Arabic_Name || "", true);
 
   // Gender normalization: 1 = Male (M), 2 = Female (F)
   const rawSex = raw.Sex ?? raw.gender ?? 1;
@@ -279,11 +256,11 @@ export function normalizeEsignRecord(
   // Phone / Mobile
   const phone = String(raw.Mobile || raw.phone || "").trim();
 
-  // Titles & Departments
-  const jobTitle = String(raw.position_name || raw.PositionCode || "").trim();
-  const jobTitleAr = String(raw.ar_position_name || "").trim();
+  // Titles & Departments (Check all possible HR API field keys)
+  const jobTitle = String(raw.position_name || raw.PositionCode || raw.job_title || "").trim();
+  const jobTitleAr = String(raw.ar_position_name || raw.position_ar || raw.job_title_ar || "").trim();
   const department = String(raw.department_name || raw.section_name || raw.DepartmentCode || "").trim();
-  const departmentAr = String(raw.section_name || "").trim();
+  const departmentAr = String(raw.ar_department_name || raw.ar_section_name || raw.department_ar || raw.section_name || "").trim();
 
   // Address & Nationality
   const address = String(raw.ArabicFullAddress || raw.address || "").trim();
@@ -302,16 +279,18 @@ export function normalizeEsignRecord(
     config?.hotelCode ||
     "";
 
+  // Note on name mapping:
+  // In the DB & UI: firstName = 1st, lastName = 2nd (Father), thirdName = 3rd (Grandfather), fourthName = 4th (Family)
   const normalized: NormalizedEsignEmployee = {
     profileId,
     firstName: enSplit.first || arSplit.first,
-    lastName: enSplit.last || arSplit.last,
+    lastName: enSplit.second || arSplit.second,
     thirdName: enSplit.third || arSplit.third,
-    fourthName: enSplit.second || arSplit.second,
+    fourthName: enSplit.fourth || arSplit.fourth,
     firstNameAr: arSplit.first,
-    lastNameAr: arSplit.last,
+    lastNameAr: arSplit.second,
     thirdNameAr: arSplit.third,
-    fourthNameAr: arSplit.second,
+    fourthNameAr: arSplit.fourth,
     nationalId,
     nationality,
     address,

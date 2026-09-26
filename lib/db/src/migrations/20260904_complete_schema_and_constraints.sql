@@ -1992,6 +1992,7 @@ BEGIN
     -- ========================================================
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema AND table_name = 'rooms') THEN
       CREATE INDEX IF NOT EXISTS idx_rooms_building ON rooms(building_id);
+      CREATE INDEX IF NOT EXISTS idx_rooms_building_id ON rooms(building_id);
       CREATE INDEX IF NOT EXISTS idx_rooms_floor ON rooms(floor_id);
       CREATE INDEX IF NOT EXISTS idx_rooms_status ON rooms(status);
       CREATE INDEX IF NOT EXISTS idx_rooms_number ON rooms(room_number);
@@ -2008,7 +2009,9 @@ BEGIN
 
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema AND table_name = 'assignments') THEN
       CREATE INDEX IF NOT EXISTS idx_assignments_profile ON assignments(profile_id);
+      CREATE INDEX IF NOT EXISTS idx_assignments_profile_id ON assignments(profile_id);
       CREATE INDEX IF NOT EXISTS idx_assignments_room ON assignments(room_id);
+      CREATE INDEX IF NOT EXISTS idx_assignments_room_id ON assignments(room_id);
       CREATE INDEX IF NOT EXISTS idx_assignments_status ON assignments(status);
       CREATE INDEX IF NOT EXISTS idx_assignments_room_status ON assignments(room_id, status);
       CREATE INDEX IF NOT EXISTS idx_assignments_profile_status ON assignments(profile_id, status);

@@ -46,7 +46,7 @@ import {
   Sparkles,
   Languages,
 } from "lucide-react";
-import { transliterateToken } from "@/lib/bilingual-name-engine";
+import { transliterateToken, splitCompoundName } from "@/lib/bilingual-name-engine";
 import { translateDepartment, translateJobTitle } from "@/lib/bilingual-hospitality-dict";
 import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
 import {
@@ -134,14 +134,16 @@ export function EditProfileDialog({
   };
 
   const [fullArabicInput, setFullArabicInput] = useState("");
+  const [isManualDept, setIsManualDept] = useState(false);
+  const [isManualJobTitle, setIsManualJobTitle] = useState(false);
 
   const handleFullArabicNameChange = (val: string) => {
     setFullArabicInput(val);
-    const parts = val.trim().split(/\s+/).filter(Boolean);
-    const p1 = parts[0] || "";
-    const p2 = parts[1] || "";
-    const p3 = parts[2] || "";
-    const p4 = parts.slice(3).join(" ") || "";
+    const parts = splitCompoundName(val, true);
+    const p1 = parts.first;
+    const p2 = parts.second;
+    const p3 = parts.third;
+    const p4 = parts.fourth;
 
     const fnEn = p1 ? transliterateToken(p1, "en") : "";
     const lnEn = p2 ? transliterateToken(p2, "en") : "";
@@ -838,48 +840,46 @@ export function EditProfileDialog({
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                     <div className="sm:col-span-2">
-                      <FormRow label={ar ? "القسم (إنجليزي)" : "Department (English)"}>
-                        {departments.length > 0 ? (
-                          <div className="flex gap-1.5">
-                            <Select
-                              value={form.department}
-                              onValueChange={(v) => {
-                                const matched = departments.find((d) => d.value === v);
-                                const arDept = matched?.valueAr || translateDepartment(v, "ar");
-                                setForm((p) => ({
-                                  ...p,
-                                  department: v,
-                                  departmentAr: arDept || p.departmentAr || "",
-                                  jobTitle: "",
-                                  jobTitleAr: "",
-                                  level: "",
-                                }));
-                              }}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">{ar ? "القسم (إنجليزي)" : "Department (English)"}</Label>
+                          {departments.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setIsManualDept(!isManualDept)}
+                              className="text-[11px] text-primary hover:underline font-medium"
                             >
-                              <SelectTrigger className="h-9 flex-1">
-                                <SelectValue placeholder={ar ? "اختر..." : "Select..."} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {departments.map((d) => (
-                                  <SelectItem key={d.id} value={d.value}>
-                                    {ar && d.valueAr ? `${d.valueAr} (${d.value})` : d.value}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Input
-                              value={form.department}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                set("department", v);
-                                if (!form.departmentAr) {
-                                  set("departmentAr", translateDepartment(v, "ar"));
-                                }
-                              }}
-                              placeholder={ar ? "أو يدوي" : "Or type..."}
-                              className="h-9 w-24 text-xs shrink-0"
-                            />
-                          </div>
+                              {isManualDept ? (ar ? "اختيار من القائمة" : "Select from list") : (ar ? "كتابة يدوية" : "Type manual")}
+                            </button>
+                          )}
+                        </div>
+                        {departments.length > 0 && !isManualDept ? (
+                          <Select
+                            value={form.department}
+                            onValueChange={(v) => {
+                              const matched = departments.find((d) => d.value === v);
+                              const arDept = matched?.valueAr || translateDepartment(v, "ar");
+                              setForm((p) => ({
+                                ...p,
+                                department: v,
+                                departmentAr: arDept || p.departmentAr || "",
+                                jobTitle: "",
+                                jobTitleAr: "",
+                                level: "",
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="h-9 w-full">
+                              <SelectValue placeholder={ar ? "اختر القسم..." : "Select dept..."} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {departments.map((d) => (
+                                <SelectItem key={d.id} value={d.value}>
+                                  {ar && d.valueAr ? `${d.valueAr} (${d.value})` : d.value}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         ) : (
                           <Input
                             value={form.department}
@@ -891,10 +891,10 @@ export function EditProfileDialog({
                               }
                             }}
                             placeholder={ar ? "القسم بالإنجليزي" : "Department (EN)"}
-                            className="h-9"
+                            className="h-9 w-full"
                           />
                         )}
-                      </FormRow>
+                      </div>
                     </div>
 
                     <div className="sm:col-span-2">
@@ -942,47 +942,45 @@ export function EditProfileDialog({
 
                   {/* Job Title (EN & AR) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <FormRow label={ar ? "المسمى الوظيفي (إنجليزي)" : "Job Title (English)"}>
-                      {allJobTitles.length > 0 ? (
-                        <div className="flex gap-1.5">
-                          <Select
-                            value={form.jobTitle}
-                            onValueChange={(v) => {
-                              const jt = allJobTitles.find((t) => t.value === v);
-                              const arTitle = jt?.valueAr || translateJobTitle(v, "ar");
-                              setForm((p) => ({
-                                ...p,
-                                jobTitle: v,
-                                jobTitleAr: arTitle || p.jobTitleAr || "",
-                                level: jt?.extraValue || p.level,
-                              }));
-                            }}
-                            disabled={!form.department && departments.length > 0}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">{ar ? "المسمى الوظيفي (إنجليزي)" : "Job Title (English)"}</Label>
+                        {allJobTitles.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setIsManualJobTitle(!isManualJobTitle)}
+                            className="text-[11px] text-primary hover:underline font-medium"
                           >
-                            <SelectTrigger className="h-9 flex-1">
-                              <SelectValue placeholder={ar ? "اختر..." : "Select..."} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {filteredJobTitles.map((j) => (
-                                <SelectItem key={j.id} value={j.value}>
-                                  {ar && j.valueAr ? `${j.valueAr} (${j.value})` : j.value}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            value={form.jobTitle}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              set("jobTitle", v);
-                              if (!form.jobTitleAr) {
-                                set("jobTitleAr", translateJobTitle(v, "ar"));
-                              }
-                            }}
-                            placeholder={ar ? "أو يدوي" : "Or type..."}
-                            className="h-9 w-24 text-xs shrink-0"
-                          />
-                        </div>
+                            {isManualJobTitle ? (ar ? "اختيار من القائمة" : "Select from list") : (ar ? "كتابة يدوية" : "Type manual")}
+                          </button>
+                        )}
+                      </div>
+                      {allJobTitles.length > 0 && !isManualJobTitle ? (
+                        <Select
+                          value={form.jobTitle}
+                          onValueChange={(v) => {
+                            const jt = allJobTitles.find((t) => t.value === v);
+                            const arTitle = jt?.valueAr || translateJobTitle(v, "ar");
+                            setForm((p) => ({
+                              ...p,
+                              jobTitle: v,
+                              jobTitleAr: arTitle || p.jobTitleAr || "",
+                              level: jt?.extraValue || p.level,
+                            }));
+                          }}
+                          disabled={!form.department && departments.length > 0}
+                        >
+                          <SelectTrigger className="h-9 w-full">
+                            <SelectValue placeholder={ar ? "اختر المسمى..." : "Select title..."} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredJobTitles.map((j) => (
+                              <SelectItem key={j.id} value={j.value}>
+                                {ar && j.valueAr ? `${j.valueAr} (${j.value})` : j.value}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       ) : (
                         <Input
                           value={form.jobTitle}
@@ -994,10 +992,10 @@ export function EditProfileDialog({
                             }
                           }}
                           placeholder={ar ? "المسمى بالإنجليزي" : "Job Title (EN)"}
-                          className="h-9"
+                          className="h-9 w-full"
                         />
                       )}
-                    </FormRow>
+                    </div>
 
                     <FormRow label={ar ? "المسمى الوظيفي (عربي)" : "Job Title (Arabic)"}>
                       <Input

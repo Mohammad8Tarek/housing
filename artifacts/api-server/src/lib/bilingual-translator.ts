@@ -402,6 +402,20 @@ export const NAME_EN_TO_AR: Record<string, string> = {
   abdelkhaleq: "عبد الخالق",
   abdelgawad: "عبد الجواد",
   abdelazim: "عبد العظيم",
+  abdelaty: "عبد العاطي",
+  "abdel-aty": "عبد العاطي",
+  "abd el-aty": "عبد العاطي",
+  "abd el aty": "عبد العاطي",
+  "abd elatay": "عبد العاطي",
+  "abd el atay": "عبد العاطي",
+  "abdelatay": "عبد العاطي",
+  "el atay": "العاطي",
+  "el-atay": "العاطي",
+  "elatye": "العاطي",
+  "elaty": "العاطي",
+  bahansow: "بهنساوي",
+  bahnasawy: "بهنساوي",
+  bahnasy: "بهنسي",
 
   // Common Egyptian Family Prefixes with El / Al
   "el-sayed": "السيد",
@@ -464,6 +478,16 @@ NAME_AR_TO_EN["عبدالفتاح"] = "Abdelfattah";
 NAME_AR_TO_EN["عبدالعزيز"] = "Abdelaziz";
 NAME_AR_TO_EN["عبدالحميد"] = "Abdelhamid";
 NAME_AR_TO_EN["علاء الدين"] = "AllaEldin";
+NAME_AR_TO_EN["عبد العاطي"] = "Abd El-Aty";
+NAME_AR_TO_EN["عبد العاطى"] = "Abd El-Aty";
+NAME_AR_TO_EN["عبدالعاطي"] = "Abdelaty";
+NAME_AR_TO_EN["عبدالعاطى"] = "Abdelaty";
+NAME_AR_TO_EN["العاطي"] = "El-Aty";
+NAME_AR_TO_EN["العاطى"] = "El-Aty";
+NAME_AR_TO_EN["بهنساوي"] = "Bahnasawy";
+NAME_AR_TO_EN["بهنساوى"] = "Bahnasawy";
+NAME_AR_TO_EN["بهنسي"] = "Bahnasy";
+NAME_AR_TO_EN["بهنسى"] = "Bahnasy";
 
 // ============================================================================
 // 2. Comprehensive Hospitality Departments Dictionary
@@ -833,6 +857,257 @@ export function hasEnglish(text: string | null | undefined): boolean {
   return /[a-zA-Z]/.test(text ?? "");
 }
 
+export function capitalizeWord(str: string): string {
+  if (!str) return "";
+  return str
+    .split(/([\s\-]+)/)
+    .map((seg) => {
+      if (seg.trim().length === 0 || seg === "-") return seg;
+      const lower = seg.toLowerCase();
+      if (lower.startsWith("el-") || lower.startsWith("al-")) {
+        return "El-" + lower.slice(3).charAt(0).toUpperCase() + lower.slice(4);
+      }
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join("");
+}
+
+export function phoneticArToEn(word: string): string {
+  if (!word) return "";
+  let w = word.trim();
+
+  if (w.startsWith("عبد ال") || w.startsWith("عبدال") || w.startsWith("عبد ")) {
+    const remainder = w.replace(/^عبد\s*ال?/, "");
+    return "Abdel" + phoneticArToEn(remainder);
+  }
+  if (w.startsWith("ال")) {
+    return "El-" + phoneticArToEn(w.slice(2));
+  }
+
+  const arCharMap: Record<string, string> = {
+    "ا": "A",
+    "أ": "A",
+    "إ": "E",
+    "آ": "A",
+    "ء": "",
+    "ئ": "E",
+    "ؤ": "O",
+    "ب": "b",
+    "ت": "t",
+    "ث": "th",
+    "ج": "g",
+    "ح": "h",
+    "خ": "kh",
+    "د": "d",
+    "ذ": "z",
+    "ر": "r",
+    "ز": "z",
+    "س": "s",
+    "ش": "sh",
+    "ص": "s",
+    "ض": "d",
+    "ط": "t",
+    "ظ": "z",
+    "ع": "a",
+    "غ": "gh",
+    "ف": "f",
+    "ق": "q",
+    "ك": "k",
+    "ل": "l",
+    "م": "m",
+    "ن": "n",
+    "ه": "h",
+    "و": "w",
+    "ي": "y",
+    "ى": "a",
+    "ة": "a",
+  };
+
+  let out = "";
+  for (let i = 0; i < w.length; i++) {
+    const ch = w[i];
+    out += arCharMap[ch] !== undefined ? arCharMap[ch] : ch;
+  }
+  return capitalizeWord(out);
+}
+
+export interface NameParts {
+  first: string;
+  second: string;
+  third: string;
+  fourth: string;
+}
+
+export function splitCompoundName(fullName: string, isArabic?: boolean): NameParts {
+  if (!fullName || !fullName.trim()) {
+    return { first: "", second: "", third: "", fourth: "" };
+  }
+
+  const clean = fullName.trim().replace(/\s+/g, " ");
+  const arabic = isArabic !== undefined ? isArabic : hasArabic(clean);
+  const raw = clean.split(" ").filter(Boolean);
+
+  if (raw.length === 0) {
+    return { first: "", second: "", third: "", fourth: "" };
+  }
+
+  const merged: string[] = [];
+
+  if (arabic) {
+    const RELIGIOUS_FIRSTS = new Set([
+      "سيف", "نور", "صلاح", "علاء", "حسام", "شمس", "بهاء", "عماد", "جمال", "كمال",
+      "جلال", "بدر", "ضياء", "نجم", "محي", "محيي", "تقي", "سراج", "نصر", "خير", "تاج", "شرف", "زين", "عز"
+    ]);
+    const ALLAH_FIRSTS = new Set([
+      "نصر", "فتح", "عطاء", "جاد", "فضل", "ضيف", "خير", "جار", "هبة", "رحمة", "نعمة", "حفظ", "أمر", "سعد", "كرم"
+    ]);
+
+    for (let i = 0; i < raw.length; i++) {
+      const cur = raw[i];
+      const next = raw[i + 1];
+      const next2 = raw[i + 2];
+
+      if (cur === "عبد" && next) {
+        if (next === "ال" && next2) {
+          merged.push(`عبد ال${next2}`);
+          i += 2;
+          continue;
+        } else {
+          merged.push(`عبد ${next}`);
+          i += 1;
+          continue;
+        }
+      }
+
+      if ((cur === "أبو" || cur === "ابو") && next) {
+        if (next === "ال" && next2) {
+          merged.push(`${cur} ال${next2}`);
+          i += 2;
+          continue;
+        } else {
+          merged.push(`${cur} ${next}`);
+          i += 1;
+          continue;
+        }
+      }
+
+      if (next && (next === "الدين" || next === "دين") && RELIGIOUS_FIRSTS.has(cur)) {
+        merged.push(`${cur} الدين`);
+        i += 1;
+        continue;
+      }
+
+      if (next && (next === "الله" || next === "اللة") && ALLAH_FIRSTS.has(cur)) {
+        merged.push(`${cur} الله`);
+        i += 1;
+        continue;
+      }
+
+      if (cur === "فاطمة" && next === "الزهراء") {
+        merged.push("فاطمة الزهراء");
+        i += 1;
+        continue;
+      }
+      if ((cur === "أم" || cur === "ام") && next) {
+        merged.push(`${cur} ${next}`);
+        i += 1;
+        continue;
+      }
+      if ((cur === "آل" || cur === "بن" || cur === "ابن") && next) {
+        merged.push(`${cur} ${next}`);
+        i += 1;
+        continue;
+      }
+
+      merged.push(cur);
+    }
+  } else {
+    for (let i = 0; i < raw.length; i++) {
+      const cur = raw[i];
+      const curLow = cur.toLowerCase();
+      const next = raw[i + 1];
+      const nextLow = next ? next.toLowerCase() : "";
+      const next2 = raw[i + 2];
+      const next2Low = next2 ? next2.toLowerCase() : "";
+
+      if (curLow === "abd" && next) {
+        if ((nextLow === "el" || nextLow === "al") && next2) {
+          merged.push(`${cur} ${next} ${next2}`);
+          i += 2;
+          continue;
+        } else {
+          merged.push(`${cur} ${next}`);
+          i += 1;
+          continue;
+        }
+      }
+
+      if ((curLow === "abdel" || curLow === "abdul") && next) {
+        merged.push(`${cur} ${next}`);
+        i += 1;
+        continue;
+      }
+
+      if ((curLow === "el" || curLow === "al") && next) {
+        merged.push(`${cur} ${next}`);
+        i += 1;
+        continue;
+      }
+
+      if ((curLow === "abu" || curLow === "abou" || curLow === "abo") && next) {
+        if ((nextLow === "el" || nextLow === "al") && next2) {
+          merged.push(`${cur} ${next} ${next2}`);
+          i += 2;
+          continue;
+        } else {
+          merged.push(`${cur} ${next}`);
+          i += 1;
+          continue;
+        }
+      }
+
+      if (next && nextLow === "el" && next2 && next2Low === "din") {
+        merged.push(`${cur} El Din`);
+        i += 2;
+        continue;
+      }
+      if (next && (nextLow === "eldin" || nextLow === "el-din" || nextLow === "al-din")) {
+        merged.push(`${cur} ${next}`);
+        i += 1;
+        continue;
+      }
+
+      if ((curLow === "bin" || curLow === "ibn" || curLow === "ben") && next) {
+        merged.push(`${cur} ${next}`);
+        i += 1;
+        continue;
+      }
+
+      merged.push(cur);
+    }
+  }
+
+  if (merged.length === 1) {
+    return { first: merged[0], second: "", third: "", fourth: "" };
+  }
+  if (merged.length === 2) {
+    return { first: merged[0], second: merged[1], third: "", fourth: "" };
+  }
+  if (merged.length === 3) {
+    return { first: merged[0], second: merged[1], third: merged[2], fourth: "" };
+  }
+  if (merged.length === 4) {
+    return { first: merged[0], second: merged[1], third: merged[2], fourth: merged[3] };
+  }
+
+  return {
+    first: merged[0],
+    second: merged[1],
+    third: merged[2],
+    fourth: merged.slice(3).join(" "),
+  };
+}
+
 export function transliterateNameToken(token: string, targetLang: "ar" | "en"): string {
   if (!token || !token.trim()) return "";
   const cleaned = token.trim();
@@ -847,15 +1122,17 @@ export function transliterateNameToken(token: string, targetLang: "ar" | "en"): 
     if (NAME_AR_TO_EN[cleaned]) return NAME_AR_TO_EN[cleaned];
     const norm = cleaned.replace(/[أإآ]/g, "ا");
     if (NAME_AR_TO_EN[norm]) return NAME_AR_TO_EN[norm];
-    // Fallback capital
-    return cleaned;
+    const noSpace = cleaned.replace(/\s+/g, "");
+    if (NAME_AR_TO_EN[noSpace]) return NAME_AR_TO_EN[noSpace];
+    return phoneticArToEn(cleaned);
   }
 }
 
 export function transliterateName(fullName: string | null | undefined, targetLang: "ar" | "en"): string {
   if (!fullName || !fullName.trim()) return "";
   const cleaned = fullName.trim();
-  const tokens = cleaned.split(/\s+/).filter(Boolean);
+  const parts = splitCompoundName(cleaned, targetLang === "en");
+  const tokens = [parts.first, parts.second, parts.third, parts.fourth].filter(Boolean);
   return tokens.map((t) => transliterateNameToken(t, targetLang)).join(" ");
 }
 

@@ -24,6 +24,7 @@ import {
   translateDepartment,
   translateJobTitle,
   hasArabic,
+  splitCompoundName,
 } from "../lib/bilingual-translator.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import {
@@ -168,17 +169,37 @@ export function extractProfileFields(
   ]);
   const profileId = rawProfileId ? String(rawProfileId).trim() : "";
 
-  const firstName = getVal("firstName", ["first_name", "first", "firstNameEn", "first_name_en"]) ?? "";
-  const lastName = getVal("lastName", ["last_name", "last", "lastNameEn", "last_name_en"]) ?? "";
-  const thirdName =
-    getVal("thirdName", ["third_name", "father_name", "middle_name", "thirdNameEn"]) ?? "";
-  const fourthName =
-    getVal("fourthName", ["fourth_name", "family_name", "grand_father", "fourthNameEn"]) ?? "";
+  let firstName = getVal("firstName", ["first_name", "first", "firstNameEn", "first_name_en"]) ?? "";
+  let lastName = getVal("lastName", ["last_name", "last", "lastNameEn", "last_name_en", "second_name", "secondName", "second"]) ?? "";
+  let thirdName =
+    getVal("thirdName", ["third_name", "father_name", "middle_name", "thirdNameEn", "third"]) ?? "";
+  let fourthName =
+    getVal("fourthName", ["fourth_name", "family_name", "grand_father", "fourthNameEn", "fourth"]) ?? "";
 
-  const firstNameAr = getVal("firstNameAr", ["first_name_ar", "firstName_ar", "الاسم_الأول", "الاسم الاول", "الاسم"]) ?? "";
-  const lastNameAr = getVal("lastNameAr", ["last_name_ar", "lastName_ar", "اسم_العائلة", "اسم العائلة", "اللقب"]) ?? "";
-  const thirdNameAr = getVal("thirdNameAr", ["third_name_ar", "thirdName_ar", "اسم_الأب", "اسم الاب", "الاسم الثالث"]) ?? "";
-  const fourthNameAr = getVal("fourthNameAr", ["fourth_name_ar", "fourthName_ar", "اسم_الجد", "اسم الجد", "الاسم الرابع"]) ?? "";
+  let firstNameAr = getVal("firstNameAr", ["first_name_ar", "firstName_ar", "الاسم_الأول", "الاسم الاول", "الاسم"]) ?? "";
+  let lastNameAr = getVal("lastNameAr", ["last_name_ar", "lastName_ar", "الاسم_الثاني", "الاسم الثاني", "اسم_الأب", "اسم الاب"]) ?? "";
+  let thirdNameAr = getVal("thirdNameAr", ["third_name_ar", "thirdName_ar", "الاسم_الثالث", "الاسم الثالث", "اسم_الجد", "اسم الجد"]) ?? "";
+  let fourthNameAr = getVal("fourthNameAr", ["fourth_name_ar", "fourthName_ar", "الاسم_الرابع", "الاسم الرابع", "اسم_العائلة", "اسم العائلة", "اللقب"]) ?? "";
+
+  // If full Arabic name provided without separate parts
+  const rawFullNameAr = getVal("Arabic_Name", ["fullNameAr", "full_name_ar", "arabicName", "arabic_name", "الاسم_بالكامل", "الاسم بالكامل", "الاسم الرباعي"]);
+  if (rawFullNameAr && (!firstNameAr || !lastNameAr)) {
+    const arParts = splitCompoundName(String(rawFullNameAr), true);
+    if (!firstNameAr) firstNameAr = arParts.first;
+    if (!lastNameAr) lastNameAr = arParts.second;
+    if (!thirdNameAr) thirdNameAr = arParts.third;
+    if (!fourthNameAr) fourthNameAr = arParts.fourth;
+  }
+
+  // If full English name provided without separate parts
+  const rawFullNameEn = getVal("Name", ["fullName", "full_name", "fullNameEn", "name", "employeeName", "emp_name"]);
+  if (rawFullNameEn && (!firstName || !lastName)) {
+    const enParts = splitCompoundName(String(rawFullNameEn), false);
+    if (!firstName) firstName = enParts.first;
+    if (!lastName) lastName = enParts.second;
+    if (!thirdName) thirdName = enParts.third;
+    if (!fourthName) fourthName = enParts.fourth;
+  }
 
   const nationalId =
     getVal("nationalId", ["national_id", "iqama", "ssn", "nid", "الرقم_القومي", "الرقم القومي", "الهوية"]) ?? "";
@@ -976,7 +997,10 @@ export async function processReceive(
                 changedFields.push(labelAr);
               }
             };
-            checkDiff("الاسم", emp.firstName, existing.firstName);
+            checkDiff("الاسم الأول", emp.firstName, existing.firstName);
+            checkDiff("الاسم الثاني", emp.lastName, existing.lastName);
+            checkDiff("الاسم الثالث", emp.thirdName, existing.thirdName);
+            checkDiff("الاسم الرابع", emp.fourthName, existing.fourthName);
             checkDiff("الرقم القومي", emp.nationalId, existing.nationalId);
             checkDiff("الجنسية", emp.nationality, existing.nationality);
             checkDiff("العنوان", emp.address, existing.address);
@@ -994,10 +1018,10 @@ export async function processReceive(
               lastName: emp.lastName !== undefined && emp.lastName !== "" ? emp.lastName : existing.lastName,
               thirdName: emp.thirdName !== undefined ? emp.thirdName : existing.thirdName,
               fourthName: emp.fourthName !== undefined ? emp.fourthName : existing.fourthName,
-              firstNameAr: enrichedUpdate.firstNameAr || existing.firstNameAr,
-              lastNameAr: enrichedUpdate.lastNameAr || existing.lastNameAr,
-              thirdNameAr: enrichedUpdate.thirdNameAr || existing.thirdNameAr,
-              fourthNameAr: enrichedUpdate.fourthNameAr || existing.fourthNameAr,
+              firstNameAr: enrichedUpdate.firstNameAr ?? existing.firstNameAr,
+              lastNameAr: enrichedUpdate.lastNameAr ?? existing.lastNameAr,
+              thirdNameAr: enrichedUpdate.thirdNameAr ?? existing.thirdNameAr,
+              fourthNameAr: enrichedUpdate.fourthNameAr ?? existing.fourthNameAr,
               nationalId: emp.nationalId !== undefined && emp.nationalId !== "" ? emp.nationalId : existing.nationalId,
               nationality: emp.nationality !== undefined && emp.nationality !== "" ? emp.nationality : existing.nationality,
               jobTitle: enrichedUpdate.jobTitle || emp.jobTitle || existing.jobTitle,
@@ -2664,21 +2688,22 @@ router.post(
       const sourceId = req.body.sourceId ? String(req.body.sourceId).trim() : undefined;
 
       let config: SunriseEsignConfig | null = null;
-      if (sourceId) {
+      if (sourceId && sourceId !== "all") {
         config = await getEsignConfigById(propertyId, sourceId);
         if (!config) {
           res.status(400).json({ success: false, error: `مصدر الربط "${sourceId}" غير موجود` });
           return;
         }
       } else {
-        config = await getEsignConfig(propertyId);
-      }
-      if (!config || !config.username || !config.password) {
-        res.status(400).json({
-          success: false,
-          error: "إعدادات الربط مع سيرفر الموارد البشرية غير مهيأة. يرجى تهيئتها أولاً.",
-        });
-        return;
+        const allConfigs = await getEsignConfigs(propertyId);
+        const activeConfigs = allConfigs.filter((c) => c.isActive !== false && c.username && c.password);
+        if (activeConfigs.length === 0) {
+          res.status(400).json({
+            success: false,
+            error: "إعدادات الربط مع سيرفر الموارد البشرية غير مهيأة. يرجى تهيئتها أولاً.",
+          });
+          return;
+        }
       }
 
       // Query all profiles in the current property that have a profileId
@@ -2702,7 +2727,14 @@ router.post(
       for (const p of validProfiles) {
         checked++;
         try {
-          const emp = await fetchEmployeeByCode(config, p.profileId);
+          let emp: any = null;
+          if (config) {
+            emp = await fetchEmployeeByCode(config, p.profileId);
+          } else {
+            const multiRes = await fetchEmployeeFromAllSources(propertyId, p.profileId);
+            emp = multiRes.employee;
+          }
+
           if (emp) {
             foundEmployees.push(emp);
           } else {

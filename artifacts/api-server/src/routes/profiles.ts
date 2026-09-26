@@ -986,10 +986,21 @@ router.get(
 
     // Fallback: search across all active properties if not found yet or propertyId was 0 / not in session
     if (!profile) {
+      const authUser = (req as any).authUser;
+      const isSysAdmin =
+        authUser?.isSystemAdmin ||
+        authUser?.roles?.some((r: any) =>
+          ["super_admin", "system_admin"].includes(String(r).toLowerCase()),
+        );
+      const allowedPids: number[] = Array.isArray(authUser?.propertyIds)
+        ? authUser.propertyIds.map(Number).filter(Boolean)
+        : (authUser?.propertyId ? [Number(authUser.propertyId)] : []);
+
       try {
         const props = await db.select({ id: propertiesTable.id }).from(propertiesTable);
         for (const p of props) {
           if (p.id === propertyId) continue;
+          if (!isSysAdmin && !allowedPids.includes(p.id)) continue;
           try {
             const [found] = await withTenant(p.id, async (tenantDb) => {
               return await tenantDb
@@ -1092,10 +1103,21 @@ router.patch(
     }
 
     if (!profileExistsInTenant) {
+      const authUser = (req as any).authUser;
+      const isSysAdmin =
+        authUser?.isSystemAdmin ||
+        authUser?.roles?.some((r: any) =>
+          ["super_admin", "system_admin"].includes(String(r).toLowerCase()),
+        );
+      const allowedPids: number[] = Array.isArray(authUser?.propertyIds)
+        ? authUser.propertyIds.map(Number).filter(Boolean)
+        : (authUser?.propertyId ? [Number(authUser.propertyId)] : []);
+
       try {
         const props = await db.select({ id: propertiesTable.id }).from(propertiesTable);
         for (const p of props) {
           if (p.id === propertyId) continue;
+          if (!isSysAdmin && !allowedPids.includes(p.id)) continue;
           try {
             const [found] = await withTenant(p.id, async (tenantDb) => {
               return await tenantDb
@@ -1512,10 +1534,21 @@ router.patch(
     }
 
     if (!profileExistsInTenant) {
+      const authUser = (req as any).authUser;
+      const isSysAdmin =
+        authUser?.isSystemAdmin ||
+        authUser?.roles?.some((r: any) =>
+          ["super_admin", "system_admin"].includes(String(r).toLowerCase()),
+        );
+      const allowedPids: number[] = Array.isArray(authUser?.propertyIds)
+        ? authUser.propertyIds.map(Number).filter(Boolean)
+        : (authUser?.propertyId ? [Number(authUser.propertyId)] : []);
+
       try {
         const props = await db.select({ id: propertiesTable.id }).from(propertiesTable);
         for (const p of props) {
           if (p.id === propertyId) continue;
+          if (!isSysAdmin && !allowedPids.includes(p.id)) continue;
           try {
             const [found] = await withTenant(p.id, async (tenantDb) => {
               return await tenantDb
