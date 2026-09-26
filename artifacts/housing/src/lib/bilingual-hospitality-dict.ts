@@ -98,6 +98,9 @@ export const HOSPITALITY_JOB_TITLES: TranslationItem[] = [
   { en: "Front Office Manager", ar: "مدير المكاتب الأمامية" },
   { en: "Assistant Front Office Manager", ar: "مساعد مدير المكاتب الأمامية" },
   { en: "Front Office Supervisor", ar: "مشرف مكاتب أمامية" },
+  { en: "Front Office Shift Leader", ar: "قائد وردية مكاتب أمامية" },
+  { en: "Front Office Agent", ar: "موظف مكاتب أمامية" },
+  { en: "Front Office Clerk", ar: "كاتب مكاتب أمامية" },
   { en: "Front Desk Supervisor", ar: "مشرف استقبال" },
   { en: "Front Desk Agent", ar: "موظف استقبال" },
   { en: "Receptionist", ar: "موظف استقبال" },
@@ -225,9 +228,15 @@ export const HOSPITALITY_JOB_TITLES: TranslationItem[] = [
   { en: "Receiving Clerk", ar: "أمين استلام بضائع" },
 
   // IT & Systems
+  { en: "Cluster IT Manager", ar: "مدير تكنولوجيا المعلومات للمجموعة" },
   { en: "IT Manager", ar: "مدير تكنولوجيا المعلومات" },
+  { en: "Information Technology Manager", ar: "مدير تكنولوجيا المعلومات" },
+  { en: "Information Technology Supervisor", ar: "مشرف أنظمة وتكنولوجيا المعلومات" },
+  { en: "IT Supervisor", ar: "مشرف تكنولوجيا المعلومات" },
   { en: "IT Officer", ar: "مسؤول تكنولوجيا المعلومات" },
   { en: "IT Specialist", ar: "أخصائي نظم معلومات" },
+  { en: "Information Technology Specialist", ar: "أخصائي تكنولوجيا معلومات" },
+  { en: "IT Clerk", ar: "موظف تكنولوجيا معلومات" },
   { en: "Network Engineer", ar: "مهندس شبكات" },
 
   // Transportation

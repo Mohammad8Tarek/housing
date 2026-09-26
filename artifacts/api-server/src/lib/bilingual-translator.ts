@@ -584,6 +584,10 @@ export const TITLE_EN_TO_AR: Record<string, string> = {
   // Front Office & Guest Experience
   "front office manager": "مدير المكاتب الأمامية",
   "assistant front office manager": "مساعد مدير المكاتب الأمامية",
+  "front office supervisor": "مشرف مكاتب أمامية",
+  "front office shift leader": "قائد وردية مكاتب أمامية",
+  "front office agent": "موظف مكاتب أمامية",
+  "front office clerk": "كاتب مكاتب أمامية",
   "front desk supervisor": "مشرف استقبال",
   "front desk agent": "موظف استقبال",
   receptionist: "موظف استقبال",
@@ -704,11 +708,16 @@ export const TITLE_EN_TO_AR: Record<string, string> = {
   // IT & Systems
   "cluster it manager": "مدير تكنولوجيا المعلومات للمجموعة",
   "it manager": "مدير تكنولوجيا المعلومات",
+  "information technology manager": "مدير تكنولوجيا المعلومات",
   "asst.information & technology manager": "مساعد مدير تكنولوجيا المعلومات",
   "asst. information & technology manager": "مساعد مدير تكنولوجيا المعلومات",
+  "information technology supervisor": "مشرف أنظمة وتكنولوجيا المعلومات",
   "it supervisor": "مشرف تكنولوجيا المعلومات",
   "it officer": "مسؤول تكنولوجيا المعلومات",
-  "it specialist": "أخصائي نظم معلومات",
+  "it specialist": "أخصائي نظم ومعلومات",
+  "information technology specialist": "أخصائي تكنولوجيا معلومات",
+  "it clerk": "موظف تكنولوجيا معلومات",
+  "information technology clerk": "موظف تكنولوجيا معلومات",
   "network engineer": "مهندس شبكات",
 
   // Finance & Accounts
@@ -1174,6 +1183,10 @@ export function translateJobTitle(title: string | null | undefined, targetLang: 
       [/\bexecutive\b/gi, "تنفيذي"],
       [/\bmanager\b/gi, "مدير"],
       [/\bsupervisor\b/gi, "مشرف"],
+      [/\bfront office\b/gi, "مكاتب أمامية"],
+      [/\bfront desk\b/gi, "استقبال"],
+      [/\bagent\b/gi, "موظف"],
+      [/\bclerk\b/gi, "موظف"],
       [/\bofficer\b/gi, "مسؤول"],
       [/\bcoordinator\b/gi, "منسق"],
       [/\bspecialist\b/gi, "أخصائي"],
@@ -1208,8 +1221,8 @@ export function translateJobTitle(title: string | null | undefined, targetLang: 
       return translated.trim();
     }
 
-    // Direct lookup in dept or fallback transliteration
-    return transliterateName(cleaned, "ar");
+    // Direct lookup in dept or fallback without phonetic noise
+    return cleaned;
   } else {
     if (TITLE_AR_TO_EN[cleaned]) return TITLE_AR_TO_EN[cleaned];
     return cleaned;

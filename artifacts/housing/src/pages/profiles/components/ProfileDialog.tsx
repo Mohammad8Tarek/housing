@@ -344,6 +344,51 @@ export function ProfileDialog({
       }
 
       const emp = data.employee;
+
+      const cleanDob = emp.dateOfBirth ? String(emp.dateOfBirth).split(/[T ]/)[0] : "";
+      const cleanHire = emp.hireDate ? String(emp.hireDate).split(/[T ]/)[0] : "";
+      const cleanContract = emp.contractEndDate ? String(emp.contractEndDate).split(/[T ]/)[0] : "";
+
+      // Match Department with dropdown or toggle to manual input
+      const rawDeptEn = (emp.department || "").trim();
+      const rawDeptAr = (emp.departmentAr || "").trim();
+      const deptMatch = departments.find(
+        (d) =>
+          (rawDeptEn && d.value.trim().toLowerCase() === rawDeptEn.toLowerCase()) ||
+          (rawDeptAr && d.valueAr && d.valueAr.trim() === rawDeptAr)
+      );
+      if (rawDeptEn && !deptMatch) {
+        setIsManualDept(true);
+      } else if (deptMatch) {
+        setIsManualDept(false);
+      }
+
+      // Match Job Title with dropdown or toggle to manual input
+      const rawJobEn = (emp.jobTitle || "").trim();
+      const rawJobAr = (emp.jobTitleAr || "").trim();
+      const jobMatch = allJobTitles.find(
+        (j) =>
+          (rawJobEn && j.value.trim().toLowerCase() === rawJobEn.toLowerCase()) ||
+          (rawJobAr && j.valueAr && j.valueAr.trim() === rawJobAr)
+      );
+      if (rawJobEn && !jobMatch) {
+        setIsManualJobTitle(true);
+      } else if (jobMatch) {
+        setIsManualJobTitle(false);
+      }
+
+      const fullArName = [
+        emp.firstNameAr,
+        emp.lastNameAr,
+        emp.thirdNameAr,
+        emp.fourthNameAr,
+      ]
+        .filter(Boolean)
+        .join(" ");
+      if (fullArName) {
+        setFullArabicInput(fullArName);
+      }
+
       setForm((prev) => ({
         ...prev,
         firstName: emp.firstName || prev.firstName,
@@ -355,18 +400,18 @@ export function ProfileDialog({
         thirdNameAr: emp.thirdNameAr || prev.thirdNameAr,
         fourthNameAr: emp.fourthNameAr || prev.fourthNameAr,
         nationalId: emp.nationalId || prev.nationalId,
-        nationality: emp.nationality || prev.nationality,
+        nationality: emp.nationality || prev.nationality || "Egyptian",
         phone: emp.phone || prev.phone,
         address: emp.address || prev.address,
         gender: emp.gender || prev.gender,
-        department: emp.department || prev.department,
-        departmentAr: emp.departmentAr || prev.departmentAr,
-        jobTitle: emp.jobTitle || prev.jobTitle,
-        jobTitleAr: emp.jobTitleAr || prev.jobTitleAr,
-        level: emp.level || prev.level,
-        hireDate: emp.hireDate || prev.hireDate,
-        dateOfBirth: emp.dateOfBirth || prev.dateOfBirth,
-        contractEndDate: emp.contractEndDate || prev.contractEndDate,
+        department: deptMatch ? deptMatch.value : rawDeptEn || prev.department,
+        departmentAr: deptMatch?.valueAr || rawDeptAr || prev.departmentAr,
+        jobTitle: jobMatch ? jobMatch.value : rawJobEn || prev.jobTitle,
+        jobTitleAr: jobMatch?.valueAr || rawJobAr || prev.jobTitleAr,
+        level: emp.level || jobMatch?.extraValue || prev.level,
+        hireDate: cleanHire || prev.hireDate,
+        dateOfBirth: cleanDob || prev.dateOfBirth,
+        contractEndDate: cleanContract || prev.contractEndDate,
         companyName: emp.companyName || emp.hotelName || prev.companyName,
       }));
 

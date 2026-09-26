@@ -249,18 +249,32 @@ export function normalizeEsignRecord(
   const level = raw.LevelCode !== undefined && raw.LevelCode !== null ? String(raw.LevelCode).trim() : "";
 
   // Dates
-  const hireDate = raw.HiringDate ? String(raw.HiringDate).split("T")[0] : new Date().toISOString().split("T")[0];
-  const dateOfBirth = raw.BirthDate ? String(raw.BirthDate).split("T")[0] : "";
-  const contractEndDate = raw.ContractExpireDate ? String(raw.ContractExpireDate).split("T")[0] : null;
+  const cleanIsoDate = (val: any): string => {
+    if (!val) return "";
+    const s = String(val).trim();
+    return s.split(/[T ]/)[0] || "";
+  };
+  const hireDate = raw.HiringDate ? cleanIsoDate(raw.HiringDate) : new Date().toISOString().split("T")[0];
+  const dateOfBirth = raw.BirthDate ? cleanIsoDate(raw.BirthDate) : "";
+  const contractEndDate = raw.ContractExpireDate ? cleanIsoDate(raw.ContractExpireDate) : null;
 
   // Phone / Mobile
   const phone = String(raw.Mobile || raw.phone || "").trim();
 
   // Titles & Departments (Check all possible HR API field keys)
-  const jobTitle = String(raw.position_name || raw.PositionCode || raw.job_title || "").trim();
-  const jobTitleAr = String(raw.ar_position_name || raw.position_ar || raw.job_title_ar || "").trim();
-  const department = String(raw.department_name || raw.section_name || raw.DepartmentCode || "").trim();
-  const departmentAr = String(raw.ar_department_name || raw.ar_section_name || raw.department_ar || raw.section_name || "").trim();
+  const jobTitle = String(raw.position_name || raw.PositionCode || raw.job_title || "")
+    .trim()
+    .replace(/\s+/g, " ");
+  let jobTitleAr = String(raw.ar_position_name || raw.position_ar || raw.job_title_ar || "")
+    .trim()
+    .replace(/\s+/g, " ");
+
+  const department = String(raw.department_name || raw.section_name || raw.DepartmentCode || "")
+    .trim()
+    .replace(/\s+/g, " ");
+  let departmentAr = String(raw.ar_department_name || raw.ar_section_name || raw.department_ar || raw.section_name || "")
+    .trim()
+    .replace(/\s+/g, " ");
 
   // Address & Nationality
   const address = String(raw.ArabicFullAddress || raw.address || "").trim();
