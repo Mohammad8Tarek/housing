@@ -318,12 +318,12 @@ export async function processOutboxQueue(
         ? `SELECT id, property_id, recipient_phone, recipient_name, message_type, message_content, retry_count
            FROM public.whatsapp_outbox_queue
            WHERE property_id = $1 AND status = 'PENDING' AND message_type IN ('TEST', 'CHECKIN_WELCOME', 'RESERVATION_CONFIRM', 'DIRECT')
-           ORDER BY id ASC
+           ORDER BY (CASE WHEN message_type = 'TEST' THEN 1 WHEN message_type = 'CHECKIN_WELCOME' THEN 2 WHEN message_type = 'RESERVATION_CONFIRM' THEN 3 ELSE 4 END) ASC, id ASC
            LIMIT 50`
         : `SELECT id, property_id, recipient_phone, recipient_name, message_type, message_content, retry_count
            FROM public.whatsapp_outbox_queue
            WHERE property_id = $1 AND status = 'PENDING'
-           ORDER BY id ASC
+           ORDER BY (CASE WHEN message_type = 'TEST' THEN 1 WHEN message_type = 'CHECKIN_WELCOME' THEN 2 WHEN message_type = 'RESERVATION_CONFIRM' THEN 3 ELSE 4 END) ASC, id ASC
            LIMIT 50`;
 
       const { rows: pendingItems } = await pool.query(querySql, [propertyId]);
@@ -861,7 +861,7 @@ export async function autoRestoreAllWhatsAppSessions(): Promise<void> {
 /**
  * Actual execution of sending message with anti-ban human behavior
  */
-async function executeSendHumanLike(
+export async function executeSendHumanLike(
   propertyId: number,
   rawPhone: string,
   text: string,

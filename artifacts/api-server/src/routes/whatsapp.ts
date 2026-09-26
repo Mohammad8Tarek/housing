@@ -7,6 +7,7 @@ import {
   connectPropertyWhatsApp,
   disconnectPropertyWhatsApp,
   sendWhatsAppMessageSafe,
+  executeSendHumanLike,
   compileWhatsAppTemplate,
   DEFAULT_WELCOME_AR,
   DEFAULT_WELCOME_EN,
@@ -296,7 +297,7 @@ router.post("/test", requireAnyPermission(["whatsapp", "create"], ["whatsapp", "
       });
     }
 
-    const sendRes = await sendWhatsAppMessageSafe(
+    const sendRes = await executeSendHumanLike(
       propertyId,
       phone,
       textToSend,
@@ -305,48 +306,27 @@ router.post("/test", requireAnyPermission(["whatsapp", "create"], ["whatsapp", "
     );
 
     if (!sendRes.success) {
-      return res.status(400).json({
-        success: false,
-        error: sendRes.reason || "تعذر إرسال الرسالة",
-      });
-    }
-
-    // Wait briefly up to 4s to verify delivery status in real-time
-    let finalStatus = "QUEUED";
-    let finalError = "";
-    for (let i = 0; i < 8; i++) {
-      await new Promise((r) => setTimeout(r, 500));
-      const logCheck = await pool.query(
-        `SELECT status, error_message FROM public.whatsapp_delivery_logs
-         WHERE property_id = $1 AND message_type = 'TEST'
-         ORDER BY id DESC LIMIT 1`,
-        [propertyId]
-      );
-      if (logCheck.rows[0]) {
-        finalStatus = logCheck.rows[0].status;
-        finalError = logCheck.rows[0].error_message || "";
-        if (finalStatus === "SENT" || finalStatus === "FAILED" || finalStatus === "NOT_REGISTERED") {
-          break;
-        }
+      if (sendRes.reason === "NOT_REGISTERED") {
+        return res.status(400).json({
+          success: false,
+          error: "الرقم المدخل غير مسجل على تطبيق الواتساب أو غير صحيح.",
+        });
       }
-    }
-
-    if (finalStatus === "NOT_REGISTERED") {
+      if (sendRes.reason === "NOT_CONNECTED") {
+        return res.status(400).json({
+          success: false,
+          error: "خدمة الواتساب غير متصلة حالياً. يرجى إعادة ربط الواتساب أولاً.",
+        });
+      }
       return res.status(400).json({
         success: false,
-        error: "الرقم المدخل غير مسجل على تطبيق الواتساب أو غير صحيح.",
-      });
-    }
-    if (finalStatus === "FAILED") {
-      return res.status(400).json({
-        success: false,
-        error: finalError || "فشل إرسال الرسالة إلى الواتساب.",
+        error: sendRes.reason || "فشل إرسال الرسالة إلى الواتساب.",
       });
     }
 
     res.json({
       success: true,
-      message: "تم إرسال الرسالة التجريبية عبر الواتساب بنجاح! تفقد هاتفك.",
+      message: "تم إرسال الرسالة التجريبية عبر الواتساب بنجاح! تفقد شات الواتساب.",
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
