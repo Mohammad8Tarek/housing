@@ -228,45 +228,14 @@ export function resolveSpintax(text: string): string {
   });
 }
 
-const ZERO_WIDTH_SALT_CHARS = [
-  "\u200B", // Zero-Width Space
-  "\u200C", // Zero-Width Non-Joiner
-  "\u200D", // Zero-Width Joiner
-  "\u2060", // Word Joiner
-  "\uFEFF", // Zero-Width No-Break Space
-];
-
 /**
- * Injects an invisible cryptographic fingerprint and zero-width salt into the message text.
- * This ensures that every single message sent across WhatsApp has a 100% unique byte hash (SHA-256)
- * and perceptual fingerprint, preventing WhatsApp AI spam/bulk detection filters from blocking the account,
- * while rendering completely invisible and clean to the recipient.
+ * Cleans and prepares message text for safe dispatch.
+ * Avoids any zero-width characters (like \u200B) which trigger Meta's automated spam classification.
+ * Natural variation is achieved cleanly via Spintax ({opt1|opt2}) in message templates.
  */
-export function injectAntiBanFingerprint(text: string, seed?: string | number): string {
+export function injectAntiBanFingerprint(text: string, _seed?: string | number): string {
   if (!text || typeof text !== "string") return text;
-
-  // 1. Subtle intra-text variance: randomly salt a small portion of space characters with zero-width markers
-  let salted = text.replace(/ /g, (m) =>
-    Math.random() < 0.2 ? m + ZERO_WIDTH_SALT_CHARS[Math.floor(Math.random() * ZERO_WIDTH_SALT_CHARS.length)] : m
-  );
-
-  // 2. Generate high-resolution timestamp & entropy
-  const entropy = `${Date.now().toString(36)}_${seed || ""}_${Math.random().toString(36).slice(2, 7)}`;
-  let binaryHash = "";
-  for (let i = 0; i < entropy.length; i++) {
-    const code = entropy.charCodeAt(i);
-    binaryHash += code % 2 === 0 ? "\u200B" : "\u200C";
-  }
-
-  // 3. Trailing random zero-width salt sequence
-  const saltLen = 6 + Math.floor(Math.random() * 8);
-  let tailSalt = "";
-  for (let i = 0; i < saltLen; i++) {
-    tailSalt += ZERO_WIDTH_SALT_CHARS[Math.floor(Math.random() * ZERO_WIDTH_SALT_CHARS.length)];
-  }
-
-  // Combine cleanly without any visible marks
-  return `${salted.trimEnd()}${tailSalt}${binaryHash}`;
+  return text.trim();
 }
 
 /**
@@ -587,8 +556,8 @@ export async function connectPropertyWhatsApp(
       keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
     generateHighQualityLinkPreview: false,
-    browser: Browsers.ubuntu("Chrome"),
-    markOnlineOnConnect: false,
+    browser: Browsers.windows("Desktop"),
+    markOnlineOnConnect: true,
     syncFullHistory: false,
     getMessage: async () => undefined,
     connectTimeoutMs: 60000,
