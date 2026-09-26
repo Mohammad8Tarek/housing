@@ -12,8 +12,8 @@ export function getTenantId(req: any): number {
 
 export function su(req: any) {
   return {
-    username: req.session?.username ?? "system",
-    userId: req.session?.userId,
-    userRole: req.session?.userRole,
+    username: req?.session?.username ?? "system",
+    userId: req?.session?.userId,
+    userRole: req?.session?.userRole,
   };
 }

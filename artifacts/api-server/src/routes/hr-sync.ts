@@ -207,14 +207,34 @@ export function extractProfileFields(
   const address = getVal("address", ["street", "residence", "العنوان"]) ?? "";
 
   const jobTitle =
-    getVal("jobTitle", ["job_title", "position", "title", "role", "job_title_en", "jobTitleEn", "jobTitle_en", "position_en", "positionEn"]) ?? "";
+    getVal("jobTitle", [
+      "position_name",
+      "PositionName",
+      "job_title",
+      "JobTitle",
+      "position",
+      "Position",
+      "title",
+      "role",
+      "job_title_en",
+      "jobTitleEn",
+      "jobTitle_en",
+      "position_en",
+      "positionEn",
+      "PositionCode",
+      "position_code",
+    ]) ?? "";
   const jobTitleAr =
     getVal("jobTitleAr", [
+      "ar_position_name",
+      "ArabicPositionName",
+      "position_name_ar",
       "job_title_ar",
       "jobTitle_ar",
       "jobTitleAr",
       "position_ar",
-      "positionAr",
+      "PositionAr",
+      "ar_position",
       "title_ar",
       "titleAr",
       "الوظيفة",
@@ -224,19 +244,53 @@ export function extractProfileFields(
       "المهنة",
     ]) ?? "";
 
-  const level = getVal("level", ["grade", "job_level", "jobLevel", "الدرجة", "المستوى"]) ?? "";
+  const level =
+    getVal("level", [
+      "LevelCode",
+      "level_code",
+      "Level",
+      "grade",
+      "Grade",
+      "job_level",
+      "jobLevel",
+      "JobLevel",
+      "level_name",
+      "LevelName",
+      "الدرجة",
+      "المستوى",
+    ]) ?? "";
   const phone =
-    getVal("phone", ["mobile", "telephone", "phone_number", "phoneNumber", "الهاتف", "الجوال", "الموبايل"]) ??
+    getVal("phone", ["mobile", "telephone", "phone_number", "phoneNumber", "Mobile", "الهاتف", "الجوال", "الموبايل"]) ??
     "";
 
-  const department = getVal("department", ["dept", "section", "department_en", "departmentEn", "dept_en", "deptEn", "section_en"]) ?? "";
+  const department =
+    getVal("department", [
+      "department_name",
+      "DepartmentName",
+      "dept",
+      "section",
+      "section_name",
+      "SectionName",
+      "department_en",
+      "departmentEn",
+      "dept_en",
+      "deptEn",
+      "section_en",
+      "DepartmentCode",
+      "department_code",
+    ]) ?? "";
   const departmentAr = getVal("departmentAr", [
+    "ar_department_name",
+    "ArabicDepartmentName",
+    "ar_section_name",
     "department_ar",
     "departmentAr",
+    "DepartmentAr",
     "dept_ar",
     "deptAr",
     "section_ar",
     "sectionAr",
+    "section_name_ar",
     "القسم",
     "الإدارة",
     "الادارة",
@@ -728,17 +782,36 @@ export async function autoRegisterLookups(
   tenantDb: any,
   rawEmployees: any[],
   propertyId: number,
-): Promise<{ added: number }> {
+): Promise<{ added: number; updated: number }> {
   let added = 0;
+  let updated = 0;
   try {
     const existing = await tenantDb.select().from(lookupValuesTable);
-    const existingSet = new Set<string>();
+
+    // Build lookup maps by category
+    const deptByVal = new Map<string, any>();
+    const deptByValAr = new Map<string, any>();
+    const jobTitleByVal = new Map<string, any>();
+    const jobTitleByValAr = new Map<string, any>();
+    const jobLevelByVal = new Map<string, any>();
+    const companyByVal = new Map<string, any>();
+
     for (const item of existing) {
       const cat = String(item.category || "").trim().toLowerCase();
       const val = String(item.value || "").trim().toLowerCase();
-      const pVal = String(item.parentValue || "").trim().toLowerCase();
-      existingSet.add(`${cat}:${val}:${pVal}`);
-      existingSet.add(`${cat}:${val}`);
+      const valAr = String(item.valueAr || "").trim().toLowerCase();
+
+      if (cat === "department") {
+        if (val) deptByVal.set(val, item);
+        if (valAr) deptByValAr.set(valAr, item);
+      } else if (cat === "job_title") {
+        if (val) jobTitleByVal.set(val, item);
+        if (valAr) jobTitleByValAr.set(valAr, item);
+      } else if (cat === "job_level") {
+        if (val) jobLevelByVal.set(val, item);
+      } else if (cat === "company") {
+        if (val) companyByVal.set(val, item);
+      }
     }
 
     for (const emp of rawEmployees) {
@@ -755,19 +828,39 @@ export async function autoRegisterLookups(
         deptAr = translateDepartment(dept, "ar");
       }
 
-      if (dept && !existingSet.has(`department:${dept.toLowerCase()}`)) {
-        existingSet.add(`department:${dept.toLowerCase()}`);
-        try {
-          await tenantDb.insert(lookupValuesTable).values({
-            category: "department",
-            value: dept,
-            valueAr: deptAr || dept,
-            parentValue: null,
-            sortOrder: 0,
-            disabled: false,
-          });
-          added++;
-        } catch {}
+      if (dept) {
+        const deptKey = dept.toLowerCase();
+        const deptArKey = deptAr.toLowerCase();
+        const existingDept = deptByVal.get(deptKey) || (deptArKey ? deptByValAr.get(deptArKey) : undefined);
+
+        if (existingDept) {
+          // If existing lookup has missing or non-Arabic valueAr, update it!
+          if (deptAr && (!existingDept.valueAr || !hasArabic(existingDept.valueAr))) {
+            try {
+              await tenantDb
+                .update(lookupValuesTable)
+                .set({ valueAr: deptAr })
+                .where(eq(lookupValuesTable.id, existingDept.id));
+              existingDept.valueAr = deptAr;
+              updated++;
+            } catch {}
+          }
+        } else {
+          try {
+            const [newDept] = await tenantDb.insert(lookupValuesTable).values({
+              category: "department",
+              value: dept,
+              valueAr: deptAr || dept,
+              parentValue: null,
+              sortOrder: 0,
+              disabled: false,
+            }).returning();
+            const rec = newDept || { id: 0, category: "department", value: dept, valueAr: deptAr || dept };
+            deptByVal.set(deptKey, rec);
+            if (deptArKey) deptByValAr.set(deptArKey, rec);
+            added++;
+          } catch {}
+        }
       }
 
       // 2. Job Title bilingual resolution
@@ -784,66 +877,108 @@ export async function autoRegisterLookups(
       }
 
       const parentDept = dept || null;
-      const titleKey = `job_title:${title.toLowerCase()}:${(parentDept || "").toLowerCase()}`;
-      if (title && !existingSet.has(titleKey) && !existingSet.has(`job_title:${title.toLowerCase()}`)) {
-        existingSet.add(titleKey);
-        existingSet.add(`job_title:${title.toLowerCase()}`);
-        try {
-          await tenantDb.insert(lookupValuesTable).values({
-            category: "job_title",
-            value: title,
-            valueAr: titleAr || title,
-            parentValue: parentDept,
-            extraValue: emp.level ? String(emp.level).trim() : null,
-            sortOrder: 0,
-            disabled: false,
-          });
-          added++;
-        } catch {}
+      const empLevel = emp.level !== undefined && emp.level !== null && String(emp.level).trim() !== ""
+        ? String(emp.level).trim()
+        : null;
+
+      if (title) {
+        const titleKey = title.toLowerCase();
+        const titleArKey = titleAr.toLowerCase();
+        const existingJob = jobTitleByVal.get(titleKey) || (titleArKey ? jobTitleByValAr.get(titleArKey) : undefined);
+
+        if (existingJob) {
+          // Check if parent department, level, or Arabic title need correcting/updating
+          const updateFields: any = {};
+          if (titleAr && (!existingJob.valueAr || !hasArabic(existingJob.valueAr))) {
+            updateFields.valueAr = titleAr;
+            existingJob.valueAr = titleAr;
+          }
+          if (parentDept && (!existingJob.parentValue || existingJob.parentValue !== parentDept)) {
+            updateFields.parentValue = parentDept;
+            existingJob.parentValue = parentDept;
+          }
+          if (empLevel && (!existingJob.extraValue || existingJob.extraValue !== empLevel)) {
+            updateFields.extraValue = empLevel;
+            existingJob.extraValue = empLevel;
+          }
+
+          if (Object.keys(updateFields).length > 0) {
+            try {
+              await tenantDb
+                .update(lookupValuesTable)
+                .set(updateFields)
+                .where(eq(lookupValuesTable.id, existingJob.id));
+              updated++;
+            } catch {}
+          }
+        } else {
+          try {
+            const [newJob] = await tenantDb.insert(lookupValuesTable).values({
+              category: "job_title",
+              value: title,
+              valueAr: titleAr || title,
+              parentValue: parentDept,
+              extraValue: empLevel,
+              sortOrder: 0,
+              disabled: false,
+            }).returning();
+            const rec = newJob || { id: 0, category: "job_title", value: title, valueAr: titleAr || title, parentValue: parentDept, extraValue: empLevel };
+            jobTitleByVal.set(titleKey, rec);
+            if (titleArKey) jobTitleByValAr.set(titleArKey, rec);
+            added++;
+          } catch {}
+        }
       }
 
       // 3. Level
       const lvl = emp.level !== undefined && emp.level !== null ? String(emp.level).trim() : "";
-      if (lvl && !existingSet.has(`job_level:${lvl.toLowerCase()}`)) {
-        existingSet.add(`job_level:${lvl.toLowerCase()}`);
-        try {
-          await tenantDb.insert(lookupValuesTable).values({
-            category: "job_level",
-            value: lvl,
-            valueAr: `المستوى ${lvl}`,
-            parentValue: null,
-            sortOrder: parseInt(lvl, 10) || 0,
-            disabled: false,
-          });
-          added++;
-        } catch {}
+      if (lvl) {
+        const lvlKey = lvl.toLowerCase();
+        const existingLvl = jobLevelByVal.get(lvlKey);
+        if (!existingLvl) {
+          try {
+            const [newLvl] = await tenantDb.insert(lookupValuesTable).values({
+              category: "job_level",
+              value: lvl,
+              valueAr: hasArabic(lvl) ? lvl : `المستوى ${lvl}`,
+              parentValue: null,
+              sortOrder: parseInt(lvl.replace(/\D/g, ""), 10) || 0,
+              disabled: false,
+            }).returning();
+            jobLevelByVal.set(lvlKey, newLvl || { id: 0, category: "job_level", value: lvl });
+            added++;
+          } catch {}
+        }
       }
 
       // 4. Company
       const comp = String(emp.companyName || "").trim();
-      if (comp && !existingSet.has(`company:${comp.toLowerCase()}`)) {
-        existingSet.add(`company:${comp.toLowerCase()}`);
-        try {
-          await tenantDb.insert(lookupValuesTable).values({
-            category: "company",
-            value: comp,
-            valueAr: comp,
-            parentValue: null,
-            sortOrder: 0,
-            disabled: false,
-          });
-          added++;
-        } catch {}
+      if (comp) {
+        const compKey = comp.toLowerCase();
+        if (!companyByVal.has(compKey)) {
+          try {
+            const [newComp] = await tenantDb.insert(lookupValuesTable).values({
+              category: "company",
+              value: comp,
+              valueAr: comp,
+              parentValue: null,
+              sortOrder: 0,
+              disabled: false,
+            }).returning();
+            companyByVal.set(compKey, newComp || { id: 0, category: "company", value: comp });
+            added++;
+          } catch {}
+        }
       }
     }
 
-    if (added > 0) {
+    if (added > 0 || updated > 0) {
       broadcastToProperty(propertyId, { module: "settings", action: "updated" });
     }
   } catch (err: any) {
     console.warn("[HrSync] autoRegisterLookups notice:", err?.message);
   }
-  return { added };
+  return { added, updated };
 }
 
 // ============================================================================
@@ -924,51 +1059,51 @@ export async function processReceive(
 
     const syncProfiles = options.syncProfiles !== false && options.scope !== "movements_only";
 
-    // 6. Query existing profiles by profileId
-    const empIds = normalizedProfiles.map((p) => p.profileId);
-    const existingRows =
-      empIds.length > 0
-        ? await tenantDb
-            .select()
-            .from(profilesTable)
-            .where(inArray(profilesTable.profileId, empIds))
-        : [];
-    const existingMap = new Map(
-      existingRows.map((e: any) => [e.profileId, e]),
-    );
+    // 6. Query all existing profiles in current property for ultra-reliable matching
+    const allExistingProfiles = await tenantDb.select().from(profilesTable);
 
-    // 7. For profiles not found by profileId, query by nationalId (Casual -> Permanent transition)
-    const unmatchedNationalIds = normalizedProfiles
-      .filter((p) => Boolean(p.nationalId) && !existingMap.has(p.profileId))
-      .map((p) => p.nationalId);
+    const byExactProfileId = new Map<string, any>();
+    const byUnpaddedCode = new Map<string, any>();
+    const byNationalId = new Map<string, any>();
 
-    const existingByNidMap = new Map<string, any>();
-    if (unmatchedNationalIds.length > 0) {
-      const byNidRows = await tenantDb
-        .select()
-        .from(profilesTable)
-        .where(inArray(profilesTable.nationalId, unmatchedNationalIds));
-      for (const row of byNidRows) {
-        if (row.nationalId) {
-          existingByNidMap.set(String(row.nationalId).trim(), row);
-        }
+    const normKey = (v: any) => String(v ?? "").trim().toLowerCase();
+    const stripZeros = (v: any) => {
+      const s = normKey(v);
+      const stripped = s.replace(/^0+/, "");
+      return stripped || s;
+    };
+
+    for (const p of allExistingProfiles) {
+      const pId = normKey(p.profileId);
+      if (pId) {
+        byExactProfileId.set(pId, p);
+        const unpadded = stripZeros(p.profileId);
+        if (unpadded) byUnpaddedCode.set(unpadded, p);
+      }
+      const nid = normKey(p.nationalId);
+      if (nid) {
+        byNationalId.set(nid, p);
       }
     }
 
     for (const emp of normalizedProfiles) {
       try {
-        let existing = existingMap.get(emp.profileId);
+        const empCode = normKey(emp.profileId);
+        const empUnpadded = stripZeros(emp.profileId);
+        const empNid = normKey(emp.nationalId);
+
+        let existing =
+          (empCode ? byExactProfileId.get(empCode) : undefined) ||
+          (empUnpadded ? byUnpaddedCode.get(empUnpadded) : undefined) ||
+          (empNid ? byNationalId.get(empNid) : undefined);
+
         let isCasualUpgrade = false;
         let oldProfileId = "";
 
         // Check if existing profile matches by nationalId (Casual to Permanent transition)
-        if (!existing && emp.nationalId) {
-          const matchedByNid = existingByNidMap.get(emp.nationalId);
-          if (matchedByNid) {
-            existing = matchedByNid;
-            isCasualUpgrade = true;
-            oldProfileId = matchedByNid.profileId;
-          }
+        if (existing && empNid && byNationalId.get(empNid) === existing && empCode && normKey(existing.profileId) !== empCode) {
+          isCasualUpgrade = true;
+          oldProfileId = existing.profileId;
         }
 
         if (existing) {
@@ -976,6 +1111,34 @@ export async function processReceive(
 
           // If syncProfiles is enabled OR this is a casual-to-permanent upgrade:
           if (syncProfiles || isCasualUpgrade) {
+            const deptChanged = Boolean(
+              emp.department &&
+              emp.department.trim() !== "" &&
+              emp.department.trim().toLowerCase() !== String(existing.department || "").trim().toLowerCase()
+            );
+            const titleChanged = Boolean(
+              emp.jobTitle &&
+              emp.jobTitle.trim() !== "" &&
+              emp.jobTitle.trim().toLowerCase() !== String(existing.jobTitle || "").trim().toLowerCase()
+            );
+
+            // Compute target department and bilingual translation
+            const targetDept = deptChanged ? emp.department.trim() : (emp.department || existing.department || "");
+            const targetDeptAr = deptChanged
+              ? (emp.departmentAr ? emp.departmentAr.trim() : translateDepartment(targetDept, "ar"))
+              : (emp.departmentAr || existing.departmentAr || translateDepartment(targetDept, "ar"));
+
+            // Compute target job title and bilingual translation
+            const targetTitle = titleChanged ? emp.jobTitle.trim() : (emp.jobTitle || existing.jobTitle || "");
+            const targetTitleAr = titleChanged
+              ? (emp.jobTitleAr ? emp.jobTitleAr.trim() : translateJobTitle(targetTitle, "ar"))
+              : (emp.jobTitleAr || existing.jobTitleAr || translateJobTitle(targetTitle, "ar"));
+
+            // Compute target level
+            const targetLevel = (emp.level !== undefined && emp.level !== null && String(emp.level).trim() !== "")
+              ? String(emp.level).trim()
+              : (existing.level || "");
+
             const enrichedUpdate = enrichProfileBilingual({
               firstName: emp.firstName || existing.firstName,
               lastName: emp.lastName || existing.lastName,
@@ -985,10 +1148,10 @@ export async function processReceive(
               lastNameAr: emp.lastNameAr || existing.lastNameAr,
               thirdNameAr: emp.thirdNameAr || existing.thirdNameAr,
               fourthNameAr: emp.fourthNameAr || existing.fourthNameAr,
-              department: emp.department || existing.department,
-              departmentAr: emp.departmentAr || existing.departmentAr,
-              jobTitle: emp.jobTitle || existing.jobTitle,
-              jobTitleAr: emp.jobTitleAr || existing.jobTitleAr,
+              department: targetDept,
+              departmentAr: targetDeptAr,
+              jobTitle: targetTitle,
+              jobTitleAr: targetTitleAr,
             });
 
             const changedFields: string[] = [];
@@ -1005,9 +1168,9 @@ export async function processReceive(
             checkDiff("الجنسية", emp.nationality, existing.nationality);
             checkDiff("العنوان", emp.address, existing.address);
             checkDiff("الهاتف", emp.phone, existing.phone);
-            checkDiff("القسم", emp.department, existing.department);
-            checkDiff("المسمى الوظيفي", emp.jobTitle, existing.jobTitle);
-            checkDiff("الدرجة", emp.level, existing.level);
+            checkDiff("القسم", targetDept, existing.department);
+            checkDiff("المسمى الوظيفي", targetTitle, existing.jobTitle);
+            checkDiff("الدرجة", targetLevel, existing.level);
             checkDiff("الحالة", emp.status, existing.status);
             checkDiff("انتهاء العقد", emp.contractEndDate, existing.contractEndDate);
             checkDiff("الصورة", emp.photoUrl, existing.photoUrl);
@@ -1024,15 +1187,15 @@ export async function processReceive(
               fourthNameAr: enrichedUpdate.fourthNameAr ?? existing.fourthNameAr,
               nationalId: emp.nationalId !== undefined && emp.nationalId !== "" ? emp.nationalId : existing.nationalId,
               nationality: emp.nationality !== undefined && emp.nationality !== "" ? emp.nationality : existing.nationality,
-              jobTitle: enrichedUpdate.jobTitle || emp.jobTitle || existing.jobTitle,
-              jobTitleAr: enrichedUpdate.jobTitleAr || existing.jobTitleAr,
-              department: enrichedUpdate.department || emp.department || existing.department,
-              departmentAr: enrichedUpdate.departmentAr || existing.departmentAr,
+              jobTitle: enrichedUpdate.jobTitle || targetTitle,
+              jobTitleAr: enrichedUpdate.jobTitleAr || targetTitleAr,
+              department: enrichedUpdate.department || targetDept,
+              departmentAr: enrichedUpdate.departmentAr || targetDeptAr,
               phone: emp.phone !== undefined && emp.phone !== "" ? emp.phone : existing.phone,
               address: emp.address !== undefined && emp.address !== "" ? emp.address : existing.address,
               status: emp.status || existing.status,
               gender: (emp as any).gender || existing.gender,
-              level: emp.level !== undefined && emp.level !== "" ? emp.level : existing.level,
+              level: targetLevel,
               hireDate: emp.hireDate || existing.hireDate,
               dateOfBirth: emp.dateOfBirth !== undefined && emp.dateOfBirth !== "" ? emp.dateOfBirth : existing.dateOfBirth,
               email: emp.email !== undefined && emp.email !== "" ? emp.email : existing.email,
@@ -1134,6 +1297,7 @@ export async function processReceive(
               .set(updateData)
               .where(eq(profilesTable.id, existing.id));
 
+            Object.assign(existing, updateData);
             updated++;
           }
 
@@ -1195,6 +1359,17 @@ export async function processReceive(
             .insert(profilesTable)
             .values(enrichedInsert as any)
             .returning();
+
+          if (inserted) {
+            const insCode = normKey(inserted.profileId);
+            if (insCode) {
+              byExactProfileId.set(insCode, inserted);
+              const insUnpadded = stripZeros(inserted.profileId);
+              if (insUnpadded) byUnpaddedCode.set(insUnpadded, inserted);
+            }
+            const insNid = normKey(inserted.nationalId);
+            if (insNid) byNationalId.set(insNid, inserted);
+          }
 
           if (
             emp.status === "VACATION" &&

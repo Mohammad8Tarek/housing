@@ -245,8 +245,20 @@ export function normalizeEsignRecord(
       ? "F"
       : "M";
 
-  // Level code
-  const level = raw.LevelCode !== undefined && raw.LevelCode !== null ? String(raw.LevelCode).trim() : "";
+  // Level code (check all possible HR aliases)
+  const rawLevel =
+    raw.LevelCode ??
+    raw.level_code ??
+    raw.Level ??
+    raw.level ??
+    raw.job_level ??
+    raw.JobLevel ??
+    raw.grade ??
+    raw.Grade ??
+    raw.level_name ??
+    raw.LevelName ??
+    "";
+  const level = rawLevel !== undefined && rawLevel !== null ? String(rawLevel).trim() : "";
 
   // Dates
   const cleanIsoDate = (val: any): string => {
@@ -259,20 +271,63 @@ export function normalizeEsignRecord(
   const contractEndDate = raw.ContractExpireDate ? cleanIsoDate(raw.ContractExpireDate) : null;
 
   // Phone / Mobile
-  const phone = String(raw.Mobile || raw.phone || "").trim();
+  const phone = String(raw.Mobile || raw.phone || raw.mobile || raw.telephone || "").trim();
 
   // Titles & Departments (Check all possible HR API field keys)
-  const jobTitle = String(raw.position_name || raw.PositionCode || raw.job_title || "")
-    .trim()
-    .replace(/\s+/g, " ");
-  let jobTitleAr = String(raw.ar_position_name || raw.position_ar || raw.job_title_ar || "")
+  const jobTitle = String(
+    raw.position_name ||
+    raw.PositionName ||
+    raw.job_title ||
+    raw.JobTitle ||
+    raw.position ||
+    raw.Position ||
+    raw.PositionCode ||
+    raw.position_code ||
+    ""
+  )
     .trim()
     .replace(/\s+/g, " ");
 
-  const department = String(raw.department_name || raw.section_name || raw.DepartmentCode || "")
+  let jobTitleAr = String(
+    raw.ar_position_name ||
+    raw.ArabicPositionName ||
+    raw.position_ar ||
+    raw.PositionAr ||
+    raw.job_title_ar ||
+    raw.JobTitleAr ||
+    raw.position_name_ar ||
+    raw.ar_position ||
+    ""
+  )
     .trim()
     .replace(/\s+/g, " ");
-  let departmentAr = String(raw.ar_department_name || raw.ar_section_name || raw.department_ar || raw.section_name || "")
+
+  const department = String(
+    raw.department_name ||
+    raw.DepartmentName ||
+    raw.department ||
+    raw.Department ||
+    raw.section_name ||
+    raw.SectionName ||
+    raw.section ||
+    raw.Section ||
+    raw.DepartmentCode ||
+    raw.department_code ||
+    ""
+  )
+    .trim()
+    .replace(/\s+/g, " ");
+
+  let departmentAr = String(
+    raw.ar_department_name ||
+    raw.ArabicDepartmentName ||
+    raw.department_ar ||
+    raw.DepartmentAr ||
+    raw.ar_section_name ||
+    raw.section_ar ||
+    raw.section_name_ar ||
+    ""
+  )
     .trim()
     .replace(/\s+/g, " ");
 
