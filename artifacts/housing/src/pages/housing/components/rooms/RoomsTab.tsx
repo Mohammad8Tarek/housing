@@ -99,6 +99,11 @@ export function RoomsTab({
   const [roomFloorFilter, setRoomFloorFilter] = useState("all");
   const [roomStatusFilter, setRoomStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, roomBuildingFilter, roomFloorFilter, roomStatusFilter]);
+
   const [pageSize, setPageSize] = useState(10);
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(new Set());
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);

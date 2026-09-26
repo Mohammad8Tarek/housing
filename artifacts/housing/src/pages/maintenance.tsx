@@ -343,6 +343,11 @@ export default function Tickets() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 400);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, categoryFilter, statusFilter, priorityFilter, fromDate, toDate]);
+
   const [photoDialog, setPhotoDialog] = useState<string | null>(null);
   const [filterBarFilters, setFilterBarFilters] = useState<Record<string, any>>({});
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);

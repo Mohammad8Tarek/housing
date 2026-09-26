@@ -132,6 +132,11 @@ export default function HistoryPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
   const [filterStatus, setFilterStatus] = useState("ALL");
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, filterStatus]);
+
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const queryClient = useQueryClient();
   const { can } = usePermission();

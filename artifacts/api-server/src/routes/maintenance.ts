@@ -25,6 +25,7 @@ import {
   hasPermission,
 } from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
+import { normalizeSearchString, sqlNormalizeArabic } from "../lib/search-helper.js";
 
 const router: Router = Router();
 const assignedProfile = aliasedTable(profilesTable, "assigned_profile");
@@ -173,15 +174,27 @@ function buildConditions(
 
   // 7. البحث النصي
   if (query.search && String(query.search).trim()) {
-    const s = String(query.search).trim();
-    conditions.push(
-      or(
-        ilike(maintenanceTable.description, `%${s}%`),
-        ilike(maintenanceTable.problemType, `%${s}%`),
-        ilike(roomsTable.roomNumber, `%${s}%`),
-        ilike(workersTable.name, `%${s}%`)
-      )!
-    );
+    const norm = normalizeSearchString(query.search);
+    const tokens = norm.split(/\s+/).filter(Boolean);
+    if (tokens.length > 0) {
+      const descSql = sqlNormalizeArabic(maintenanceTable.description);
+      const probSql = sqlNormalizeArabic(maintenanceTable.problemType);
+      const workerSql = sqlNormalizeArabic(workersTable.name);
+      const bldgSql = sqlNormalizeArabic(buildingsTable.name);
+
+      const tokenConditions: SQL[] = tokens.map((token) => {
+        const pattern = `%${token}%`;
+        return or(
+          sql`cast(${maintenanceTable.id} as text) ILIKE ${pattern}`,
+          sql`${descSql} ILIKE ${pattern}`,
+          sql`${probSql} ILIKE ${pattern}`,
+          ilike(roomsTable.roomNumber, pattern),
+          sql`${workerSql} ILIKE ${pattern}`,
+          sql`${bldgSql} ILIKE ${pattern}`,
+        )!;
+      });
+      conditions.push(and(...tokenConditions)!);
+    }
   }
 
   // 8. تقييم الخدمة

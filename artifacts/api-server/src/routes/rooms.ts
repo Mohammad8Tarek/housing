@@ -29,6 +29,7 @@ import { requirePermission, requireAnyPermission } from "../middlewares/permissi
 import { broadcastToProperty } from "../lib/websocket.js";
 import { syncRoomFeaturesToInventory } from "./room-inventory.js";
 import { findProfileAcrossAllProperties, findRoomAcrossAllProperties } from "../lib/cross-property-service.js";
+import { buildRoomSearchConditions } from "../lib/search-helper.js";
 
 const router: Router = Router();
 
@@ -274,8 +275,11 @@ router.get(
       );
       const search = req.query.search as string;
 
-      if (search) {
-        conditions.push(ilike(roomsTable.roomNumber, `%${search}%`));
+      if (search && search.trim()) {
+        const searchCond = buildRoomSearchConditions(search, roomsTable);
+        if (searchCond) {
+          conditions.push(searchCond);
+        }
       }
 
       if (query.success) {

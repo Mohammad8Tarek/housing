@@ -158,6 +158,11 @@ export default function InHouse() {
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
+
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [bulkCheckoutOpen, setBulkCheckoutOpen] = useState(false);
   const [bulkCheckoutLoading, setBulkCheckoutLoading] = useState(false);

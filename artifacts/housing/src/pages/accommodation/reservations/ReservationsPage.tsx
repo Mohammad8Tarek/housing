@@ -1,4 +1,5 @@
 import { recommendBestRooms, checkPolicyCompliance } from "@/lib/room-recommender";
+import { matchesSearch } from "@/lib/search-utils";
 import {
   PolicyExceptionApprovalModal,
   type PolicyViolationItem,
@@ -565,7 +566,11 @@ export default function ReservationsPage() {
     const fId = r.floorId ?? r.floor_id;
     if (searchBuilding !== "all" && String(bId) !== String(searchBuilding)) return false;
     if (searchFloor !== "all" && String(fId) !== String(searchFloor)) return false;
-    if (searchRoomNumber.trim() && !r.roomNumber?.toString().toLowerCase().includes(searchRoomNumber.trim().toLowerCase())) return false;
+    if (searchRoomNumber.trim()) {
+      if (!matchesSearch([r.roomNumber, r.roomType, r.bedType, r.features], searchRoomNumber)) {
+        return false;
+      }
+    }
     return true;
   });
 

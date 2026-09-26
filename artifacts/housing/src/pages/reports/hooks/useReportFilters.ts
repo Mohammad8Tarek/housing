@@ -60,43 +60,56 @@ export function useReportFilters() {
     filterCategory !== "all",
   );
 
+  const handleSetActiveTab = (tab: Tab | ((prev: Tab) => Tab)) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+    setSelectedRows(new Set());
+  };
+
+  const createFilterSetter = <T,>(setter: React.Dispatch<React.SetStateAction<T>>) => {
+    return (val: React.SetStateAction<T>) => {
+      setter(val);
+      setCurrentPage(1);
+    };
+  };
+
   return {
     activeTab,
-    setActiveTab,
+    setActiveTab: handleSetActiveTab,
     inventoryViewMode,
-    setInventoryViewMode,
+    setInventoryViewMode: createFilterSetter(setInventoryViewMode),
     inHouseViewMode,
-    setInHouseViewMode,
+    setInHouseViewMode: createFilterSetter(setInHouseViewMode),
     waterSortMode,
-    setWaterSortMode,
+    setWaterSortMode: createFilterSetter(setWaterSortMode),
     filterProperty,
-    setFilterProperty,
+    setFilterProperty: createFilterSetter(setFilterProperty),
     filterBuilding,
-    setFilterBuilding,
+    setFilterBuilding: createFilterSetter(setFilterBuilding),
     filterFloor,
-    setFilterFloor,
+    setFilterFloor: createFilterSetter(setFilterFloor),
     filterStatus,
-    setFilterStatus,
+    setFilterStatus: createFilterSetter(setFilterStatus),
     filterRoomType,
-    setFilterRoomType,
+    setFilterRoomType: createFilterSetter(setFilterRoomType),
     filterEmploymentType,
-    setFilterEmploymentType,
+    setFilterEmploymentType: createFilterSetter(setFilterEmploymentType),
     search,
-    setSearch,
+    setSearch: createFilterSetter(setSearch),
     dateFrom,
-    setDateFrom,
+    setDateFrom: createFilterSetter(setDateFrom),
     dateTo,
-    setDateTo,
+    setDateTo: createFilterSetter(setDateTo),
     selectedRows,
     setSelectedRows,
     filterCategory,
-    setFilterCategory,
+    setFilterCategory: createFilterSetter(setFilterCategory),
     filterDepartment,
-    setFilterDepartment,
+    setFilterDepartment: createFilterSetter(setFilterDepartment),
     filterGender,
-    setFilterGender,
+    setFilterGender: createFilterSetter(setFilterGender),
     filterNationality,
-    setFilterNationality,
+    setFilterNationality: createFilterSetter(setFilterNationality),
     currentPage,
     setCurrentPage,
     pageSize,

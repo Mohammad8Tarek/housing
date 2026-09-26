@@ -20,6 +20,7 @@ import {
   translateHostingStatus,
   translateHostingRelation,
 } from "../utils/luxury-report-engine";
+import { matchesSearch, normalizeSearchText } from "@/lib/search-utils";
 
 // Normalizes either "YYYY-MM-DD" or display "DD/MM/YYYY" (or "—"/"-")
 // to a comparable "YYYY-MM-DD" string for range filtering.
@@ -32,13 +33,7 @@ function comparableDate(v: unknown): string {
 }
 
 function normalizeItemName(name: string): string {
-  if (!name) return "";
-  let s = name.trim().toLowerCase();
-  s = s.replace(/[إأآا]/g, "ا");
-  s = s.replace(/ة/g, "ه");
-  s = s.replace(/ى/g, "ي");
-  s = s.replace(/\s+/g, " ");
-  return s;
+  return normalizeSearchText(name);
 }
 
 /**
@@ -196,15 +191,11 @@ export function useReportDataProcessor({
     searchFields?: (item: any) => (string | number | null | undefined)[],
   ): any[] => {
     return data.filter((item) => {
-      if (search.trim()) {
-        const q = search.toLowerCase().trim();
+      if (search && search.trim()) {
         const fields = searchFields
           ? searchFields(item)
           : Object.values(item);
-        const match = fields.some((f) =>
-          f != null && String(f).toLowerCase().includes(q),
-        );
-        if (!match) return false;
+        if (!matchesSearch(fields, search)) return false;
       }
       if (dateField && (dateFrom || dateTo)) {
         const rawDate = item[dateField];

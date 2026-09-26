@@ -37,6 +37,7 @@ import { getTenantId, su } from "../lib/request-utils.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { enrichProfileBilingual } from "../lib/bilingual-translator.js";
 import { findProfileAcrossAllProperties } from "../lib/cross-property-service.js";
+import { buildProfileSearchConditions, buildAssignmentSearchConditions } from "../lib/search-helper.js";
 
 const router: Router = Router();
 const MAX_PROFILE_LIST_ROWS = Number(
@@ -166,19 +167,10 @@ router.get(
 
     if (query.success) {
       if (query.data.search) {
-        conditions.push(
-          or(
-            ilike(profilesTable.firstName, `%${query.data.search}%`),
-            ilike(profilesTable.lastName, `%${query.data.search}%`),
-            ilike(profilesTable.thirdName, `%${query.data.search}%`),
-            ilike(profilesTable.fourthName, `%${query.data.search}%`),
-            ilike(profilesTable.firstNameAr, `%${query.data.search}%`),
-            ilike(profilesTable.lastNameAr, `%${query.data.search}%`),
-            ilike(profilesTable.thirdNameAr, `%${query.data.search}%`),
-            ilike(profilesTable.fourthNameAr, `%${query.data.search}%`),
-            ilike(profilesTable.profileId, `%${query.data.search}%`),
-          ) as SQL,
-        );
+        const searchCond = buildProfileSearchConditions(query.data.search, profilesTable);
+        if (searchCond) {
+          conditions.push(searchCond);
+        }
       }
       if (query.data.status && query.data.status !== "ALL") {
         conditions.push(eq(profilesTable.status, query.data.status));
@@ -256,19 +248,15 @@ router.get(
     const conditions: SQL[] = [];
 
     if (q.trim().length >= 1) {
-      const term = `%${q.trim()}%`;
-      conditions.push(
-        or(
-          ilike(profilesTable.firstName, term),
-          ilike(profilesTable.lastName, term),
-          ilike(profilesTable.profileId, term),
-          ilike(profilesTable.nationalId, term),
-          ilike(profilesTable.department, term),
-          ilike(profilesTable.jobTitle, term),
-          ilike(profilesTable.phone, term),
-          ilike(roomsTable.roomNumber, term),
-        ) as SQL,
-      );
+      const searchCond = buildAssignmentSearchConditions(q, {
+        profilesTable,
+        roomsTable,
+        buildingsTable,
+        assignmentsTable,
+      });
+      if (searchCond) {
+        conditions.push(searchCond);
+      }
     }
 
     if (conditions.length === 0) {

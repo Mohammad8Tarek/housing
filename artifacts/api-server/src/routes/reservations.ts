@@ -21,6 +21,7 @@ import { requirePermission, requireAnyPermission, hasPermission } from "../middl
 import { broadcastToProperty } from "../lib/websocket.js";
 import { sendCheckInWhatsAppNotification, sendReservationConfirmationWhatsApp } from "../lib/whatsapp-engine.js";
 import { findReservationAcrossAllProperties } from "../lib/cross-property-service.js";
+import { buildReservationSearchConditions } from "../lib/search-helper.js";
 
 const router: Router = Router();
 
@@ -83,16 +84,22 @@ router.get(
     }
     
     if (search.trim()) {
-      conditions.push(
-        sql`(${reservationsTable.firstName} ILIKE ${`%${search}%`} OR ${reservationsTable.lastName} ILIKE ${`%${search}%`} OR ${reservationsTable.guestIdCardNumber} ILIKE ${`%${search}%`} OR ${roomsTable.roomNumber} ILIKE ${`%${search}%`})`
-      );
+      const searchCond = buildReservationSearchConditions(search, {
+        reservationsTable,
+        roomsTable,
+        buildingsTable,
+      });
+      if (searchCond) {
+        conditions.push(searchCond);
+      }
     }
 
     const { data, total } = await withTenant(propertyId, async (tenantDb) => {
       let countQuery = tenantDb
         .select({ count: sql<number>`count(*)` })
         .from(reservationsTable)
-        .leftJoin(roomsTable, eq(reservationsTable.roomId, roomsTable.id)) as any;
+        .leftJoin(roomsTable, eq(reservationsTable.roomId, roomsTable.id))
+        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id)) as any;
       if (conditions.length > 0)
         countQuery = countQuery.where(and(...conditions));
       const countResult = await countQuery;

@@ -142,6 +142,13 @@ export default function Reports() {
     filters.setCurrentPage(1);
   };
 
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(totalCount / filters.pageSize));
+    if (filters.currentPage > maxPage) {
+      filters.setCurrentPage(1);
+    }
+  }, [totalCount, filters.currentPage, filters.pageSize, filters]);
+
   // Real-time responsive pagination based on filtered data
   const startIndex = (filters.currentPage - 1) * filters.pageSize;
   const paginatedData = useMemo(() => {

@@ -30,6 +30,7 @@ import {
   deleteSourceProfileOnTransfer,
 } from "../lib/cross-property-service.js";
 import { sendCheckInWhatsAppNotification, sendWelcomeWhatsAppForAssignment } from "../lib/whatsapp-engine.js";
+import { buildAssignmentSearchConditions } from "../lib/search-helper.js";
 
 const router: Router = Router();
 
@@ -82,23 +83,15 @@ router.get(
       conditions.push(eq(roomsTable.floorId, parseInt(query.floorId)));
     }
     if (query.search) {
-      const q = `%${query.search}%`;
-      conditions.push(
-        or(
-          ilike(profilesTable.firstName, q),
-          ilike(profilesTable.lastName, q),
-          ilike(profilesTable.firstNameAr, q),
-          ilike(profilesTable.lastNameAr, q),
-          ilike(profilesTable.profileId, q),
-          ilike(profilesTable.department, q),
-          ilike(profilesTable.departmentAr, q),
-          ilike(profilesTable.jobTitle, q),
-          ilike(profilesTable.jobTitleAr, q),
-          ilike(profilesTable.nationality, q),
-          ilike(roomsTable.roomNumber, q),
-          ilike(buildingsTable.name, q)
-        )!
-      );
+      const searchCond = buildAssignmentSearchConditions(query.search, {
+        profilesTable,
+        roomsTable,
+        buildingsTable,
+        assignmentsTable,
+      });
+      if (searchCond) {
+        conditions.push(searchCond);
+      }
     }
 
     const result = await withTenant(propertyId, async (tenantDb) => {
@@ -251,23 +244,15 @@ router.get(
     }
 
     if (query.search) {
-      const q = `%${query.search}%`;
-      conditions.push(
-        or(
-          ilike(profilesTable.firstName, q),
-          ilike(profilesTable.lastName, q),
-          ilike(profilesTable.firstNameAr, q),
-          ilike(profilesTable.lastNameAr, q),
-          ilike(profilesTable.profileId, q),
-          ilike(profilesTable.nationalId, q),
-          ilike(profilesTable.department, q),
-          ilike(profilesTable.departmentAr, q),
-          ilike(profilesTable.jobTitle, q),
-          ilike(profilesTable.jobTitleAr, q),
-          ilike(roomsTable.roomNumber, q),
-          ilike(buildingsTable.name, q),
-        )!,
-      );
+      const searchCond = buildAssignmentSearchConditions(query.search, {
+        profilesTable,
+        roomsTable,
+        buildingsTable,
+        assignmentsTable,
+      });
+      if (searchCond) {
+        conditions.push(searchCond);
+      }
     }
 
     const result = await withTenant(propertyId, async (tenantDb) => {
