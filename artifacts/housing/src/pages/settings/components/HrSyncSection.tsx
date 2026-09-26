@@ -1066,7 +1066,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
                 {esignTestResult && (
                   <div className={`p-2 px-3 rounded-lg border text-[11px] flex items-center gap-2 ${esignTestResult.success ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700" : "bg-red-500/10 border-red-500/30 text-red-700"}`}>
                     {esignTestResult.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
-                    <span>{esignTestResult.message}</span>
+                    <span>{esignTestResult.message || esignTestResult.error}</span>
                   </div>
                 )}
               </div>

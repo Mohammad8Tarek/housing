@@ -265,7 +265,18 @@ export function normalizeEsignRecord(
   // Address & Nationality
   const address = String(raw.ArabicFullAddress || raw.address || "").trim();
   const nationality = String(raw.nationality_name || raw.ar_nationality_name || raw.CountryName || "Egyptian").trim();
-  const nationalId = String(raw.NationalId || raw.national_id || raw.NationalID || profileId).trim();
+  const rawNid =
+    raw.NationalId ||
+    raw.national_id ||
+    raw.NationalID ||
+    raw.nationalId ||
+    raw.nid ||
+    raw.ssn ||
+    raw.iqama ||
+    raw.identity_number ||
+    raw.id_number ||
+    "";
+  const nationalId = String(rawNid).trim();
 
   // Hotel origin name (worksAt / companyName)
   const hotelOriginName =
@@ -366,7 +377,36 @@ export async function fetchEmployeeByCode(
     return null;
   }
 
-  return normalizeEsignRecord(body.data, hotel, config);
+  const normalized = normalizeEsignRecord(body.data, hotel, config);
+
+  // If National ID is not provided by e-Sign API, check if it was previously saved in any property
+  if (!normalized.nationalId) {
+    try {
+      const client = await pool.connect();
+      try {
+        const propsRes = await client.query("SELECT id FROM public.properties ORDER BY id ASC");
+        for (const p of propsRes.rows) {
+          try {
+            const found = await withTenant(p.id, async (tenantDb) => {
+              return await tenantDb
+                .select({ nationalId: profilesTable.nationalId })
+                .from(profilesTable)
+                .where(eq(profilesTable.profileId, cleanCode))
+                .limit(1);
+            });
+            if (found?.[0]?.nationalId && found[0].nationalId !== cleanCode) {
+              normalized.nationalId = found[0].nationalId;
+              break;
+            }
+          } catch {}
+        }
+      } finally {
+        client.release();
+      }
+    } catch {}
+  }
+
+  return normalized;
 }
 
 /**
