@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { toast } from "sonner";
 import { useLocation } from "wouter";
 import {
   ShieldCheck,
@@ -170,9 +171,16 @@ export default function TabOverview({
       if (data?.success) {
         setRatingSubmittedSuccess(true);
         setHousingRatingStatus({ eligible: false });
+        toast.success(isRtl ? "تم إرسال تقييمك بنجاح" : "Rating submitted successfully");
+      } else {
+        toast.error(
+          data?.message ||
+            (isRtl ? "تعذر إرسال التقييم" : "Failed to submit rating"),
+        );
       }
     } catch (err) {
       console.error("Failed to submit rating:", err);
+      toast.error(isRtl ? "تعذر إرسال التقييم" : "Failed to submit rating");
     } finally {
       setIsSubmittingRating(false);
     }
