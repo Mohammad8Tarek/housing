@@ -11,6 +11,7 @@ import {
   buildingsTable,
   floorsTable,
   propertiesTable,
+  lookupValuesTable,
 } from "@workspace/db";
 import { eq, and, or, ilike, sql, SQL, asc, desc } from "drizzle-orm";
 import {
@@ -1222,6 +1223,25 @@ router.patch(
         for (const col of allowedProfileColumns) {
           if (col in parsed.data && (parsed.data as any)[col] !== undefined) {
             cleanProfileData[col] = (parsed.data as any)[col];
+          }
+        }
+
+        // Dual-Layer RBAC & Data Integrity: Level cannot be manually modified — it is pulled direct from HR / job title lookup
+        if (existing.employmentType !== "THIRD_PARTY" && existing.level) {
+          if (cleanProfileData.jobTitle && cleanProfileData.jobTitle !== existing.jobTitle) {
+            const [jtLookup] = await tenantDb
+              .select()
+              .from(lookupValuesTable)
+              .where(
+                and(
+                  eq(lookupValuesTable.category, "job_title"),
+                  eq(lookupValuesTable.value, cleanProfileData.jobTitle)
+                )
+              )
+              .limit(1);
+            cleanProfileData.level = jtLookup?.extraValue || existing.level;
+          } else {
+            cleanProfileData.level = existing.level;
           }
         }
 

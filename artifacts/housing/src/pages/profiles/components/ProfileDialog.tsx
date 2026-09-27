@@ -300,7 +300,6 @@ export function ProfileDialog({
     return allJobTitles.find((t) => t.value === form.jobTitle);
   }, [allJobTitles, form.jobTitle]);
 
-  const isLevelLocked = Boolean(currentJobTitleObj?.extraValue);
 
   const { duplicates, hasDuplicates } = useCheckDuplicates({
     profileId: form.profileId,
@@ -1071,7 +1070,7 @@ export function ProfileDialog({
                                 departmentAr: arDept || p.departmentAr || "",
                                 jobTitle: "",
                                 jobTitleAr: "",
-                                level: "",
+                                level: p.level || "",
                               }));
                             }}
                           >
@@ -1126,23 +1125,20 @@ export function ProfileDialog({
                     <div className="sm:col-span-1">
                       <FormRow label={ar ? "الدرجة / المستوى" : "Level"}>
                         <div className="space-y-1 w-full">
-                          <Input
-                            value={form.level}
-                            onChange={(e) => set("level", e.target.value)}
-                            placeholder={ar ? "أول، ثاني..." : "Senior..."}
-                            disabled={isLevelLocked}
-                            className={`h-9 ${
-                              isLevelLocked
-                                ? "bg-muted/60 font-semibold text-primary cursor-not-allowed"
-                                : ""
-                            }`}
-                          />
-                          {isLevelLocked && (
-                            <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
-                              <Lock className="w-3 h-3 text-amber-500 shrink-0" />
-                              {ar ? "مقفل" : "Locked"}
-                            </p>
-                          )}
+                          <div className="relative">
+                            <Input
+                              value={form.level || ""}
+                              readOnly
+                              disabled
+                              placeholder={ar ? "يُسحب تلقائياً..." : "Auto-assigned..."}
+                              className={`h-9 bg-muted/60 font-semibold text-primary cursor-not-allowed select-none ${ar ? "pl-7 pr-3" : "pr-7 pl-3"}`}
+                            />
+                            <Lock className={`w-3.5 h-3.5 text-amber-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${ar ? "left-2.5" : "right-2.5"}`} />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
+                            <Lock className="w-3 h-3 text-amber-500 shrink-0" />
+                            {ar ? "يُسحب تلقائياً (غير قابل للتعديل)" : "Direct level (read-only)"}
+                          </p>
                         </div>
                       </FormRow>
                     </div>
