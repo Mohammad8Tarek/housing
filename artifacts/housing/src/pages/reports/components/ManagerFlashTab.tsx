@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
+import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
+import type { ReportColumnConfig } from "./PrintableReportDocument";
 import * as XLSX from "xlsx";
-import { printLuxuryReport } from "../utils/luxury-report-engine";
 import { formatNationality } from "@/lib/countries";
 import { getProfileDisplayDepartment } from "@/lib/profile-display-utils";
 import {
@@ -297,19 +298,35 @@ export function ManagerFlashTab({
     XLSX.writeFile(wb, `Daily_Morning_Operations_Report_${dateStr}.xlsx`);
   };
 
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioRows, setStudioRows] = useState<Record<string, any>[]>([]);
+
+  const studioColumns: ReportColumnConfig[] = [
+    { key: "building", header: "Building & Code", headerAr: "المبنى والكود" },
+    { key: "floors", header: "Floors", headerAr: "الأدوار" },
+    { key: "rooms", header: "Rooms", headerAr: "إجمالي الغرف" },
+    { key: "totalBeds", header: "Total Beds", headerAr: "إجمالي الأسرة" },
+    { key: "occupied", header: "Occupied", headerAr: "المشغول" },
+    { key: "vacant", header: "Vacant Beds", headerAr: "الشاغر المتاح" },
+    { key: "dirty", header: "Dirty", headerAr: "متسخ" },
+    { key: "ooo", header: "OOO", headerAr: "صيانة (OOO)" },
+    { key: "rate", header: "Occupancy Rate", headerAr: "نسبة الإشغال" },
+    { key: "status", header: "Status", headerAr: "الحالة" },
+  ];
+
   const handlePrint = async () => {
-    // 1. Generate Building Capacity Matrix Rows
-    const rows = buildingBreakdown.map((row) => ({
-      [ar ? "المبنى والكود" : "Building & Code"]: `${row.name} (${row.code})`,
-      [ar ? "الأدوار" : "Floors"]: row.floorsCount,
-      [ar ? "إجمالي الغرف" : "Rooms"]: row.totalRooms,
-      [ar ? "إجمالي الأسرة" : "Total Beds"]: row.totalBeds,
-      [ar ? "المشغول" : "Occupied"]: row.occupiedBeds,
-      [ar ? "الشاغر المتاح" : "Vacant Beds"]: row.vacantBeds,
-      [ar ? "متسخ" : "Dirty"]: row.dirtyCount,
-      [ar ? "صيانة (OOO)" : "OOO"]: row.oooCount,
-      [ar ? "نسبة الإشغال" : "Occupancy Rate"]: `${row.occPercent}%`,
-      [ar ? "الحالة" : "Status"]:
+    // 1. Generate Building Capacity Matrix Rows (canonical keys for Studio)
+    const records = buildingBreakdown.map((row) => ({
+      building: `${row.name} (${row.code})`,
+      floors: row.floorsCount,
+      rooms: row.totalRooms,
+      totalBeds: row.totalBeds,
+      occupied: row.occupiedBeds,
+      vacant: row.vacantBeds,
+      dirty: row.dirtyCount,
+      ooo: row.oooCount,
+      rate: `${row.occPercent}%`,
+      status:
         row.occPercent >= 90
           ? (ar ? "إشغال مرتفع" : "High Occupancy")
           : row.occPercent >= 70
@@ -317,135 +334,9 @@ export function ManagerFlashTab({
           : (ar ? "متاح للتسكين" : "Available"),
     }));
 
-    // 2. Generate Demographics Breakdown HTML (Top Occupying Departments & Nationalities)
-    const demographicsHtml = `
-      <div class="demographics-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0 16px 0; page-break-inside: avoid;">
-        <!-- Top Occupying Departments -->
-        <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; background: #ffffff;">
-          <div style="font-weight: 800; font-size: 8.5pt; color: #0f2a44; border-bottom: 1.5px solid #0f2a44; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-            <span>🏢 ${ar ? "أعلى الإدارات والأقسام إشغالاً بالسكن (Top Departments)" : "Top Occupying Departments"}</span>
-            <span style="font-size: 7.5pt; color: #64748b; font-weight: 600;">${profiles.length} ${ar ? "موظف مسجل" : "Registered Staff"}</span>
-          </div>
-          <table style="width: 100%; border-collapse: collapse; font-size: 7.5pt;">
-            <thead>
-              <tr style="border-bottom: 1px solid #cbd5e1; color: #334155; font-weight: 700;">
-                <th style="text-align: ${ar ? "right" : "left"}; padding: 4px 5px;">${ar ? "الإدارة / القسم" : "Department"}</th>
-                <th style="text-align: center; padding: 4px 5px; width: 60px;">${ar ? "العدد" : "Count"}</th>
-                <th style="text-align: center; padding: 4px 5px; width: 60px;">${ar ? "النسبة" : "Percent"}</th>
-                <th style="text-align: center; padding: 4px 5px; width: 90px;">${ar ? "التمثيل" : "Progress"}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${departmentBreakdown
-                .map(
-                  (dept) => `
-                <tr style="border-bottom: 0.5px solid #f1f5f9;">
-                  <td style="text-align: ${ar ? "right" : "left"}; padding: 4px 5px; font-weight: 600; color: #0f172a;">${dept.name}</td>
-                  <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #0284c7;">${dept.count}</td>
-                  <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #334155;">${dept.percent}%</td>
-                  <td style="text-align: center; padding: 4px 5px;">
-                    <div style="background: #e2e8f0; border-radius: 3px; height: 6px; width: 100%; overflow: hidden;">
-                      <div style="background: #0284c7; height: 6px; width: ${Math.min(dept.percent, 100)}%;"></div>
-                    </div>
-                  </td>
-                </tr>
-              `,
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Nationalities Distribution -->
-        <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; background: #ffffff;">
-          <div style="font-weight: 800; font-size: 8.5pt; color: #0f2a44; border-bottom: 1.5px solid #0f2a44; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-            <span>🌍 ${ar ? "توزيع الجنسيات بالسكن (Nationalities Distribution)" : "Nationalities Distribution"}</span>
-            <span style="font-size: 7.5pt; color: #64748b; font-weight: 600;">${nationalityBreakdown.length} ${ar ? "جنسيات" : "Nationalities"}</span>
-          </div>
-          <table style="width: 100%; border-collapse: collapse; font-size: 7.5pt;">
-            <thead>
-              <tr style="border-bottom: 1px solid #cbd5e1; color: #334155; font-weight: 700;">
-                <th style="text-align: ${ar ? "right" : "left"}; padding: 4px 5px;">${ar ? "الجنسية" : "Nationality"}</th>
-                <th style="text-align: center; padding: 4px 5px; width: 60px;">${ar ? "العدد" : "Count"}</th>
-                <th style="text-align: center; padding: 4px 5px; width: 60px;">${ar ? "النسبة" : "Percent"}</th>
-                <th style="text-align: center; padding: 4px 5px; width: 90px;">${ar ? "التمثيل" : "Progress"}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${nationalityBreakdown
-                .map(
-                  (nat) => `
-                <tr style="border-bottom: 0.5px solid #f1f5f9;">
-                  <td style="text-align: ${ar ? "right" : "left"}; padding: 4px 5px; font-weight: 600; color: #0f172a;">${nat.name}</td>
-                  <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #059669;">${nat.count}</td>
-                  <td style="text-align: center; padding: 4px 5px; font-weight: 700; color: #334155;">${nat.percent}%</td>
-                  <td style="text-align: center; padding: 4px 5px;">
-                    <div style="background: #e2e8f0; border-radius: 3px; height: 6px; width: 100%; overflow: hidden;">
-                      <div style="background: #059669; height: 6px; width: ${Math.min(nat.percent, 100)}%;"></div>
-                    </div>
-                  </td>
-                </tr>
-              `,
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-
-    await printLuxuryReport({
-      title: ar ? "تقرير المدير اليومي الشامل (Flash Report)" : "Executive Manager Flash Report",
-      activeTab: "manager_flash",
-      rows,
-      properties,
-      activePropertyId,
-      language: ar ? "ar" : "en",
-      customBottomSectionsHtml: demographicsHtml,
-      kpiCards: [
-        {
-          label: "Total Buildings",
-          labelAr: "إجمالي المباني",
-          value: buildings.length,
-          color: "gold",
-        },
-        {
-          label: "Total Capacity",
-          labelAr: "إجمالي الأسِرّة",
-          value: metrics.totalBeds,
-          color: "blue",
-          subtext: `${metrics.totalRooms} ${ar ? "غرفة مسجلة" : "Rooms"}`,
-        },
-        {
-          label: "Occupied Beds",
-          labelAr: "الأسِرّة المشغولة",
-          value: metrics.occupiedBeds,
-          color: "blue",
-          subtext: `${metrics.occupancyRate}% ${ar ? "نسبة الإشغال الكلية" : "Occupancy Rate"}`,
-        },
-        {
-          label: "Vacant Beds",
-          labelAr: "الأسِرّة الشاغرة",
-          value: metrics.vacantBeds,
-          color: "green",
-          subtext: `${metrics.totalBeds > 0 ? Math.round((metrics.vacantBeds / metrics.totalBeds) * 100) : 0}% ${ar ? "متاح للتسكين" : "Available"}`,
-        },
-        {
-          label: "Dirty Rooms (HK)",
-          labelAr: "غرف متسخة (HK)",
-          value: metrics.vacantDirty + metrics.occupiedDirty,
-          color: (metrics.vacantDirty + metrics.occupiedDirty) > 0 ? "orange" : "green",
-          subtext: ar ? "تحتاج لتجهيز" : "Pending HK",
-        },
-        {
-          label: "Open Maintenance",
-          labelAr: "بلاغات صيانة مفتوحة",
-          value: metrics.openTickets,
-          color: metrics.openTickets > 0 ? "red" : "green",
-          subtext: ar ? "قيد الإصلاح" : "In Progress",
-        },
-      ],
-    });
+    if (!records.length) return;
+    setStudioRows(records);
+    setIsStudioOpen(true);
   };
 
   useEffect(() => {
@@ -926,11 +817,30 @@ export function ManagerFlashTab({
               <span className="text-xs text-muted-foreground/50 font-mono">________________________</span>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              {ar ? "الختم والتوقيع الرسمي" : "Official Seal & Sign-off"}
+              {ar ? "الختم الرسمي و التوقيع" : "Official Seal & Sign-off"}
             </p>
           </div>
         </div>
       </div>
+
+      <ReportPrintStudioModal
+        open={isStudioOpen}
+        onOpenChange={setIsStudioOpen}
+        title="Executive Manager Flash Report"
+        titleAr="تقرير المدير اليومي الشامل"
+        propertyName={currentProperty?.name}
+        availableColumns={studioColumns}
+        allRows={studioRows}
+        kpis={[
+          { label: "Total Buildings", labelAr: "إجمالي المباني", value: buildings.length },
+          { label: "Total Capacity", labelAr: "إجمالي الأسِرّة", value: metrics.totalBeds },
+          { label: "Occupied Beds", labelAr: "الأسِرّة المشغولة", value: metrics.occupiedBeds },
+          { label: "Vacant Beds", labelAr: "الأسِرّة الشاغرة", value: metrics.vacantBeds },
+          { label: "Dirty Rooms (HK)", labelAr: "غرف متسخة (HK)", value: metrics.vacantDirty + metrics.occupiedDirty },
+          { label: "Open Maintenance", labelAr: "بلاغات صيانة مفتوحة", value: metrics.openTickets },
+        ]}
+        initialLanguage={ar ? "ar" : "en"}
+      />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
-import { printLuxuryReport } from "../utils/luxury-report-engine";
+import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
+import type { ReportColumnConfig } from "./PrintableReportDocument";
 import {
   HeartHandshake,
   Star,
@@ -137,50 +138,34 @@ export function HousingRatingsTab({
     XLSX.writeFile(wb, `Housing_Pulse_Ratings_${propName}_${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioRows, setStudioRows] = useState<Record<string, any>[]>([]);
+
+  const studioColumns: ReportColumnConfig[] = [
+    { key: "property", header: "Property", headerAr: "السكن" },
+    { key: "rating", header: "Rating", headerAr: "التقييم" },
+    { key: "score", header: "Score", headerAr: "الدرجة" },
+    { key: "comment", header: "Feedback / Comment", headerAr: "الملاحظة (سرية ومجهولة)" },
+    { key: "date", header: "Date", headerAr: "التاريخ", type: "date" },
+  ];
+
   const handlePrintReport = () => {
-    const propName =
-      queryPropertyId !== "all"
-        ? properties.find((p) => String(p.id) === String(queryPropertyId))?.name || `Property #${queryPropertyId}`
-        : ar ? "كافة الفنادق والسكنات" : "All Properties";
+    const rows = (allCommentsList.length > 0 ? allCommentsList : commentsList).map((r: any) => ({
+      property: r.propertyName || "-",
+      rating:
+        r.rating === "satisfied"
+          ? ar ? "راضي" : "Satisfied"
+          : r.rating === "neutral"
+          ? ar ? "متوسط" : "Neutral"
+          : ar ? "غير راضي" : "Dissatisfied",
+      score: `${r.score} / 5`,
+      comment: r.comment || "-",
+      date: formatDate(r.createdAt),
+    }));
 
-    const rows = (allCommentsList.length > 0 ? allCommentsList : commentsList).map((r: any, idx: number) => [
-      String(idx + 1),
-      r.propertyName || "-",
-      r.rating === "satisfied"
-        ? ar ? "راضي" : "Satisfied"
-        : r.rating === "neutral"
-        ? ar ? "متوسط" : "Neutral"
-        : ar ? "غير راضي" : "Dissatisfied",
-      `${r.score} / 5`,
-      r.comment || "-",
-      formatDate(r.createdAt),
-    ]);
-
-    printLuxuryReport({
-      activeTab: "housing_ratings",
-      title: ar ? "تقرير استطلاع جودة السكن الأسبوعي (سري تماماً)" : "Weekly Housing Quality Pulse Report (Anonymous)",
-      subtitle: ar
-        ? `نتائج قياس رضا الموظفين الدوري عن جودة السكن والخدمات - ${propName}`
-        : `Periodic staff housing satisfaction metrics & anonymous feedback - ${propName}`,
-      language: ar ? "ar" : "en",
-      properties,
-      activePropertyId: queryPropertyId !== "all" ? queryPropertyId : (activePropertyId ?? undefined),
-      kpiCards: [
-        { label: ar ? "إجمالي التقييمات" : "Total Ratings", value: stats.totalRatings, color: "blue" },
-        { label: ar ? "نسبة الرضا العامة" : "Satisfaction Rate", value: `${stats.satisfactionRate}%`, color: "green" },
-        { label: ar ? "متوسط التقييم" : "Average Score", value: `${stats.averageScore} / 5`, color: "gold" },
-        { label: ar ? "عدد الملاحظات المكتوبة" : "Written Comments", value: stats.commentsCount, color: "purple" },
-      ],
-      headers: [
-        "#",
-        ar ? "السكن" : "Property",
-        ar ? "التقييم" : "Rating",
-        ar ? "الدرجة" : "Score",
-        ar ? "الملاحظة (سرية ومجهولة)" : "Feedback / Comment",
-        ar ? "التاريخ" : "Date",
-      ],
-      rows,
-    });
+    if (!rows.length) return;
+    setStudioRows(rows);
+    setIsStudioOpen(true);
   };
 
   useEffect(() => {
@@ -627,6 +612,28 @@ export function HousingRatingsTab({
           />
         </div>
       </div>
+
+      <ReportPrintStudioModal
+        open={isStudioOpen}
+        onOpenChange={setIsStudioOpen}
+        title="Weekly Housing Quality Pulse Report (Anonymous)"
+        titleAr="تقرير استطلاع جودة السكن الأسبوعي (سري تماماً)"
+        subtitle={ar ? "نتائج قياس رضا الموظفين الدوري عن جودة السكن والخدمات" : "Periodic staff housing satisfaction metrics & anonymous feedback"}
+        propertyName={
+          queryPropertyId !== "all"
+            ? properties.find((p: any) => String(p.id) === String(queryPropertyId))?.name
+            : undefined
+        }
+        availableColumns={studioColumns}
+        allRows={studioRows}
+        kpis={[
+          { label: "Total Ratings", labelAr: "إجمالي التقييمات", value: stats.totalRatings },
+          { label: "Satisfaction Rate", labelAr: "نسبة الرضا العامة", value: `${stats.satisfactionRate}%` },
+          { label: "Average Score", labelAr: "متوسط التقييم", value: `${stats.averageScore} / 5` },
+          { label: "Written Comments", labelAr: "عدد الملاحظات المكتوبة", value: stats.commentsCount },
+        ]}
+        initialLanguage={ar ? "ar" : "en"}
+      />
     </div>
   );
 }

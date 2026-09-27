@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
-import { printLuxuryReport } from "../utils/luxury-report-engine";
+import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
+import type { ReportColumnConfig } from "./PrintableReportDocument";
 import {
   ArrowLeftRight,
   Building2,
@@ -67,6 +68,17 @@ export function RoomMovesTab({
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(15);
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioRows, setStudioRows] = useState<Record<string, any>[]>([]);
+
+  const studioColumns: ReportColumnConfig[] = [
+    { key: "newRoom", header: "New Room", headerAr: "الغرفة الجديدة" },
+    { key: "resident", header: "Resident Name", headerAr: "الموظف" },
+    { key: "oldRoom", header: "Old Room", headerAr: "الغرفة السابقة" },
+    { key: "reason", header: "Reason", headerAr: "سبب النقل" },
+    { key: "user", header: "User", headerAr: "بواسطة" },
+    { key: "datetime", header: "Date & Time", headerAr: "تاريخ ووقت النقل", type: "date" },
+  ];
 
   const queryPropertyId = selectedProp !== "all" ? selectedProp : (activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all");
 
@@ -163,42 +175,20 @@ export function RoomMovesTab({
           `Property #${queryPropertyId}`
         : ar ? "كافة الفنادق والسكنات" : "All Properties";
 
-    const rows = (allMovesList.length > 0 ? allMovesList : movesList).map((r: any, idx: number) => [
-      String(idx + 1),
-      r.newRoomNumber ? `Rm ${r.newRoomNumber}${r.newBedNumber ? ` (B#${r.newBedNumber})` : ""}` : "-",
-      r.residentName || "-",
-      r.oldRoomNumber ? `Rm ${r.oldRoomNumber}${r.oldBedNumber ? ` (B#${r.oldBedNumber})` : ""}` : "-",
-      r.moveReason || r.reasonCode || "-",
-      r.actionByUsername || "System",
-      formatDateTimeCell(r.createdAt),
-    ]);
+    const rows = (allMovesList.length > 0 ? allMovesList : movesList).map((r: any, idx: number) => ({
+      newRoom: r.newRoomNumber ? `Rm ${r.newRoomNumber}${r.newBedNumber ? ` (B#${r.newBedNumber})` : ""}` : "-",
+      resident: r.residentName || "-",
+      oldRoom: r.oldRoomNumber ? `Rm ${r.oldRoomNumber}${r.oldBedNumber ? ` (B#${r.oldBedNumber})` : ""}` : "-",
+      reason: r.moveReason || r.reasonCode || "-",
+      user: r.actionByUsername || "System",
+      datetime: formatDateTimeCell(r.createdAt),
+    }));
 
-    printLuxuryReport({
-      activeTab: "room_moves",
-      title: ar ? "كشف حركات نقل وتغيير الغرف (Room Moves Report)" : "Room Moves & Transfers Report",
-      subtitle: ar
-        ? `سجل تدقيق وإدارة انتقالات الموظفين بين الغرف والأسرة - ${propName}`
-        : `PMS Room & Bed Movement Audit Trail - ${propName}`,
-      language: ar ? "ar" : "en",
-      properties,
-      activePropertyId: queryPropertyId !== "all" ? queryPropertyId : (activePropertyId ?? undefined),
-      kpiCards: [
-        { label: ar ? "إجمالي حركات النقل" : "Total Moves", value: stats.totalMoves, color: "blue" },
-        { label: ar ? "حركات اليوم" : "Today's Moves", value: stats.todayMoves, color: "green" },
-        { label: ar ? "بسبب الصيانة" : "Maintenance", value: stats.reasonsBreakdown?.MAINTENANCE || 0, color: "red" },
-        { label: ar ? "بسبب الترقية" : "Upgrades", value: stats.reasonsBreakdown?.UPGRADE || 0, color: "orange" },
-      ],
-      headers: [
-        "#",
-        ar ? "الغرفة الجديدة" : "New Room",
-        ar ? "الموظف" : "Resident Name",
-        ar ? "الغرفة السابقة" : "Old Room",
-        ar ? "سبب النقل" : "Reason",
-        ar ? "بواسطة" : "User",
-        ar ? "تاريخ ووقت النقل" : "Date & Time",
-      ],
-      rows,
-    });
+    if (!rows.length) {
+      return;
+    }
+    setStudioRows(rows);
+    setIsStudioOpen(true);
   };
 
   useEffect(() => {
@@ -629,6 +619,34 @@ export function RoomMovesTab({
           />
         </div>
       </div>
+
+      <ReportPrintStudioModal
+        open={isStudioOpen}
+        onOpenChange={setIsStudioOpen}
+        title="Room Moves & Transfers Report"
+        titleAr="كشف حركات نقل وتغيير الغرف"
+        subtitle={ar ? "سجل تدقيق وإدارة انتقالات الموظفين بين الغرف والأسرة" : "PMS Room & Bed Movement Audit Trail"}
+        propertyName={
+          queryPropertyId !== "all"
+            ? properties.find((p) => String(p.id) === String(queryPropertyId))?.displayName ||
+              properties.find((p) => String(p.id) === String(queryPropertyId))?.name
+            : undefined
+        }
+        availableColumns={studioColumns}
+        allRows={studioRows}
+        kpis={[
+          { label: "Total Moves", labelAr: "إجمالي حركات النقل", value: stats.totalMoves },
+          { label: "Today's Moves", labelAr: "حركات اليوم", value: stats.todayMoves },
+          { label: "Maintenance", labelAr: "بسبب الصيانة", value: stats.reasonsBreakdown?.MAINTENANCE || 0 },
+          { label: "Upgrades", labelAr: "بسبب الترقية", value: stats.reasonsBreakdown?.UPGRADE || 0 },
+        ]}
+        filtersSummary={{
+          ...(fromDate ? { [ar ? "من تاريخ" : "From"]: fromDate } : {}),
+          ...(toDate ? { [ar ? "إلى تاريخ" : "To"]: toDate } : {}),
+          ...(selectedReason !== "all" ? { [ar ? "السبب" : "Reason"]: selectedReason } : {}),
+        }}
+        initialLanguage={ar ? "ar" : "en"}
+      />
     </div>
   );
 }

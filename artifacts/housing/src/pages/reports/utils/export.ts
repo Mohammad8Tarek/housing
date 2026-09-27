@@ -223,40 +223,6 @@ export const drawPdfHeader = async (
   return titleY + 14;
 };
 
-export const exportPDF = async (
-  activeTab: string,
-  rows: Record<string, any>[],
-  properties: any[],
-  propId: number | undefined,
-  activePropertyId: number | undefined,
-  dateFrom: string,
-  dateTo: string,
-  search: string,
-  settings: any,
-  language: "ar" | "en" = "ar",
-  extraOpts?: Partial<LuxuryReportOptions>,
-) => {
-  if (!rows || !rows.length) {
-    toast.warning(language === "ar" ? "لا توجد بيانات مطابقة لتصديرها كـ PDF" : "No matching records found to export as PDF");
-    return;
-  }
-
-  await printLuxuryReport({
-    activeTab,
-    rows,
-    properties,
-    propId,
-    activePropertyId,
-    dateFrom,
-    dateTo,
-    search,
-    settings,
-    language,
-    title: "", // Auto-resolved by activeTab in luxury engine
-    ...extraOpts,
-  });
-};
-
 const COMMON_ARABIC_TRANSLATIONS: Record<string, string> = {
   "المبنى الرئيسي": "Main Building",
   "مبنى رئيسي": "Main Building",

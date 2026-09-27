@@ -50,7 +50,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { PageLoader } from "@/components/ui/loader";
-import { printLuxuryReport } from "../utils/luxury-report-engine";
+import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
+import type { ReportColumnConfig } from "./PrintableReportDocument";
 
 interface HousingMapReportTabProps {
   ar: boolean;
@@ -438,9 +439,25 @@ export function HousingMapReportTab({
   };
 
   // Print Luxury Opera PMS Report Handler
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioRows, setStudioRows] = useState<Record<string, any>[]>([]);
+
+  const studioColumns: ReportColumnConfig[] = [
+    { key: "building", header: "Building", headerAr: "المبنى" },
+    { key: "floor", header: "Floor", headerAr: "الدور" },
+    { key: "roomNumber", header: "Room Number", headerAr: "رقم الغرفة" },
+    { key: "roomType", header: "Room Type", headerAr: "نوع الغرفة" },
+    { key: "occupancy", header: "Occupancy Status", headerAr: "حالة الإشغال" },
+    { key: "cleanliness", header: "Cleanliness", headerAr: "حالة النظافة" },
+    { key: "capacity", header: "Capacity", headerAr: "سعة الأسرة" },
+    { key: "occupied", header: "Occupied", headerAr: "الأسرة المشغولة" },
+    { key: "available", header: "Available", headerAr: "الأسرة الشاغرة" },
+    { key: "residents", header: "Residents & Beds", headerAr: "المقيمين والنزلاء بالأسرة" },
+  ];
+
   const handlePrint = async (targetMode: "table" | "map" = viewMode) => {
-    // Generate Rows for Opera PMS Data Table
-    const tableRows: any[] = [];
+    // Generate canonical records for the Studio (map visuals print via Studio table)
+    const records: Record<string, any>[] = [];
     flatRooms.forEach((r) => {
       const residentsSummary =
         r.residents && r.residents.length > 0
@@ -470,142 +487,23 @@ export function HousingMapReportTab({
           ? (ar ? "متسخة" : "Dirty")
           : (ar ? "مفتشة" : "Inspected");
 
-      tableRows.push({
-        [ar ? "المبنى" : "Building"]: r.buildingName,
-        [ar ? "الدور" : "Floor"]: r.floorName,
-        [ar ? "رقم الغرفة" : "Room Number"]: r.roomNumber,
-        [ar ? "نوع الغرفة" : "Room Type"]: r.roomType || (ar ? "عادية" : "Standard"),
-        [ar ? "حالة الإشغال" : "Occupancy Status"]: statusText,
-        [ar ? "حالة النظافة" : "Cleanliness"]: cleanlinessText,
-        [ar ? "سعة الأسرة" : "Capacity"]: r.capacity,
-        [ar ? "الأسرة المشغولة" : "Occupied"]: r.occupiedCount,
-        [ar ? "الأسرة الشاغرة" : "Available"]: r.availableBeds,
-        [ar ? "المقيمين والنزلاء بالأسرة" : "Residents & Beds"]: residentsSummary,
+      records.push({
+        building: r.buildingName,
+        floor: r.floorName,
+        roomNumber: r.roomNumber,
+        roomType: r.roomType || (ar ? "عادية" : "Standard"),
+        occupancy: statusText,
+        cleanliness: cleanlinessText,
+        capacity: r.capacity,
+        occupied: r.occupiedCount,
+        available: r.availableBeds,
+        residents: residentsSummary,
       });
     });
 
-    // If map mode: generate visual architectural HTML for customSectionsHtml
-    let customSectionsHtml = "";
-    if (targetMode === "map") {
-      customSectionsHtml = `
-        <div style="margin-bottom: 24px; font-family: inherit;">
-          ${filteredBuildings
-            .map((b: any) => {
-              return `
-                <div style="margin-bottom: 18px; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; page-break-inside: avoid;">
-                  <div style="background: #1e293b; color: #ffffff; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 8.5pt; font-weight: 700;">
-                    <div>🏢 ${b.name} <span style="font-family: monospace; font-size: 7.5pt; opacity: 0.85;">(${b.code})</span></div>
-                    <div style="font-size: 7.8pt; font-weight: 500;">
-                      ${b.floors?.length || 0} ${ar ? "أدوار" : "Floors"} · 
-                      ${b.totalFilteredRooms} ${ar ? "غرفة" : "Rooms"} · 
-                      ${ar ? "الإشغال:" : "Occ:"} <span style="font-weight: 700; color: #38bdf8;">${b.occupancyRate || 0}%</span>
-                    </div>
-                  </div>
-                  <div style="padding: 8px; background: #f8fafc;">
-                    ${(b.floors || [])
-                      .map((f: any) => {
-                        return `
-                          <div style="margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 4px; background: #ffffff; overflow: hidden; page-break-inside: avoid;">
-                            <div style="background: #f1f5f9; padding: 4px 8px; font-size: 7.8pt; font-weight: 700; color: #334155; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between;">
-                              <span>📍 ${f.name || (ar ? `الدور ${f.floorNumber}` : `Floor ${f.floorNumber}`)}</span>
-                              <span style="font-size: 7.2pt; color: #64748b;">${f.rooms?.length || 0} ${ar ? "غرف" : "rooms"}</span>
-                            </div>
-                            <div style="padding: 6px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-                              ${(f.rooms || [])
-                                .map((room: any) => {
-                                  const residents = room.residents || [];
-                                  const isAvailable = room.statusCategory === "available";
-                                  const isOccupied = room.statusCategory === "occupied";
-                                  const isPartial = room.statusCategory === "partial";
-                                  const bg = isAvailable ? "#f0fdf4" : isOccupied ? "#fefce8" : isPartial ? "#eff6ff" : "#fef2f2";
-                                  const borderColor = isAvailable ? "#bbf7d0" : isOccupied ? "#fef08a" : isPartial ? "#bfdbfe" : "#fecaca";
-                                  const statusName = isAvailable ? (ar ? "شاغرة" : "Vacant") : isOccupied ? (ar ? "مشغولة" : "Occupied") : isPartial ? (ar ? "جزئي" : "Partial") : (ar ? "صيانة" : "Maint");
-                                  const cleanName = room.cleanlinessStatus === "clean" ? (ar ? "نظيفة" : "Clean") : room.cleanlinessStatus === "dirty" ? (ar ? "متسخة" : "Dirty") : (ar ? "مفتشة" : "Inspected");
-
-                                  return `
-                                    <div style="border: 1px solid ${borderColor}; background: ${bg}; border-radius: 4px; padding: 5px; font-size: 7pt; page-break-inside: avoid;">
-                                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; border-bottom: 0.5px solid rgba(0,0,0,0.08); padding-bottom: 2px;">
-                                        <strong style="font-size: 7.8pt; font-family: monospace;">${room.roomNumber}</strong>
-                                        <div style="display: flex; gap: 2px;">
-                                          <span style="background: rgba(0,0,0,0.06); padding: 1px 3px; border-radius: 2px; font-size: 6.2pt; font-weight: 700;">${statusName}</span>
-                                          <span style="background: rgba(0,0,0,0.06); padding: 1px 3px; border-radius: 2px; font-size: 6.2pt;">${cleanName}</span>
-                                        </div>
-                                      </div>
-                                      <div style="font-size: 6.5pt; color: #475569; margin-bottom: 3px; display: flex; justify-content: space-between;">
-                                        <span>${room.roomType || (ar ? "عادية" : "Standard")}</span>
-                                        <span>${room.occupiedCount}/${room.capacity} ${ar ? "سرير" : "beds"}</span>
-                                      </div>
-                                      <div style="display: flex; flex-direction: column; gap: 2px;">
-                                        ${residents.length > 0
-                                          ? residents.map((res: any, rIdx: number) => {
-                                              const info = getResidentInfo(res, rIdx);
-                                              return `
-                                                <div style="background: rgba(255,255,255,0.85); border: 0.5px solid rgba(0,0,0,0.1); border-radius: 3px; padding: 2px 4px; font-size: 6.5pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px;">
-                                                  <strong style="color: #0369a1;">#${info.bedNum}:</strong> 
-                                                  <strong style="color: #0f172a;">${info.name}</strong> 
-                                                  ${info.code !== "-" ? `<span style="color: #64748b; font-family: monospace;">[${info.code}]</span>` : ""}
-                                                  ${info.dept !== "-" ? `<span style="color: #475569;">(${info.dept})</span>` : ""}
-                                                </div>
-                                              `;
-                                            }).join("")
-                                          : `<div style="font-style: italic; color: #94a3b8; font-size: 6.5pt; text-align: center; padding: 2px;">${ar ? "شاغرة (متاح للتسكين)" : "Vacant"}</div>`
-                                        }
-                                      </div>
-                                    </div>
-                                  `;
-                                })
-                                .join("")}
-                            </div>
-                          </div>
-                        `;
-                      })
-                      .join("")}
-                  </div>
-                </div>
-              `;
-            })
-            .join("")}
-        </div>
-      `;
-    }
-
-    const kpiCards = [
-      { label: ar ? "إجمالي المباني" : "Buildings", labelAr: "إجمالي المباني", value: summary.totalBuildings, color: "blue" as const },
-      { label: ar ? "إجمالي الأدوار" : "Floors", labelAr: "إجمالي الأدوار", value: summary.totalFloors, color: "blue" as const },
-      { label: ar ? "إجمالي الغرف" : "Rooms", labelAr: "إجمالي الغرف", value: summary.totalRooms, color: "blue" as const },
-      { label: ar ? "الغرف المشغولة" : "Occupied", labelAr: "الغرف المشغولة", value: summary.occupiedRooms, color: "orange" as const },
-      { label: ar ? "الغرف الشاغرة" : "Vacant", labelAr: "الغرف الشاغرة", value: summary.availableRooms, color: "green" as const },
-      { label: ar ? "نسبة إشغال الأسرة" : "Bed Occ.", labelAr: "نسبة إشغال الأسرة", value: `${summary.bedOccupancyRate}%`, color: "purple" as const },
-    ];
-
-    await printLuxuryReport({
-      activeTab: "housing_map",
-      titleAr: targetMode === "map" ? "تقرير خريطة السكن والمخطط المعماري" : "تقرير خريطة السكن وتوزيع الغرف والأسرة",
-      title: targetMode === "map" ? "Housing Map & Architectural Layout Report" : "Housing Map & Room Structure Report",
-      properties,
-      propId: selectedPropertyId,
-      activePropertyId: selectedPropertyId,
-      settings,
-      language: ar ? "ar" : "en",
-      orientation: "landscape",
-      showKpis: true,
-      showSignatures: true,
-      kpiCards,
-      headers: [
-        ar ? "المبنى" : "Building",
-        ar ? "الدور" : "Floor",
-        ar ? "رقم الغرفة" : "Room Number",
-        ar ? "نوع الغرفة" : "Room Type",
-        ar ? "حالة الإشغال" : "Occupancy Status",
-        ar ? "حالة النظافة" : "Cleanliness",
-        ar ? "سعة الأسرة" : "Capacity",
-        ar ? "الأسرة المشغولة" : "Occupied",
-        ar ? "الأسرة الشاغرة" : "Available",
-        ar ? "المقيمين والنزلاء بالأسرة" : "Residents & Beds",
-      ],
-      rows: targetMode === "table" ? tableRows : [],
-      customSectionsHtml: targetMode === "map" ? customSectionsHtml : undefined,
-    });
+    if (!records.length) return;
+    setStudioRows(records);
+    setIsStudioOpen(true);
   };
 
   React.useEffect(() => {
@@ -1342,6 +1240,17 @@ export function HousingMapReportTab({
           </div>
         </div>
       )}
+
+      <ReportPrintStudioModal
+        open={isStudioOpen}
+        onOpenChange={setIsStudioOpen}
+        title="Housing Map & Room Structure Report"
+        titleAr="تقرير خريطة السكن وتوزيع الغرف والأسرة"
+        propertyName={properties.find((p: any) => p.id === selectedPropertyId)?.name}
+        availableColumns={studioColumns}
+        allRows={studioRows}
+        initialLanguage={ar ? "ar" : "en"}
+      />
     </div>
   );
 }

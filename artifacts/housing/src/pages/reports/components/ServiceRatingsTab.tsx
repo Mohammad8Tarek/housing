@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
-import { printLuxuryReport } from "../utils/luxury-report-engine";
+import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
+import type { ReportColumnConfig } from "./PrintableReportDocument";
 import { transliterateFullName, hasArabicCharacters } from "@/lib/bilingual-name-engine";
 import {
   Star,
@@ -149,6 +150,33 @@ export function ServiceRatingsTab({
     XLSX.writeFile(wb, `Service_Ratings_Report_${dateStr}.xlsx`);
   };
 
+  const [isStudioOpen, setIsStudioOpen] = useState(false);
+  const [studioRows, setStudioRows] = useState<Record<string, any>[]>([]);
+  const [studioMode, setStudioMode] = useState<"tickets" | "leaderboard">("tickets");
+
+  const studioColumns: ReportColumnConfig[] =
+    studioMode === "tickets"
+      ? [
+          { key: "ticket", header: "Ticket #", headerAr: "رقم الطلب" },
+          { key: "building", header: "Building", headerAr: "المبنى" },
+          { key: "floor", header: "Floor", headerAr: "الدور" },
+          { key: "room", header: "Room", headerAr: "الغرفة" },
+          { key: "category", header: "Category", headerAr: "القسم" },
+          { key: "problem", header: "Problem Type", headerAr: "نوع المشكلة" },
+          { key: "worker", header: "Worker", headerAr: "الفني المعين" },
+          { key: "rating", header: "Rating (Stars)", headerAr: "التقييم النجوم" },
+          { key: "comment", header: "Resident Comment", headerAr: "ملاحظات الموظف" },
+          { key: "ratedAt", header: "Rated At", headerAr: "تاريخ التقييم", type: "date" },
+        ]
+      : [
+          { key: "rank", header: "Rank", headerAr: "الترتيب" },
+          { key: "workerName", header: "Worker Name", headerAr: "اسم الفني / العامل" },
+          { key: "specialty", header: "Specialty", headerAr: "التخصص" },
+          { key: "totalRated", header: "Total Rated Orders", headerAr: "الطلبات المقيّمة" },
+          { key: "avgRating", header: "Avg Rating", headerAr: "متوسط التقييم" },
+          { key: "satisfactionRate", header: "Satisfaction Rate", headerAr: "نسبة الرضا" },
+        ];
+
   const handlePrint = async () => {
     const formatWorkerName = (name: string) =>
       !name || name === "—"
@@ -159,44 +187,47 @@ export function ServiceRatingsTab({
           : transliterateFullName(name, "ar")
         : name;
 
-    const rows = ratedTickets.map((t: any) => ({
-      [ar ? "رقم الطلب" : "Ticket #"]: `#${t.id}`,
-      [ar ? "المبنى" : "Building"]: t.buildingName || "—",
-      [ar ? "الدور" : "Floor"]: t.floorNumber != null ? (ar ? `الدور ${t.floorNumber}` : `Floor ${t.floorNumber}`) : "—",
-      [ar ? "الغرفة" : "Room"]: t.roomNumber || "—",
-      [ar ? "القسم" : "Category"]:
-        t.category === "maintenance"
-          ? (ar ? "صيانة" : "Maintenance")
-          : t.category === "housekeeping"
-          ? (ar ? "هاوس كيبنج" : "Housekeeping")
-          : t.category,
-      [ar ? "نوع المشكلة" : "Problem Type"]: t.problemType,
-      [ar ? "الفني المعين" : "Worker"]: formatWorkerName(t.workerName),
-      [ar ? "التقييم النجوم" : "Rating (Stars)"]: `${t.rating || 0} / 5 ⭐`,
-      [ar ? "ملاحظات الموظف" : "Resident Comment"]: t.ratingComment || "—",
-      [ar ? "تاريخ التقييم" : "Rated At"]: t.ratedAt ? formatDateTime(t.ratedAt) : "—",
-    }));
+    const useTickets = ratedTickets.length > 0;
+    const records: Record<string, any>[] = useTickets
+      ? ratedTickets.map((t: any) => ({
+          ticket: `#${t.id}`,
+          building: t.buildingName || "—",
+          floor:
+            t.floorNumber != null
+              ? ar
+                ? `الدور ${t.floorNumber}`
+                : `Floor ${t.floorNumber}`
+              : "—",
+          room: t.roomNumber || "—",
+          category:
+            t.category === "maintenance"
+              ? ar
+                ? "صيانة"
+                : "Maintenance"
+              : t.category === "housekeeping"
+                ? ar
+                  ? "هاوس كيبنج"
+                  : "Housekeeping"
+                : t.category,
+          problem: t.problemType,
+          worker: formatWorkerName(t.workerName),
+          rating: `${t.rating || 0} / 5 ⭐`,
+          comment: t.ratingComment || "—",
+          ratedAt: t.ratedAt ? formatDateTime(t.ratedAt) : "—",
+        }))
+      : workerLeaderboard.map((w: any, idx: number) => ({
+          rank: idx + 1,
+          workerName: formatWorkerName(w.workerName),
+          specialty: w.specialty || "—",
+          totalRated: w.totalRated,
+          avgRating: `${w.averageRating} / 5 ⭐`,
+          satisfactionRate: `${w.satisfactionRate}%`,
+        }));
 
-    const printRows =
-      rows.length > 0
-        ? rows
-        : workerLeaderboard.map((w: any, idx: number) => ({
-            [ar ? "الترتيب" : "Rank"]: idx + 1,
-            [ar ? "اسم الفني / العامل" : "Worker Name"]: formatWorkerName(w.workerName),
-            [ar ? "التخصص" : "Specialty"]: w.specialty || "—",
-            [ar ? "الطلبات المقيّمة" : "Total Rated Orders"]: w.totalRated,
-            [ar ? "متوسط التقييم" : "Avg Rating"]: `${w.averageRating} / 5 ⭐`,
-            [ar ? "نسبة الرضا" : "Satisfaction Rate"]: `${w.satisfactionRate}%`,
-          }));
-
-    await printLuxuryReport({
-      title: ar ? "تقرير تقييمات الخدمات وجودة الصيانة" : "Service Quality & Maintenance Ratings Report",
-      activeTab: "service_ratings",
-      rows: printRows,
-      properties,
-      activePropertyId: activePropertyId ?? undefined,
-      language: ar ? "ar" : "en",
-    });
+    if (!records.length) return;
+    setStudioMode(useTickets ? "tickets" : "leaderboard");
+    setStudioRows(records);
+    setIsStudioOpen(true);
   };
 
   useEffect(() => {
@@ -637,6 +668,21 @@ export function ServiceRatingsTab({
           </Table>
         </div>
       </div>
+
+      <ReportPrintStudioModal
+        open={isStudioOpen}
+        onOpenChange={setIsStudioOpen}
+        title="Service Quality & Maintenance Ratings Report"
+        titleAr="تقرير تقييمات الخدمات وجودة الصيانة"
+        propertyName={
+          activePropertyId && activePropertyId !== "all"
+            ? properties.find((p: any) => String(p.id) === String(activePropertyId))?.name
+            : undefined
+        }
+        availableColumns={studioColumns}
+        allRows={studioRows}
+        initialLanguage={ar ? "ar" : "en"}
+      />
     </div>
   );
 }
