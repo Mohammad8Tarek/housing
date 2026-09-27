@@ -900,7 +900,7 @@ export async function sendMetaCloudMessage(params: {
       }),
     });
 
-    const data = await response.json();
+    const data: any = await response.json();
     if (!response.ok) {
       const errMsg = data?.error?.message || `Meta Cloud API error (${response.status})`;
       console.error(`[WhatsApp Meta Cloud] Send failed to ${cleanPhone}:`, errMsg);

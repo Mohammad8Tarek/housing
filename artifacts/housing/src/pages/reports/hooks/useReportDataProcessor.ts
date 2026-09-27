@@ -194,7 +194,7 @@ export function useReportDataProcessor({
       if (search && search.trim()) {
         const fields = searchFields
           ? searchFields(item)
-          : Object.values(item);
+          : (Object.values(item) as (string | number | null | undefined)[]);
         if (!matchesSearch(fields, search)) return false;
       }
       if (dateField && (dateFrom || dateTo)) {

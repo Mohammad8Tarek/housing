@@ -60,13 +60,11 @@ export function RoomDetailsDialog({
   const [localFeatures, setLocalFeatures] = useState<string[] | null>(null);
   const [savingFeatures, setSavingFeatures] = useState(false);
 
-  if (!room) return null;
-
   const currentFeaturesList: string[] =
     localFeatures ??
-    (Array.isArray(room.featuresList) && room.featuresList.length > 0
+    (Array.isArray(room?.featuresList) && room.featuresList.length > 0
       ? room.featuresList
-      : room.features
+      : room?.features
       ? String(room.features)
           .split(/[,;\n]+/)
           .map((s: string) => s.trim())
@@ -135,6 +133,9 @@ export function RoomDetailsDialog({
     enabled: !!room?.id && !!propertyId,
   });
   const roomInventory: any[] = inventoryData || [];
+
+  // All hooks must run before any early return (Rules of Hooks).
+  if (!room) return null;
 
   const handleSyncFromFeatures = async () => {
     setIsSyncing(true);

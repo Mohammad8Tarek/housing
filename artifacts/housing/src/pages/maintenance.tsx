@@ -344,6 +344,10 @@ export default function Tickets() {
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 400);
 
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
+
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch, categoryFilter, statusFilter, priorityFilter, fromDate, toDate]);
@@ -355,9 +359,6 @@ export default function Tickets() {
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
   const [subTickets, setSubTickets] = useState<any[]>([]);
   const [loadingSubTickets, setLoadingSubTickets] = useState(false);
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [priorityFilter, setPriorityFilter] = useState("");
 
   const [departmentFilter, setDepartmentFilter] = useState<string[]>([]);
   const [creatorTypeFilter, setCreatorTypeFilter] = useState("");

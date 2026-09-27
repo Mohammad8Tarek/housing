@@ -1474,7 +1474,7 @@ export function WhatsAppSettingsSection({
               <PermissionGate module="whatsapp" action="edit">
                 <Button
                   size="sm"
-                  onClick={handleSaveConfig}
+                  onClick={() => handleSaveConfig()}
                   disabled={saving}
                   className="gap-1.5 font-semibold text-xs"
                 >

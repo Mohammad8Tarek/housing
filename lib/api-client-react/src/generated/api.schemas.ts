@@ -154,6 +154,9 @@ export interface Room {
   gender?: string | null;
   /** @nullable */
   classification?: string | null;
+  view?: string;
+  bedType?: string;
+  features?: string;
 }
 
 export interface CreateRoomBody {

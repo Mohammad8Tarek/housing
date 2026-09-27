@@ -97,6 +97,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
   const [esignTestResult, setEsignTestResult] = useState<{
     success: boolean;
     message: string;
+    error?: string;
     hotelId?: number;
     hotelName?: string;
     hotelCode?: string;
