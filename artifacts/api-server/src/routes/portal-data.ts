@@ -1614,6 +1614,16 @@ router.post("/housing-rating", async (req, res): Promise<void> => {
 
     const cooldownDays = config?.cooldownDays || 7;
 
+    // Server-side enforcement of the required-comment policy
+    // (client also blocks, but the API must not trust it).
+    if (config?.commentRequired && !String(comment || "").trim()) {
+      res.status(400).json({
+        success: false,
+        message: "التعليق مطلوب مع هذا التقييم",
+      });
+      return;
+    }
+
     // Check cooldown
     const [latestRating] = await db
       .select({
