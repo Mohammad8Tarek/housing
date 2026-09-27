@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -415,10 +416,9 @@ export function RoomMovesTab({
               <Label className="text-xs font-medium text-muted-foreground">
                 {ar ? "من تاريخ" : "From Date"}
               </Label>
-              <Input
-                type="date"
+              <DateInput
                 value={fromDate}
-                onChange={(e) => { setFromDate(e.target.value); setCurrentPage(1); }}
+                onChange={(iso) => { setFromDate(iso); setCurrentPage(1); }}
                 className="text-xs h-9"
               />
             </div>
@@ -428,10 +428,9 @@ export function RoomMovesTab({
               <Label className="text-xs font-medium text-muted-foreground">
                 {ar ? "إلى تاريخ" : "To Date"}
               </Label>
-              <Input
-                type="date"
+              <DateInput
                 value={toDate}
-                onChange={(e) => { setToDate(e.target.value); setCurrentPage(1); }}
+                onChange={(iso) => { setToDate(iso); setCurrentPage(1); }}
                 className="text-xs h-9"
               />
             </div>

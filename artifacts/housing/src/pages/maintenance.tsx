@@ -107,6 +107,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DataPagination } from "@/components/DataPagination";
 import { TicketsKanbanBoard } from "./maintenance/components/TicketsKanbanBoard";
@@ -1319,10 +1320,9 @@ export default function Tickets() {
                 <Calendar className="w-3.5 h-3.5 text-primary" />
                 <span>{ar ? "من تاريخ" : "From Date"}</span>
               </Label>
-              <Input
-                type="date"
+              <DateInput
                 value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
+                onChange={(iso) => setFromDate(iso)}
                 className="h-9 text-xs bg-background"
               />
             </div>
@@ -1333,10 +1333,9 @@ export default function Tickets() {
                 <Calendar className="w-3.5 h-3.5 text-primary" />
                 <span>{ar ? "إلى تاريخ" : "To Date"}</span>
               </Label>
-              <Input
-                type="date"
+              <DateInput
                 value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
+                onChange={(iso) => setToDate(iso)}
                 className="h-9 text-xs bg-background"
               />
             </div>

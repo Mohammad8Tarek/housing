@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -256,10 +257,9 @@ export function ServiceRatingsTab({
               <Calendar className="w-3.5 h-3.5 text-primary" />
               <span>{ar ? "من تاريخ" : "From Date"}</span>
             </Label>
-            <Input
-              type="date"
+            <DateInput
               value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
+              onChange={(iso) => setFromDate(iso)}
               className="h-9 text-xs"
             />
           </div>
@@ -270,10 +270,9 @@ export function ServiceRatingsTab({
               <Calendar className="w-3.5 h-3.5 text-primary" />
               <span>{ar ? "إلى تاريخ" : "To Date"}</span>
             </Label>
-            <Input
-              type="date"
+            <DateInput
               value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
+              onChange={(iso) => setToDate(iso)}
               className="h-9 text-xs"
             />
           </div>

@@ -22,6 +22,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DateInput } from "@/components/ui/date-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -506,11 +507,9 @@ export function ManagerFlashTab({
           <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs">
             <Calendar className="w-3.5 h-3.5 text-slate-400" />
             <span className="text-slate-300">{ar ? "تاريخ التقرير:" : "Date:"}</span>
-            <input
-              type="date"
+            <DateInput
               value={reportDate}
-              onChange={(e) => setReportDate(e.target.value)}
-              className="bg-transparent border-none text-xs font-medium text-white focus:outline-hidden"
+              onChange={(iso) => setReportDate(iso)}
             />
           </div>
 
