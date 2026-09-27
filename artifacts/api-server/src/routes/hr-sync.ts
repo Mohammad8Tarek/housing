@@ -137,17 +137,43 @@ export function extractProfileFields(
   raw: any,
   mapping: Record<string, string> = {},
 ) {
+  // Fast case-insensitive normalized lookup map for raw keys (ignores case, spaces, underscores, hyphens)
+  const normalizedRawKeys = new Map<string, any>();
+  if (raw && typeof raw === "object") {
+    for (const [k, v] of Object.entries(raw)) {
+      if (v !== undefined && v !== null && String(v).trim() !== "") {
+        const cleanK = k.toLowerCase().replace(/[\s_-]+/g, "");
+        if (!normalizedRawKeys.has(cleanK)) {
+          normalizedRawKeys.set(cleanK, v);
+        }
+      }
+    }
+  }
+
   const getVal = (targetField: string, fallbacks: string[] = []): any => {
     if (
       mapping &&
       mapping[targetField] &&
-      raw[mapping[targetField]] !== undefined
+      raw &&
+      raw[mapping[targetField]] !== undefined &&
+      raw[mapping[targetField]] !== null
     ) {
       return raw[mapping[targetField]];
     }
-    if (raw[targetField] !== undefined) return raw[targetField];
+    if (raw && raw[targetField] !== undefined && raw[targetField] !== null) return raw[targetField];
     for (const fb of fallbacks) {
-      if (raw[fb] !== undefined) return raw[fb];
+      if (raw && raw[fb] !== undefined && raw[fb] !== null) return raw[fb];
+    }
+    // Case-insensitive normalized search
+    const cleanTarget = targetField.toLowerCase().replace(/[\s_-]+/g, "");
+    if (normalizedRawKeys.has(cleanTarget)) {
+      return normalizedRawKeys.get(cleanTarget);
+    }
+    for (const fb of fallbacks) {
+      const cleanFb = fb.toLowerCase().replace(/[\s_-]+/g, "");
+      if (normalizedRawKeys.has(cleanFb)) {
+        return normalizedRawKeys.get(cleanFb);
+      }
     }
     return undefined;
   };
@@ -202,7 +228,37 @@ export function extractProfileFields(
   }
 
   const nationalId =
-    getVal("nationalId", ["national_id", "iqama", "ssn", "nid", "الرقم_القومي", "الرقم القومي", "الهوية"]) ?? "";
+    getVal("nationalId", [
+      "NationalId",
+      "NationalID",
+      "national_id",
+      "nationalId",
+      "nationalID",
+      "id_number",
+      "idNumber",
+      "IdNumber",
+      "IDNumber",
+      "identity_number",
+      "identityNumber",
+      "IdentityNumber",
+      "civil_id",
+      "CivilId",
+      "CivilID",
+      "iqama",
+      "ssn",
+      "nid",
+      "Nid",
+      "NID",
+      "الرقم_القومي",
+      "الرقم القومي",
+      "رقم_البطاقة",
+      "رقم البطاقة",
+      "بطاقة_الرقم_القومي",
+      "بطاقة الرقم القومي",
+      "رقم_الهوية",
+      "رقم الهوية",
+      "الهوية",
+    ]) ?? "";
   const nationality = getVal("nationality", ["country", "الجنسية"]) ?? "";
   const address = getVal("address", ["street", "residence", "العنوان"]) ?? "";
 
