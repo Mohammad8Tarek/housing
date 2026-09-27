@@ -803,6 +803,25 @@ export function translateHostingRelation(val: string, ar: boolean): string {
 // ----------------------------------------------------------------------------
 export function formatStatusBadgeHtml(val: any, isArabic: boolean): string {
   if (val === null || val === undefined || val === "") return "—";
+  // Safety net: never render raw objects/arrays as "[object Object]".
+  if (Array.isArray(val)) {
+    if (val.length === 0) return "—";
+    return val
+      .map((v: any) => {
+        if (v !== null && typeof v === "object") {
+          return v.name ?? v.label ?? v.value ?? v.title ?? JSON.stringify(v);
+        }
+        return v;
+      })
+      .join(" | ");
+  }
+  if (typeof val === "object") {
+    const o = val as Record<string, any>;
+    const picked = o.name ?? o.label ?? o.value ?? o.title ?? o.text;
+    return picked !== undefined && picked !== null && typeof picked !== "object"
+      ? String(picked)
+      : "—";
+  }
   if (typeof val === "boolean") {
     if (val) {
       return `<span style="display:inline-block; width:13px; height:13px; border:1.2px solid #059669; border-radius:2px; vertical-align:middle; background:#ecfdf5; color:#059669; text-align:center; font-size:10px; line-height:12px; font-weight:bold;">✓</span>`;

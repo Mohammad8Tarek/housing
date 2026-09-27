@@ -484,6 +484,22 @@ export function useReportExport({
           [ar ? "ملاحظات" : "Notes"]: v.notes,
         }));
 
+      case "housing_map":
+        // Canonical 10 columns only — the processor row carries duplicate
+        // aliases (building/buildingName, ...) plus a raw residents array
+        // that would otherwise print as extra columns / "[object Object]".
+        return data.map((r: any) => ({
+          [ar ? "المبنى" : "Building"]: r.buildingName ?? r.building ?? "—",
+          [ar ? "الدور" : "Floor"]: r.floorName ?? r.floor ?? "—",
+          [ar ? "رقم الغرفة" : "Room Number"]: r.roomNumber ?? "—",
+          [ar ? "نوع الغرفة" : "Room Type"]: r.roomType ?? "—",
+          [ar ? "حالة الإشغال" : "Occupancy Status"]: r.occupancyStatus ?? r.status ?? "—",
+          [ar ? "سعة الأسرة" : "Capacity"]: r.totalCapacity ?? r.capacity ?? 0,
+          [ar ? "الأسرة المشغولة" : "Occupied"]: r.currentOccupants ?? r.occupiedCount ?? 0,
+          [ar ? "الأسرة الشاغرة" : "Available"]: r.vacantBeds ?? r.availableBeds ?? 0,
+          [ar ? "المقيمين والنزلاء بالأسرة" : "Residents & Beds"]: r.occupantsSummary ?? r.residentsSummary ?? "—",
+        }));
+
       default:
         if (ar && Array.isArray(data)) {
           return data.map((item: any) => {
