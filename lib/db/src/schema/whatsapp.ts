@@ -17,6 +17,10 @@ export const propertyWhatsappConfigsTable = pgTable(
     propertyId: integer("property_id").notNull().unique(),
     phoneNumber: text("phone_number"),
     status: text("status").notNull().default("disconnected"), // disconnected | pairing | connected
+    provider: text("provider").notNull().default("baileys"), // baileys | meta_cloud
+    metaAccessToken: text("meta_access_token"),
+    metaPhoneNumberId: text("meta_phone_number_id"),
+    metaWabaId: text("meta_waba_id"),
     qrCode: text("qr_code"),
     isAutoSendEnabled: boolean("is_auto_send_enabled").notNull().default(true),
     welcomeTemplateAr: text("welcome_template_ar")

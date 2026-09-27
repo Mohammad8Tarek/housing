@@ -1419,6 +1419,16 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     name: "public.settings.job_level_policies",
     q: `ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS job_level_policies JSONB DEFAULT '[]'::jsonb;`,
   },
+  {
+    name: "public.property_whatsapp_configs.meta_cloud_fields",
+    q: `
+      ALTER TABLE public.property_whatsapp_configs
+        ADD COLUMN IF NOT EXISTS provider TEXT NOT NULL DEFAULT 'baileys',
+        ADD COLUMN IF NOT EXISTS meta_access_token TEXT,
+        ADD COLUMN IF NOT EXISTS meta_phone_number_id TEXT,
+        ADD COLUMN IF NOT EXISTS meta_waba_id TEXT;
+    `,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -2659,6 +2669,16 @@ We wish you a safe trip and a pleasant stay! ✨';`,
   {
     name: "tenant.profiles.national_id_btree_index",
     q: `CREATE INDEX IF NOT EXISTS idx_profiles_national_id_btree ON profiles(national_id) WHERE national_id IS NOT NULL AND national_id != '';`,
+  },
+  {
+    name: "tenant.property_whatsapp_configs.meta_cloud_fields",
+    q: `
+      ALTER TABLE property_whatsapp_configs
+        ADD COLUMN IF NOT EXISTS provider TEXT NOT NULL DEFAULT 'baileys',
+        ADD COLUMN IF NOT EXISTS meta_access_token TEXT,
+        ADD COLUMN IF NOT EXISTS meta_phone_number_id TEXT,
+        ADD COLUMN IF NOT EXISTS meta_waba_id TEXT;
+    `,
   },
 ];
 

@@ -2571,5 +2571,14 @@ We wish you a safe trip and a pleasant stay! ✨',
   CREATE INDEX IF NOT EXISTS idx_room_moves_profile ON public.room_moves(profile_id);
   CREATE INDEX IF NOT EXISTS idx_room_moves_created ON public.room_moves(created_at DESC);
 
+  -- Meta WhatsApp Cloud API columns
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'property_whatsapp_configs') THEN
+    ALTER TABLE public.property_whatsapp_configs
+      ADD COLUMN IF NOT EXISTS provider TEXT NOT NULL DEFAULT 'baileys',
+      ADD COLUMN IF NOT EXISTS meta_access_token TEXT,
+      ADD COLUMN IF NOT EXISTS meta_phone_number_id TEXT,
+      ADD COLUMN IF NOT EXISTS meta_waba_id TEXT;
+  END IF;
+
   RAISE NOTICE '>>> All schemas, tables, and constraints migrated successfully!';
 END $$;

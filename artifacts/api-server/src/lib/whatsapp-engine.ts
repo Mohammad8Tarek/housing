@@ -68,7 +68,8 @@ export const DEFAULT_WELCOME_AR = `{مرحباً بك|أهلاً وسهلاً ب
 
 ━━━━━━━━━━━━━━━━━━━━
 🏨 إدارة سكن العاملين — مجموعة فنادق صن رايز
-📌 رسالة آلية رسمية خاصة بإقامتك وسكنك الفندقي. في حال وجود أي استفسار أو رغبة في عدم استقبال إشعارات الواتساب، يرجى الرد على هذه الرسالة أو مراجعة مكتب الإسكان مباشرة.`;
+💡 تنبيه هام: برجاء حفظ هذا الرقم باسم "سكن العاملين" في جهات اتصالك لتفعيل خدمات البوابة واستقبال التنبيهات دائماً.
+📌 للرد أو الاستفسار يمكنك إرسال رسالة مباشرة، أو للإلغاء أرسل 0.`;
 
 export const DEFAULT_WELCOME_EN = `{Welcome|Greetings|Warm welcome} Mr/Ms {employee_name} to {property_name}! 🌴✨
 
@@ -256,10 +257,19 @@ export async function processOutboxQueue(
   isProcessingOutbox.set(propertyId, true);
 
   try {
-    const session = await getWhatsAppSession(propertyId);
-    if (session.status !== "connected" || !session.sock) {
-      // Offline: messages remain securely in whatsapp_outbox_queue with status 'PENDING'
-      return { processed: 0, failed: 0, pendingRemaining: await getPendingQueueCount(propertyId) };
+    const configRes = await pool.query(
+      `SELECT provider, meta_access_token, meta_phone_number_id 
+       FROM public.property_whatsapp_configs WHERE property_id = $1`,
+      [propertyId]
+    );
+    const isMetaCloud = configRes.rows[0]?.provider === "meta_cloud";
+
+    if (!isMetaCloud) {
+      const session = await getWhatsAppSession(propertyId);
+      if (session.status !== "connected" || !session.sock) {
+        // Offline: messages remain securely in whatsapp_outbox_queue with status 'PENDING'
+        return { processed: 0, failed: 0, pendingRemaining: await getPendingQueueCount(propertyId) };
+      }
     }
 
     // Anti-ban check: Quiet hours (23:00 to 07:30)
@@ -276,11 +286,13 @@ export async function processOutboxQueue(
     let failed = 0;
 
     while (true) {
-      // Check quota before fetching next batch
-      const quotaCheck = checkAndIncrementAntiBanQuota(propertyId);
-      if (!quotaCheck.allowed) {
-        console.warn(`[WhatsApp Anti-Ban] 🛡️ ${quotaCheck.reason}`);
-        break;
+      // Check quota before fetching next batch (for Baileys accounts)
+      if (!isMetaCloud) {
+        const quotaCheck = checkAndIncrementAntiBanQuota(propertyId);
+        if (!quotaCheck.allowed) {
+          console.warn(`[WhatsApp Anti-Ban] 🛡️ ${quotaCheck.reason}`);
+          break;
+        }
       }
 
       const querySql = inQuietHours
@@ -302,17 +314,19 @@ export async function processOutboxQueue(
       }
 
       console.log(
-        `[WhatsApp Outbox] Dispatching batch chunk of ${pendingItems.length} pending messages for property ${propertyId}...`
+        `[WhatsApp Outbox] Dispatching batch chunk of ${pendingItems.length} pending messages for property ${propertyId} (Provider: ${isMetaCloud ? "Meta Cloud API" : "Baileys"})...`
       );
 
       for (const item of pendingItems) {
-        // Re-verify session is still active
-        const currentSession = await getWhatsAppSession(propertyId);
-        if (currentSession.status !== "connected" || !currentSession.sock) {
-          console.warn(
-            `[WhatsApp Outbox] Connection dropped while processing outbox for property ${propertyId}. Halting until reconnect.`
-          );
-          return { processed, failed, pendingRemaining: await getPendingQueueCount(propertyId) };
+        // Re-verify session is still active (for Baileys)
+        if (!isMetaCloud) {
+          const currentSession = await getWhatsAppSession(propertyId);
+          if (currentSession.status !== "connected" || !currentSession.sock) {
+            console.warn(
+              `[WhatsApp Outbox] Connection dropped while processing outbox for property ${propertyId}. Halting until reconnect.`
+            );
+            return { processed, failed, pendingRemaining: await getPendingQueueCount(propertyId) };
+          }
         }
 
         // Mark as PROCESSING
@@ -342,19 +356,24 @@ export async function processOutboxQueue(
             [item.id]
           ).catch(() => {});
 
-          // Anti-ban cooling rule:
-          // Every 8 sent messages, enforce an extended cooling-off pause of 70-110 seconds to mimic human breaks
-          if (batchTotal > 0 && batchTotal % 8 === 0) {
-            const coolDownMs = 70000 + Math.floor(Math.random() * 40000); // 70s to 110s
-            console.log(
-              `[WhatsApp Anti-Ban] 🛡️ Completed safety cycle of 8 messages for property ${propertyId}. Enforcing cooling-off pause for ${Math.round(coolDownMs / 1000)}s to prevent account flag...`
-            );
-            await new Promise((r) => setTimeout(r, coolDownMs));
-            console.log(`[WhatsApp Anti-Ban] ✅ Cooling-off pause completed. Resuming safe dispatch.`);
+          if (isMetaCloud) {
+            // Official Meta API: Fast, highly reliable, no need for long cooling pauses
+            await new Promise((r) => setTimeout(r, 600));
           } else {
-            // Enhanced human delay jitter: 10,000ms to 18,000ms (10 to 18 seconds)
-            const jitterMs = 10000 + Math.floor(Math.random() * 8000);
-            await new Promise((r) => setTimeout(r, jitterMs));
+            // Anti-ban cooling rule for direct phone QR (Baileys):
+            // Every 8 sent messages, enforce an extended cooling-off pause of 70-110 seconds to mimic human breaks
+            if (batchTotal > 0 && batchTotal % 8 === 0) {
+              const coolDownMs = 70000 + Math.floor(Math.random() * 40000); // 70s to 110s
+              console.log(
+                `[WhatsApp Anti-Ban] 🛡️ Completed safety cycle of 8 messages for property ${propertyId}. Enforcing cooling-off pause for ${Math.round(coolDownMs / 1000)}s to prevent account flag...`
+              );
+              await new Promise((r) => setTimeout(r, coolDownMs));
+              console.log(`[WhatsApp Anti-Ban] ✅ Cooling-off pause completed. Resuming safe dispatch.`);
+            } else {
+              // Enhanced human delay jitter: 10,000ms to 18,000ms (10 to 18 seconds)
+              const jitterMs = 10000 + Math.floor(Math.random() * 8000);
+              await new Promise((r) => setTimeout(r, jitterMs));
+            }
           }
         } else if (result.reason === "NOT_REGISTERED") {
           failed++;
@@ -828,6 +847,79 @@ export async function autoRestoreAllWhatsAppSessions(): Promise<void> {
 }
 
 /**
+ * Official Meta WhatsApp Cloud API Sender (100% immune to bans, 1,000 free conversations/month)
+ */
+export async function sendMetaCloudMessage(params: {
+  propertyId: number;
+  phoneNumberId?: string | null;
+  accessToken?: string | null;
+  recipientPhone: string;
+  recipientName?: string;
+  messageType?: string;
+  text: string;
+}): Promise<{ success: boolean; reason?: string; messageId?: string }> {
+  const {
+    propertyId,
+    phoneNumberId,
+    accessToken,
+    recipientPhone,
+    recipientName,
+    messageType = "CHECKIN_WELCOME",
+    text,
+  } = params;
+
+  if (!phoneNumberId || !accessToken) {
+    const reason = "بيانات Meta Cloud API غير مكتملة (يرجى إدخال Phone Number ID و Access Token في الإعدادات)";
+    await logDelivery(propertyId, recipientPhone, recipientName, messageType, text, "FAILED", reason);
+    return { success: false, reason };
+  }
+
+  const cleanPhone = normalizePhoneNumber(recipientPhone);
+  if (!cleanPhone || cleanPhone.length < 8) {
+    await logDelivery(propertyId, recipientPhone, recipientName, messageType, text, "FAILED", "Invalid phone number format");
+    return { success: false, reason: "INVALID_PHONE" };
+  }
+
+  try {
+    const url = `https://graph.facebook.com/v21.0/${phoneNumberId.trim()}/messages`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken.trim()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: cleanPhone,
+        type: "text",
+        text: {
+          preview_url: true,
+          body: text,
+        },
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      const errMsg = data?.error?.message || `Meta Cloud API error (${response.status})`;
+      console.error(`[WhatsApp Meta Cloud] Send failed to ${cleanPhone}:`, errMsg);
+      await logDelivery(propertyId, recipientPhone, recipientName, messageType, text, "FAILED", errMsg);
+      return { success: false, reason: errMsg };
+    }
+
+    const messageId = data?.messages?.[0]?.id || "meta-cloud-ok";
+    await logDelivery(propertyId, recipientPhone, recipientName, messageType, text, "SENT");
+    console.log(`[WhatsApp Meta Cloud] ✅ Message successfully sent to ${cleanPhone} via official Meta Cloud API (ID: ${messageId})`);
+    return { success: true, messageId };
+  } catch (err: any) {
+    console.error(`[WhatsApp Meta Cloud] Network/HTTP error:`, err?.message);
+    await logDelivery(propertyId, recipientPhone, recipientName, messageType, text, "FAILED", err?.message || "Meta Network Error");
+    return { success: false, reason: err?.message };
+  }
+}
+
+/**
  * Actual execution of sending message with anti-ban human behavior
  */
 export async function executeSendHumanLike(
@@ -838,6 +930,30 @@ export async function executeSendHumanLike(
   recipientName?: string,
   _queueId?: number
 ): Promise<{ success: boolean; reason?: string }> {
+  // 1. Check if property is configured with official Meta WhatsApp Cloud API (Zero ban risk)
+  try {
+    const configRes = await pool.query(
+      `SELECT provider, meta_access_token, meta_phone_number_id, meta_waba_id 
+       FROM public.property_whatsapp_configs WHERE property_id = $1`,
+      [propertyId]
+    );
+    const config = configRes.rows[0];
+    if (config?.provider === "meta_cloud") {
+      return await sendMetaCloudMessage({
+        propertyId,
+        phoneNumberId: config.meta_phone_number_id,
+        accessToken: config.meta_access_token,
+        recipientPhone: rawPhone,
+        recipientName,
+        messageType,
+        text,
+      });
+    }
+  } catch (err: any) {
+    console.warn(`[WhatsApp] Provider check error for property ${propertyId}:`, err?.message);
+  }
+
+  // 2. Default / Direct QR Mode (Baileys)
   let session = await getWhatsAppSession(propertyId);
 
   // If session is currently restoring or pairing, wait up to 10s for open connection

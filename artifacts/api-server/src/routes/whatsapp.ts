@@ -30,12 +30,14 @@ router.get("/status", requireAnyPermission(["whatsapp", "view"], ["settings", "v
 
     // Also check DB for persisted config
     const dbRes = await pool.query(
-      `SELECT status, phone_number, qr_code, is_auto_send_enabled, updated_at
+      `SELECT status, phone_number, qr_code, is_auto_send_enabled, provider, meta_phone_number_id, meta_waba_id, meta_access_token, updated_at
        FROM public.property_whatsapp_configs
        WHERE property_id = $1`,
       [propertyId]
     );
     const dbRow = dbRes.rows[0];
+    const provider = dbRow?.provider || "baileys";
+    const hasMetaConfig = Boolean(dbRow?.meta_phone_number_id && dbRow?.meta_access_token);
 
     // Only consider DB QR code if it was updated in the last 75 seconds (WhatsApp QR expiry)
     let effectiveQr: string | null = session.qrCode || null;
@@ -47,26 +49,36 @@ router.get("/status", requireAnyPermission(["whatsapp", "view"], ["settings", "v
     }
 
     let effectiveStatus = session.status;
-    if (session.status === "disconnected") {
-      if (dbRow?.status === "connected") {
-        effectiveStatus = "connected";
-      } else if (effectiveQr) {
-        effectiveStatus = "pairing";
-      } else {
-        effectiveStatus = "disconnected";
+    if (provider === "meta_cloud") {
+      effectiveStatus = hasMetaConfig ? "connected" : "disconnected";
+    } else {
+      if (session.status === "disconnected") {
+        if (dbRow?.status === "connected") {
+          effectiveStatus = "connected";
+        } else if (effectiveQr) {
+          effectiveStatus = "pairing";
+        } else {
+          effectiveStatus = "disconnected";
+        }
       }
     }
 
-    const effectivePhone = session.phoneNumber || dbRow?.phone_number || null;
+    const effectivePhone = provider === "meta_cloud"
+      ? (dbRow?.phone_number || (hasMetaConfig ? "Meta Cloud Active" : null))
+      : (session.phoneNumber || dbRow?.phone_number || null);
     const pendingQueueCount = await getPendingQueueCount(propertyId);
 
     res.json({
       success: true,
+      provider,
       status: effectiveStatus,
       phoneNumber: effectivePhone,
-      qrCode: effectiveQr,
-      pairingCode: session.pairingCode || null,
+      qrCode: provider === "meta_cloud" ? null : effectiveQr,
+      pairingCode: provider === "meta_cloud" ? null : (session.pairingCode || null),
       isAutoSendEnabled: dbRow ? dbRow.is_auto_send_enabled : true,
+      metaPhoneNumberId: dbRow?.meta_phone_number_id || "",
+      metaWabaId: dbRow?.meta_waba_id || "",
+      hasMetaToken: Boolean(dbRow?.meta_access_token),
       pendingQueueCount,
       updatedAt: dbRow?.updated_at || null,
     });
@@ -159,12 +171,16 @@ router.get("/config", requireAnyPermission(["whatsapp", "view"], ["settings", "v
         config: {
           propertyId,
           isAutoSendEnabled: true,
+          provider: "baileys",
           welcomeTemplateAr: DEFAULT_WELCOME_AR,
           welcomeTemplateEn: DEFAULT_WELCOME_EN,
           isReservationSendEnabled: true,
           reservationTemplateAr: DEFAULT_RESERVATION_AR,
           reservationTemplateEn: DEFAULT_RESERVATION_EN,
           supervisorContact: "",
+          metaPhoneNumberId: "",
+          metaWabaId: "",
+          hasMetaToken: false,
         },
       });
     }
@@ -180,6 +196,7 @@ router.get("/config", requireAnyPermission(["whatsapp", "view"], ["settings", "v
       config: {
         propertyId: row.property_id,
         status: row.status,
+        provider: row.provider || "baileys",
         phoneNumber: row.phone_number,
         isAutoSendEnabled: row.is_auto_send_enabled,
         welcomeTemplateAr: cleanWelcomeAr,
@@ -188,6 +205,9 @@ router.get("/config", requireAnyPermission(["whatsapp", "view"], ["settings", "v
         reservationTemplateAr: cleanResAr,
         reservationTemplateEn: row.reservation_template_en || DEFAULT_RESERVATION_EN,
         supervisorContact: row.supervisor_contact || "",
+        metaPhoneNumberId: row.meta_phone_number_id || "",
+        metaWabaId: row.meta_waba_id || "",
+        hasMetaToken: Boolean(row.meta_access_token),
       },
     });
   } catch (err: any) {
@@ -195,12 +215,16 @@ router.get("/config", requireAnyPermission(["whatsapp", "view"], ["settings", "v
   }
 });
 
-// PUT /api/whatsapp/config - حفظ وتحديث قوالب الواتساب
+// PUT /api/whatsapp/config - حفظ وتحديث قوالب وإعدادات الواتساب
 // @ts-ignore
 router.put("/config", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), async (req, res) => {
   try {
     const propertyId = getTenantId(req) || 1;
     const {
+      provider,
+      metaAccessToken,
+      metaPhoneNumberId,
+      metaWabaId,
       isAutoSendEnabled,
       welcomeTemplateAr,
       welcomeTemplateEn,
@@ -210,14 +234,29 @@ router.put("/config", requireAnyPermission(["whatsapp", "edit"], ["settings", "e
       supervisorContact,
     } = req.body;
 
+    const existingRes = await pool.query(
+      `SELECT meta_access_token FROM public.property_whatsapp_configs WHERE property_id = $1`,
+      [propertyId]
+    );
+    const existingToken = existingRes.rows[0]?.meta_access_token || null;
+    let finalToken = existingToken;
+    if (typeof metaAccessToken === "string" && metaAccessToken.trim() && !metaAccessToken.includes("•")) {
+      finalToken = metaAccessToken.trim();
+    }
+
     const query = `
       INSERT INTO public.property_whatsapp_configs
-        (property_id, is_auto_send_enabled, welcome_template_ar, welcome_template_en,
+        (property_id, provider, meta_access_token, meta_phone_number_id, meta_waba_id,
+         is_auto_send_enabled, welcome_template_ar, welcome_template_en,
          is_reservation_send_enabled, reservation_template_ar, reservation_template_en,
          supervisor_contact, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
       ON CONFLICT (property_id) DO UPDATE
-      SET is_auto_send_enabled = EXCLUDED.is_auto_send_enabled,
+      SET provider = EXCLUDED.provider,
+          meta_access_token = COALESCE(EXCLUDED.meta_access_token, property_whatsapp_configs.meta_access_token),
+          meta_phone_number_id = EXCLUDED.meta_phone_number_id,
+          meta_waba_id = EXCLUDED.meta_waba_id,
+          is_auto_send_enabled = EXCLUDED.is_auto_send_enabled,
           welcome_template_ar = EXCLUDED.welcome_template_ar,
           welcome_template_en = EXCLUDED.welcome_template_en,
           is_reservation_send_enabled = EXCLUDED.is_reservation_send_enabled,
@@ -230,6 +269,10 @@ router.put("/config", requireAnyPermission(["whatsapp", "edit"], ["settings", "e
 
     const result = await pool.query(query, [
       propertyId,
+      provider === "meta_cloud" ? "meta_cloud" : "baileys",
+      finalToken,
+      metaPhoneNumberId ? String(metaPhoneNumberId).trim() : null,
+      metaWabaId ? String(metaWabaId).trim() : null,
       isAutoSendEnabled !== undefined ? Boolean(isAutoSendEnabled) : true,
       welcomeTemplateAr || DEFAULT_WELCOME_AR,
       welcomeTemplateEn || DEFAULT_WELCOME_EN,
@@ -259,14 +302,16 @@ router.post("/test", requireAnyPermission(["whatsapp", "create"], ["whatsapp", "
       return res.status(400).json({ success: false, error: "رقم الهاتف مطلوب" });
     }
 
+    const configRes = await pool.query(
+      `SELECT * FROM public.property_whatsapp_configs WHERE property_id = $1`,
+      [propertyId]
+    );
+    const row = configRes.rows[0];
+    const isMetaCloud = row?.provider === "meta_cloud";
+
     let textToSend = message;
     if (!textToSend || !textToSend.trim()) {
       // Use template with mock data
-      const configRes = await pool.query(
-        `SELECT * FROM public.property_whatsapp_configs WHERE property_id = $1`,
-        [propertyId]
-      );
-      const row = configRes.rows[0];
       const isEn = language === "en";
       const template = isEn
         ? row?.welcome_template_en || "Test message from Sunrise Housing"
@@ -289,12 +334,14 @@ router.post("/test", requireAnyPermission(["whatsapp", "create"], ["whatsapp", "
       textToSend = compileWhatsAppTemplate(template, mockVars);
     }
 
-    const session = await getWhatsAppSession(propertyId);
-    if (session.status !== "connected" || !session.sock) {
-      return res.status(400).json({
-        success: false,
-        error: "خدمة الواتساب غير متصلة حالياً. يرجى الضغط على زر (ربط الواتساب) ومسح رمز الـ QR بهاتفك أولاً.",
-      });
+    if (!isMetaCloud) {
+      const session = await getWhatsAppSession(propertyId);
+      if (session.status !== "connected" || !session.sock) {
+        return res.status(400).json({
+          success: false,
+          error: "خدمة الواتساب غير متصلة حالياً. يرجى الضغط على زر (ربط الواتساب) ومسح رمز الـ QR بهاتفك أولاً.",
+        });
+      }
     }
 
     const sendRes = await executeSendHumanLike(

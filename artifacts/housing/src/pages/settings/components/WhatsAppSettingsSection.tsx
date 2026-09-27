@@ -36,6 +36,13 @@ import {
   Info,
   Fingerprint,
   Timer,
+  KeyRound,
+  ExternalLink,
+  ShieldAlert,
+  Zap,
+  Award,
+  HelpCircle,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BroadcastWhatsAppDialog } from "@/components/BroadcastWhatsAppDialog";
@@ -68,6 +75,8 @@ const DEFAULT_TEMPLATE_AR = `مرحباً بك أ/ {employee_name} في {propert
 • التقديم على تصاريح استضافة الأقارب والزيارات
 • المحادثة المباشرة مع مشرفي إدارة السكن
 
+💡 تنبيه هام: برجاء حفظ هذا الرقم باسم "سكن العاملين" في جهات اتصالك لتفعيل خدمات البوابة واستقبال التنبيهات دائماً.
+
 نتمنى لك إقامة هانئة ومريحة! ✨`;
 
 const DEFAULT_TEMPLATE_EN = `Welcome Mr/Ms {employee_name} to {property_name}! 🌴✨
@@ -92,6 +101,8 @@ Your accommodation has been successfully confirmed:
 • Apply for guest and visitor hosting permits
 • Chat directly with Housing Supervisors
 
+💡 Important: Please save this contact as "Staff Housing" to receive notifications and updates smoothly.
+
 We wish you a pleasant and comfortable stay! ✨`;
 
 const DEFAULT_RES_TEMPLATE_AR = `مرحباً بك أ/ {guest_name} في {property_name} 🌴✨
@@ -108,6 +119,8 @@ const DEFAULT_RES_TEMPLATE_AR = `مرحباً بك أ/ {guest_name} في {proper
 
 ℹ️ تنويه: يُرجى التوجه لمكتب الإسكان فور وصولك لاستلام المفتاح وإتمام إجراءات التسكين.
 
+💡 تنبيه هام: برجاء حفظ هذا الرقم باسم "سكن العاملين" في جهات اتصالك لتفعيل خدمات البوابة واستقبال التنبيهات دائماً.
+
 نتمنى لك رحلة موفقة وإقامة سعيدة! ✨`;
 
 const DEFAULT_RES_TEMPLATE_EN = `Welcome Mr/Ms {guest_name} to {property_name}! 🌴✨
@@ -123,6 +136,8 @@ We are pleased to confirm your upcoming reservation:
 {portal_url}
 
 ℹ️ Note: Please visit the Housing Office upon your arrival to complete check-in and collect your keys.
+
+💡 Important: Please save this contact as "Staff Housing" to receive notifications and updates smoothly.
 
 We wish you a safe trip and a pleasant stay! ✨`;
 
@@ -161,7 +176,15 @@ export function WhatsAppSettingsSection({
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
-  // Status & Connection
+  // Provider: Meta Cloud API vs Direct Baileys
+  const [provider, setProvider] = useState<"meta_cloud" | "baileys">("meta_cloud");
+  const [metaPhoneNumberId, setMetaPhoneNumberId] = useState("");
+  const [metaWabaId, setMetaWabaId] = useState("");
+  const [metaAccessToken, setMetaAccessToken] = useState("");
+  const [hasMetaToken, setHasMetaToken] = useState(false);
+  const [showMetaGuide, setShowMetaGuide] = useState(false);
+
+  // Status & Connection (Baileys)
   const [status, setStatus] = useState<"disconnected" | "pairing" | "connected">("disconnected");
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -205,6 +228,9 @@ export function WhatsAppSettingsSection({
 
       if (statusRes.ok) {
         const sData = await statusRes.json();
+        if (sData.provider) {
+          setProvider(sData.provider);
+        }
         setStatus(sData.status || "disconnected");
         setPhoneNumber(sData.phoneNumber || null);
         setQrCode(sData.qrCode || null);
@@ -217,11 +243,23 @@ export function WhatsAppSettingsSection({
         if (sData.isAutoSendEnabled !== undefined) {
           setIsAutoSendEnabled(sData.isAutoSendEnabled);
         }
+        if (sData.metaPhoneNumberId !== undefined) {
+          setMetaPhoneNumberId(sData.metaPhoneNumberId || "");
+        }
+        if (sData.metaWabaId !== undefined) {
+          setMetaWabaId(sData.metaWabaId || "");
+        }
+        if (sData.hasMetaToken !== undefined) {
+          setHasMetaToken(Boolean(sData.hasMetaToken));
+        }
       }
 
       if (configRes.ok) {
         const cData = await configRes.json();
         if (cData.config) {
+          if (cData.config.provider) {
+            setProvider(cData.config.provider);
+          }
           setIsAutoSendEnabled(cData.config.isAutoSendEnabled ?? true);
           setIsReservationSendEnabled(cData.config.isReservationSendEnabled ?? true);
           const rawWelcomeAr = cData.config.welcomeTemplateAr || "";
@@ -236,6 +274,16 @@ export function WhatsAppSettingsSection({
           );
           setReservationTemplateEn(cData.config.reservationTemplateEn || DEFAULT_RES_TEMPLATE_EN);
           setSupervisorContact(cData.config.supervisorContact || "");
+
+          if (cData.config.metaPhoneNumberId !== undefined) {
+            setMetaPhoneNumberId(cData.config.metaPhoneNumberId || "");
+          }
+          if (cData.config.metaWabaId !== undefined) {
+            setMetaWabaId(cData.config.metaWabaId || "");
+          }
+          if (cData.config.hasMetaToken !== undefined) {
+            setHasMetaToken(Boolean(cData.config.hasMetaToken));
+          }
         }
       }
 
@@ -281,12 +329,12 @@ export function WhatsAppSettingsSection({
     fetchStatusAndConfig();
     const interval = setInterval(() => {
       // Poll if pairing to catch the connection
-      if (status === "pairing") {
+      if (provider === "baileys" && status === "pairing") {
         fetchStatusAndConfig();
       }
     }, 3000);
     return () => clearInterval(interval);
-  }, [propertyId, status]);
+  }, [propertyId, status, provider]);
 
   // Connect / Request QR or Pairing Code
   const handleConnect = async (phoneForCode?: string) => {
@@ -356,15 +404,20 @@ export function WhatsAppSettingsSection({
   };
 
   // Save config
-  const handleSaveConfig = async () => {
+  const handleSaveConfig = async (overrideProvider?: "meta_cloud" | "baileys") => {
     if (!propertyId) return;
     setSaving(true);
     try {
+      const activeProv = overrideProvider || provider;
       const res = await fetch(`/api/whatsapp/config?propertyId=${propertyId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          provider: activeProv,
+          metaPhoneNumberId: metaPhoneNumberId.trim(),
+          metaWabaId: metaWabaId.trim(),
+          metaAccessToken: metaAccessToken.trim() ? metaAccessToken.trim() : undefined,
           isAutoSendEnabled,
           isReservationSendEnabled,
           welcomeTemplateAr,
@@ -375,11 +428,16 @@ export function WhatsAppSettingsSection({
         }),
       });
       if (res.ok) {
+        if (metaAccessToken.trim()) {
+          setHasMetaToken(true);
+          setMetaAccessToken("");
+        }
         toast.success(
           ar
             ? "تم حفظ إعدادات وقوالب الواتساب بنجاح"
             : "WhatsApp templates & settings saved successfully"
         );
+        fetchStatusAndConfig();
       } else {
         toast.error(ar ? "فشل حفظ الإعدادات" : "Failed to save settings");
       }
@@ -424,6 +482,8 @@ export function WhatsAppSettingsSection({
       setTesting(false);
     }
   };
+
+
 
   // Insert tag into active textarea
   const handleInsertTag = (tag: string) => {
@@ -505,328 +565,685 @@ export function WhatsAppSettingsSection({
 
   return (
     <div className="space-y-6 w-full">
-      {/* ── CARD 1: CONNECTION STATUS & QR CODE ── */}
-      <Card className="border-border/60 shadow-sm">
-        <CardHeader className="pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* ── PROVIDER SELECTION BAR ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Option 1: Meta Cloud API */}
+        <button
+          type="button"
+          onClick={() => {
+            setProvider("meta_cloud");
+            handleSaveConfig("meta_cloud");
+          }}
+          className={`p-4 rounded-2xl border-2 text-start transition-all relative overflow-hidden flex flex-col justify-between gap-3 ${
+            provider === "meta_cloud"
+              ? "border-emerald-500 bg-emerald-500/5 shadow-md ring-2 ring-emerald-500/20"
+              : "border-border/70 hover:border-emerald-500/40 bg-card hover:bg-muted/30"
+          }`}
+        >
+          <div className="flex items-start justify-between gap-2 w-full">
             <div className="flex items-center gap-3">
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-sm"
-                style={{ backgroundColor: "#25d366" }}
-              >
-                <MessageSquare className="w-6 h-6" />
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold shadow-xs">
+                <ShieldCheck className="w-6 h-6" />
               </div>
               <div>
-                <CardTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                  {ar ? "ربط واتساب السكن المباشر" : "Direct WhatsApp Integration"}
-                  {status === "connected" ? (
-                    <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      {ar ? "متصل وجاهز" : "Connected"}
-                    </Badge>
-                  ) : status === "pairing" ? (
-                    <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1.5 animate-pulse">
-                      <QrCode className="w-3.5 h-3.5" />
-                      {ar ? "بانتظار المسح (QR Code)" : "Pairing"}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-muted-foreground gap-1.5">
-                      <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                      {ar ? "غير متصل" : "Disconnected"}
-                    </Badge>
-                  )}
-                </CardTitle>
-                <CardDescription className="text-sm mt-0.5">
+                <div className="font-bold text-sm sm:text-base text-foreground flex items-center gap-1.5 flex-wrap">
+                  <span>{ar ? "Meta WhatsApp Cloud API (الرسمي المعتمد)" : "Meta WhatsApp Cloud API (Official)"}</span>
+                  <Badge className="bg-emerald-500 text-white text-[10px] px-1.5 py-0 border-0 font-bold">
+                    {ar ? "أمان 100% ضد الحظر" : "100% Zero-Ban"}
+                  </Badge>
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
                   {ar
-                    ? "إرسال رسائل التسكين وتفاصيل الإقامة تلقائياً بدون أي تكلفة أو وسيط عبر محرك Baileys المباشر"
-                    : "Send check-in confirmations and housing details automatically at zero cost via Baileys"}
-                </CardDescription>
+                    ? "الربط الرسمي المباشر مع سيرفرات شركة Meta بدون وسيط وبدون أي حظر نهائياً"
+                    : "Official direct integration with Meta servers. 100% immune to bans"}
+                </div>
               </div>
             </div>
-
-            <PermissionGate module="whatsapp" action="edit">
-              <div className="flex items-center gap-2 self-end sm:self-auto">
-                {status === "connected" ? (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleDisconnect}
-                    className="gap-1.5"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    {ar ? "قطع الاتصال" : "Disconnect"}
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={() => handleConnect()}
-                    disabled={connecting}
-                    className="text-white gap-1.5 shadow-sm"
-                    style={{ backgroundColor: "#00a884" }}
-                  >
-                    {connecting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <QrCode className="w-4 h-4" />
-                    )}
-                    {status === "pairing"
-                      ? ar
-                        ? "تحديث رمز QR"
-                        : "Refresh QR"
-                      : ar
-                      ? "ربط رقم واتساب جديد"
-                      : "Connect WhatsApp"}
-                  </Button>
-                )}
+            {provider === "meta_cloud" && (
+              <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                <Check className="w-4 h-4 stroke-[3]" />
               </div>
-            </PermissionGate>
+            )}
           </div>
-        </CardHeader>
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10.5px]">
+              🎁 {ar ? "1,000 محادثة مجانية شهرياً من ميتا" : "1,000 Free conversations/mo"}
+            </Badge>
+            <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30 text-[10.5px]">
+              ⚡ {ar ? "يعمل تلقائياً دون الحاجة لبقاء الهاتف متصلاً" : "No active phone required"}
+            </Badge>
+          </div>
+        </button>
 
-        <CardContent className="pt-0 space-y-4">
-          {status === "connected" && (
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* Option 2: Baileys Direct Phone */}
+        <button
+          type="button"
+          onClick={() => {
+            setProvider("baileys");
+            handleSaveConfig("baileys");
+          }}
+          className={`p-4 rounded-2xl border-2 text-start transition-all relative overflow-hidden flex flex-col justify-between gap-3 ${
+            provider === "baileys"
+              ? "border-[#00a884] bg-[#00a884]/5 shadow-md ring-2 ring-[#00a884]/20"
+              : "border-border/70 hover:border-[#00a884]/40 bg-card hover:bg-muted/30"
+          }`}
+        >
+          <div className="flex items-start justify-between gap-2 w-full">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-11 h-11 rounded-xl text-white flex items-center justify-center font-bold shadow-xs"
+                style={{ backgroundColor: "#00a884" }}
+              >
+                <Smartphone className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="font-bold text-sm sm:text-base text-foreground flex items-center gap-1.5 flex-wrap">
+                  <span>{ar ? "الربط المباشر برقم الهاتف (QR Code)" : "Direct Phone QR (Baileys)"}</span>
+                  <Badge variant="outline" className="bg-muted text-muted-foreground text-[10px] px-1.5 py-0">
+                    {ar ? "مجاني دائم" : "Forever Free"}
+                  </Badge>
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {ar
+                    ? "مسح رمز الـ QR من هاتف السكن عبر تطبيق WhatsApp أو WhatsApp Business"
+                    : "Scan QR code or use pairing code from your physical device"}
+                </div>
+              </div>
+            </div>
+            {provider === "baileys" && (
+              <div className="w-6 h-6 rounded-full bg-[#00a884] text-white flex items-center justify-center shrink-0">
+                <Check className="w-4 h-4 stroke-[3]" />
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <Badge variant="outline" className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30 text-[10.5px]">
+              📱 {ar ? "يُفضل WhatsApp Business" : "WhatsApp Business App"}
+            </Badge>
+            <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[10.5px]">
+              🛡️ {ar ? "حماية ذكية وتأخير بشري" : "Smart Anti-Spam Jitter"}
+            </Badge>
+          </div>
+        </button>
+      </div>
+
+      {/* ── CARD 1: ACTIVE PROVIDER CONFIGURATION ── */}
+      {provider === "meta_cloud" ? (
+        /* META CLOUD API CARD */
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold">
-                  <Smartphone className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-sm">
+                  <ShieldCheck className="w-7 h-7" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
-                    {ar ? "رقم الواتساب المتصل حالياً:" : "Connected Phone Number:"}
+                  <CardTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                    {ar ? "إعدادات Meta WhatsApp Cloud API" : "Meta WhatsApp Cloud API Configuration"}
+                    {metaPhoneNumberId && hasMetaToken ? (
+                      <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {ar ? "معتمد وجاهز للإرسال" : "Authorized & Ready"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 gap-1.5">
+                        <Info className="w-3.5 h-3.5" />
+                        {ar ? "بحاجة لبيانات الاعتماد" : "Credentials Required"}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription className="text-sm mt-0.5">
+                    {ar
+                      ? "إرسال رسمي فائق السرعة عبر خوادم Meta مع أمان كامل 100% ضد أي حظر أو إيقاف + 1000 محادثة مجانية شهرياً"
+                      : "Official enterprise delivery through Meta with 100% zero ban risk + 1,000 free conversations/month"}
+                  </CardDescription>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMetaGuide(!showMetaGuide)}
+                  className="gap-1.5 text-xs font-semibold"
+                >
+                  <HelpCircle className="w-4 h-4 text-emerald-600" />
+                  <span>{showMetaGuide ? (ar ? "إخفاء الدليل" : "Hide Guide") : (ar ? "دليل الربط المجاني (3 دقائق)" : "Setup Guide")}</span>
+                </Button>
+                <PermissionGate module="whatsapp" action="edit">
+                  <Button
+                    size="sm"
+                    onClick={() => handleSaveConfig("meta_cloud")}
+                    disabled={saving}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 font-semibold text-xs shadow-sm"
+                  >
+                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+                    <span>{ar ? "حفظ بيانات الاعتماد" : "Save Credentials"}</span>
+                  </Button>
+                </PermissionGate>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-5 pt-0">
+            {/* Status Reassurance Banner */}
+            <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold shrink-0">
+                  <Award className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <span>{ar ? "الحل النهائي والدائم لمشكلة الحظر" : "The Permanent Zero-Ban Solution"}</span>
+                    <Badge className="bg-emerald-500 text-white text-[10px]">Meta Verified</Badge>
                   </div>
-                  <div className="text-lg font-bold font-mono tracking-wide text-emerald-700 dark:text-emerald-300">
-                    {phoneNumber || ar ? "جاهز للإرسال" : "Ready to send"}
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {ar
+                      ? "لأن الرسائل تخرج مباشرة من خوادم Meta الرسمية كـ Business API، لا يمكن لحسابك التعرض لأي حظر مؤقت أو دائم."
+                      : "Direct Graph API transmission means zero risk of phone bans or spam blocks."}
                   </div>
                 </div>
               </div>
-              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>{ar ? "حماية مكافحة الحظر مفعلة بالكامل" : "Anti-ban protection active"}</span>
+              <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 shrink-0 flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
+                <span>{ar ? "1,000 محادثة مجانية شهرياً" : "1,000 Free msgs/month"}</span>
               </div>
             </div>
-          )}
 
-          {status === "pairing" && (
-            <div className="p-6 bg-muted/40 rounded-2xl border border-border/80 space-y-6">
-              {/* Pairing Method Switcher */}
-              <div className="flex items-center justify-center gap-2 max-w-sm mx-auto p-1 bg-background/80 rounded-xl border shadow-2xs">
-                <Button
-                  type="button"
-                  variant={pairingTab === "qr" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setPairingTab("qr")}
-                  className={`flex-1 text-xs font-semibold gap-1.5 h-8 ${
-                    pairingTab === "qr" ? "bg-[#00a884] hover:bg-[#00a884]/90 text-white shadow-xs" : ""
-                  }`}
-                >
-                  <QrCode className="w-3.5 h-3.5" />
-                  <span>{ar ? "مسح رمز QR" : "Scan QR Code"}</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant={pairingTab === "code" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setPairingTab("code")}
-                  className={`flex-1 text-xs font-semibold gap-1.5 h-8 ${
-                    pairingTab === "code" ? "bg-[#00a884] hover:bg-[#00a884]/90 text-white shadow-xs" : ""
-                  }`}
-                >
-                  <Smartphone className="w-3.5 h-3.5" />
-                  <span>{ar ? "الربط برقم الهاتف" : "Pair with Phone #"}</span>
-                </Button>
-              </div>
-
-              {pairingTab === "qr" ? (
-                qrCode ? (
-                  <div className="flex flex-col md:flex-row items-center justify-center gap-8">
-                    <div className="flex flex-col items-center bg-white p-4 rounded-2xl shadow-md border">
-                      <img
-                        src={qrCode}
-                        alt="WhatsApp QR Code"
-                        className="w-64 h-64 object-contain rounded-lg"
-                      />
-                      <div className="text-xs text-gray-500 mt-2 flex items-center gap-1 font-mono">
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#00a884]" />
-                        <span>{ar ? "الرمز يتجدد تلقائياً كل 40 ثانية" : "Auto-refreshes every 40s"}</span>
-                      </div>
-                    </div>
-
-                    <div className="max-w-md space-y-3 text-sm">
-                      <h4 className="font-bold text-base text-foreground flex items-center gap-2">
-                        <Smartphone className="w-5 h-5 text-[#00a884]" />
-                        {ar ? "طريقة ربط الهاتف بالواتساب:" : "How to connect your phone:"}
-                      </h4>
-                      <ol className="space-y-2 list-decimal list-inside text-muted-foreground leading-relaxed">
-                        <li>
-                          {ar
-                            ? "افتح تطبيق WhatsApp على هاتف السكن."
-                            : "Open WhatsApp on the property phone."}
-                        </li>
-                        <li>
-                          {ar
-                            ? "اضغط على القائمة (⋮) أو الإعدادات > الأجهزة المرتبطة (Linked Devices)."
-                            : "Tap Menu (⋮) or Settings > Linked Devices."}
-                        </li>
-                        <li>
-                          {ar
-                            ? "اضغط على زر (ربط جهاز / Link a Device)."
-                            : "Tap (Link a Device)."}
-                        </li>
-                        <li>
-                          {ar
-                            ? "وجّه كاميرا الهاتف نحو الرمز المربع الظاهر أمامك."
-                            : "Point your phone camera to the QR Code on screen."}
-                        </li>
-                      </ol>
-                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs space-y-1">
-                        <div className="flex items-center gap-1.5 font-bold">
-                          <Info className="w-3.5 h-3.5 shrink-0 text-amber-600" />
-                          <span>{ar ? "إذا ظهرت لك رسالة (couldn't link):" : "If you see 'couldn't link':"}</span>
-                        </div>
-                        <p className="leading-relaxed">
-                          {ar
-                            ? "تأكد من فتح تطبيق واتساب محدث، أو استخدم خيار «الربط برقم الهاتف» أعلاه للحصول على كود مباشر وإدخاله بهاتفك فوراً."
-                            : "Ensure WhatsApp is updated, or click 'Pair with Phone #' above to link with a direct pairing code."}
-                        </p>
-                      </div>
-                    </div>
+            {/* Quick Setup Guide Accordion */}
+            {showMetaGuide && (
+              <div className="p-5 rounded-2xl bg-muted/40 border border-border/80 space-y-4 animate-in fade-in">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <div className="font-bold text-sm text-foreground flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-emerald-600" />
+                    <span>{ar ? "دليل تفعيل Meta WhatsApp Cloud API مجاناً في 3 دقائق:" : "3-Minute Free Meta Cloud API Setup Guide:"}</span>
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center p-8 text-center space-y-3 animate-pulse">
-                    <Loader2 className="w-10 h-10 text-[#00a884] animate-spin" />
-                    <div className="text-sm font-bold text-foreground">
-                      {ar ? "جاري إنشاء وتجهيز رمز QR جديد..." : "Generating a fresh QR Code..."}
+                  <a
+                    href="https://developers.facebook.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-emerald-600 hover:underline flex items-center gap-1 font-semibold"
+                  >
+                    <span>{ar ? "فتح Meta Developers" : "Open Meta Developers"}</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs leading-relaxed">
+                  <div className="p-3 rounded-xl bg-background border space-y-1.5">
+                    <div className="font-bold text-foreground flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-700 text-[11px] flex items-center justify-center font-bold">1</span>
+                      <span>{ar ? "إنشاء تطبيق Business" : "Create Business App"}</span>
                     </div>
-                    <div className="text-xs text-muted-foreground max-w-sm">
+                    <p className="text-muted-foreground">
                       {ar
-                        ? "يتم الآن إنشاء جلسة ربط آمنة مع خوادم الواتساب، سيظهر رمز QR خلال لحظات..."
-                        : "Establishing secure pairing session with WhatsApp servers, QR will appear in moments..."}
-                    </div>
-                  </div>
-                )
-              ) : (
-                /* Pairing Code Tab */
-                <div className="max-w-md mx-auto space-y-4">
-                  <div className="p-4 rounded-xl bg-background border shadow-2xs space-y-3">
-                    <Label className="text-xs font-bold text-foreground flex items-center gap-2">
-                      <Smartphone className="w-4 h-4 text-[#00a884]" />
-                      <span>{ar ? "أدخل رقم هاتف واتساب الخاص بالسكن:" : "Enter Property WhatsApp Phone Number:"}</span>
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={pairingPhone}
-                        onChange={(e) => setPairingPhone(e.target.value)}
-                        placeholder={ar ? "مثال: 01012345678 أو 201012345678" : "e.g. 01012345678"}
-                        className="font-mono font-semibold"
-                        dir="ltr"
-                      />
-                      <Button
-                        type="button"
-                        onClick={handleRequestPairingCode}
-                        disabled={requestingCode || !pairingPhone.trim()}
-                        className="bg-[#00a884] hover:bg-[#00a884]/90 text-white font-semibold shrink-0"
-                      >
-                        {requestingCode ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          ar ? "طلب كود الربط" : "Get Code"
-                        )}
-                      </Button>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      {ar
-                        ? "سيتم إرسال طلب لخوادم الواتساب وتوليد كود من 8 خانات تدخله في هاتفك بدلاً من مسح الكاميرا."
-                        : "Requests an 8-character code from WhatsApp servers to enter on your phone without using the camera."}
+                        ? "سجّل دخولك في developers.facebook.com واضغط Create App ثم اختر النوع Other > Business."
+                        : "Log into developers.facebook.com, click Create App, select Other > Business."}
                     </p>
                   </div>
 
-                  {pairingCode && (
-                    <div className="p-5 rounded-2xl bg-background border-2 border-[#00a884]/30 shadow-md space-y-3 text-center animate-in fade-in">
-                      <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-                        {ar ? "كود الاقتران السريع الخاص بهاتفك:" : "Your Direct WhatsApp Pairing Code:"}
-                      </div>
-                      <div className="text-3xl font-black font-mono tracking-widest text-[#00a884] py-3 bg-[#00a884]/5 rounded-xl border border-[#00a884]/20 select-all">
-                        {pairingCode}
-                      </div>
-                      <div className="text-xs text-muted-foreground text-start rtl:text-right ltr:text-left space-y-1.5 p-3 rounded-lg bg-muted/40">
-                        <div className="font-bold text-foreground mb-1">
-                          {ar ? "طريقة الإدخال بالهاتف:" : "How to enter on phone:"}
-                        </div>
-                        <div>1. {ar ? "افتح تطبيق WhatsApp على هاتفك." : "Open WhatsApp on your phone."}</div>
-                        <div>2. {ar ? "اضغط على: الأجهزة المرتبطة > ربط جهاز." : "Tap: Linked Devices > Link a Device."}</div>
-                        <div>3. {ar ? "اضغط في أسفل شاشة الهاتف على «الربط باستخدام رقم الهاتف بدلاً من ذلك»." : "Tap 'Link with phone number instead' at the bottom."}</div>
-                        <div>4. {ar ? "أدخل الكود الموضح أعلاه." : "Enter the 8-character code shown above."}</div>
-                      </div>
+                  <div className="p-3 rounded-xl bg-background border space-y-1.5">
+                    <div className="font-bold text-foreground flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-700 text-[11px] flex items-center justify-center font-bold">2</span>
+                      <span>{ar ? "إضافة WhatsApp للتطبيق" : "Add WhatsApp Product"}</span>
                     </div>
+                    <p className="text-muted-foreground">
+                      {ar
+                        ? "في لوحة تحكم التطبيق، ابحث عن منتج WhatsApp واضغط Set up للبدء."
+                        : "In your app dashboard, locate the WhatsApp card and click Set up."}
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-background border space-y-1.5">
+                    <div className="font-bold text-foreground flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-700 text-[11px] flex items-center justify-center font-bold">3</span>
+                      <span>{ar ? "نسخ Phone Number ID و WABA ID" : "Copy IDs"}</span>
+                    </div>
+                    <p className="text-muted-foreground">
+                      {ar
+                        ? "من صفحة WhatsApp > API Setup، انسخ Phone Number ID و WhatsApp Business Account ID والصقهما في الخانات أدناه."
+                        : "From WhatsApp > API Setup, copy Phone Number ID and WABA ID into the fields below."}
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-background border space-y-1.5">
+                    <div className="font-bold text-foreground flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-700 text-[11px] flex items-center justify-center font-bold">4</span>
+                      <span>{ar ? "رمز الوصول الدائم (Permanent Token)" : "System User Token"}</span>
+                    </div>
+                    <p className="text-muted-foreground">
+                      {ar
+                        ? "من Business Settings > System Users أنشئ مستخدم نظام وأعطه صلاحية whatsapp_business_messaging لتوليد توكن دائم لا ينتهي."
+                        : "In Business Settings > System Users create a system user with whatsapp_business_messaging permission to get a permanent token."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Credential Inputs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{ar ? "معرّف رقم الهاتف (Phone Number ID):" : "Phone Number ID:"}</span>
+                </Label>
+                <Input
+                  placeholder={ar ? "مثال: 104829102938475" : "e.g. 104829102938475"}
+                  value={metaPhoneNumberId}
+                  onChange={(e) => setMetaPhoneNumberId(e.target.value)}
+                  className="font-mono text-sm"
+                  dir="ltr"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {ar
+                    ? "الرقم التعريفي الخاص برقم واتساب المستخرج من صفحة API Setup في Meta"
+                    : "Found in your Meta Developer Portal under WhatsApp > API Setup"}
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{ar ? "معرّف حساب الأعمال (WABA ID):" : "WhatsApp Business Account ID:"}</span>
+                </Label>
+                <Input
+                  placeholder={ar ? "مثال: 293847561029384" : "e.g. 293847561029384"}
+                  value={metaWabaId}
+                  onChange={(e) => setMetaWabaId(e.target.value)}
+                  className="font-mono text-sm"
+                  dir="ltr"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {ar
+                    ? "معرّف حساب واتساب للأعمال (WhatsApp Business Account ID)"
+                    : "Your WhatsApp Business Account ID in Meta Business Suite"}
+                </p>
+              </div>
+
+              <div className="md:col-span-2 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{ar ? "رمز الوصول الدائم (Meta Access Token):" : "Permanent Access Token:"}</span>
+                  </Label>
+                  {hasMetaToken && (
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] gap-1">
+                      <Check className="w-3 h-3" />
+                      {ar ? "التوكن محفوظ ومفعل بنجاح" : "Token Saved"}
+                    </Badge>
                   )}
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Advanced Anti-Ban Protection Suite */}
-          <div className="pt-2 space-y-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
-              <span className="font-bold text-foreground flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                {ar ? "منظومة الحماية الذكية المتقدمة ضد الحظر (Anti-Ban Engine)" : "Smart Anti-Ban Protection Suite"}
-              </span>
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] py-0 px-2 font-mono">
-                {ar ? "نشط وتلقائي 100%" : "100% Automated & Active"}
-              </Badge>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="p-3 rounded-xl bg-card border flex items-start gap-3 shadow-2xs">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div className="text-xs space-y-0.5">
-                  <div className="font-semibold text-foreground">{ar ? "فحص تسجيل الرقم" : "Pre-Validation"}</div>
-                  <div className="text-muted-foreground text-[11px] leading-relaxed">
-                    {ar ? "فحص مسبق مع سيرفرات واتساب لتجنب مراسلة أرقام ملغية" : "Verified with WhatsApp servers before dispatch"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-card border flex items-start gap-3 shadow-2xs">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Clock className="w-4 h-4" />
-                </div>
-                <div className="text-xs space-y-0.5">
-                  <div className="font-semibold text-foreground">{ar ? "فواصل عشوائية (5-9s)" : "Random Jitter (5-9s)"}</div>
-                  <div className="text-muted-foreground text-[11px] leading-relaxed">
-                    {ar ? "تأخير بشري متغير وكتابة Typing تحاكي السلوك البشري" : "Simulates human typing & variable delay per msg"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-card border flex items-start gap-3 shadow-2xs">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Timer className="w-4 h-4" />
-                </div>
-                <div className="text-xs space-y-0.5">
-                  <div className="font-semibold text-foreground">{ar ? "استراحة تبريد كل 15 رسالة" : "Batch Cooldown (15 msgs)"}</div>
-                  <div className="text-muted-foreground text-[11px] leading-relaxed">
-                    {ar ? "توقف أمان (40-60 ثانية) تلقائياً لتهدئة الحساب ومنع الحظر" : "Auto 40-60s cooling pause every 15 msgs sent"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-card border flex items-start gap-3 shadow-2xs">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Fingerprint className="w-4 h-4" />
-                </div>
-                <div className="text-xs space-y-0.5">
-                  <div className="font-semibold text-foreground">{ar ? "بصمة وهاش فريد لكل رسالة" : "Unique Hash Fingerprint"}</div>
-                  <div className="text-muted-foreground text-[11px] leading-relaxed">
-                    {ar ? "تشفير بحروف غير مرئية يمنع خوارزميات السبام من مطابقة النصوص" : "Invisible zero-width hash prevents bulk duplicate flags"}
-                  </div>
-                </div>
+                <Input
+                  type="password"
+                  placeholder={
+                    hasMetaToken
+                      ? ar
+                        ? "•••••••••••••••••••••••••••••••••••• (محفوظ مسبقاً، اتركه فارغاً للإبقاء عليه دون تغيير)"
+                        : "•••••••••••••••••••••••••••••••••••• (Token is securely saved, leave empty to keep unchanged)"
+                      : "EAAG..."
+                  }
+                  value={metaAccessToken}
+                  onChange={(e) => setMetaAccessToken(e.target.value)}
+                  className="font-mono text-sm"
+                  dir="ltr"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {ar
+                    ? "رمز الوصول الدائم (Permanent System User Token) برخصة whatsapp_business_messaging"
+                    : "Permanent access token generated from Meta Business Suite System Users"}
+                </p>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        /* DIRECT BAILEYS QR CODE CARD */
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-sm"
+                  style={{ backgroundColor: "#00a884" }}
+                >
+                  <MessageSquare className="w-6 h-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                    {ar ? "ربط واتساب السكن المباشر (QR Code)" : "Direct WhatsApp Phone Integration"}
+                    {status === "connected" ? (
+                      <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {ar ? "متصل وجاهز" : "Connected"}
+                      </Badge>
+                    ) : status === "pairing" ? (
+                      <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1.5 animate-pulse">
+                        <QrCode className="w-3.5 h-3.5" />
+                        {ar ? "بانتظار المسح (QR Code)" : "Pairing"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground gap-1.5">
+                        <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                        {ar ? "غير متصل" : "Disconnected"}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription className="text-sm mt-0.5">
+                    {ar
+                      ? "إرسال رسائل التسكين وتفاصيل الإقامة تلقائياً عبر محرك Baileys المباشر من هاتفك الشخصي أو هاتف السكن"
+                      : "Send check-in confirmations directly via Baileys socket connected to your property phone"}
+                  </CardDescription>
+                </div>
+              </div>
+
+              <PermissionGate module="whatsapp" action="edit">
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  {status === "connected" ? (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDisconnect}
+                      className="gap-1.5"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      {ar ? "قطع الاتصال" : "Disconnect"}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => handleConnect()}
+                      disabled={connecting}
+                      className="text-white gap-1.5 shadow-sm"
+                      style={{ backgroundColor: "#00a884" }}
+                    >
+                      {connecting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <QrCode className="w-4 h-4" />
+                      )}
+                      {status === "pairing"
+                        ? ar
+                          ? "تحديث رمز QR"
+                          : "Refresh QR"
+                        : ar
+                        ? "ربط رقم واتساب جديد"
+                        : "Connect WhatsApp"}
+                    </Button>
+                  )}
+                </div>
+              </PermissionGate>
+            </div>
+          </CardHeader>
+
+          <CardContent className="pt-0 space-y-4">
+            {/* Golden Anti-Ban Rules Banner */}
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-950 dark:text-amber-200 text-xs space-y-2">
+              <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>{ar ? "نصائح ذهبية لتجنب الحظر المؤقت في وضع الربط المباشر:" : "Anti-Ban Golden Rules for Direct Phone Mode:"}</span>
+              </div>
+              <ul className="grid grid-cols-1 md:grid-cols-3 gap-2 list-disc list-inside leading-relaxed text-[11.5px] text-muted-foreground dark:text-amber-200/90">
+                <li>
+                  <strong>{ar ? "استخدم WhatsApp Business:" : "Use WhatsApp Business:"}</strong>{" "}
+                  {ar ? "تطبيق الأعمال أكثر تحملاً وموثوقية لدى خوارزميات واتساب." : "Business accounts are given higher trust."}
+                </li>
+                <li>
+                  <strong>{ar ? "حفظ الرقم في الهاتف:" : "Save Contact:"}</strong>{" "}
+                  {ar ? "إذا حفظ الموظف رقم السكن يختفي زر الإبلاغ عن إزعاج نهائياً." : "Recipient saving the contact removes the Report Spam button."}
+                </li>
+                <li>
+                  <strong>{ar ? "حماية تلقائية نشطة:" : "Auto-Protection:"}</strong>{" "}
+                  {ar ? "النظام يضع فواصل عشوائية (5-9 ث) وتبريداً تلقائياً وبصمة فريدة." : "System applies random jitter (5-9s) and cooling pauses."}
+                </li>
+              </ul>
+            </div>
+
+            {status === "connected" && (
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                      {ar ? "رقم الواتساب المتصل حالياً:" : "Connected Phone Number:"}
+                    </div>
+                    <div className="text-lg font-bold font-mono tracking-wide text-emerald-700 dark:text-emerald-300">
+                      {phoneNumber || (ar ? "جاهز للإرسال" : "Ready to send")}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>{ar ? "حماية مكافحة الحظر مفعلة بالكامل" : "Anti-ban protection active"}</span>
+                </div>
+              </div>
+            )}
+
+            {status === "pairing" && (
+              <div className="p-6 bg-muted/40 rounded-2xl border border-border/80 space-y-6">
+                {/* Pairing Method Switcher */}
+                <div className="flex items-center justify-center gap-2 max-w-sm mx-auto p-1 bg-background/80 rounded-xl border shadow-2xs">
+                  <Button
+                    type="button"
+                    variant={pairingTab === "qr" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setPairingTab("qr")}
+                    className={`flex-1 text-xs font-semibold gap-1.5 h-8 ${
+                      pairingTab === "qr" ? "bg-[#00a884] hover:bg-[#00a884]/90 text-white shadow-xs" : ""
+                    }`}
+                  >
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>{ar ? "مسح رمز QR" : "Scan QR Code"}</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={pairingTab === "code" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setPairingTab("code")}
+                    className={`flex-1 text-xs font-semibold gap-1.5 h-8 ${
+                      pairingTab === "code" ? "bg-[#00a884] hover:bg-[#00a884]/90 text-white shadow-xs" : ""
+                    }`}
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    <span>{ar ? "الربط برقم الهاتف" : "Pair with Phone #"}</span>
+                  </Button>
+                </div>
+
+                {pairingTab === "qr" ? (
+                  qrCode ? (
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+                      <div className="flex flex-col items-center bg-white p-4 rounded-2xl shadow-md border">
+                        <img
+                          src={qrCode}
+                          alt="WhatsApp QR Code"
+                          className="w-64 h-64 object-contain rounded-lg"
+                        />
+                        <div className="text-xs text-gray-500 mt-2 flex items-center gap-1 font-mono">
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#00a884]" />
+                          <span>{ar ? "الرمز يتجدد تلقائياً كل 40 ثانية" : "Auto-refreshes every 40s"}</span>
+                        </div>
+                      </div>
+
+                      <div className="max-w-md space-y-3 text-sm">
+                        <h4 className="font-bold text-base text-foreground flex items-center gap-2">
+                          <Smartphone className="w-5 h-5 text-[#00a884]" />
+                          {ar ? "طريقة ربط الهاتف بالواتساب:" : "How to connect your phone:"}
+                        </h4>
+                        <ol className="space-y-2 list-decimal list-inside text-muted-foreground leading-relaxed">
+                          <li>
+                            {ar
+                              ? "افتح تطبيق WhatsApp على هاتف السكن."
+                              : "Open WhatsApp on the property phone."}
+                          </li>
+                          <li>
+                            {ar
+                              ? "اضغط على القائمة (⋮) أو الإعدادات > الأجهزة المرتبطة (Linked Devices)."
+                              : "Tap Menu (⋮) or Settings > Linked Devices."}
+                          </li>
+                          <li>
+                            {ar
+                              ? "اضغط على زر (ربط جهاز / Link a Device)."
+                              : "Tap (Link a Device)."}
+                          </li>
+                          <li>
+                            {ar
+                              ? "وجّه كاميرا الهاتف نحو الرمز المربع الظاهر أمامك."
+                              : "Point your phone camera to the QR Code on screen."}
+                          </li>
+                        </ol>
+                        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs space-y-1">
+                          <div className="flex items-center gap-1.5 font-bold">
+                            <Info className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                            <span>{ar ? "إذا ظهرت لك رسالة (couldn't link):" : "If you see 'couldn't link':"}</span>
+                          </div>
+                          <p className="leading-relaxed">
+                            {ar
+                              ? "تأكد من فتح تطبيق واتساب محدث، أو استخدم خيار «الربط برقم الهاتف» أعلاه للحصول على كود مباشر وإدخاله بهاتفك فوراً."
+                              : "Ensure WhatsApp is updated, or click 'Pair with Phone #' above to link with a direct pairing code."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-8 text-center space-y-3 animate-pulse">
+                      <Loader2 className="w-10 h-10 text-[#00a884] animate-spin" />
+                      <div className="text-sm font-bold text-foreground">
+                        {ar ? "جاري إنشاء وتجهيز رمز QR جديد..." : "Generating a fresh QR Code..."}
+                      </div>
+                      <div className="text-xs text-muted-foreground max-w-sm">
+                        {ar
+                          ? "يتم الآن إنشاء جلسة ربط آمنة مع خوادم الواتساب، سيظهر رمز QR خلال لحظات..."
+                          : "Establishing secure pairing session with WhatsApp servers, QR will appear in moments..."}
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  /* Pairing Code Tab */
+                  <div className="max-w-md mx-auto space-y-4">
+                    <div className="p-4 rounded-xl bg-background border shadow-2xs space-y-3">
+                      <Label className="text-xs font-bold text-foreground flex items-center gap-2">
+                        <Smartphone className="w-4 h-4 text-[#00a884]" />
+                        <span>{ar ? "أدخل رقم هاتف واتساب الخاص بالسكن:" : "Enter Property WhatsApp Phone Number:"}</span>
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={pairingPhone}
+                          onChange={(e) => setPairingPhone(e.target.value)}
+                          placeholder={ar ? "مثال: 01012345678 أو 201012345678" : "e.g. 01012345678"}
+                          className="font-mono font-semibold"
+                          dir="ltr"
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleRequestPairingCode}
+                          disabled={requestingCode || !pairingPhone.trim()}
+                          className="bg-[#00a884] hover:bg-[#00a884]/90 text-white font-semibold shrink-0"
+                        >
+                          {requestingCode ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            ar ? "طلب كود الربط" : "Get Code"
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        {ar
+                          ? "سيتم إرسال طلب لخوادم الواتساب وتوليد كود من 8 خانات تدخله في هاتفك بدلاً من مسح الكاميرا."
+                          : "Requests an 8-character code from WhatsApp servers to enter on your phone without using the camera."}
+                      </p>
+                    </div>
+
+                    {pairingCode && (
+                      <div className="p-5 rounded-2xl bg-background border-2 border-[#00a884]/30 shadow-md space-y-3 text-center animate-in fade-in">
+                        <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                          {ar ? "كود الاقتران السريع الخاص بهاتفك:" : "Your Direct WhatsApp Pairing Code:"}
+                        </div>
+                        <div className="text-3xl font-black font-mono tracking-widest text-[#00a884] py-3 bg-[#00a884]/5 rounded-xl border border-[#00a884]/20 select-all">
+                          {pairingCode}
+                        </div>
+                        <div className="text-xs text-muted-foreground text-start rtl:text-right ltr:text-left space-y-1.5 p-3 rounded-lg bg-muted/40">
+                          <div className="font-bold text-foreground mb-1">
+                            {ar ? "طريقة الإدخال بالهاتف:" : "How to enter on phone:"}
+                          </div>
+                          <div>1. {ar ? "افتح تطبيق WhatsApp على هاتفك." : "Open WhatsApp on your phone."}</div>
+                          <div>2. {ar ? "اضغط على: الأجهزة المرتبطة > ربط جهاز." : "Tap: Linked Devices > Link a Device."}</div>
+                          <div>3. {ar ? "اضغط في أسفل شاشة الهاتف على «الربط باستخدام رقم الهاتف بدلاً من ذلك»." : "Tap 'Link with phone number instead' at the bottom."}</div>
+                          <div>4. {ar ? "أدخل الكود الموضح أعلاه." : "Enter the 8-character code shown above."}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Advanced Anti-Ban Protection Suite */}
+            <div className="pt-2 space-y-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+                <span className="font-bold text-foreground flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  {ar ? "منظومة الحماية الذكية المتقدمة ضد الحظر (Anti-Ban Engine)" : "Smart Anti-Ban Protection Suite"}
+                </span>
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px] py-0 px-2 font-mono">
+                  {ar ? "نشط وتلقائي 100%" : "100% Automated & Active"}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="p-3 rounded-xl bg-card border flex items-start gap-3 shadow-2xs">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div className="text-xs space-y-0.5">
+                    <div className="font-semibold text-foreground">{ar ? "فحص تسجيل الرقم" : "Pre-Validation"}</div>
+                    <div className="text-muted-foreground text-[11px] leading-relaxed">
+                      {ar ? "فحص مسبق مع سيرفرات واتساب لتجنب مراسلة أرقام ملغية" : "Verified with WhatsApp servers before dispatch"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-card border flex items-start gap-3 shadow-2xs">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div className="text-xs space-y-0.5">
+                    <div className="font-semibold text-foreground">{ar ? "فواصل عشوائية (5-9s)" : "Random Jitter (5-9s)"}</div>
+                    <div className="text-muted-foreground text-[11px] leading-relaxed">
+                      {ar ? "تأخير بشري متغير وكتابة Typing تحاكي السلوك البشري" : "Simulates human typing & variable delay per msg"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-card border flex items-start gap-3 shadow-2xs">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Timer className="w-4 h-4" />
+                  </div>
+                  <div className="text-xs space-y-0.5">
+                    <div className="font-semibold text-foreground">{ar ? "استراحة تبريد كل 15 رسالة" : "Batch Cooldown (15 msgs)"}</div>
+                    <div className="text-muted-foreground text-[11px] leading-relaxed">
+                      {ar ? "توقف أمان (40-60 ثانية) تلقائياً لتهدئة الحساب ومنع الحظر" : "Auto 40-60s cooling pause every 15 msgs sent"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-card border flex items-start gap-3 shadow-2xs">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Fingerprint className="w-4 h-4" />
+                  </div>
+                  <div className="text-xs space-y-0.5">
+                    <div className="font-semibold text-foreground">{ar ? "بصمة وهاش فريد لكل رسالة" : "Unique Hash Fingerprint"}</div>
+                    <div className="text-muted-foreground text-[11px] leading-relaxed">
+                      {ar ? "تشفير بحروف غير مرئية يمنع خوارزميات السبام من مطابقة النصوص" : "Invisible zero-width hash prevents bulk duplicate flags"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── PERSISTENT OUTBOX QUEUE STATUS CARD ── */}
       <Card
@@ -1275,21 +1692,48 @@ export function WhatsAppSettingsSection({
             </div>
 
             <PermissionGate module="whatsapp" action="edit">
-              <Button
-                onClick={handleSendTest}
-                disabled={testing || status !== "connected"}
-                className="w-full text-white font-semibold gap-2 shadow-sm"
-                style={{ backgroundColor: status === "connected" ? "#00a884" : undefined }}
-              >
-                {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {status !== "connected"
-                  ? ar
-                    ? "يجب ربط الواتساب أولاً"
-                    : "Connect WhatsApp First"
-                  : ar
-                  ? "إرسال الرسالة التجريبية الآن"
-                  : "Send Test Message Now"}
-              </Button>
+              {(() => {
+                const isReady =
+                  provider === "meta_cloud"
+                    ? Boolean(metaPhoneNumberId && (hasMetaToken || metaAccessToken.trim()))
+                    : status === "connected";
+
+                return (
+                  <Button
+                    onClick={handleSendTest}
+                    disabled={testing || !isReady}
+                    className="w-full text-white font-semibold gap-2 shadow-sm"
+                    style={{
+                      backgroundColor: isReady
+                        ? provider === "meta_cloud"
+                          ? "#059669"
+                          : "#00a884"
+                        : undefined,
+                    }}
+                  >
+                    {testing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    {!isReady
+                      ? provider === "meta_cloud"
+                        ? ar
+                          ? "يرجى حفظ بيانات Meta Cloud أولاً"
+                          : "Configure Meta Cloud First"
+                        : ar
+                        ? "يجب ربط الواتساب أولاً"
+                        : "Connect WhatsApp First"
+                      : provider === "meta_cloud"
+                      ? ar
+                        ? "إرسال رسالة تجريبية عبر Meta Cloud API"
+                        : "Send Test via Meta Cloud API"
+                      : ar
+                      ? "إرسال الرسالة التجريبية الآن"
+                      : "Send Test Message Now"}
+                  </Button>
+                );
+              })()}
             </PermissionGate>
           </CardContent>
         </Card>
