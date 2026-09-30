@@ -1429,6 +1429,33 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         ADD COLUMN IF NOT EXISTS meta_waba_id TEXT;
     `,
   },
+  {
+    name: "public.property_whatsapp_configs.ultramsg_fields",
+    q: `
+      ALTER TABLE public.property_whatsapp_configs
+        ADD COLUMN IF NOT EXISTS ultramsg_instance_id TEXT,
+        ADD COLUMN IF NOT EXISTS ultramsg_token TEXT;
+    `,
+  },
+  {
+    name: "public.property_whatsapp_configs.custom_gateway_fields",
+    q: `
+      ALTER TABLE public.property_whatsapp_configs
+        ADD COLUMN IF NOT EXISTS custom_gateway_url TEXT,
+        ADD COLUMN IF NOT EXISTS custom_gateway_token TEXT,
+        ADD COLUMN IF NOT EXISTS custom_gateway_method TEXT DEFAULT 'POST',
+        ADD COLUMN IF NOT EXISTS custom_gateway_payload_type TEXT DEFAULT 'json',
+        ADD COLUMN IF NOT EXISTS custom_gateway_phone_field TEXT DEFAULT 'to',
+        ADD COLUMN IF NOT EXISTS custom_gateway_message_field TEXT DEFAULT 'body',
+        ADD COLUMN IF NOT EXISTS custom_gateway_headers TEXT;
+    `,
+  },
+  {
+    name: "public.activity_logs.property_id_nullable",
+    q: `
+      ALTER TABLE public.activity_logs ALTER COLUMN property_id DROP NOT NULL;
+    `,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======

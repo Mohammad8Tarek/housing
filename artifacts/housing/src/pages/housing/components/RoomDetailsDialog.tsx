@@ -55,60 +55,13 @@ export function RoomDetailsDialog({
   const qc = useQueryClient();
   const ar = language === "ar";
 
+  // Hooks: Feature states
   const [featuresEditMode, setFeaturesEditMode] = useState(false);
   const [featuresInput, setFeaturesInput] = useState("");
   const [localFeatures, setLocalFeatures] = useState<string[] | null>(null);
   const [savingFeatures, setSavingFeatures] = useState(false);
 
-  const currentFeaturesList: string[] =
-    localFeatures ??
-    (Array.isArray(room?.featuresList) && room.featuresList.length > 0
-      ? room.featuresList
-      : room?.features
-      ? String(room.features)
-          .split(/[,;\n]+/)
-          .map((s: string) => s.trim())
-          .filter(Boolean)
-      : []);
-
-  const addFeatureInline = (feat: string) => {
-    const trimmed = feat.trim();
-    if (!trimmed) return;
-    if (currentFeaturesList.some((f) => f.toLowerCase() === trimmed.toLowerCase())) return;
-    setLocalFeatures([...currentFeaturesList, trimmed]);
-    setFeaturesInput("");
-  };
-
-  const removeFeatureInline = (feat: string) => {
-    setLocalFeatures(currentFeaturesList.filter((f) => f !== feat));
-  };
-
-  const saveFeatures = async () => {
-    setSavingFeatures(true);
-    try {
-      const res = await fetch(`/api/rooms/${room.id}/features`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          featuresList: currentFeaturesList,
-          features: currentFeaturesList.join(", "),
-        }),
-      });
-      if (!res.ok) throw new Error();
-      toast.success(ar ? "تم حفظ مميزات الغرفة بنجاح" : "Room features saved");
-      qc.invalidateQueries({ queryKey: getListRoomsQueryKey() });
-      qc.invalidateQueries({ queryKey: ["room-inventory"] });
-      refetchInventory();
-      setFeaturesEditMode(false);
-      setLocalFeatures(null);
-    } catch {
-      toast.error(ar ? "فشل حفظ المميزات" : "Failed to save features");
-    } finally {
-      setSavingFeatures(false);
-    }
-  };
-
-  // Room Equipment Inventory State
+  // Hooks: Room Equipment Inventory State
   const [showAddInventory, setShowAddInventory] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("electronics");
@@ -134,10 +87,57 @@ export function RoomDetailsDialog({
   });
   const roomInventory: any[] = inventoryData || [];
 
-  // All hooks must run before any early return (Rules of Hooks).
-  if (!room) return null;
+  const currentFeaturesList: string[] =
+    localFeatures ??
+    (Array.isArray(room?.featuresList) && room.featuresList.length > 0
+      ? room.featuresList
+      : room?.features
+      ? String(room.features)
+          .split(/[,;\n]+/)
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+      : []);
+
+  const addFeatureInline = (feat: string) => {
+    const trimmed = feat.trim();
+    if (!trimmed) return;
+    if (currentFeaturesList.some((f) => f.toLowerCase() === trimmed.toLowerCase())) return;
+    setLocalFeatures([...currentFeaturesList, trimmed]);
+    setFeaturesInput("");
+  };
+
+  const removeFeatureInline = (feat: string) => {
+    setLocalFeatures(currentFeaturesList.filter((f) => f !== feat));
+  };
+
+  const saveFeatures = async () => {
+    if (!room?.id) return;
+    setSavingFeatures(true);
+    try {
+      const res = await fetch(`/api/rooms/${room.id}/features`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          featuresList: currentFeaturesList,
+          features: currentFeaturesList.join(", "),
+        }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(ar ? "تم حفظ مميزات الغرفة بنجاح" : "Room features saved");
+      qc.invalidateQueries({ queryKey: getListRoomsQueryKey() });
+      qc.invalidateQueries({ queryKey: ["room-inventory"] });
+      refetchInventory();
+      setFeaturesEditMode(false);
+      setLocalFeatures(null);
+    } catch {
+      toast.error(ar ? "فشل حفظ المميزات" : "Failed to save features");
+    } finally {
+      setSavingFeatures(false);
+    }
+  };
 
   const handleSyncFromFeatures = async () => {
+    if (!room?.id) return;
     setIsSyncing(true);
     try {
       const res = await fetch("/api/room-inventory/sync-from-features", {
@@ -163,6 +163,7 @@ export function RoomDetailsDialog({
   };
 
   const handleAddItem = async () => {
+    if (!room?.id) return;
     if (!newItemName.trim()) {
       toast.error(ar ? "اسم المعدة مطلوب" : "Item name is required");
       return;
@@ -270,11 +271,12 @@ export function RoomDetailsDialog({
   const empMap = Object.fromEntries((profiles ?? []).map((e) => [e.id, e]));
 
   return (
-    <Dialog open={!!room} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        className="max-w-xl max-h-[90vh] overflow-y-auto"
-        srTitle={`${ar ? "الغرفة" : "Room"} ${room.roomNumber}`}
-      >
+    <Dialog open={Boolean(room)} onOpenChange={(open) => !open && onClose()}>
+      {room && (
+        <DialogContent
+          className="max-w-xl max-h-[90vh] overflow-y-auto"
+          srTitle={`${ar ? "الغرفة" : "Room"} ${room.roomNumber}`}
+        >
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>
@@ -825,6 +827,7 @@ export function RoomDetailsDialog({
           );
         })()}
       </DialogContent>
+      )}
     </Dialog>
   );
 }
