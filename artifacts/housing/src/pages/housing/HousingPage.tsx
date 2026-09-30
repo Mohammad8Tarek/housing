@@ -459,6 +459,7 @@ export function HousingPage() {
             rooms={rooms}
             assignments={assignments}
             profiles={profiles}
+            isLoading={rLoading || bLoading}
             onSelectRoom={setSelectedRoom}
           />
         )}
