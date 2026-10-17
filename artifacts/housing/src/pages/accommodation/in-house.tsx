@@ -704,8 +704,8 @@ export default function InHouse() {
 
       toast.success(
         ar
-          ? `تم تمديد إقامة ${extendDialog.emp ? `${extendDialog.emp.firstName} ${extendDialog.emp.lastName || ""}` : ""} حتى ${extendNewDate} بنجاح`
-          : `Stay extended until ${extendNewDate} successfully`,
+          ? `تم تمديد إقامة ${extendDialog.emp ? `${extendDialog.emp.firstName} ${extendDialog.emp.lastName || ""}` : ""} حتى ${formatDate(extendNewDate)} بنجاح`
+          : `Stay extended until ${formatDate(extendNewDate)} successfully`,
       );
       setExtendDialog({ open: false, assignment: null, emp: null, room: null });
       invalidate();

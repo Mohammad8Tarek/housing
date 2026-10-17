@@ -1456,6 +1456,19 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       ALTER TABLE public.activity_logs ALTER COLUMN property_id DROP NOT NULL;
     `,
   },
+  {
+    name: "public.clean_duplicate_indexes",
+    q: `
+      DROP INDEX IF EXISTS public.assignments_profile_id_idx;
+      DROP INDEX IF EXISTS public.idx_assignments_profile;
+      DROP INDEX IF EXISTS public.assignments_room_id_idx;
+      DROP INDEX IF EXISTS public.idx_assignments_room;
+      DROP INDEX IF EXISTS public.idx_rooms_building;
+      DROP INDEX IF EXISTS public.rooms_building_id_idx;
+      DROP INDEX IF EXISTS public.profiles_national_id_idx;
+      DROP INDEX IF EXISTS public.profiles_profile_id_idx;
+    `,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -2705,6 +2718,19 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         ADD COLUMN IF NOT EXISTS meta_access_token TEXT,
         ADD COLUMN IF NOT EXISTS meta_phone_number_id TEXT,
         ADD COLUMN IF NOT EXISTS meta_waba_id TEXT;
+    `,
+  },
+  {
+    name: "tenant.clean_duplicate_indexes",
+    q: `
+      DROP INDEX IF EXISTS assignments_profile_id_idx;
+      DROP INDEX IF EXISTS idx_assignments_profile;
+      DROP INDEX IF EXISTS assignments_room_id_idx;
+      DROP INDEX IF EXISTS idx_assignments_room;
+      DROP INDEX IF EXISTS idx_rooms_building;
+      DROP INDEX IF EXISTS rooms_building_id_idx;
+      DROP INDEX IF EXISTS profiles_national_id_idx;
+      DROP INDEX IF EXISTS profiles_profile_id_idx;
     `,
   },
 ];

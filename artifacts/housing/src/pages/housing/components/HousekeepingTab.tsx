@@ -19,6 +19,7 @@ import {
   Wrench,
   Loader2,
   Ban,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -167,15 +168,19 @@ export function HousekeepingTab({
 
       // Status filter
       if (statusFilter === "clean") {
-        if (s !== "available" && s !== "clean" && s !== "vacant") return false;
+        if (s !== "available" && s !== "clean" && s !== "vacant" && s !== "inspected") return false;
       } else if (statusFilter === "occupied") {
         if (s !== "occupied" && s !== "occupied_clean") return false;
       } else if (statusFilter === "needs_cleaning") {
-        if (s !== "dirty" && s !== "vacant_dirty" && s !== "occupied_dirty") return false;
+        if (s !== "dirty" && s !== "vacant_dirty" && s !== "occupied_dirty" && s !== "in_cleaning" && s !== "cleaning") return false;
       } else if (statusFilter === "dirty") {
         if (s !== "dirty" && s !== "vacant_dirty") return false;
       } else if (statusFilter === "occupied_dirty") {
         if (s !== "occupied_dirty") return false;
+      } else if (statusFilter === "inspected") {
+        if (s !== "inspected") return false;
+      } else if (statusFilter === "in_cleaning") {
+        if (s !== "in_cleaning" && s !== "cleaning") return false;
       } else if (statusFilter === "out_of_service") {
         if (s !== "out_of_service" && s !== "oos" && s !== "maintenance" && s !== "out_of_order")
           return false;
@@ -370,6 +375,18 @@ export function HousekeepingTab({
             ? `تم تحديث الغرفة ${room.roomNumber} وجعلها جاهزة/نظيفة`
             : `Room ${room.roomNumber} marked clean & available`
         );
+      } else if (newStatus === "inspected") {
+        toast.success(
+          ar
+            ? `تم فحص واعتماد الغرفة ${room.roomNumber} بنجاح`
+            : `Room ${room.roomNumber} marked as inspected & verified`
+        );
+      } else if (newStatus === "in_cleaning") {
+        toast.success(
+          ar
+            ? `تم بدء أعمال تنظيف الغرفة ${room.roomNumber}`
+            : `Room ${room.roomNumber} marked in cleaning`
+        );
       } else if (newStatus === "occupied") {
         toast.success(
           ar
@@ -446,6 +463,34 @@ export function HousekeepingTab({
   // Helper for status badge styling
   const getStatusBadge = (status: string) => {
     const s = (status || "").toLowerCase().trim();
+    if (s === "available" || s === "clean" || s === "vacant") {
+      return {
+        className:
+          "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
+        label: ar ? "نظيفة وجاهزة" : "Clean & Ready",
+      };
+    }
+    if (s === "occupied" || s === "occupied_clean") {
+      return {
+        className:
+          "bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border-blue-300 dark:border-blue-800",
+        label: ar ? "مشغولة نظيفة" : "Occupied Clean",
+      };
+    }
+    if (s === "inspected") {
+      return {
+        className:
+          "bg-teal-100 text-teal-800 dark:bg-teal-950/80 dark:text-teal-300 border-teal-300 dark:border-teal-800",
+        label: ar ? "تم الفحص / معتمدة" : "Inspected",
+      };
+    }
+    if (s === "in_cleaning" || s === "cleaning") {
+      return {
+        className:
+          "bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border-sky-300 dark:border-sky-800",
+        label: ar ? "جاري التنظيف" : "In Cleaning",
+      };
+    }
     if (s === "dirty" || s === "vacant_dirty") {
       return {
         className:
@@ -705,6 +750,18 @@ export function HousekeepingTab({
                   <span>{ar ? "مشغولة تحتاج تنظيف" : "Occupied Dirty"}</span>
                 </div>
               </SelectItem>
+              <SelectItem value="inspected">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-teal-500 shrink-0" />
+                  <span>{ar ? "تم الفحص / معتمدة" : "Inspected"}</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="in_cleaning">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
+                  <span>{ar ? "جاري التنظيف" : "In Cleaning"}</span>
+                </div>
+              </SelectItem>
               <SelectItem value="out_of_service">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
@@ -905,6 +962,40 @@ export function HousekeepingTab({
                 <div className="mt-2 pt-2 border-t border-border/50 flex gap-2">
                   {/* For 'dirty' */}
                   {canEditHsk && (normStatus === "dirty" || normStatus === "vacant_dirty") && (
+                    <div className="flex-1 flex gap-1.5">
+                      <Button
+                        size="sm"
+                        disabled={isUpdating}
+                        onClick={() => handleUpdateStatus(room, "available")}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs gap-1 px-2"
+                      >
+                        {isUpdating ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            {ar ? "تنظيف وإتاحة" : "Clean & Ready"}
+                          </span>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isUpdating}
+                        onClick={() => handleUpdateStatus(room, "inspected")}
+                        className="border-teal-300 dark:border-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-teal-700 dark:text-teal-300 font-semibold text-xs shadow-xs gap-1 px-2"
+                        title={ar ? "تسجيل فحص الغرفة قبل الاعتماد النهائي" : "Mark as inspected"}
+                      >
+                        <span className="flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-teal-500" />
+                          {ar ? "فحص" : "Inspect"}
+                        </span>
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* For 'inspected' */}
+                  {canEditHsk && normStatus === "inspected" && (
                     <Button
                       size="sm"
                       disabled={isUpdating}
@@ -916,10 +1007,41 @@ export function HousekeepingTab({
                       ) : (
                         <span className="flex items-center gap-1.5">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          {ar ? "تنظيف" : "Mark Clean"}
+                          {ar ? "اعتماد الغرفة وإتاحتها" : "Approve & Release"}
                         </span>
                       )}
                     </Button>
+                  )}
+
+                  {/* For 'in_cleaning' */}
+                  {canEditHsk && (normStatus === "in_cleaning" || normStatus === "cleaning") && (
+                    <div className="flex-1 flex gap-1.5">
+                      <Button
+                        size="sm"
+                        disabled={isUpdating}
+                        onClick={() => handleUpdateStatus(room, "inspected")}
+                        className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs shadow-xs gap-1 px-2"
+                      >
+                        {isUpdating ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            {ar ? "إتمام وفحص" : "Done & Inspect"}
+                          </span>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isUpdating}
+                        onClick={() => handleUpdateStatus(room, "available")}
+                        className="border-emerald-300 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold text-xs shadow-xs gap-1 px-2"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {ar ? "إتاحة" : "Ready"}
+                      </Button>
+                    </div>
                   )}
 
                   {/* For 'occupied_dirty' */}

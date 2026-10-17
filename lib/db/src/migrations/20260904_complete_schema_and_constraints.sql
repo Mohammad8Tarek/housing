@@ -614,6 +614,161 @@ BEGIN
     CREATE INDEX IF NOT EXISTS "idx_reset_tokens_expires_at" ON "password_reset_tokens" ("expires_at");
 
     -- --------------------------------------------------------
+    -- Table: property_housing_ratings (weekly pulse votes, public scope)
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "property_housing_ratings" (
+      "id" SERIAL PRIMARY KEY,
+      "property_id" INTEGER NOT NULL,
+      "profile_id" INTEGER NOT NULL,
+      "rating" TEXT NOT NULL,
+      "score" INTEGER NOT NULL,
+      "comment" TEXT,
+      "category" TEXT NOT NULL DEFAULT 'general',
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    -- Ensure all columns exist
+    ALTER TABLE "property_housing_ratings" ADD COLUMN IF NOT EXISTS "property_id" INTEGER NOT NULL;
+    ALTER TABLE "property_housing_ratings" ADD COLUMN IF NOT EXISTS "profile_id" INTEGER NOT NULL;
+    ALTER TABLE "property_housing_ratings" ADD COLUMN IF NOT EXISTS "rating" TEXT NOT NULL;
+    ALTER TABLE "property_housing_ratings" ADD COLUMN IF NOT EXISTS "score" INTEGER NOT NULL;
+    ALTER TABLE "property_housing_ratings" ADD COLUMN IF NOT EXISTS "comment" TEXT;
+    ALTER TABLE "property_housing_ratings" ADD COLUMN IF NOT EXISTS "category" TEXT NOT NULL DEFAULT 'general';
+    ALTER TABLE "property_housing_ratings" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ NOT NULL DEFAULT now();
+    CREATE INDEX IF NOT EXISTS "idx_prop_housing_ratings_cooldown" ON "property_housing_ratings" ("profile_id", "created_at" DESC);
+    CREATE INDEX IF NOT EXISTS "idx_prop_housing_ratings_prop" ON "property_housing_ratings" ("property_id", "created_at" DESC);
+
+    -- --------------------------------------------------------
+    -- Table: property_housing_pulse_config (weekly pulse settings, public scope)
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "property_housing_pulse_config" (
+      "id" SERIAL PRIMARY KEY,
+      "property_id" INTEGER NOT NULL UNIQUE,
+      "enabled" BOOLEAN NOT NULL DEFAULT true,
+      "rating_type" TEXT NOT NULL DEFAULT 'faces',
+      "allow_comment" BOOLEAN NOT NULL DEFAULT true,
+      "comment_required" BOOLEAN NOT NULL DEFAULT false,
+      "cooldown_days" INTEGER NOT NULL DEFAULT 7,
+      "title_ar" TEXT NOT NULL DEFAULT 'استطلاع جودة السكن الأسبوعي',
+      "title_en" TEXT NOT NULL DEFAULT 'Weekly Housing Quality Pulse',
+      "question_ar" TEXT NOT NULL DEFAULT 'ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟',
+      "question_en" TEXT NOT NULL DEFAULT 'How satisfied are you with housing conditions, cleanliness & services this week?',
+      "force_prompt_after" TIMESTAMPTZ,
+      "last_pushed_at" TIMESTAMPTZ,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    -- Ensure all columns exist
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "property_id" INTEGER NOT NULL UNIQUE;
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "enabled" BOOLEAN NOT NULL DEFAULT true;
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "rating_type" TEXT NOT NULL DEFAULT 'faces';
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "allow_comment" BOOLEAN NOT NULL DEFAULT true;
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "comment_required" BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "cooldown_days" INTEGER NOT NULL DEFAULT 7;
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "title_ar" TEXT NOT NULL DEFAULT 'استطلاع جودة السكن الأسبوعي';
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "title_en" TEXT NOT NULL DEFAULT 'Weekly Housing Quality Pulse';
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "question_ar" TEXT NOT NULL DEFAULT 'ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟';
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "question_en" TEXT NOT NULL DEFAULT 'How satisfied are you with housing conditions, cleanliness & services this week?';
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "force_prompt_after" TIMESTAMPTZ;
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "last_pushed_at" TIMESTAMPTZ;
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ NOT NULL DEFAULT now();
+    ALTER TABLE "property_housing_pulse_config" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now();
+    CREATE INDEX IF NOT EXISTS "idx_prop_housing_pulse_prop" ON "property_housing_pulse_config" ("property_id");
+
+    -- --------------------------------------------------------
+    -- Table: room_moves (move audit trail, public scope)
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "room_moves" (
+      "id" SERIAL PRIMARY KEY,
+      "property_id" INTEGER NOT NULL,
+      "assignment_id" INTEGER,
+      "profile_id" INTEGER NOT NULL,
+      "employee_id" TEXT,
+      "resident_name" TEXT NOT NULL,
+      "resident_name_en" TEXT,
+      "department" TEXT,
+      "job_title" TEXT,
+      "old_room_id" INTEGER,
+      "old_room_number" TEXT NOT NULL,
+      "old_bed_number" INTEGER,
+      "old_building_name" TEXT,
+      "old_room_type" TEXT,
+      "new_room_id" INTEGER NOT NULL,
+      "new_room_number" TEXT NOT NULL,
+      "new_bed_number" INTEGER,
+      "new_building_name" TEXT,
+      "new_room_type" TEXT,
+      "move_reason" TEXT,
+      "reason_code" TEXT DEFAULT 'GENERAL',
+      "action_by_user_id" INTEGER,
+      "action_by_username" TEXT NOT NULL DEFAULT 'System',
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    -- Ensure all columns exist
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "property_id" INTEGER NOT NULL;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "assignment_id" INTEGER;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "profile_id" INTEGER NOT NULL;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "employee_id" TEXT;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "resident_name" TEXT NOT NULL;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "resident_name_en" TEXT;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "department" TEXT;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "job_title" TEXT;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "old_room_id" INTEGER;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "old_room_number" TEXT NOT NULL;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "old_bed_number" INTEGER;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "old_building_name" TEXT;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "old_room_type" TEXT;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "new_room_id" INTEGER NOT NULL;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "new_room_number" TEXT NOT NULL;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "new_bed_number" INTEGER;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "new_building_name" TEXT;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "new_room_type" TEXT;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "move_reason" TEXT;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "reason_code" TEXT DEFAULT 'GENERAL';
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "action_by_user_id" INTEGER;
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "action_by_username" TEXT NOT NULL DEFAULT 'System';
+    ALTER TABLE "room_moves" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ NOT NULL DEFAULT now();
+    CREATE INDEX IF NOT EXISTS "idx_room_moves_prop" ON "room_moves" ("property_id", "created_at" DESC);
+    CREATE INDEX IF NOT EXISTS "idx_room_moves_profile" ON "room_moves" ("profile_id");
+    CREATE INDEX IF NOT EXISTS "idx_room_moves_created" ON "room_moves" ("created_at" DESC);
+
+    -- --------------------------------------------------------
+    -- Table: user_password_reset_otps (admin password reset, public scope)
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "user_password_reset_otps" (
+      "id" SERIAL PRIMARY KEY,
+      "user_id" INTEGER NOT NULL,
+      "identifier" TEXT NOT NULL,
+      "otp_hash" TEXT NOT NULL,
+      "token_hash" TEXT,
+      "attempts" INTEGER NOT NULL DEFAULT 0,
+      "max_attempts" INTEGER NOT NULL DEFAULT 5,
+      "is_verified" BOOLEAN NOT NULL DEFAULT FALSE,
+      "resend_count" INTEGER NOT NULL DEFAULT 0,
+      "last_resend_at" TIMESTAMPTZ,
+      "expires_at" TIMESTAMPTZ NOT NULL,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    -- Ensure all columns exist
+    ALTER TABLE "user_password_reset_otps" ADD COLUMN IF NOT EXISTS "user_id" INTEGER NOT NULL;
+    ALTER TABLE "user_password_reset_otps" ADD COLUMN IF NOT EXISTS "identifier" TEXT NOT NULL;
+    ALTER TABLE "user_password_reset_otps" ADD COLUMN IF NOT EXISTS "otp_hash" TEXT NOT NULL;
+    ALTER TABLE "user_password_reset_otps" ADD COLUMN IF NOT EXISTS "token_hash" TEXT;
+    ALTER TABLE "user_password_reset_otps" ADD COLUMN IF NOT EXISTS "attempts" INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE "user_password_reset_otps" ADD COLUMN IF NOT EXISTS "max_attempts" INTEGER NOT NULL DEFAULT 5;
+    ALTER TABLE "user_password_reset_otps" ADD COLUMN IF NOT EXISTS "is_verified" BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE "user_password_reset_otps" ADD COLUMN IF NOT EXISTS "resend_count" INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE "user_password_reset_otps" ADD COLUMN IF NOT EXISTS "last_resend_at" TIMESTAMPTZ;
+    ALTER TABLE "user_password_reset_otps" ADD COLUMN IF NOT EXISTS "expires_at" TIMESTAMPTZ NOT NULL;
+    ALTER TABLE "user_password_reset_otps" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW();
+    CREATE INDEX IF NOT EXISTS "idx_user_otps_user" ON "user_password_reset_otps" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_user_otps_identifier" ON "user_password_reset_otps" ("identifier");
+    CREATE INDEX IF NOT EXISTS "idx_user_otps_expires" ON "user_password_reset_otps" ("expires_at");
+
+    -- --------------------------------------------------------
     -- Table: portal_comment_likes
     -- --------------------------------------------------------
     CREATE TABLE IF NOT EXISTS "portal_comment_likes" (
@@ -2247,6 +2402,16 @@ BEGIN
       "created_at" TIMESTAMPTZ DEFAULT now(),
       "updated_at" TIMESTAMPTZ DEFAULT now()
     );
+
+    -- Clean duplicate/redundant indexes to optimize database performance
+    EXECUTE 'DROP INDEX IF EXISTS ' || quote_ident(target_schema) || '.assignments_profile_id_idx';
+    EXECUTE 'DROP INDEX IF EXISTS ' || quote_ident(target_schema) || '.idx_assignments_profile';
+    EXECUTE 'DROP INDEX IF EXISTS ' || quote_ident(target_schema) || '.assignments_room_id_idx';
+    EXECUTE 'DROP INDEX IF EXISTS ' || quote_ident(target_schema) || '.idx_assignments_room';
+    EXECUTE 'DROP INDEX IF EXISTS ' || quote_ident(target_schema) || '.idx_rooms_building';
+    EXECUTE 'DROP INDEX IF EXISTS ' || quote_ident(target_schema) || '.rooms_building_id_idx';
+    EXECUTE 'DROP INDEX IF EXISTS ' || quote_ident(target_schema) || '.profiles_national_id_idx';
+    EXECUTE 'DROP INDEX IF EXISTS ' || quote_ident(target_schema) || '.profiles_profile_id_idx';
 
   END LOOP;
 
