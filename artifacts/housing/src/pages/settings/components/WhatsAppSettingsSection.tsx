@@ -43,6 +43,8 @@ import {
   Award,
   HelpCircle,
   Check,
+  Sliders,
+  Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BroadcastWhatsAppDialog } from "@/components/BroadcastWhatsAppDialog";
@@ -176,13 +178,28 @@ export function WhatsAppSettingsSection({
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
-  // Provider: Meta Cloud API vs Direct Baileys
-  const [provider, setProvider] = useState<"meta_cloud" | "baileys">("meta_cloud");
+  // Provider: Meta Cloud API vs UltraMsg vs Custom Gateway vs Direct Baileys
+  const [provider, setProvider] = useState<"meta_cloud" | "baileys" | "ultramsg" | "custom_gateway">("meta_cloud");
   const [metaPhoneNumberId, setMetaPhoneNumberId] = useState("");
   const [metaWabaId, setMetaWabaId] = useState("");
   const [metaAccessToken, setMetaAccessToken] = useState("");
   const [hasMetaToken, setHasMetaToken] = useState(false);
   const [showMetaGuide, setShowMetaGuide] = useState(false);
+
+  // UltraMsg
+  const [ultramsgInstanceId, setUltramsgInstanceId] = useState("");
+  const [ultramsgToken, setUltramsgToken] = useState("");
+  const [hasUltramsgToken, setHasUltramsgToken] = useState(false);
+
+  // Custom / Any WhatsApp Gateway
+  const [customGatewayUrl, setCustomGatewayUrl] = useState("");
+  const [customGatewayToken, setCustomGatewayToken] = useState("");
+  const [hasCustomGatewayToken, setHasCustomGatewayToken] = useState(false);
+  const [customGatewayMethod, setCustomGatewayMethod] = useState("POST");
+  const [customGatewayPayloadType, setCustomGatewayPayloadType] = useState("json");
+  const [customGatewayPhoneField, setCustomGatewayPhoneField] = useState("to");
+  const [customGatewayMessageField, setCustomGatewayMessageField] = useState("body");
+  const [customGatewayHeaders, setCustomGatewayHeaders] = useState("");
 
   // Status & Connection (Baileys)
   const [status, setStatus] = useState<"disconnected" | "pairing" | "connected">("disconnected");
@@ -252,6 +269,30 @@ export function WhatsAppSettingsSection({
         if (sData.hasMetaToken !== undefined) {
           setHasMetaToken(Boolean(sData.hasMetaToken));
         }
+        if (sData.ultramsgInstanceId !== undefined) {
+          setUltramsgInstanceId(sData.ultramsgInstanceId || "");
+        }
+        if (sData.customGatewayUrl !== undefined) {
+          setCustomGatewayUrl(sData.customGatewayUrl || "");
+        }
+        if (sData.hasCustomGatewayToken !== undefined) {
+          setHasCustomGatewayToken(Boolean(sData.hasCustomGatewayToken));
+        }
+        if (sData.customGatewayMethod) {
+          setCustomGatewayMethod(sData.customGatewayMethod);
+        }
+        if (sData.customGatewayPayloadType) {
+          setCustomGatewayPayloadType(sData.customGatewayPayloadType);
+        }
+        if (sData.customGatewayPhoneField) {
+          setCustomGatewayPhoneField(sData.customGatewayPhoneField);
+        }
+        if (sData.customGatewayMessageField) {
+          setCustomGatewayMessageField(sData.customGatewayMessageField);
+        }
+        if (sData.customGatewayHeaders !== undefined) {
+          setCustomGatewayHeaders(sData.customGatewayHeaders || "");
+        }
       }
 
       if (configRes.ok) {
@@ -283,6 +324,33 @@ export function WhatsAppSettingsSection({
           }
           if (cData.config.hasMetaToken !== undefined) {
             setHasMetaToken(Boolean(cData.config.hasMetaToken));
+          }
+          if (cData.config.ultramsgInstanceId !== undefined) {
+            setUltramsgInstanceId(cData.config.ultramsgInstanceId || "");
+          }
+          if (cData.config.hasUltramsgToken !== undefined) {
+            setHasUltramsgToken(Boolean(cData.config.hasUltramsgToken));
+          }
+          if (cData.config.customGatewayUrl !== undefined) {
+            setCustomGatewayUrl(cData.config.customGatewayUrl || "");
+          }
+          if (cData.config.hasCustomGatewayToken !== undefined) {
+            setHasCustomGatewayToken(Boolean(cData.config.hasCustomGatewayToken));
+          }
+          if (cData.config.customGatewayMethod) {
+            setCustomGatewayMethod(cData.config.customGatewayMethod);
+          }
+          if (cData.config.customGatewayPayloadType) {
+            setCustomGatewayPayloadType(cData.config.customGatewayPayloadType);
+          }
+          if (cData.config.customGatewayPhoneField) {
+            setCustomGatewayPhoneField(cData.config.customGatewayPhoneField);
+          }
+          if (cData.config.customGatewayMessageField) {
+            setCustomGatewayMessageField(cData.config.customGatewayMessageField);
+          }
+          if (cData.config.customGatewayHeaders !== undefined) {
+            setCustomGatewayHeaders(cData.config.customGatewayHeaders || "");
           }
         }
       }
@@ -404,7 +472,7 @@ export function WhatsAppSettingsSection({
   };
 
   // Save config
-  const handleSaveConfig = async (overrideProvider?: "meta_cloud" | "baileys") => {
+  const handleSaveConfig = async (overrideProvider?: "meta_cloud" | "baileys" | "ultramsg" | "custom_gateway") => {
     if (!propertyId) return;
     setSaving(true);
     try {
@@ -418,6 +486,15 @@ export function WhatsAppSettingsSection({
           metaPhoneNumberId: metaPhoneNumberId.trim(),
           metaWabaId: metaWabaId.trim(),
           metaAccessToken: metaAccessToken.trim() ? metaAccessToken.trim() : undefined,
+          ultramsgInstanceId: ultramsgInstanceId.trim(),
+          ultramsgToken: ultramsgToken.trim() ? ultramsgToken.trim() : undefined,
+          customGatewayUrl: customGatewayUrl.trim(),
+          customGatewayToken: customGatewayToken.trim() ? customGatewayToken.trim() : undefined,
+          customGatewayMethod,
+          customGatewayPayloadType,
+          customGatewayPhoneField: customGatewayPhoneField.trim() || "to",
+          customGatewayMessageField: customGatewayMessageField.trim() || "body",
+          customGatewayHeaders: customGatewayHeaders.trim() || undefined,
           isAutoSendEnabled,
           isReservationSendEnabled,
           welcomeTemplateAr,
@@ -431,6 +508,14 @@ export function WhatsAppSettingsSection({
         if (metaAccessToken.trim()) {
           setHasMetaToken(true);
           setMetaAccessToken("");
+        }
+        if (ultramsgToken.trim()) {
+          setHasUltramsgToken(true);
+          setUltramsgToken("");
+        }
+        if (customGatewayToken.trim()) {
+          setHasCustomGatewayToken(true);
+          setCustomGatewayToken("");
         }
         toast.success(
           ar
@@ -566,109 +651,346 @@ export function WhatsAppSettingsSection({
   return (
     <div className="space-y-6 w-full">
       {/* ── PROVIDER SELECTION BAR ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Option 1: Meta Cloud API */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Option 1: Custom / Any WhatsApp Gateway */}
+        <button
+          type="button"
+          onClick={() => {
+            setProvider("custom_gateway");
+            handleSaveConfig("custom_gateway");
+          }}
+          className={`p-3.5 rounded-2xl border-2 text-start transition-all relative overflow-hidden flex flex-col justify-between gap-3 ${
+            provider === "custom_gateway"
+              ? "border-indigo-500 bg-indigo-500/5 shadow-md ring-2 ring-indigo-500/20"
+              : "border-border/70 hover:border-indigo-500/40 bg-card hover:bg-muted/30"
+          }`}
+        >
+          <div className="flex items-start justify-between gap-2 w-full">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                <Sliders className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-bold text-sm text-foreground flex items-center gap-1.5 flex-wrap">
+                  <span>{ar ? "بوابة مخصصة (أي API)" : "Custom Gateway (Any API)"}</span>
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
+                  {ar ? "Wassenger, Green-API, Chat-API أو أي برودكت" : "Any external WhatsApp API"}
+                </div>
+              </div>
+            </div>
+            {provider === "custom_gateway" && (
+              <div className="w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center shrink-0">
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-1">
+            <Badge variant="outline" className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 text-[10px]">
+              🌐 {ar ? "مرن وشامل" : "Universal"}
+            </Badge>
+          </div>
+        </button>
+
+        {/* Option 3: Meta Cloud API */}
         <button
           type="button"
           onClick={() => {
             setProvider("meta_cloud");
             handleSaveConfig("meta_cloud");
           }}
-          className={`p-4 rounded-2xl border-2 text-start transition-all relative overflow-hidden flex flex-col justify-between gap-3 ${
+          className={`p-3.5 rounded-2xl border-2 text-start transition-all relative overflow-hidden flex flex-col justify-between gap-3 ${
             provider === "meta_cloud"
               ? "border-emerald-500 bg-emerald-500/5 shadow-md ring-2 ring-emerald-500/20"
               : "border-border/70 hover:border-emerald-500/40 bg-card hover:bg-muted/30"
           }`}
         >
           <div className="flex items-start justify-between gap-2 w-full">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold shadow-xs">
-                <ShieldCheck className="w-6 h-6" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <div className="font-bold text-sm sm:text-base text-foreground flex items-center gap-1.5 flex-wrap">
-                  <span>{ar ? "Meta WhatsApp Cloud API (الرسمي المعتمد)" : "Meta WhatsApp Cloud API (Official)"}</span>
-                  <Badge className="bg-emerald-500 text-white text-[10px] px-1.5 py-0 border-0 font-bold">
-                    {ar ? "أمان 100% ضد الحظر" : "100% Zero-Ban"}
-                  </Badge>
+                <div className="font-bold text-sm text-foreground flex items-center gap-1.5 flex-wrap">
+                  <span>{ar ? "Meta Cloud (الرسمي)" : "Meta Cloud (Official)"}</span>
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  {ar
-                    ? "الربط الرسمي المباشر مع سيرفرات شركة Meta بدون وسيط وبدون أي حظر نهائياً"
-                    : "Official direct integration with Meta servers. 100% immune to bans"}
+                <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
+                  {ar ? "الربط الرسمي من شركة Meta" : "Direct official Meta API"}
                 </div>
               </div>
             </div>
             {provider === "meta_cloud" && (
-              <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                <Check className="w-4 h-4 stroke-[3]" />
+              <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
               </div>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10.5px]">
-              🎁 {ar ? "1,000 محادثة مجانية شهرياً من ميتا" : "1,000 Free conversations/mo"}
-            </Badge>
-            <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30 text-[10.5px]">
-              ⚡ {ar ? "يعمل تلقائياً دون الحاجة لبقاء الهاتف متصلاً" : "No active phone required"}
+          <div className="flex flex-wrap items-center gap-1">
+            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px]">
+              🛡️ {ar ? "أمان 100%" : "Zero-Ban"}
             </Badge>
           </div>
         </button>
 
-        {/* Option 2: Baileys Direct Phone */}
+        {/* Option 4: Baileys Direct Phone */}
         <button
           type="button"
           onClick={() => {
             setProvider("baileys");
             handleSaveConfig("baileys");
           }}
-          className={`p-4 rounded-2xl border-2 text-start transition-all relative overflow-hidden flex flex-col justify-between gap-3 ${
+          className={`p-3.5 rounded-2xl border-2 text-start transition-all relative overflow-hidden flex flex-col justify-between gap-3 ${
             provider === "baileys"
               ? "border-[#00a884] bg-[#00a884]/5 shadow-md ring-2 ring-[#00a884]/20"
               : "border-border/70 hover:border-[#00a884]/40 bg-card hover:bg-muted/30"
           }`}
         >
           <div className="flex items-start justify-between gap-2 w-full">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <div
-                className="w-11 h-11 rounded-xl text-white flex items-center justify-center font-bold shadow-xs"
+                className="w-10 h-10 rounded-xl text-white flex items-center justify-center font-bold shadow-xs shrink-0"
                 style={{ backgroundColor: "#00a884" }}
               >
-                <Smartphone className="w-6 h-6" />
+                <Smartphone className="w-5 h-5" />
               </div>
               <div>
-                <div className="font-bold text-sm sm:text-base text-foreground flex items-center gap-1.5 flex-wrap">
-                  <span>{ar ? "الربط المباشر برقم الهاتف (QR Code)" : "Direct Phone QR (Baileys)"}</span>
-                  <Badge variant="outline" className="bg-muted text-muted-foreground text-[10px] px-1.5 py-0">
-                    {ar ? "مجاني دائم" : "Forever Free"}
-                  </Badge>
+                <div className="font-bold text-sm text-foreground flex items-center gap-1.5 flex-wrap">
+                  <span>{ar ? "مسح QR (Baileys)" : "Direct QR (Baileys)"}</span>
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
-                  {ar
-                    ? "مسح رمز الـ QR من هاتف السكن عبر تطبيق WhatsApp أو WhatsApp Business"
-                    : "Scan QR code or use pairing code from your physical device"}
+                <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
+                  {ar ? "مسح رمز QR من هاتف السكن" : "Scan QR code directly"}
                 </div>
               </div>
             </div>
             {provider === "baileys" && (
-              <div className="w-6 h-6 rounded-full bg-[#00a884] text-white flex items-center justify-center shrink-0">
-                <Check className="w-4 h-4 stroke-[3]" />
+              <div className="w-5 h-5 rounded-full bg-[#00a884] text-white flex items-center justify-center shrink-0">
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
               </div>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-            <Badge variant="outline" className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30 text-[10.5px]">
-              📱 {ar ? "يُفضل WhatsApp Business" : "WhatsApp Business App"}
-            </Badge>
-            <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[10.5px]">
-              🛡️ {ar ? "حماية ذكية وتأخير بشري" : "Smart Anti-Spam Jitter"}
+          <div className="flex flex-wrap items-center gap-1">
+            <Badge variant="outline" className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30 text-[10px]">
+              📱 {ar ? "تطبيق الهاتف" : "Physical Device"}
             </Badge>
           </div>
         </button>
       </div>
 
       {/* ── CARD 1: ACTIVE PROVIDER CONFIGURATION ── */}
-      {provider === "meta_cloud" ? (
+      {provider === "custom_gateway" ? (
+        /* CUSTOM / ANY WHATSAPP GATEWAY CARD */
+        <Card className="border-border/60 shadow-sm">
+          <CardHeader className="pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-sm">
+                  <Sliders className="w-7 h-7" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg sm:text-xl font-bold flex items-center gap-2">
+                    {ar ? "إعدادات البوابة المخصصة (أي برودكت WhatsApp)" : "Custom WhatsApp Gateway Configuration"}
+                    {customGatewayUrl ? (
+                      <Badge className="bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30 gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {ar ? "معتمد وجاهز للإرسال" : "Configured & Ready"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30 gap-1.5">
+                        <Info className="w-3.5 h-3.5" />
+                        {ar ? "بحاجة للرابط (API URL)" : "API URL Required"}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm mt-1">
+                    {ar
+                      ? "اربط أي مزود خدمة واتساب (Wassenger, Green-API, Chat-API, WppConnect, إلخ) بسهولة ومرونة تامة"
+                      : "Connect any WhatsApp API provider (Wassenger, Green-API, Chat-API, WppConnect, etc.)"}
+                  </CardDescription>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleSaveConfig("custom_gateway")}
+                  disabled={saving}
+                  className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  {ar ? "حفظ إعدادات البوابة" : "Save Gateway Config"}
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-6 pt-0">
+            {/* Quick Presets */}
+            <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  {ar ? "قوالب سريعة مسبقة الإعداد (Presets):" : "Quick Presets:"}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {ar ? "اضغط لملء الحقول تلقائياً" : "Click to auto-populate fields"}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7 gap-1 bg-background hover:bg-muted"
+                  onClick={() => {
+                    setCustomGatewayUrl("https://api.wassenger.com/v1/messages");
+                    setCustomGatewayMethod("POST");
+                    setCustomGatewayPayloadType("json");
+                    setCustomGatewayPhoneField("phone");
+                    setCustomGatewayMessageField("message");
+                    toast.info(ar ? "تم ضبط إعدادات Wassenger" : "Wassenger preset loaded");
+                  }}
+                >
+                  Wassenger
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7 gap-1 bg-background hover:bg-muted"
+                  onClick={() => {
+                    setCustomGatewayUrl("https://api.green-api.com/waInstance{instanceId}/sendMessage/{token}");
+                    setCustomGatewayMethod("POST");
+                    setCustomGatewayPayloadType("json");
+                    setCustomGatewayPhoneField("chatId");
+                    setCustomGatewayMessageField("message");
+                    toast.info(ar ? "تم ضبط إعدادات Green-API" : "Green-API preset loaded");
+                  }}
+                >
+                  Green-API
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7 gap-1 bg-background hover:bg-muted"
+                  onClick={() => {
+                    setCustomGatewayUrl("https://api.ultramsg.com/instance193010/messages/chat");
+                    setCustomGatewayMethod("POST");
+                    setCustomGatewayPayloadType("urlencoded");
+                    setCustomGatewayPhoneField("to");
+                    setCustomGatewayMessageField("body");
+                    toast.info(ar ? "تم ضبط إعدادات UltraMsg كبوابة مخصصة" : "UltraMsg loaded as custom gateway");
+                  }}
+                >
+                  UltraMsg Gateway
+                </Button>
+              </div>
+            </div>
+
+            {/* Core Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5 md:col-span-2">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Link2 className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>{ar ? "رابط نقطة الاتصال (API Endpoint URL):" : "API Endpoint URL:"}</span>
+                </Label>
+                <Input
+                  placeholder="https://api.example.com/v1/send-message"
+                  value={customGatewayUrl}
+                  onChange={(e) => setCustomGatewayUrl(e.target.value)}
+                  className="font-mono text-sm"
+                  dir="ltr"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {ar
+                    ? "الرابط الكامل للإرسال من المزود. يدعم المتغيرات التلقائية {phone} و {token}"
+                    : "The full send endpoint. Supports placeholders {phone} and {token}"}
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>{ar ? "مفتاح الوصول / الرمز (Token / API Key):" : "API Key / Token:"}</span>
+                </Label>
+                <Input
+                  type="password"
+                  placeholder={hasCustomGatewayToken ? "•••••••••••••••••••••• (محفوظ مسبقاً)" : "Enter API token..."}
+                  value={customGatewayToken}
+                  onChange={(e) => setCustomGatewayToken(e.target.value)}
+                  className="font-mono text-sm"
+                  dir="ltr"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {ar ? "يتم تمريره تلقائياً في Authorization Header أو كباراميتر" : "Automatically sent in Authorization header or body"}
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>{ar ? "نوع حمولة البيانات (Payload Format):" : "Payload Format:"}</span>
+                </Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={customGatewayPayloadType === "json" ? "default" : "outline"}
+                    className={`flex-1 text-xs ${customGatewayPayloadType === "json" ? "bg-indigo-600 hover:bg-indigo-700" : ""}`}
+                    onClick={() => setCustomGatewayPayloadType("json")}
+                  >
+                    JSON
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={customGatewayPayloadType === "urlencoded" ? "default" : "outline"}
+                    className={`flex-1 text-xs ${customGatewayPayloadType === "urlencoded" ? "bg-indigo-600 hover:bg-indigo-700" : ""}`}
+                    onClick={() => setCustomGatewayPayloadType("urlencoded")}
+                  >
+                    Form-UrlEncoded
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={customGatewayPayloadType === "query" ? "default" : "outline"}
+                    className={`flex-1 text-xs ${customGatewayPayloadType === "query" ? "bg-indigo-600 hover:bg-indigo-700" : ""}`}
+                    onClick={() => setCustomGatewayPayloadType("query")}
+                  >
+                    GET / Query
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  {ar ? "اسم حقل الهاتف في الـ API (Phone Field Name):" : "Phone Field Name:"}
+                </Label>
+                <Input
+                  placeholder="to / phone / chatId"
+                  value={customGatewayPhoneField}
+                  onChange={(e) => setCustomGatewayPhoneField(e.target.value)}
+                  className="font-mono text-xs"
+                  dir="ltr"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  {ar ? "اسم حقل الرسالة في الـ API (Message Field Name):" : "Message Field Name:"}
+                </Label>
+                <Input
+                  placeholder="body / message / text"
+                  value={customGatewayMessageField}
+                  onChange={(e) => setCustomGatewayMessageField(e.target.value)}
+                  className="font-mono text-xs"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : provider === "meta_cloud" ? (
         /* META CLOUD API CARD */
         <Card className="border-border/60 shadow-sm">
           <CardHeader className="pb-4">
@@ -1696,6 +2018,8 @@ export function WhatsAppSettingsSection({
                 const isReady =
                   provider === "meta_cloud"
                     ? Boolean(metaPhoneNumberId && (hasMetaToken || metaAccessToken.trim()))
+                    : provider === "custom_gateway"
+                    ? Boolean(customGatewayUrl.trim())
                     : status === "connected";
 
                 return (
@@ -1707,6 +2031,8 @@ export function WhatsAppSettingsSection({
                       backgroundColor: isReady
                         ? provider === "meta_cloud"
                           ? "#059669"
+                          : provider === "custom_gateway"
+                          ? "#4f46e5"
                           : "#00a884"
                         : undefined,
                     }}
@@ -1721,6 +2047,10 @@ export function WhatsAppSettingsSection({
                         ? ar
                           ? "يرجى حفظ بيانات Meta Cloud أولاً"
                           : "Configure Meta Cloud First"
+                        : provider === "custom_gateway"
+                        ? ar
+                          ? "يرجى إدخال رابط الـ API للبوابة المخصصة أولاً"
+                          : "Configure Custom Gateway First"
                         : ar
                         ? "يجب ربط الواتساب أولاً"
                         : "Connect WhatsApp First"
@@ -1728,6 +2058,10 @@ export function WhatsAppSettingsSection({
                       ? ar
                         ? "إرسال رسالة تجريبية عبر Meta Cloud API"
                         : "Send Test via Meta Cloud API"
+                      : provider === "custom_gateway"
+                      ? ar
+                        ? "إرسال رسالة تجريبية عبر البوابة المخصصة (API)"
+                        : "Send Test via Custom Gateway"
                       : ar
                       ? "إرسال الرسالة التجريبية الآن"
                       : "Send Test Message Now"}

@@ -1,0 +1,737 @@
+import { useState, useEffect } from "react";
+import { useParams, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import {
+  useListMaintenance,
+  useUpdateMaintenance,
+  useListProfiles,
+} from "@workspace/api-client-react";
+import { useProperty } from "@/context/PropertyContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  ArrowLeft,
+  MessageSquare,
+  CheckCircle2,
+  Play,
+  Trash,
+  Lock,
+  Star,
+  Loader2,
+  DoorClosed,
+  Building2,
+  Layers,
+  User,
+} from "lucide-react";
+import { usePermission } from "@/hooks/use-permission";
+import { differenceInMinutes, differenceInHours } from "date-fns";
+import { formatDateTime } from "@/lib/date-utils";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
+
+const PROBLEM_TYPES_AR = {
+  Plumbing: "سباكة",
+  Electrical: "كهرباء",
+  HVAC: "تكييف",
+  Furniture: "أثاث",
+  Cleaning: "نظافة",
+  Internet: "إنترنت",
+  Other: "أخرى",
+};
+const CATEGORIES_AR: Record<string, string> = {
+  maintenance: "صيانة",
+  housekeeping: "هاوس كيبنج",
+  general: "عام",
+};
+const CATEGORIES_EN: Record<string, string> = {
+  maintenance: "Maintenance",
+  housekeeping: "Housekeeping",
+  general: "General",
+};
+const PRIORITY_AR: Record<string, string> = {
+  LOW: "منخفضة",
+  MEDIUM: "متوسطة",
+  HIGH: "عالية",
+  URGENT: "عاجلة",
+};
+const STATUS_AR: Record<string, string> = {
+  open: "مفتوحة",
+  in_progress: "قيد التنفيذ",
+  resolved: "محلولة",
+  closed: "مغلقة",
+};
+const STATUS_EN: Record<string, string> = {
+  open: "Open",
+  in_progress: "In Progress",
+  resolved: "Completed",
+  closed: "Closed",
+};
+
+function formatDuration(startedAt: any, resolvedAt: any, reportedAt: any, ar: boolean = false) {
+  const start = reportedAt ?? startedAt;
+  if (!start) return "—";
+  const startDate = new Date(start);
+  const endDate = resolvedAt ? new Date(resolvedAt) : new Date();
+  const totalMins = differenceInMinutes(endDate, startDate);
+  if (totalMins < 1) return ar ? "< دقيقة" : "< 1 min";
+  if (totalMins < 60) return ar ? `${totalMins} دقيقة` : `${totalMins}m`;
+  const hrs = differenceInHours(endDate, startDate);
+  const mins = totalMins % 60;
+  return mins > 0 ? (ar ? `${hrs} س ${mins} د` : `${hrs}h ${mins}m`) : (ar ? `${hrs} ساعة` : `${hrs}h`);
+}
+
+export default function MaintenanceDetails() {
+  const { id } = useParams();
+  const [, setLocation] = useLocation();
+  const goBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      setLocation("/maintenance");
+    }
+  };
+  const { activePropertyId } = useProperty();
+  const { language } = useLanguage();
+  const ar = language === "ar";
+  const { can, isSuperAdmin, isAdmin } = usePermission();
+
+  const [ticket, setTicket] = useState<any>(null);
+  const [comment, setComment] = useState("");
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
+  const canEditMnt =
+    isSuperAdmin ||
+    isAdmin ||
+    can("maintenance", "edit") ||
+    can("maintenance", "view") ||
+    can("maintenance", "view_maintenance");
+  const canEditHsk =
+    isSuperAdmin ||
+    isAdmin ||
+    can("housekeeping", "edit") ||
+    can("housekeeping", "view") ||
+    can("maintenance", "view_housekeeping");
+  const canEditTicket = isSuperAdmin || (ticket?.category === "housekeeping" ? canEditHsk : canEditMnt);
+
+  // Direct fetch for single ticket by ID to guarantee resolution regardless of pagination
+  const {
+    data: singleTicketData,
+    isLoading: isSingleLoading,
+    refetch: refetchTicket,
+  } = useQuery({
+    queryKey: ["maintenance-detail", id, activePropertyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/maintenance/${id}?propertyId=${activePropertyId || ""}`);
+      if (!res.ok) throw new Error("Failed to fetch maintenance ticket");
+      const json = await res.json();
+      return json.data || json;
+    },
+    enabled: !!id,
+  });
+
+  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const { data: _allTicketsWrapper } = useListMaintenance(
+    { propertyId: numericPropertyId } as any,
+    { query: { enabled: !!numericPropertyId && !singleTicketData } as any },
+  );
+  const allTickets: any[] = Array.isArray(_allTicketsWrapper) ? _allTicketsWrapper : (((_allTicketsWrapper as any)?.data as any[]) || []);
+
+  const { data: _eDataWrapper } = useListProfiles(
+    { propertyId: numericPropertyId, limit: 1000 } as any,
+    { query: { enabled: !!numericPropertyId } as any },
+  );
+  const profiles: any[] = Array.isArray(_eDataWrapper) ? _eDataWrapper : (((_eDataWrapper as any)?.profiles || (_eDataWrapper as any)?.data || []) as any[]);
+
+  const updateMutation = useUpdateMaintenance({
+    mutation: {
+      onSuccess: () => {
+        toast.success(ar ? "تم التحديث بنجاح" : "Updated successfully");
+        refetchTicket();
+      },
+      onError: (e) =>
+        toast.error(ar ? "خطأ" : "Error", {
+          description: e.message,
+        }),
+    },
+  });
+
+  useEffect(() => {
+    if (singleTicketData) {
+      setTicket(singleTicketData);
+    } else if (allTickets.length > 0) {
+      const found = allTickets.find((t: any) => t.id === parseInt(id || "0", 10));
+      if (found) setTicket(found);
+    }
+  }, [singleTicketData, allTickets, id]);
+
+  const handleAddComment = () => {
+    if (!comment.trim() || !ticket) return;
+    const now = new Date();
+    const timeStr = now.toLocaleDateString(ar ? "ar-EG" : "en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const entry = `[${timeStr}] ${comment.trim()}`;
+    const newNotes = ticket.notes ? `${ticket.notes}\n\n${entry}` : entry;
+    const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+
+    updateMutation.mutate(
+      {
+        id: ticket.id,
+        data: { notes: newNotes, propertyId: pId } as any,
+        params: pId ? { propertyId: pId } : undefined,
+      } as any,
+      {
+        onSuccess: () => {
+          setComment("");
+          setTicket((prev: any) => (prev ? { ...prev, notes: newNotes } : prev));
+          toast.success(ar ? "تمت إضافة الملاحظة بنجاح" : "Note added successfully");
+        },
+      }
+    );
+  };
+
+  if (!ticket) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <Button variant="ghost" onClick={() => goBack()} className="mb-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            {ar ? "عودة" : "Back"}
+          </Button>
+          <div className="text-center text-gray-500 py-16">
+            {isSingleLoading ? (
+              <div className="flex flex-col items-center justify-center gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-sm font-medium">{ar ? "جاري تحميل تفاصيل البلاغ..." : "Loading ticket details..."}</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-3">
+                <p className="font-semibold text-rose-600">{ar ? "لم يتم العثور على البلاغ المطلوب" : "Ticket not found"}</p>
+                <Button variant="outline" onClick={() => setLocation("/maintenance")}>
+                  {ar ? "الانتقال لجدول الصيانة" : "Go to Maintenance"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const empOptions = profiles.filter((e: any) => e.status === "active");
+  const priorityColor = (p: any) => {
+    switch ((p || "").toLowerCase()) {
+      case "urgent":
+        return "bg-red-100 text-red-800";
+      case "high":
+        return "bg-orange-100 text-orange-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  const statusColor = (s: any) => {
+    switch ((s || "").toLowerCase()) {
+      case "open":
+        return "bg-blue-100 text-blue-800";
+      case "in_progress":
+        return "bg-purple-100 text-purple-800";
+      case "resolved":
+        return "bg-green-100 text-green-800";
+      case "closed":
+        return "bg-gray-100 text-gray-600";
+      default:
+        return "bg-gray-100 text-gray-600";
+    }
+  };
+
+  const cleanReportedBy = ticket?.reportedBy
+    ? ticket.reportedBy.replace(/\s*-\s*\[مسح QR.*?\]/g, "").replace(/\s*-\s*\[QR.*?\]/g, "").trim()
+    : "";
+  const isSystemAdmin = /^(admin|super_admin|supervisor|مشرف|مدير)/i.test(cleanReportedBy);
+  const requesterDisplay = isSystemAdmin
+    ? (ar ? "إدارة السكن" : "Housing Administration")
+    : cleanReportedBy || ticket?.residentName || (ar ? "شاغرة (بدون نزيل)" : "Vacant");
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" onClick={() => goBack()}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {ar ? "عودة" : "Back"}
+            </Button>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {ar ? "تفاصيل الطلب" : "Request Details"} #{ticket.id}
+            </h1>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-3 gap-6">
+          {/* Left: Photo Section */}
+          <div className="col-span-1">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              {ticket.photoUrl ? (
+                <img
+                  src={ticket.photoUrl}
+                  alt="Ticket"
+                  className="w-full h-80 object-cover"
+                />
+              ) : (
+                <div className="w-full h-80 bg-gray-100 flex items-center justify-center">
+                  <span className="text-gray-400">
+                    {ar ? "لا توجد صورة" : "No photo"}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Details and Actions */}
+          <div className="col-span-2 space-y-6">
+            {/* Details Card */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold mb-4">
+                {ar ? "التفاصيل" : "Details"}
+              </h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "رقم الغرفة والموقع" : "Room & Location"}
+                  </p>
+                  <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                    <DoorClosed className="w-4 h-4 text-primary shrink-0" />
+                    <span>{ar ? "غرفة" : "Room"} {ticket.roomNumber || ticket.roomId || "—"}</span>
+                  </p>
+                  {(ticket.buildingName || ticket.floorNumber) && (
+                    <div className="flex items-center gap-1.5 mt-1 text-xs flex-wrap">
+                      {ticket.buildingName && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 text-xs">
+                          <Building2 className="w-3 h-3 text-sky-600" />
+                          <span>{ticket.buildingName}</span>
+                        </span>
+                      )}
+                      {ticket.floorNumber && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-xs">
+                          <Layers className="w-3 h-3 text-amber-600" />
+                          <span>{ar ? `الدور ${ticket.floorNumber}` : `Floor ${ticket.floorNumber}`}</span>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "مقدم الطلب" : "Requester"}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900 flex items-center gap-1.5">
+                    <User className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span>{requesterDisplay}</span>
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "الفندق / السكن" : "Property / Housing"}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900 flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4 text-primary shrink-0" />
+                    <span>{ticket.propertyName || (ar ? "سكن العاملين" : "Staff Housing")}</span>
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "المسند إليه" : "Assigned To"}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {ticket.assignedToName || ticket.workerName || (ar ? "غير مسند" : "Unassigned")}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "الحالة" : "Status"}
+                  </p>
+                  <div
+                    className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${statusColor(ticket.status)}`}
+                  >
+                    {ar
+                      ? ((STATUS_AR as Record<string, string>)[ticket.status?.toLowerCase()] || ticket.status)
+                      : ((STATUS_EN as Record<string, string>)[ticket.status?.toLowerCase()] || ticket.status?.replace("_", " "))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "الأولوية" : "Priority"}
+                  </p>
+                  <div
+                    className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${priorityColor(ticket.priority)}`}
+                  >
+                    {ar
+                      ? ((PRIORITY_AR as Record<string, string>)[ticket.priority?.toUpperCase()] || ticket.priority)
+                      : ticket.priority}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "النوع" : "Type"}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {ar
+                      ? ((CATEGORIES_AR as Record<string, string>)[ticket.category] || ticket.category)
+                      : ((CATEGORIES_EN as Record<string, string>)[ticket.category] || ticket.category)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "نوع المشكلة" : "Problem Type"}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {ar
+                      ? ((PROBLEM_TYPES_AR as Record<string, string>)[ticket.problemType] ??
+                        ticket.problemType)
+                      : ticket.problemType}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "الوصف" : "Description"}
+                  </p>
+                  <p className="text-sm text-gray-700">{ticket.description}</p>
+                </div>
+                {ticket.notes && (
+                  <div className="col-span-2 pt-3 border-t">
+                    <p className="text-xs text-gray-500 mb-1 font-semibold flex items-center gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-primary" />
+                      <span>{ar ? "سجل الملاحظات والتعليقات الإدارية" : "Administrative Notes & Comments Log"}</span>
+                    </p>
+                    <div className="bg-muted/40 p-3 rounded-lg text-xs whitespace-pre-line text-foreground border leading-relaxed">
+                      {ticket.notes}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Time Information */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold mb-4">
+                {ar ? "الوقت" : "Time Information"}
+              </h2>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "الإبلاغ عن" : "Reported"}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {formatDateTime(ticket.reportedAt)}
+                  </p>
+                </div>
+                {ticket.startedAt && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">
+                      {ar ? "بدأ" : "Started"}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {formatDateTime(ticket.startedAt)}
+                    </p>
+                  </div>
+                )}
+                {ticket.resolvedAt && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">
+                      {ar ? "تم الحل" : "Resolved"}
+                    </p>
+                    <p className="text-sm font-medium">
+                      {formatDateTime(ticket.resolvedAt)}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">
+                    {ar ? "المدة الإجمالية" : "Total Duration"}
+                  </p>
+                  <p className="text-sm font-medium">
+                    {formatDuration(
+                      ticket.startedAt,
+                      ticket.resolvedAt,
+                      ticket.reportedAt,
+                      ar,
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Service Quality Rating Section */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <span>{ar ? "تقييم جودة الخدمة ورضا النزيل" : "Service Quality & Rating"}</span>
+              </h2>
+
+              {ticket.rating ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-4 bg-amber-50/60 rounded-xl border border-amber-200">
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-6 h-6 ${
+                            star <= ticket.rating
+                              ? "text-amber-500 fill-amber-500"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-2xl font-bold text-amber-800">
+                      {ticket.rating} / 5
+                    </span>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
+                      {ticket.rating === 5
+                        ? (ar ? "ممتاز جداً" : "Excellent")
+                        : ticket.rating === 4
+                        ? (ar ? "جيد جداً" : "Very Good")
+                        : ticket.rating === 3
+                        ? (ar ? "مقبول" : "Acceptable")
+                        : ticket.rating === 2
+                        ? (ar ? "ضعيف" : "Poor")
+                        : (ar ? "غير مرضٍ تماماً" : "Very Poor")}
+                    </span>
+                  </div>
+
+                  {ticket.ratingComment && (
+                    <div className="p-3 bg-gray-50 rounded-lg border">
+                      <p className="text-xs text-gray-500 mb-1 font-semibold">
+                        {ar ? "ملاحظات وتعليق الموظف:" : "Employee Feedback / Comment:"}
+                      </p>
+                      <p className="text-sm text-gray-800 italic">
+                        "{ticket.ratingComment}"
+                      </p>
+                    </div>
+                  )}
+
+                  {ticket.ratedAt && (
+                    <p className="text-xs text-muted-foreground">
+                      {ar ? "تاريخ إتمام التقييم:" : "Rated on:"}{" "}
+                      {formatDateTime(ticket.ratedAt)}
+                    </p>
+                  )}
+                </div>
+              ) : ["resolved", "closed"].includes(ticket.status) ? (
+                <div className="p-4 bg-amber-50/50 rounded-xl border border-dashed border-amber-300 text-center">
+                  <p className="text-sm font-semibold text-amber-800 mb-1">
+                    {ar ? "بانتظار تقييم الموظف من البوابة" : "Awaiting Employee Rating from Resident Portal"}
+                  </p>
+                  <p className="text-xs text-amber-700/80">
+                    {ar
+                      ? "تم إنجاز الطلب ويظهر للموظف تنبيه في بوابته لتقييم جودة الخدمة وسرعة الاستجابة."
+                      : "The request has been completed. The employee will see an attention banner in their portal to rate the service."}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-xl text-center text-xs text-gray-500">
+                  {ar
+                    ? "التقييم يصبح متاحاً للموظف فور إتمام الطلب وتغيير حالته إلى منجز أو مغلق."
+                    : "Rating becomes available to the resident once the order status is resolved or closed."}
+                </div>
+              )}
+            </div>
+
+            {/* Actions Card */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">
+                  {ar ? "الإجراءات" : "Actions"}
+                </h2>
+                {!canEditTicket && (
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded bg-amber-50 text-amber-700 border border-amber-200">
+                    <Lock className="w-3.5 h-3.5" />
+                    {ar ? "للعرض فقط" : "Read-Only"}
+                  </span>
+                )}
+              </div>
+              {canEditTicket ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-xs">
+                      {ar ? "التعيين إلى" : "Assign To"}
+                    </Label>
+                    <Select
+                      value={ticket.assignedTo ? String(ticket.assignedTo) : ""}
+                      onValueChange={(v) => {
+                        const empId = v ? parseInt(v) : null;
+                        const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                        updateMutation.mutate({
+                          id: ticket.id,
+                          data: { assignedTo: empId, propertyId: pId } as any,
+                          params: pId ? { propertyId: pId } : undefined,
+                        } as any);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={ar ? "اختر..." : "Select..."} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">
+                          — {ar ? "غير مسند" : "Unassigned"} —
+                        </SelectItem>
+                        {empOptions.map((e: any) => (
+                          <SelectItem key={e.id} value={String(e.id)}>
+                            {e.firstName} {e.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">
+                      {ar ? "تغيير الحالة" : "Change Status"}
+                    </Label>
+                    <Select
+                      value={ticket.status || ""}
+                      onValueChange={(status) => {
+                        const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                        updateMutation.mutate({
+                          id: ticket.id,
+                          data: { status, propertyId: pId } as any,
+                          params: pId ? { propertyId: pId } : undefined,
+                        } as any);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open">
+                          {ar ? "مفتوح" : "Open"}
+                        </SelectItem>
+                        <SelectItem value="in_progress">
+                          {ar ? "قيد التنفيذ" : "In Progress"}
+                        </SelectItem>
+                        <SelectItem value="resolved">
+                          {ar ? "محلول" : "Resolved"}
+                        </SelectItem>
+                        <SelectItem value="closed">
+                          {ar ? "مغلق" : "Closed"}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs">
+                      {ar ? "إضافة ملاحظة" : "Add Note"}
+                    </Label>
+                    <Textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder={ar ? "إضافة ملاحظة..." : "Add a note..."}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    {ticket.status?.toLowerCase() === "open" && (
+                      <Button
+                        onClick={() => {
+                          const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                          updateMutation.mutate({
+                            id: ticket.id,
+                            data: {
+                              status: "in_progress",
+                              startedAt: new Date().toISOString(),
+                              propertyId: pId,
+                            } as any,
+                            params: pId ? { propertyId: pId } : undefined,
+                          } as any);
+                        }}
+                        className="flex-1"
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        {ar ? "بدء" : "Start"}
+                      </Button>
+                    )}
+                    {ticket.status?.toLowerCase() === "in_progress" && (
+                      <Button
+                        onClick={() => {
+                          const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                          updateMutation.mutate({
+                            id: ticket.id,
+                            data: {
+                              status: "resolved",
+                              resolvedAt: new Date().toISOString(),
+                              propertyId: pId,
+                            } as any,
+                            params: pId ? { propertyId: pId } : undefined,
+                          } as any);
+                        }}
+                        className="flex-1"
+                        variant="outline"
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        {ar ? "حل" : "Resolve"}
+                      </Button>
+                    )}
+                    <Button
+                      onClick={handleAddComment}
+                      variant="default"
+                      disabled={!comment.trim() || updateMutation.isPending}
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      {updateMutation.isPending
+                        ? (ar ? "جاري الحفظ..." : "Saving...")
+                        : (ar ? "حفظ الملاحظة" : "Add Note")}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-gray-500">{ar ? "المسند إليه:" : "Assigned To:"}</span>
+                    <span className="font-semibold text-gray-900">
+                      {ticket.assignedTo
+                        ? (() => {
+                            const emp = empOptions.find((e: any) => e.id === ticket.assignedTo);
+                            return emp ? `${emp.firstName} ${emp.lastName}` : (ar ? "غير مسند" : "Unassigned");
+                          })()
+                        : (ar ? "غير مسند" : "Unassigned")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-1">
+                    {ar
+                      ? "أنت في وضع العرض فقط — لا تملك صلاحية تعديل هذه التذكرة أو تغيير حالتها."
+                      : "You are in read-only mode — you do not have permission to edit or change the status of this ticket."}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+    </div>
+  );
+}
