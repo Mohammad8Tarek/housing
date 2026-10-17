@@ -1469,6 +1469,14 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       DROP INDEX IF EXISTS public.profiles_profile_id_idx;
     `,
   },
+  {
+    name: "public.rooms.chk_status_inspected",
+    q: `DO $$ BEGIN
+      ALTER TABLE public.rooms DROP CONSTRAINT IF EXISTS chk_rooms_status;
+      ALTER TABLE public.rooms ADD CONSTRAINT chk_rooms_status
+        CHECK (status IN ('available', 'occupied', 'dirty', 'occupied_dirty', 'occupied_vacation', 'out_of_service', 'out_of_order', 'room_vacant', 'bed_vacant', 'room_and_bed_vacant', 'inspected', 'in_cleaning'));
+    END $$`,
+  },
 ];
 
 // ====== TENANT SCHEMA MIGRATIONS (run per tenant) ======
@@ -2104,7 +2112,7 @@ const TENANT_MIGRATIONS = [
     q: `DO $$ BEGIN
       ALTER TABLE rooms DROP CONSTRAINT IF EXISTS chk_rooms_status;
       ALTER TABLE rooms ADD CONSTRAINT chk_rooms_status
-        CHECK (status IN ('available', 'occupied', 'dirty', 'occupied_dirty', 'occupied_vacation', 'out_of_service', 'out_of_order', 'room_vacant', 'bed_vacant', 'room_and_bed_vacant'));
+        CHECK (status IN ('available', 'occupied', 'dirty', 'occupied_dirty', 'occupied_vacation', 'out_of_service', 'out_of_order', 'room_vacant', 'bed_vacant', 'room_and_bed_vacant', 'inspected', 'in_cleaning'));
     END $$`,
   },
   {
@@ -2732,6 +2740,14 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       DROP INDEX IF EXISTS profiles_national_id_idx;
       DROP INDEX IF EXISTS profiles_profile_id_idx;
     `,
+  },
+  {
+    name: "tenant.rooms.chk_status_inspected",
+    q: `DO $$ BEGIN
+      ALTER TABLE rooms DROP CONSTRAINT IF EXISTS chk_rooms_status;
+      ALTER TABLE rooms ADD CONSTRAINT chk_rooms_status
+        CHECK (status IN ('available', 'occupied', 'dirty', 'occupied_dirty', 'occupied_vacation', 'out_of_service', 'out_of_order', 'room_vacant', 'bed_vacant', 'room_and_bed_vacant', 'inspected', 'in_cleaning'));
+    END $$`,
   },
 ];
 
