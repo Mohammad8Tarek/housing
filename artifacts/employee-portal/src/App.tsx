@@ -10,12 +10,13 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { AppToaster } from "./components/AppToaster";
 import { PageTransition } from "./components/PageTransition";
 import Login from "./pages/login";
-import ForgotPassword from "./pages/forgot-password";
-import Dashboard from "./pages/dashboard";
-import ChangePassword from "./pages/change-password";
-import RequestDetails from "./pages/request-details";
+// Route-level code splitting: only the login screen ships in the entry chunk.
+const ForgotPassword = lazy(() => import("./pages/forgot-password"));
+const Dashboard = lazy(() => import("./pages/dashboard"));
+const ChangePassword = lazy(() => import("./pages/change-password"));
+const RequestDetails = lazy(() => import("./pages/request-details"));
 import BiometricLockScreen from "./components/BiometricLockScreen";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { apiFetch, clearSessionCache, setCachedSessionId } from "./lib/api";
 import { Capacitor } from "@capacitor/core";
@@ -289,6 +290,23 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// ─── Route chunk fallback ─────────────────────────────────────────────────────
+function RouteFallback() {
+  return (
+    <div
+      style={{
+        minHeight: "100dvh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "hsl(var(--bg))",
+      }}
+    >
+      <Loader2 className="animate-spin" style={{ width: 28, height: 28, color: "hsl(var(--gold))" }} />
+    </div>
+  );
+}
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 function AnimatedRoutes() {
   const [location] = useLocation();
@@ -297,6 +315,7 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <PageTransition key={routeSlug} pageKey={routeSlug}>
+        <Suspense fallback={<RouteFallback />}>
         <Switch location={location}>
           <Route path="/login" component={Login} />
           <Route path="/forgot-password" component={ForgotPassword} />
@@ -315,6 +334,7 @@ function AnimatedRoutes() {
             <Redirect to="/login" />
           </Route>
         </Switch>
+        </Suspense>
       </PageTransition>
     </AnimatePresence>
   );
