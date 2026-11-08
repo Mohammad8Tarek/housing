@@ -74,7 +74,7 @@ import { createServer } from "node:http";
 import app from "./app.js";
 import { logger } from "./lib/logger.js";
 import { initWebSocket, closeWebSocket } from "./lib/websocket.js";
-import { runMigrations } from "./lib/migrations.js";
+import { runMigrations } from "./lib/migrations/index.js";
 import { runAutoSeeder } from "./lib/seeder.js";
 import { backfillBilingualProfiles } from "./lib/bilingual-backfill.js";
 import { pool, healthCheck, warmupPool, prewarmSchemaCache } from "@workspace/db";

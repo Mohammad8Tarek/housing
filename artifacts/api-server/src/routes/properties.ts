@@ -22,7 +22,7 @@ import {
 import { logActivity } from "../lib/activity-logger.js";
 import { requirePermission, requireAuth, hasPermission } from "../middlewares/permissions.js";
 import { su } from "../lib/request-utils.js";
-import { provisionTenantSchema } from "../lib/migrations.js";
+import { provisionTenantSchema } from "../lib/migrations/index.js";
 
 const router: Router = Router();
 
