@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { useLocation } from "wouter";
 import { Moon, Sun, Bell, LogOut } from "lucide-react";
 import { useTheme } from "../lib/theme";
@@ -20,22 +20,27 @@ import {
   SkeletonOverview,
   SkeletonRequests,
   SkeletonDocuments,
+  SkeletonCard,
 } from "../components/SkeletonLoader";
 
 import TabOverview from "../components/TabOverview";
-import TabRequests from "../components/TabRequests";
-import TabActivities from "../components/TabActivities";
-import TabPortalSettings from "../components/TabPortalSettings";
-import TabEvaluations from "../components/TabEvaluations";
-import TabDocuments from "../components/TabDocuments";
-import TabProfile from "../components/TabProfile";
-import TabRoommates from "../components/TabRoommates";
-import TabNotifications from "../components/TabNotifications";
-import TabFood from "../components/TabFood";
-import TabTransport from "../components/TabTransport";
-import { TabChat } from "../components/chat/TabChat";
+// Secondary tabs are code-split so the first paint only ships the overview.
+const TabRequests = lazy(() => import("../components/TabRequests"));
+const TabActivities = lazy(() => import("../components/TabActivities"));
+const TabPortalSettings = lazy(() => import("../components/TabPortalSettings"));
+const TabEvaluations = lazy(() => import("../components/TabEvaluations"));
+const TabDocuments = lazy(() => import("../components/TabDocuments"));
+const TabProfile = lazy(() => import("../components/TabProfile"));
+const TabRoommates = lazy(() => import("../components/TabRoommates"));
+const TabNotifications = lazy(() => import("../components/TabNotifications"));
+const TabFood = lazy(() => import("../components/TabFood"));
+const TabTransport = lazy(() => import("../components/TabTransport"));
+const TabChat = lazy(() =>
+  import("../components/chat/TabChat").then((m) => ({ default: m.TabChat })),
+);
 import { getPortalTabFromUrl, normalizePortalTab } from "../lib/portal-tabs";
 import { useBackButton } from "../hooks/useBackButton";
+import { useNativePush, unregisterNativePush } from "../hooks/useNativePush";
 
 interface Employee {
   id?: number;
@@ -213,6 +218,14 @@ export default function Dashboard() {
     clearSessionCache();
     setLocation("/login");
   }, [setLocation]);
+
+  // Native FCM registration (Capacitor only). Registers once the employee is known.
+  useNativePush({
+    enabled: Boolean(employee?.id),
+    onOpen: (url) => {
+      if (url.startsWith("/")) setLocation(url);
+    },
+  });
 
   const playNotifSound = useCallback(() => {
     try {
@@ -458,11 +471,6 @@ export default function Dashboard() {
       import("@capacitor/local-notifications")
         .then(({ LocalNotifications }) => {
           LocalNotifications.requestPermissions().catch(() => {});
-        })
-        .catch(() => {});
-      import("@capacitor/push-notifications")
-        .then(({ PushNotifications }) => {
-          PushNotifications.requestPermissions().catch(() => {});
         })
         .catch(() => {});
       import("@capacitor/camera")
@@ -783,8 +791,10 @@ export default function Dashboard() {
 
           <button
             onClick={() => {
-              clearSessionCache();
-              setLocation("/login");
+              unregisterNativePush().finally(() => {
+                clearSessionCache();
+                setLocation("/login");
+              });
             }}
             style={{
               width: "38px",
@@ -842,6 +852,7 @@ export default function Dashboard() {
           onTouchStart={(e) => handleTouchStart(e.nativeEvent)}
           onTouchEnd={(e) => handleTouchEnd(e.nativeEvent)}
         >
+          <Suspense fallback={<SkeletonCard />}>
           {activeTab === "overview" && (
             <TabOverview
               employee={employee}
@@ -969,6 +980,7 @@ export default function Dashboard() {
               onChatOpenChange={setIsChatOpen}
             />
           </div>
+          </Suspense>
         </div>
       </div>
 

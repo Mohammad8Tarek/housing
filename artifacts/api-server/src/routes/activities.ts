@@ -35,7 +35,6 @@ const CreateActivitySchema = z.object({
   targetDepartments: z.array(z.string()).optional().default([]),
 });
 
-// @ts-ignore
 router.get(
   "/activities",
   requirePermission("activities", "view"),
@@ -86,7 +85,6 @@ router.get(
   },
 );
 
-// @ts-ignore
 router.post(
   "/activities",
   requirePermission("activities", "create"),
@@ -206,7 +204,6 @@ const UpdateActivitySchema = z.object({
   targetDepartments: z.array(z.string()).optional(),
 });
 
-// @ts-ignore
 router.put(
   "/activities/:id",
   requirePermission("activities", "edit"),
@@ -282,7 +279,6 @@ router.put(
 );
 
 // GET /api/activities/:id/registrations - Admin: list registrations for an activity
-// @ts-ignore
 router.get(
   "/activities/:id/registrations",
   requirePermission("activities", "view"),
@@ -345,7 +341,6 @@ router.get(
   },
 );
 
-// @ts-ignore
 router.delete(
   "/activities/:id",
   requirePermission("activities", "delete"),

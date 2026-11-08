@@ -1406,6 +1406,36 @@ BEGIN
     ALTER TABLE "push_subscriptions" ADD COLUMN IF NOT EXISTS "last_used_at" TIMESTAMPTZ;
 
     -- --------------------------------------------------------
+    -- Table: device_tokens (native FCM push tokens)
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "device_tokens" (
+      "id" SERIAL PRIMARY KEY,
+      "profile_id" INTEGER,
+      "property_id" INTEGER,
+      "token" TEXT,
+      "platform" TEXT DEFAULT 'android',
+      "device_name" TEXT,
+      "user_agent" TEXT,
+      "failure_count" INTEGER DEFAULT 0,
+      "created_at" TIMESTAMPTZ DEFAULT now(),
+      "last_used_at" TIMESTAMPTZ
+    );
+
+    -- Ensure all columns exist
+    ALTER TABLE "device_tokens" ADD COLUMN IF NOT EXISTS "profile_id" INTEGER;
+    ALTER TABLE "device_tokens" ADD COLUMN IF NOT EXISTS "property_id" INTEGER;
+    ALTER TABLE "device_tokens" ADD COLUMN IF NOT EXISTS "token" TEXT;
+    ALTER TABLE "device_tokens" ADD COLUMN IF NOT EXISTS "platform" TEXT DEFAULT 'android';
+    ALTER TABLE "device_tokens" ADD COLUMN IF NOT EXISTS "device_name" TEXT;
+    ALTER TABLE "device_tokens" ADD COLUMN IF NOT EXISTS "user_agent" TEXT;
+    ALTER TABLE "device_tokens" ADD COLUMN IF NOT EXISTS "failure_count" INTEGER DEFAULT 0;
+    ALTER TABLE "device_tokens" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
+    ALTER TABLE "device_tokens" ADD COLUMN IF NOT EXISTS "last_used_at" TIMESTAMPTZ;
+    CREATE UNIQUE INDEX IF NOT EXISTS "uq_device_tokens_token" ON "device_tokens" ("token");
+    CREATE INDEX IF NOT EXISTS "idx_device_tokens_profile_id" ON "device_tokens" ("profile_id");
+    CREATE INDEX IF NOT EXISTS "idx_device_tokens_property_id" ON "device_tokens" ("property_id");
+
+    -- --------------------------------------------------------
     -- Table: reservations
     -- --------------------------------------------------------
     CREATE TABLE IF NOT EXISTS "reservations" (

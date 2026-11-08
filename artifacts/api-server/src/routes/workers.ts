@@ -9,6 +9,9 @@ import { eq, ne, and, or, ilike, sql, desc, inArray } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { requirePermission, requireAnyPermission, hasPermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams } from "../validation/common.js";
+import { CreateWorkerBody, ListWorkersQuery, UpdateWorkerBody } from "../validation/schemas.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 
 const router: Router = Router();
@@ -23,6 +26,7 @@ router.get(
     ["maintenance", "view"],
     ["housekeeping", "view"]
   ),
+  validate({ query: ListWorkersQuery }),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -179,6 +183,7 @@ router.post(
     ["housekeeping", "create"],
     ["maintenance", "edit"]
   ),
+  validate({ body: CreateWorkerBody }),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -264,6 +269,7 @@ router.get(
     ["maintenance", "view"],
     ["housekeeping", "view"]
   ),
+  validate({ params: IdParams }),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -332,6 +338,7 @@ router.put(
     ["maintenance", "edit"],
     ["housekeeping", "edit"]
   ),
+  validate({ params: IdParams, body: UpdateWorkerBody }),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -421,6 +428,7 @@ router.delete(
     ["maintenance", "delete"],
     ["housekeeping", "delete"]
   ),
+  validate({ params: IdParams }),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const propertyId = getTenantId(req);

@@ -42,7 +42,6 @@ const CreateEvaluationSchema = z.object({
 });
 
 // GET /api/evaluations - Admin: list all evaluation templates
-// @ts-ignore
 router.get(
   "/evaluations",
   requirePermission("evaluations", "view"),
@@ -122,7 +121,6 @@ router.get(
 );
 
 // POST /api/evaluations - Admin: create evaluation template with items
-// @ts-ignore
 router.post(
   "/evaluations",
   requirePermission("evaluations", "create"),
@@ -242,7 +240,6 @@ const UpdateItemsSchema = z.object({
   ),
 });
 
-// @ts-ignore
 router.put(
   "/evaluations/:id/items",
   requirePermission("evaluations", "edit"),
@@ -289,7 +286,6 @@ router.put(
 );
 
 // GET /api/evaluations/stats - Aggregate evaluation stats
-// @ts-ignore
 router.get(
   "/evaluations/stats",
   requirePermission("reports", "view"),
@@ -433,7 +429,6 @@ router.get(
 );
 
 // GET /api/evaluations/:id/responses - Admin: view individual responses for a template
-// @ts-ignore
 router.get(
   "/evaluations/:id/responses",
   requirePermission("evaluations", "view"),
@@ -552,7 +547,6 @@ router.get(
 );
 
 // DELETE /api/evaluations/:id - Admin: delete evaluation template
-// @ts-ignore
 router.delete(
   "/evaluations/:id",
   requirePermission("evaluations", "delete"),
@@ -611,7 +605,6 @@ router.delete(
 // ─── Housing Pulse (7-Day Survey) Admin Management ──────────────────────────
 
 // GET /api/evaluations/housing-pulse - Get configuration
-// @ts-ignore
 router.get(
   "/evaluations/housing-pulse",
   requirePermission("evaluations", "view"),
@@ -658,7 +651,6 @@ router.get(
 );
 
 // PUT /api/evaluations/housing-pulse - Update configuration
-// @ts-ignore
 router.put(
   "/evaluations/housing-pulse",
   requirePermission("evaluations", "edit"),
@@ -780,7 +772,6 @@ router.put(
 );
 
 // POST /api/evaluations/housing-pulse/push - Push Survey Now to all active residents ("لو عايز أبوشه النهارده")
-// @ts-ignore
 router.post(
   "/evaluations/housing-pulse/push",
   requirePermission("evaluations", "edit"),

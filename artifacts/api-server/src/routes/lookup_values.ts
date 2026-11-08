@@ -1,15 +1,18 @@
 import { Router } from "express";
 import { db, withTenant, lookupValuesTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { getTenantId } from "../lib/request-utils.js";
 import { requireAuth, requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams } from "../validation/common.js";
+import { BulkLookupBody, CreateLookupBody, ListLookupQuery, UpdateLookupBody } from "../validation/schemas.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { translateDepartment, translateJobTitle, translateLookup, hasArabic } from "../lib/bilingual-translator.js";
 
 const router: Router = Router();
 
 // ─── GET /lookup-values & /lookup_values ─────────────────────────────────────
-router.get(["/lookup-values", "/lookup_values"], requireAuth, async (req, res): Promise<void> => {
+router.get(["/lookup-values", "/lookup_values"], requireAuth, validate({ query: ListLookupQuery }), async (req, res): Promise<void> => {
   const propertyId = getTenantId(req);
   const category = req.query.category as string | undefined;
   if (!propertyId) {
@@ -41,6 +44,7 @@ router.post(
     ["settings", "manage_organization"],
     ["settings", "manage_room_types"],
   ),
+  validate({ body: CreateLookupBody }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     let { category, value, valueAr, parentValue, extraValue, sortOrder } = req.body;
@@ -88,6 +92,7 @@ router.post(
     ["settings", "manage_organization"],
     ["settings", "manage_room_types"],
   ),
+  validate({ body: BulkLookupBody }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     const { items } = req.body;
@@ -99,10 +104,12 @@ router.post(
     try {
       const result = await withTenant(propertyId, async (tenantDb) => {
         const categories = Array.from(new Set(items.map((i: any) => String(i.category || "").trim()).filter(Boolean)));
-        const existing = await tenantDb
-          .select()
-          .from(lookupValuesTable)
-          .where(sql`${lookupValuesTable.category} IN ${categories}`);
+        const existing = categories.length
+          ? await tenantDb
+              .select()
+              .from(lookupValuesTable)
+              .where(inArray(lookupValuesTable.category, categories))
+          : [];
 
         // Map key: `${category}:::${value.toLowerCase()}:::${(parentValue||'').toLowerCase()}`
         const existingMap = new Map<string, any>();
@@ -217,6 +224,7 @@ router.patch(
     ["settings", "manage_organization"],
     ["settings", "manage_room_types"],
   ),
+  validate({ params: IdParams, body: UpdateLookupBody }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -285,6 +293,7 @@ router.delete(
     ["settings", "manage_organization"],
     ["settings", "manage_room_types"],
   ),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

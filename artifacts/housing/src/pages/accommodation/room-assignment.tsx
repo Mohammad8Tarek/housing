@@ -86,40 +86,7 @@ import {
   usePrintLanguage,
   PrintLanguageDialog,
 } from "@/lib/PrintLanguageDialog";
-
-type ProfileResult = {
-  id: number;
-  propertyId: number;
-  propertyName: string | null;
-  profileId: string;
-  firstName: string;
-  lastName: string;
-  nationalId: string;
-  jobTitle: string | null;
-  department: string | null;
-  nationality: string | null;
-  phone: string | null;
-  level: string | null;
-  status: string;
-  gender: string | null;
-  accommodationRoom?: string | null;
-  accommodationRoomType?: string | null;
-  accommodationBuilding?: string | null;
-  accommodationFloor?: string | null;
-  photoUrl?: string | null;
-};
-
-const roomTypeCapacity: Record<string, number> = {
-  single: 1,
-  double: 2,
-  triple: 3,
-  quad: 4,
-};
-
-function getBedOptions(roomType: string, capacity: number): number[] {
-  const max = roomTypeCapacity[roomType?.toLowerCase()] ?? capacity;
-  return Array.from({ length: max }, (_, i) => i + 1);
-}
+import { type ProfileResult, getBedOptions } from "./shared/profile-search";
 
 export default function RoomAssignment() {
   const { activePropertyId } = useProperty();

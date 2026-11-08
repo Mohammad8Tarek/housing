@@ -15,6 +15,8 @@ import {
 } from "@workspace/db";
 import { eq, and, lte, gte, count, desc, sql, gt } from "drizzle-orm";
 import { requireAuth, requirePermission, requireSuperAdmin } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { DashboardActivityQuery, DashboardHorizonQuery } from "../validation/schemas.js";
 import { getTenantId } from "../lib/request-utils.js";
 
 const router: Router = Router();
@@ -1215,6 +1217,7 @@ router.get(
 router.get(
   "/dashboard/recent-activity",
   requirePermission("dashboard", "view"),
+  validate({ query: DashboardActivityQuery }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -1330,6 +1333,7 @@ router.get(
 router.get(
   "/dashboard/analytics",
   requirePermission("dashboard", "view"),
+  validate({ query: DashboardHorizonQuery }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     const horizon = String(req.query.horizon || "7d").toLowerCase();

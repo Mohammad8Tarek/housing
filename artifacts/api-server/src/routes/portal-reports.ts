@@ -36,8 +36,7 @@ const ReportSchema = z.object({
 // ═══════════════════════════════════════════════════════════════
 // GET / - Report cards with live stats
 // ═══════════════════════════════════════════════════════════════
-// @ts-ignore
-router.get("/", requireAuth, async (req, res, next) => {
+router.get("/", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -127,8 +126,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 // ═══════════════════════════════════════════════════════════════
 // POST /generate - Generate report by type
 // ═══════════════════════════════════════════════════════════════
-// @ts-ignore
-router.post("/generate", requireAuth, async (req, res, next) => {
+router.post("/generate", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     const userId = (req.session as any)?.userId;
@@ -230,8 +228,7 @@ router.post("/generate", requireAuth, async (req, res, next) => {
 // ═══════════════════════════════════════════════════════════════
 // ENHANCED EVALUATION REPORT
 // ═══════════════════════════════════════════════════════════════
-// @ts-ignore
-router.get("/evaluations-report", requireAuth, async (req, res, next) => {
+router.get("/evaluations-report", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -275,8 +272,7 @@ router.get("/evaluations-report", requireAuth, async (req, res, next) => {
 // ═══════════════════════════════════════════════════════════════
 // ENHANCED ACTIVITY REGISTRATION REPORT
 // ═══════════════════════════════════════════════════════════════
-// @ts-ignore
-router.get("/activities-report", requireAuth, async (req, res, next) => {
+router.get("/activities-report", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -317,8 +313,7 @@ router.get("/activities-report", requireAuth, async (req, res, next) => {
 // ═══════════════════════════════════════════════════════════════
 // ENGAGEMENT REPORT
 // ═══════════════════════════════════════════════════════════════
-// @ts-ignore
-router.get("/engagement-report", requireAuth, async (req, res, next) => {
+router.get("/engagement-report", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -365,8 +360,7 @@ router.get("/engagement-report", requireAuth, async (req, res, next) => {
 // ═══════════════════════════════════════════════════════════════
 // CUSTOM REPORT
 // ═══════════════════════════════════════════════════════════════
-// @ts-ignore
-router.get("/custom-report", requireAuth, async (req, res, next) => {
+router.get("/custom-report", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -411,7 +405,6 @@ router.get("/custom-report", requireAuth, async (req, res, next) => {
 // ═══════════════════════════════════════════════════════════════
 // REPORT TEMPLATES
 // ═══════════════════════════════════════════════════════════════
-// @ts-ignore
 router.get("/templates/list", requireAuth, async (req, res, next) => {
   try {
     const templates = [
@@ -461,8 +454,7 @@ router.get("/templates/list", requireAuth, async (req, res, next) => {
 // ═══════════════════════════════════════════════════════════════
 // DEPARTMENTS LIST (for filter dropdown)
 // ═══════════════════════════════════════════════════════════════
-// @ts-ignore
-router.get("/departments", requireAuth, async (req, res, next) => {
+router.get("/departments", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)

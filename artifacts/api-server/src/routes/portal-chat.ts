@@ -25,7 +25,6 @@ const router: Router = Router();
 // ─── PRESENCE ───────────────────────────────────────────────────
 
 // GET /portal-chat/presence — قائمة الموظفين المتصلين الآن وأوقات آخر ظهور
-// @ts-ignore
 router.get("/presence", async (req, res, next) => {
   try {
     const sess = portalSession(req);
@@ -47,7 +46,6 @@ router.get("/presence", async (req, res, next) => {
 // ─── CONVERSATIONS ──────────────────────────────────────────────
 
 // GET /portal-chat/conversations — قائمة المحادثات
-// @ts-ignore
 router.get("/conversations", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -170,8 +168,7 @@ router.get("/conversations", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /portal-chat/conversations — إنشاء محادثة جديدة
-// @ts-ignore
-router.post("/conversations", requirePortalAuth, async (req, res, next) => {
+router.post("/conversations", requirePortalAuth, async (req, res, next): Promise<any> => {
   try {
     const sess = portalSession(req)!;
     const { participantIds, subject } = req.body;
@@ -241,7 +238,6 @@ function setTyping(convId: number, profileId: number) {
 // ─── MESSAGES ───────────────────────────────────────────────────
 
 // GET /portal-chat/conversations/:id/messages — رسائل المحادثة
-// @ts-ignore
 router.get(
   "/conversations/:id/messages",
   requirePortalAuth,
@@ -345,7 +341,6 @@ router.get(
 );
 
 // POST /portal-chat/conversations/:id/messages — إرسال رسالة
-// @ts-ignore
 router.post(
   "/conversations/:id/messages",
   requirePortalAuth,
@@ -444,7 +439,6 @@ router.post(
 );
 
 // PUT /portal-chat/conversations/:id/read — تحديث آخر قراءة
-// @ts-ignore
 router.put(
   "/conversations/:id/read",
   requirePortalAuth,
@@ -508,7 +502,6 @@ router.put(
 );
 
 // POST /portal-chat/conversations/:id/typing — مؤشر الكتابة
-// @ts-ignore
 router.post(
   "/conversations/:id/typing",
   requirePortalAuth,
@@ -539,8 +532,7 @@ router.post(
 // ─── ADMIN: Moderation ──────────────────────────────────────────
 
 // GET /portal-chat/admin/conversations — قائمة المحادثات (أدمن)
-// @ts-ignore
-router.get("/admin/conversations", requirePermission("portal_content", "view"), async (req, res, next) => {
+router.get("/admin/conversations", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -561,7 +553,6 @@ router.get("/admin/conversations", requirePermission("portal_content", "view"), 
 });
 
 // GET /portal-chat/admin/conversations/:id/messages — رسائل محادثة (أدمن)
-// @ts-ignore
 router.get(
   "/admin/conversations/:id/messages",
   requirePermission("portal_content", "view"),
@@ -618,7 +609,6 @@ router.get(
 );
 
 // POST /portal-chat/admin/conversations/:id/messages — إرسال رسالة كأدمن
-// @ts-ignore
 router.post(
   "/admin/conversations/:id/messages",
   requirePermission("portal_content", "create"),
@@ -667,7 +657,6 @@ router.post(
 );
 
 // DELETE /portal-chat/admin/messages/:id — حذف رسالة (moderation)
-// @ts-ignore
 router.delete("/admin/messages/:id", requirePermission("portal_content", "delete"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
@@ -685,8 +674,7 @@ router.delete("/admin/messages/:id", requirePermission("portal_content", "delete
 });
 
 // GET /portal-chat/admin/stats — إحصائيات
-// @ts-ignore
-router.get("/admin/stats", requirePermission("portal_content", "view"), async (req, res, next) => {
+router.get("/admin/stats", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -713,7 +701,6 @@ router.get("/admin/stats", requirePermission("portal_content", "view"), async (r
 });
 
 // GET /portal-chat/employees — بحث زملاء العمل للشات
-// @ts-ignore
 router.get("/employees", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;

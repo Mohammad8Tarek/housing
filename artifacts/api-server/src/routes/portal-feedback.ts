@@ -52,7 +52,6 @@ const FeedbackSchema = z.object({
 });
 
 // ─── GET /:contentType/:contentId — جلب كل التعليقات والتقييم لمحتوى ─────
-// @ts-ignore
 router.get("/:contentType/:contentId", async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -180,7 +179,6 @@ router.get("/:contentType/:contentId", async (req, res, next) => {
 });
 
 // ─── POST /feedback — إضافة/تحديث تقييم ─────────────────────────────────
-// @ts-ignore
 router.post("/feedback", async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -247,7 +245,6 @@ router.post("/feedback", async (req, res, next) => {
 });
 
 // ─── POST /comments — إضافة تعليق ────────────────────────────────────────
-// @ts-ignore
 router.post("/comments", async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -299,8 +296,7 @@ router.post("/comments", async (req, res, next) => {
 });
 
 // ─── DELETE /comments/:id — حذف تعليق ───────────────────────────────────
-// @ts-ignore
-router.delete("/comments/:id", async (req, res, next) => {
+router.delete("/comments/:id", async (req, res, next): Promise<any> => {
   try {
     const sess = portalSession(req)!;
     const id = Number(req.params.id);
@@ -358,7 +354,6 @@ router.delete("/comments/:id", async (req, res, next) => {
 });
 
 // ─── POST /comments/:id/like — إعجاب/إلغاء إعجاب ────────────────────────
-// @ts-ignore
 router.post("/comments/:id/like", async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -406,7 +401,6 @@ router.post("/comments/:id/like", async (req, res, next) => {
 });
 
 // ─── GET /stats — إحصائيات (للأدمن) ─────────────────────────────────────
-// @ts-ignore
 router.get("/stats", async (req, res, next) => {
   try {
     const sess = portalSession(req)!;

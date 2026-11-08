@@ -19,13 +19,15 @@ import {
 } from "@workspace/db";
 import { eq, and, or, ilike, desc, sql, count } from "drizzle-orm";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams } from "../validation/common.js";
+import { CreateReportTemplateBody, CustomReportQueryBody, RatingsReportQuery, ReportsListQuery, RoomMovesReportQuery, UpdateReportTemplateBody, VacationsReportQuery } from "../validation/schemas.js";
 import { getTenantId } from "../lib/request-utils.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
 
 const router: Router = Router();
 
-// @ts-ignore
-router.get("/service-ratings", requirePermission("reports", "view"), async (req, res, next) => {
+router.get("/service-ratings", requirePermission("reports", "view"), validate({ query: RatingsReportQuery }), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -188,8 +190,7 @@ router.get("/service-ratings", requirePermission("reports", "view"), async (req,
 
 // ─── GET /api/reports/housing-ratings (Automated 7-Day Property Housing Ratings) ───
 // Strict Anonymity: profileId is NEVER exposed in the response
-// @ts-ignore
-router.get("/housing-ratings", requirePermission("reports", "view"), async (req, res, next) => {
+router.get("/housing-ratings", requirePermission("reports", "view"), validate({ query: RatingsReportQuery }), async (req, res, next) => {
   try {
     const rawProp = req.query.propertyId as string | undefined;
     const isAll = !rawProp || rawProp === "all" || rawProp === "-1" || rawProp === "0";
@@ -352,8 +353,7 @@ router.get("/housing-ratings", requirePermission("reports", "view"), async (req,
 });
 
 // ─── GET /api/reports/room-moves (PMS Room Moves & Bed Transfers Report) ─────
-// @ts-ignore
-router.get("/room-moves", requirePermission("reports", "view"), async (req, res, next) => {
+router.get("/room-moves", requirePermission("reports", "view"), validate({ query: RoomMovesReportQuery }), async (req, res, next) => {
   try {
     const rawProp = req.query.propertyId as string | undefined;
     const isAll = !rawProp || rawProp === "all" || rawProp === "-1" || rawProp === "0";
@@ -495,8 +495,7 @@ router.get("/room-moves", requirePermission("reports", "view"), async (req, res,
   }
 });
 
-// @ts-ignore
-router.get("/vacations", requirePermission("reports", "view"), async (req, res, next) => {
+router.get("/vacations", requirePermission("reports", "view"), validate({ query: VacationsReportQuery }), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -666,8 +665,7 @@ router.get("/vacations", requirePermission("reports", "view"), async (req, res, 
   }
 });
 
-// @ts-ignore
-router.get("/", requirePermission("reports", "view"), async (req, res, next) => {
+router.get("/", requirePermission("reports", "view"), validate({ query: ReportsListQuery }), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -855,7 +853,6 @@ router.get("/", requirePermission("reports", "view"), async (req, res, next) => 
 // ─── CUSTOM REPORT BUILDER & CONFIGURATION ────────────────────────────────
 
 // 1. GET /custom/templates - List saved templates
-// @ts-ignore
 router.get("/custom/templates", requirePermission("reports", "view"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
@@ -884,8 +881,7 @@ router.get("/custom/templates", requirePermission("reports", "view"), async (req
 });
 
 // 2. POST /custom/templates - Create template
-// @ts-ignore
-router.post("/custom/templates", requirePermission("reports", "create"), async (req, res, next) => {
+router.post("/custom/templates", requirePermission("reports", "create"), validate({ body: CreateReportTemplateBody }), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     const { name, nameEn, dataSource, columns, filters, layoutOptions } = req.body;
@@ -932,8 +928,7 @@ router.post("/custom/templates", requirePermission("reports", "create"), async (
 });
 
 // 3. PUT /custom/templates/:id - Update template
-// @ts-ignore
-router.put("/custom/templates/:id", requirePermission("reports", "edit"), async (req, res, next) => {
+router.put("/custom/templates/:id", requirePermission("reports", "edit"), validate({ params: IdParams, body: UpdateReportTemplateBody }), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const id = Number(req.params.id);
@@ -979,8 +974,7 @@ router.put("/custom/templates/:id", requirePermission("reports", "edit"), async 
 });
 
 // 4. DELETE /custom/templates/:id - Delete template
-// @ts-ignore
-router.delete("/custom/templates/:id", requirePermission("reports", "delete"), async (req, res, next) => {
+router.delete("/custom/templates/:id", requirePermission("reports", "delete"), validate({ params: IdParams }), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const id = Number(req.params.id);
@@ -1009,8 +1003,7 @@ router.delete("/custom/templates/:id", requirePermission("reports", "delete"), a
 });
 
 // 5. POST /custom/query - Dynamic Report Query Engine
-// @ts-ignore
-router.post("/custom/query", requirePermission("reports", "view"), async (req, res, next) => {
+router.post("/custom/query", requirePermission("reports", "view"), validate({ body: CustomReportQueryBody }), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId) {

@@ -52,7 +52,6 @@ const NotificationSchema = z.object({
 // ─── PORTAL (profile-facing) routes ──────────────────────────────────────
 
 // GET /portal-notifications/my — إشعارات الموظف الحالي
-// @ts-ignore
 router.get("/my", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -114,7 +113,6 @@ router.get("/my", requirePortalAuth, async (req, res, next) => {
 });
 
 // PUT /portal-notifications/read/:id — تحديد إشعار كمقروء
-// @ts-ignore
 router.put("/read/:id", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -136,7 +134,6 @@ router.put("/read/:id", requirePortalAuth, async (req, res, next) => {
 });
 
 // PUT /portal-notifications/read-all — تحديد كل الإشعارات كمقروءة
-// @ts-ignore
 router.put("/read-all", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -165,8 +162,7 @@ router.put("/read-all", requirePortalAuth, async (req, res, next) => {
 // ─── ADMIN routes (create / list / delete) ─────────────────────────────────
 
 // GET / — قائمة الإشعارات للأدمن
-// @ts-ignore
-router.get("/", requirePermission("portal_notifications", "view"), async (req, res, next) => {
+router.get("/", requirePermission("portal_notifications", "view"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -189,8 +185,7 @@ router.get("/", requirePermission("portal_notifications", "view"), async (req, r
 });
 
 // POST / — إنشاء إشعار جديد (أدمن)
-// @ts-ignore
-router.post("/", requirePermission("portal_notifications", "create"), async (req, res, next) => {
+router.post("/", requirePermission("portal_notifications", "create"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     const userId = (req.session as any)?.userId;
@@ -260,8 +255,7 @@ router.post("/", requirePermission("portal_notifications", "create"), async (req
 });
 
 // DELETE /:id — حذف إشعار
-// @ts-ignore
-router.delete("/:id", requirePermission("portal_notifications", "delete"), async (req, res, next) => {
+router.delete("/:id", requirePermission("portal_notifications", "delete"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     const userId = (req.session as any)?.userId;
@@ -294,8 +288,7 @@ router.delete("/:id", requirePermission("portal_notifications", "delete"), async
 });
 
 // GET /stats — إحصائيات الإشعارات
-// @ts-ignore
-router.get("/stats", requirePermission("portal_notifications", "view"), async (req, res, next) => {
+router.get("/stats", requirePermission("portal_notifications", "view"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
