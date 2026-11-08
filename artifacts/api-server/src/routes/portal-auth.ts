@@ -381,8 +381,7 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
 });
 
 // GET /profiles — دليل الموظفين (للمحادثة)
-// @ts-ignore
-router.get("/profiles", requirePortalAuth, async (req, res, next) => {
+router.get("/profiles", requirePortalAuth, async (req, res, next): Promise<any> => {
   try {
     const sess = portalSession(req)!;
     const search = ((req.query.search as string) || "").trim().toLowerCase();

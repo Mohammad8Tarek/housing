@@ -36,8 +36,7 @@ const EVAL_COLORS: Record<string, string> = {
 };
 
 // GET / — تقويم الفعاليات والاستبيانات (Admin)
-// @ts-ignore
-router.get("/", requirePermission("portal_content", "view"), async (req, res, next) => {
+router.get("/", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     const { month, year } = req.query;
@@ -185,7 +184,6 @@ router.get("/", requirePermission("portal_content", "view"), async (req, res, ne
 });
 
 // GET /calendar — تقويم البوابة للموظف (Portal)
-// @ts-ignore
 router.get("/calendar", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -275,8 +273,7 @@ router.get("/calendar", requirePortalAuth, async (req, res, next) => {
 });
 
 // GET /priorities — العناصر ذات الأولوية للأدمن
-// @ts-ignore
-router.get("/priorities", requirePermission("portal_content", "view"), async (req, res, next) => {
+router.get("/priorities", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -348,7 +345,6 @@ router.get("/priorities", requirePermission("portal_content", "view"), async (re
 });
 
 // GET /reminders — التذكيرات القادمة للموظف
-// @ts-ignore
 router.get("/reminders", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;

@@ -47,8 +47,7 @@ const DEFAULT_TAGS = [
 ];
 
 // GET / — portal categories (optional ?type=activities|evaluations)
-// @ts-ignore
-router.get("/", requireAuth, async (req, res, next) => {
+router.get("/", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -65,8 +64,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 });
 
 // GET /statuses — activity statuses shared with profile portal
-// @ts-ignore
-router.get("/statuses", requireAuth, async (req, res, next) => {
+router.get("/statuses", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -80,8 +78,7 @@ router.get("/statuses", requireAuth, async (req, res, next) => {
 });
 
 // POST / — create custom category (in-memory until DB table exists)
-// @ts-ignore
-router.post("/", requirePermission("portal_content", "create"), async (req, res, next) => {
+router.post("/", requirePermission("portal_content", "create"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -115,8 +112,7 @@ router.post("/", requirePermission("portal_content", "create"), async (req, res,
 });
 
 // GET /tags
-// @ts-ignore
-router.get("/tags", requireAuth, async (req, res, next) => {
+router.get("/tags", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -130,8 +126,7 @@ router.get("/tags", requireAuth, async (req, res, next) => {
 });
 
 // POST /tags
-// @ts-ignore
-router.post("/tags", requirePermission("portal_content", "create"), async (req, res, next) => {
+router.post("/tags", requirePermission("portal_content", "create"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -170,8 +165,7 @@ router.post("/tags", requirePermission("portal_content", "create"), async (req, 
 });
 
 // GET /search — placeholder
-// @ts-ignore
-router.get("/search", requireAuth, async (req, res, next) => {
+router.get("/search", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     const { q } = req.query;

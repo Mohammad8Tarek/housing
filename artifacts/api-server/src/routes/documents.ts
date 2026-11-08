@@ -53,7 +53,6 @@ function validateDocumentData(fileType: unknown, fileData: unknown): string {
   return data;
 }
 
-// @ts-ignore
 router.get(
   "/",
   requirePermission("documents", "view"),
@@ -79,7 +78,6 @@ router.get(
   },
 );
 
-// @ts-ignore
 router.post(
   "/",
   requirePermission("documents", "create"),
@@ -153,7 +151,6 @@ router.post(
   },
 );
 
-// @ts-ignore
 router.delete(
   "/:id",
   requirePermission("documents", "delete"),

@@ -20,8 +20,7 @@ const router: Router = Router();
 router.use(requirePermission("portal_content", "view"));
 
 // GET / - لوحة تحليلات البورتال
-// @ts-ignore
-router.get("/", requireAuth, async (req, res, next) => {
+router.get("/", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -152,8 +151,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 });
 
 // GET /trends - اتجاهات البوابة
-// @ts-ignore
-router.get("/trends", requireAuth, validate({ query: AnalyticsDaysQuery }), async (req, res, next) => {
+router.get("/trends", requireAuth, validate({ query: AnalyticsDaysQuery }), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     const days = parseInt(req.query.days as string) || 30;
@@ -206,8 +204,7 @@ router.get("/trends", requireAuth, validate({ query: AnalyticsDaysQuery }), asyn
 });
 
 // GET /content-performance - أداء المحتوى
-// @ts-ignore
-router.get("/content-performance", requireAuth, async (req, res, next) => {
+router.get("/content-performance", requireAuth, async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)

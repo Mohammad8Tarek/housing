@@ -25,7 +25,6 @@ import {
 const router = Router();
 
 // GET /api/whatsapp/status - جلب حالة الاتصال الحالية والكود المربع
-// @ts-ignore
 router.get("/status", requireAnyPermission(["whatsapp", "view"], ["settings", "view"]), async (req, res) => {
   try {
     const propertyId = getTenantId(req) || 1;
@@ -91,7 +90,6 @@ router.get("/status", requireAnyPermission(["whatsapp", "view"], ["settings", "v
 });
 
 // POST /api/whatsapp/queue/process - معالجة فورية لطابور الرسائل المعلقة
-// @ts-ignore
 router.post("/queue/process", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), async (req, res) => {
   try {
     const propertyId = getTenantId(req) || 1;
@@ -106,7 +104,6 @@ router.post("/queue/process", requireAnyPermission(["whatsapp", "edit"], ["setti
 });
 
 // POST /api/whatsapp/connect - بدء عملية الربط وتوليد رمز QR أو كود الاقتران
-// @ts-ignore
 router.post("/connect", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), async (req, res) => {
   try {
     const propertyId = getTenantId(req) || 1;
@@ -143,7 +140,6 @@ router.post("/connect", requireAnyPermission(["whatsapp", "edit"], ["settings", 
 });
 
 // POST /api/whatsapp/disconnect - قطع الاتصال وتسجيل الخروج
-// @ts-ignore
 router.post("/disconnect", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), async (req, res) => {
   try {
     const propertyId = getTenantId(req) || 1;
@@ -159,8 +155,7 @@ router.post("/disconnect", requireAnyPermission(["whatsapp", "edit"], ["settings
 });
 
 // GET /api/whatsapp/config - استرجاع قوالب وإعدادات الواتساب
-// @ts-ignore
-router.get("/config", requireAnyPermission(["whatsapp", "view"], ["settings", "view"]), async (req, res) => {
+router.get("/config", requireAnyPermission(["whatsapp", "view"], ["settings", "view"]), async (req, res): Promise<any> => {
   try {
     const propertyId = getTenantId(req) || 1;
     const dbRes = await pool.query(
@@ -219,7 +214,6 @@ router.get("/config", requireAnyPermission(["whatsapp", "view"], ["settings", "v
 });
 
 // PUT /api/whatsapp/config - حفظ وتحديث قوالب وإعدادات الواتساب
-// @ts-ignore
 router.put("/config", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), validate({ body: WhatsAppConfigBody }), async (req, res) => {
   try {
     const propertyId = getTenantId(req) || 1;
@@ -295,8 +289,7 @@ router.put("/config", requireAnyPermission(["whatsapp", "edit"], ["settings", "e
 });
 
 // POST /api/whatsapp/test - إرسال رسالة تجريبية
-// @ts-ignore
-router.post("/test", requireAnyPermission(["whatsapp", "create"], ["whatsapp", "edit"], ["settings", "edit"]), validate({ body: WhatsAppTestBody }), async (req, res) => {
+router.post("/test", requireAnyPermission(["whatsapp", "create"], ["whatsapp", "edit"], ["settings", "edit"]), validate({ body: WhatsAppTestBody }), async (req, res): Promise<any> => {
   try {
     const propertyId = getTenantId(req) || 1;
     const { phone, message, language } = req.body;
@@ -384,7 +377,6 @@ router.post("/test", requireAnyPermission(["whatsapp", "create"], ["whatsapp", "
 });
 
 // GET /api/whatsapp/logs - سجل الرسائل المرسلة
-// @ts-ignore
 router.get("/logs", requireAnyPermission(["whatsapp", "view"], ["whatsapp", "export"], ["settings", "view"]), validate({ query: WhatsAppLogsQuery }), async (req, res) => {
   try {
     const propertyId = getTenantId(req) || 1;
@@ -422,7 +414,6 @@ router.get("/logs", requireAnyPermission(["whatsapp", "view"], ["whatsapp", "exp
 });
 
 // POST /api/whatsapp/broadcast/preview - معاينة المستلمين لرسالة جماعية
-// @ts-ignore
 router.post("/broadcast/preview", requireAnyPermission(["whatsapp", "view"], ["accommodation", "view"]), validate({ body: BroadcastPreviewBody }), async (req, res) => {
   try {
     const propertyId = getTenantId(req) || 1;
@@ -527,8 +518,7 @@ router.post("/broadcast/preview", requireAnyPermission(["whatsapp", "view"], ["a
 });
 
 // POST /api/whatsapp/broadcast/send - إطلاق إرسال الرسالة الجماعية
-// @ts-ignore
-router.post("/broadcast/send", requireAnyPermission(["whatsapp", "create"], ["accommodation", "edit"]), validate({ body: BroadcastSendBody }), async (req, res) => {
+router.post("/broadcast/send", requireAnyPermission(["whatsapp", "create"], ["accommodation", "edit"]), validate({ body: BroadcastSendBody }), async (req, res): Promise<any> => {
   try {
     const propertyId = getTenantId(req) || 1;
     const { recipients, messageText } = req.body;

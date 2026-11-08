@@ -49,7 +49,6 @@ const TransportScheduleSchema = z.object({
 // ─── FOOD: Profile-facing ─────────────────────────────────────
 
 // GET /portal-food/menu — قائمة الطعام
-// @ts-ignore
 router.get("/menu", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -82,7 +81,6 @@ router.get("/menu", requirePortalAuth, async (req, res, next) => {
 });
 
 // GET /portal-food/my-orders — طلباتي
-// @ts-ignore
 router.get("/my-orders", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -105,8 +103,7 @@ router.get("/my-orders", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /portal-food/order — طلب وجبة
-// @ts-ignore
-router.post("/order", requirePortalAuth, async (req, res, next) => {
+router.post("/order", requirePortalAuth, async (req, res, next): Promise<any> => {
   try {
     const sess = portalSession(req)!;
     const { menuItemId, quantity, orderDate, notes } = req.body;
@@ -137,7 +134,6 @@ router.post("/order", requirePortalAuth, async (req, res, next) => {
 });
 
 // PUT /portal-food/order/:id/cancel — إلغاء طلب
-// @ts-ignore
 router.put("/order/:id/cancel", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -162,7 +158,6 @@ router.put("/order/:id/cancel", requirePortalAuth, async (req, res, next) => {
 // ─── TRANSPORT: Profile-facing ─────────────────────────────────
 
 // GET /portal-transport/schedules — مواعيد المواصلات
-// @ts-ignore
 router.get("/schedules", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -185,7 +180,6 @@ router.get("/schedules", requirePortalAuth, async (req, res, next) => {
 });
 
 // GET /portal-transport/my-bookings — حجوزاتي
-// @ts-ignore
 router.get("/my-bookings", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -208,8 +202,7 @@ router.get("/my-bookings", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /portal-transport/book — حجز مواصلات
-// @ts-ignore
-router.post("/book", requirePortalAuth, async (req, res, next) => {
+router.post("/book", requirePortalAuth, async (req, res, next): Promise<any> => {
   try {
     const sess = portalSession(req)!;
     const { scheduleId, bookingDate } = req.body;
@@ -239,7 +232,6 @@ router.post("/book", requirePortalAuth, async (req, res, next) => {
 });
 
 // PUT /portal-transport/booking/:id/cancel — إلغاء حجز
-// @ts-ignore
 router.put("/booking/:id/cancel", requirePortalAuth, async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
@@ -263,8 +255,7 @@ router.put("/booking/:id/cancel", requirePortalAuth, async (req, res, next) => {
 
 // ─── ADMIN: Food Menu CRUD ──────────────────────────────────────
 
-// @ts-ignore
-router.get("/admin/menu", requirePermission("portal_content", "view"), async (req, res, next) => {
+router.get("/admin/menu", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -284,8 +275,7 @@ router.get("/admin/menu", requirePermission("portal_content", "view"), async (re
   }
 });
 
-// @ts-ignore
-router.post("/admin/menu", requirePermission("portal_content", "create"), async (req, res, next) => {
+router.post("/admin/menu", requirePermission("portal_content", "create"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     const userId = (req.session as any)?.userId;
@@ -317,7 +307,6 @@ router.post("/admin/menu", requirePermission("portal_content", "create"), async 
   }
 });
 
-// @ts-ignore
 router.delete("/admin/menu/:id", requirePermission("portal_content", "delete"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
@@ -338,7 +327,6 @@ router.delete("/admin/menu/:id", requirePermission("portal_content", "delete"), 
   }
 });
 
-// @ts-ignore
 router.put("/admin/menu/:id", requirePermission("portal_content", "edit"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
@@ -363,8 +351,7 @@ router.put("/admin/menu/:id", requirePermission("portal_content", "edit"), async
 
 // ─── ADMIN: Transport Schedules CRUD ────────────────────────────
 
-// @ts-ignore
-router.get("/admin/schedules", requirePermission("portal_content", "view"), async (req, res, next) => {
+router.get("/admin/schedules", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -384,8 +371,7 @@ router.get("/admin/schedules", requirePermission("portal_content", "view"), asyn
   }
 });
 
-// @ts-ignore
-router.post("/admin/schedules", requirePermission("portal_content", "create"), async (req, res, next) => {
+router.post("/admin/schedules", requirePermission("portal_content", "create"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     const userId = (req.session as any)?.userId;
@@ -417,7 +403,6 @@ router.post("/admin/schedules", requirePermission("portal_content", "create"), a
   }
 });
 
-// @ts-ignore
 router.delete("/admin/schedules/:id", requirePermission("portal_content", "delete"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
@@ -438,7 +423,6 @@ router.delete("/admin/schedules/:id", requirePermission("portal_content", "delet
   }
 });
 
-// @ts-ignore
 router.put("/admin/schedules/:id", requirePermission("portal_content", "edit"), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
@@ -463,8 +447,7 @@ router.put("/admin/schedules/:id", requirePermission("portal_content", "edit"), 
 
 // ─── ADMIN: Stats ───────────────────────────────────────────────
 
-// @ts-ignore
-router.get("/admin/stats", requirePermission("portal_content", "view"), async (req, res, next) => {
+router.get("/admin/stats", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
