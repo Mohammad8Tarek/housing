@@ -9,6 +9,8 @@ import {
 import { desc, sql, and, gte, isNull, isNotNull } from "drizzle-orm";
 import { getCategoryLabel } from "../lib/portal-catalog.js";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { AnalyticsDaysQuery } from "../validation/schemas.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
 import { getTenantId } from "../lib/request-utils.js";
 
@@ -151,7 +153,7 @@ router.get("/", requireAuth, async (req, res, next) => {
 
 // GET /trends - اتجاهات البوابة
 // @ts-ignore
-router.get("/trends", requireAuth, async (req, res, next) => {
+router.get("/trends", requireAuth, validate({ query: AnalyticsDaysQuery }), async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const days = parseInt(req.query.days as string) || 30;

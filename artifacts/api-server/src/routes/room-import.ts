@@ -12,6 +12,8 @@ import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId } from "../lib/request-utils.js";
 import { requirePermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { RoomImportExecuteBody, SaveImportTemplateBody } from "../validation/schemas.js";
 import { syncRoomFeaturesToInventory } from "./room-inventory.js";
 
 const router = Router();
@@ -23,6 +25,7 @@ const router = Router();
 router.post(
   "/rooms/import/execute",
   requirePermission("housing", "create"),
+  validate({ body: RoomImportExecuteBody }),
   async (req: Request, res: Response) => {
     try {
       const propertyId = getTenantId(req) || req.body.propertyId;
@@ -469,6 +472,7 @@ router.get(
 router.post(
   "/rooms/import/templates",
   requirePermission("housing", "create"),
+  validate({ body: SaveImportTemplateBody }),
   async (req: Request, res: Response) => {
   try {
     const propertyId = getTenantId(req) || req.body.propertyId;

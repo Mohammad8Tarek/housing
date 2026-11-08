@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { requireAuth, requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { TestEmailBody, UpdateSettingsBody } from "../validation/schemas.js";
 import { sendTestEmail } from "../lib/email-service.js";
 
 const router: Router = Router();
@@ -59,6 +61,7 @@ router.patch(
     ["settings", "manage_security"],
     ["settings", "manage_email"],
   ),
+  validate({ body: UpdateSettingsBody }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -223,6 +226,7 @@ router.patch(
 router.post(
   "/settings/email/test",
   requireAnyPermission(["settings", "manage_email"], ["settings", "edit"]),
+  validate({ body: TestEmailBody }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);

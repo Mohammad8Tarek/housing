@@ -8,6 +8,9 @@ import { withTenant, activitiesTable, evaluationsTable } from "@workspace/db";
 import { desc, gte, lte, and, eq } from "drizzle-orm";
 import { requirePortalAuth, portalSession } from "./portal-auth.js";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams } from "../validation/common.js";
+import { CreateCalendarEventBody, SnoozeReminderBody } from "../validation/schemas.js";
 import { getTenantId } from "../lib/request-utils.js";
 
 const router: Router = Router();
@@ -427,7 +430,7 @@ router.get("/reminders", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /calendar/events — Create a calendar event (activity)
-router.post("/calendar/events", requirePermission("portal_content", "create"), async (req, res, next): Promise<void> => {
+router.post("/calendar/events", requirePermission("portal_content", "create"), validate({ body: CreateCalendarEventBody }), async (req, res, next): Promise<void> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -476,7 +479,7 @@ router.post("/calendar/events", requirePermission("portal_content", "create"), a
 });
 
 // POST /reminders/:id/snooze — Snooze reminder
-router.post("/reminders/:id/snooze", requirePermission("portal_content", "edit"), async (req, res, next) => {
+router.post("/reminders/:id/snooze", requirePermission("portal_content", "edit"), validate({ params: IdParams, body: SnoozeReminderBody }), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { minutes } = req.body;

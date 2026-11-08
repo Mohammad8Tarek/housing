@@ -14,6 +14,8 @@ import {
 import { eq, and, desc, sql, or, ilike } from "drizzle-orm";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { requireAuth, loadAuthUser, requirePermission, hasPermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { GateLogBody, GateLogsQuery, GateStatsQuery, GateVerifyBody } from "../validation/schemas.js";
 import { portalSession } from "./portal-auth.js";
 import { logActivity } from "../lib/activity-logger.js";
 
@@ -274,7 +276,7 @@ router.get("/gate/pass/:profileId", allowAdminOrPortalAuth, async (req, res): Pr
 
 // ─── 2. POST /gate/verify ──────────────────────────────────────────────────
 // Security verification at the electronic gate (Camera scanner / barcode gun)
-router.post("/gate/verify", requirePermission("gate", "create"), async (req, res): Promise<void> => {
+router.post("/gate/verify", requirePermission("gate", "create"), validate({ body: GateVerifyBody }), async (req, res): Promise<void> => {
   try {
     const { qrPayload, employeeId: inputEmpId, propertyId: inputPropId } = req.body;
 
@@ -472,7 +474,7 @@ router.post("/gate/verify", requirePermission("gate", "create"), async (req, res
 
 // ─── 3. POST /gate/log ─────────────────────────────────────────────────────
 // Records resident entry/exit movement
-router.post("/gate/log", requirePermission("gate", "create"), async (req, res): Promise<void> => {
+router.post("/gate/log", requirePermission("gate", "create"), validate({ body: GateLogBody }), async (req, res): Promise<void> => {
   try {
     const {
       propertyId: inputPropertyId,
@@ -567,7 +569,7 @@ router.post("/gate/log", requirePermission("gate", "create"), async (req, res): 
 
 // ─── 4. GET /gate/logs ─────────────────────────────────────────────────────
 // Paginated gate access logs with server-side filters
-router.get("/gate/logs", requirePermission("gate", "view"), async (req, res): Promise<void> => {
+router.get("/gate/logs", requirePermission("gate", "view"), validate({ query: GateLogsQuery }), async (req, res): Promise<void> => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(2000, Math.max(1, Number(req.query.limit) || 20));
@@ -664,7 +666,7 @@ router.get("/gate/logs", requirePermission("gate", "view"), async (req, res): Pr
 
 // ─── 5. GET /gate/stats ────────────────────────────────────────────────────
 // Real-time statistics for housing security desk
-router.get("/gate/stats", requirePermission("gate", "view"), async (req, res): Promise<void> => {
+router.get("/gate/stats", requirePermission("gate", "view"), validate({ query: GateStatsQuery }), async (req, res): Promise<void> => {
   try {
     const propertyId = req.query.propertyId && req.query.propertyId !== "all"
       ? Number(req.query.propertyId)

@@ -3,6 +3,9 @@ import { db, withTenant, portalDocumentsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { requirePermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams } from "../validation/common.js";
+import { CreateDocumentBody } from "../validation/schemas.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { stripHtml } from "../lib/sanitize.js";
 import { getTenantId, su } from "../lib/request-utils.js";
@@ -80,6 +83,7 @@ router.get(
 router.post(
   "/",
   requirePermission("documents", "create"),
+  validate({ body: CreateDocumentBody }),
   async (req, res, next) => {
     try {
       const propertyId = Number(req.body?.propertyId);
@@ -153,6 +157,7 @@ router.post(
 router.delete(
   "/:id",
   requirePermission("documents", "delete"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);

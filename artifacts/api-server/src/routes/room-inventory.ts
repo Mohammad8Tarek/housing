@@ -10,6 +10,9 @@ import {
 import { eq, and, or, ilike, desc, count, sql, SQL } from "drizzle-orm";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams } from "../validation/common.js";
+import { CreateInventoryItemBody, CreateInventoryTicketBody, ListInventoryQuery, SyncInventoryBody, UpdateInventoryItemBody } from "../validation/schemas.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
@@ -376,6 +379,7 @@ export async function syncAllRoomsFeaturesToInventory(
 router.get(
   "/",
   requireAnyPermission(["inventory", "view"], ["housing", "view"], ["reports", "view"]),
+  validate({ query: ListInventoryQuery }),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -644,6 +648,7 @@ router.get(
 router.post(
   "/",
   requireAnyPermission(["inventory", "create"], ["housing", "edit"]),
+  validate({ body: CreateInventoryItemBody }),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -722,6 +727,7 @@ router.post(
 router.put(
   "/:id",
   requireAnyPermission(["inventory", "edit"], ["housing", "edit"]),
+  validate({ params: IdParams, body: UpdateInventoryItemBody }),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -805,6 +811,7 @@ router.put(
 router.delete(
   "/:id",
   requireAnyPermission(["inventory", "delete"], ["housing", "edit"]),
+  validate({ params: IdParams }),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -857,6 +864,7 @@ router.delete(
 router.post(
   "/sync-from-features",
   requireAnyPermission(["inventory", "create"], ["housing", "edit"]),
+  validate({ body: SyncInventoryBody }),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -921,6 +929,7 @@ router.post(
 router.post(
   "/:id/create-ticket",
   requireAnyPermission(["inventory", "edit"], ["maintenance", "create"], ["housing", "edit"]),
+  validate({ params: IdParams, body: CreateInventoryTicketBody }),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);

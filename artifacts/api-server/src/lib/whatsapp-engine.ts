@@ -7,6 +7,7 @@ import makeWASocket, {
   Browsers,
 } from "@whiskeysockets/baileys";
 import QRCode from "qrcode";
+import { safeSchemaName } from "./pg-ident.js";
 import path from "node:path";
 import fs from "node:fs";
 import pino from "pino";
@@ -1252,7 +1253,7 @@ export async function sendCheckInWhatsAppNotification(params: {
       [propertyId]
     );
     const prop = propRes.rows[0] || {};
-    const schemaName = (prop.schema_name || "public").trim();
+    const schemaName = safeSchemaName(prop.schema_name);
     const propertyName = prop.display_name || prop.name || "Sunrise Housing";
 
     // 2. Fetch profile info from tenant schema (fallback to public if not found)
@@ -1390,7 +1391,7 @@ export async function sendWelcomeWhatsAppForAssignment(params: {
   );
   const prop = propRes.rows[0];
   if (!prop) return { success: false, error: "Property not found" };
-  const schemaName = (prop.schema_name || "public").trim();
+  const schemaName = safeSchemaName(prop.schema_name);
 
   // Find assignment
   let assignRes = await pool.query(
@@ -1468,7 +1469,7 @@ export async function sendReservationConfirmationWhatsApp(params: {
       [propertyId]
     );
     const prop = propRes.rows[0] || {};
-    const schemaName = (prop.schema_name || "public").trim();
+    const schemaName = safeSchemaName(prop.schema_name);
     const propertyName = prop.display_name || prop.name || "Sunrise Staff Housing";
 
     // 2. Fetch reservation details
