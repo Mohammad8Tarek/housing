@@ -465,6 +465,19 @@ const MIGRATIONS = [
     user_agent TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), last_used_at TIMESTAMPTZ
   )`,
   },
+  {
+    name: "public.device_tokens",
+    q: `CREATE TABLE IF NOT EXISTS public.device_tokens (
+    id SERIAL PRIMARY KEY, profile_id INTEGER NOT NULL, property_id INTEGER NOT NULL,
+    token TEXT NOT NULL, platform TEXT NOT NULL DEFAULT 'android', device_name TEXT, user_agent TEXT,
+    failure_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), last_used_at TIMESTAMPTZ
+  )`,
+  },
+  {
+    name: "public.device_tokens_unique",
+    q: "CREATE UNIQUE INDEX IF NOT EXISTS uq_device_tokens_token ON public.device_tokens (token)",
+  },
 
   // === Maintenance Photo ===
   {
@@ -2049,6 +2062,35 @@ const TENANT_MIGRATIONS = [
     q: "CREATE INDEX IF NOT EXISTS idx_push_subscriptions_profile ON push_subscriptions (profile_id)",
   },
 
+  // === Device Tokens for native FCM push (Capacitor Android/iOS) ===
+  {
+    name: "device_tokens",
+    q: `CREATE TABLE IF NOT EXISTS device_tokens (
+    id SERIAL PRIMARY KEY,
+    profile_id INTEGER NOT NULL,
+    property_id INTEGER NOT NULL,
+    token TEXT NOT NULL,
+    platform TEXT NOT NULL DEFAULT 'android',
+    device_name TEXT,
+    user_agent TEXT,
+    failure_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_used_at TIMESTAMPTZ
+  )`,
+  },
+  {
+    name: "device_tokens_unique",
+    q: "CREATE UNIQUE INDEX IF NOT EXISTS uq_device_tokens_token ON device_tokens (token)",
+  },
+  {
+    name: "device_tokens_profile",
+    q: "CREATE INDEX IF NOT EXISTS idx_device_tokens_profile_id ON device_tokens (profile_id)",
+  },
+  {
+    name: "device_tokens_property",
+    q: "CREATE INDEX IF NOT EXISTS idx_device_tokens_property_id ON device_tokens (property_id)",
+  },
+
   // === User Sessions for connect-pg-simple ===
   {
     name: "user_sessions_table",
@@ -2928,6 +2970,7 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
     "room_keys",
     "key_audit_log",
     "push_subscriptions",
+    "device_tokens",
     "room_import_history",
     "room_import_templates",
     "password_reset_tokens",
@@ -2958,6 +3001,7 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
     "room_keys",
     "key_audit_log",
     "push_subscriptions",
+    "device_tokens",
     "room_import_history",
     "room_import_templates",
     "password_reset_tokens",

@@ -75,6 +75,30 @@ export const pushSubscriptionsTable = pgTable(
   ],
 );
 
+// Device Tokens — native FCM registration tokens (Android/iOS Capacitor app)
+export const deviceTokensTable = pgTable(
+  "device_tokens",
+  {
+    id: serial("id").primaryKey(),
+    profileId: integer("profile_id").notNull(),
+    propertyId: integer("property_id").notNull(),
+    token: text("token").notNull(),
+    platform: text("platform").notNull().default("android"), // android | ios | web
+    deviceName: text("device_name"),
+    userAgent: text("user_agent"),
+    failureCount: integer("failure_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("uq_device_tokens_token").on(t.token),
+    index("idx_device_tokens_profile_id").on(t.profileId),
+    index("idx_device_tokens_property_id").on(t.propertyId),
+  ],
+);
+
 export const insertPortalNotificationSchema = createInsertSchema(
   portalNotificationsTable,
 ).omit({ id: true, createdAt: true });

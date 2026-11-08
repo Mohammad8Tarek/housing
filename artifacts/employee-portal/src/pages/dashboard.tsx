@@ -36,6 +36,7 @@ import TabTransport from "../components/TabTransport";
 import { TabChat } from "../components/chat/TabChat";
 import { getPortalTabFromUrl, normalizePortalTab } from "../lib/portal-tabs";
 import { useBackButton } from "../hooks/useBackButton";
+import { useNativePush, unregisterNativePush } from "../hooks/useNativePush";
 
 interface Employee {
   id?: number;
@@ -213,6 +214,14 @@ export default function Dashboard() {
     clearSessionCache();
     setLocation("/login");
   }, [setLocation]);
+
+  // Native FCM registration (Capacitor only). Registers once the employee is known.
+  useNativePush({
+    enabled: Boolean(employee?.id),
+    onOpen: (url) => {
+      if (url.startsWith("/")) setLocation(url);
+    },
+  });
 
   const playNotifSound = useCallback(() => {
     try {
@@ -458,11 +467,6 @@ export default function Dashboard() {
       import("@capacitor/local-notifications")
         .then(({ LocalNotifications }) => {
           LocalNotifications.requestPermissions().catch(() => {});
-        })
-        .catch(() => {});
-      import("@capacitor/push-notifications")
-        .then(({ PushNotifications }) => {
-          PushNotifications.requestPermissions().catch(() => {});
         })
         .catch(() => {});
       import("@capacitor/camera")
@@ -783,8 +787,10 @@ export default function Dashboard() {
 
           <button
             onClick={() => {
-              clearSessionCache();
-              setLocation("/login");
+              unregisterNativePush().finally(() => {
+                clearSessionCache();
+                setLocation("/login");
+              });
             }}
             style={{
               width: "38px",
