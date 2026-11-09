@@ -1,16 +1,12 @@
-import { recommendBestRooms, checkPolicyCompliance } from "@/lib/room-recommender";
+import { recommendBestRooms } from "@/lib/room-recommender";
 import { matchesSearch } from "@/lib/search-utils";
-import {
-  PolicyExceptionApprovalModal,
-  type PolicyViolationItem,
-} from "@/components/PolicyExceptionApprovalModal";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { PolicyExceptionApprovalModal } from "@/components/PolicyExceptionApprovalModal";
+import { useState, useEffect, useMemo } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   useListReservations,
   useCreateReservation,
   useDeleteReservation,
-  useCheckinReservation,
   useUpdateReservation,
   useListRooms,
   useListBuildings,
@@ -30,53 +26,41 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { DateInput } from "@/components/ui/date-input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { PermissionGate } from "@/components/ui/permission-gate";
-import { ColumnChooser, useColumnVisibility } from "@/components/ui/column-chooser";
+import { useColumnVisibility } from "@/components/ui/column-chooser";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { DataPagination } from "@/components/DataPagination";
-import KeyManagementPanel from "@/components/KeyManagementPanel";
 import { generateHousingLetterPdf } from "@/lib/pdf-utils";
 import { usePrintLanguage, PrintLanguageDialog } from "@/lib/PrintLanguageDialog";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
-import { NationalitySelect } from "@/components/ui/nationality-select";
-import { format } from "date-fns";
-import { formatDate, getExportFileName } from "@/lib/date-utils";
-import * as XLSX from "xlsx";
+import { formatDate } from "@/lib/date-utils";
 import { exportExcel } from "@/pages/reports/utils/export";
-import {
-  Plus, Trash, Search, BedDouble, UserCheck, Users,
-  CalendarDays, CheckCircle, Pencil, X, ChevronRight, ChevronLeft,
-  Building, Building2, Key, Printer, UserPlus, ChevronDown, Camera, FileText,
-  Phone, CreditCard, AlertCircle, Lock, AlertTriangle, Ban, Check, ArrowRightLeft,
-  MessageSquare, Send, Loader2,
-} from "lucide-react";
+import { Plus, CalendarDays } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
-import { type ProfileResult, getBedOptions, roomTypeCapacity } from "../shared/profile-search";
+import { type ProfileResult, getBedOptions } from "../shared/profile-search";
+import type { CancelDialogState, EditDialogState, EditFormState, WhatsAppDialogState } from "./types";
+import { RES_COLS, getStatusLabel, statusColor, isRoomBookable, makeEmptyNewForm } from "./utils";
+import { useNewProfileForm } from "./hooks/useNewProfileForm";
+import { useProfileSearch } from "./hooks/useProfileSearch";
+import { useRoomOccupancy } from "./hooks/useRoomOccupancy";
+import { useReservationCheckin } from "./hooks/useReservationCheckin";
+import { ReservationsToolbar } from "./components/ReservationsToolbar";
+import { ReservationsTable } from "./components/ReservationsTable";
+import { NewReservationDialog } from "./components/NewReservationDialog";
+import { WizardStepMode } from "./components/WizardStepMode";
+import { WizardStepExistingProfile } from "./components/WizardStepExistingProfile";
+import { WizardStepNewProfile } from "./components/WizardStepNewProfile";
+import { WizardStepRoomSelection } from "./components/WizardStepRoomSelection";
+import { CheckinDialog } from "./components/CheckinDialog";
+import { WhatsAppConfirmationDialog } from "./components/WhatsAppConfirmationDialog";
+import { EditReservationDialog } from "./components/EditReservationDialog";
+import { CancelReservationDialog } from "./components/CancelReservationDialog";
+import { DeleteReservationDialog } from "./components/DeleteReservationDialog";
+import { KeyPromptDialog } from "./components/KeyPromptDialog";
+import { CrossPropertyConfirmDialog } from "./components/CrossPropertyConfirmDialog";
+
 
 export default function ReservationsPage() {
   const { activePropertyId } = useProperty();
@@ -96,8 +80,8 @@ export default function ReservationsPage() {
 
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [editDialog, setEditDialog] = useState<{ open: boolean; reservation: any | null }>({ open: false, reservation: null });
-  const [editForm, setEditForm] = useState({
+  const [editDialog, setEditDialog] = useState<EditDialogState>({ open: false, reservation: null });
+  const [editForm, setEditForm] = useState<EditFormState>({
     checkInDate: "",
     checkOutDate: "",
     notes: "",
@@ -117,7 +101,7 @@ export default function ReservationsPage() {
     roomId: "",
     bedNumber: "",
   });
-  const [cancelDialog, setCancelDialog] = useState<{ open: boolean; reservation: any | null; reason: string }>({
+  const [cancelDialog, setCancelDialog] = useState<CancelDialogState>({
     open: false,
     reservation: null,
     reason: "",
@@ -125,23 +109,12 @@ export default function ReservationsPage() {
   const [editBuildingId, setEditBuildingId] = useState<string>("all");
   const [editRoomSearch, setEditRoomSearch] = useState<string>("");
   const [showEditRoomPicker, setShowEditRoomPicker] = useState<boolean>(false);
-  const [checkinDialog, setCheckinDialog] = useState<{ open: boolean; id: number | null; guestName?: string; reservation?: any }>({ open: false, id: null });
-  const [checkinRoomId, setCheckinRoomId] = useState("");
-  const [checkinRoomSearch, setCheckinRoomSearch] = useState("");
   const [keyPromptOpen, setKeyPromptOpen] = useState(false);
   const [lastAssignment, setLastAssignment] = useState<any>(null);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-  const [resPolicyModal, setResPolicyModal] = useState<{
-    open: boolean;
-    violations: PolicyViolationItem[];
-    pendingAction?: (approval: { approvedBy: string; reason: string }) => void;
-  }>({ open: false, violations: [] });
 
   // WhatsApp reservation confirmation dialog state
-  const [whatsAppDialog, setWhatsAppDialog] = useState<{
-    open: boolean;
-    reservation: any | null;
-  }>({ open: false, reservation: null });
+  const [whatsAppDialog, setWhatsAppDialog] = useState<WhatsAppDialogState>({ open: false, reservation: null });
   const [whatsAppPhone, setWhatsAppPhone] = useState("");
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
 
@@ -190,103 +163,38 @@ export default function ReservationsPage() {
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [personMode, setPersonMode] = useState<"existing" | "new" | null>(null);
-  const [selectedProfile, setSelectedProfile] = useState<ProfileResult | null>(null);
-  const [empSearch, setEmpSearch] = useState("");
-  const [empResults, setEmpResults] = useState<ProfileResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [searchPropertyId, setSearchPropertyId] = useState<string>(
-    activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all"
-  );
-  const searchRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [expectedCheckOut, setExpectedCheckOut] = useState("");
+  const {
+    selectedProfile, setSelectedProfile,
+    empSearch, setEmpSearch,
+    empResults, isSearching, showDropdown,
+    searchPropertyId, setSearchPropertyId,
+    searchRef,
+    selectProfile, clearProfile,
+  } = useProfileSearch({
+    activePropertyId,
+    onProfileSelected: (emp) => {
+      // Auto-populate expected checkout date from contract end date for internal employee
+      if (emp.employmentType !== "THIRD_PARTY" && emp.contractEndDate) {
+        setExpectedCheckOut(emp.contractEndDate.split("T")[0]);
+      }
+    },
+  });
 
   const [transferType, setTransferType] = useState<"PERMANENT" | "TASK_FORCE">("PERMANENT");
   const [archiveSourceProfile, setArchiveSourceProfile] = useState<boolean>(true);
   const [crossPropertyModalOpen, setCrossPropertyModalOpen] = useState<boolean>(false);
 
-  // Full New Person Profile State
-  const [newForm, setNewForm] = useState({
-    profileId: "",
-    firstName: "",
-    lastName: "",
-    thirdName: "",
-    fourthName: "",
-    nationalId: "",
-    nationality: "",
-    gender: "M",
-    phone: "",
-    dateOfBirth: "",
-    address: "",
-    hireDate: new Date().toISOString().split("T")[0],
-    contractEndDate: "",
-    department: "",
-    jobTitle: "",
-    level: "",
-    employmentType: "THIRD_PARTY" as "INTERNAL" | "THIRD_PARTY",
-    companyName: "",
-    idDocuments: [] as { fileName: string; fileType: string; fileData: string }[],
-  });
-
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [photoData, setPhotoData] = useState<string | null>(null);
-  const photoRef = useRef<HTMLInputElement>(null);
-  const docsRef = useRef<HTMLInputElement>(null);
-
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      setPhotoPreview(result);
-      setPhotoData(result);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const clearPhoto = () => {
-    setPhotoPreview(null);
-    setPhotoData(null);
-    if (photoRef.current) photoRef.current.value = "";
-  };
-
-  const handleDocSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    files.forEach((file) => {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(ar ? `${file.name} كبير جداً (الأقصى 5 ميجا)` : `${file.name} is too large (max 5MB)`);
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        setNewForm((prev) => ({
-          ...prev,
-          idDocuments: [
-            ...(prev.idDocuments || []),
-            { fileName: file.name, fileType: file.type || "image/jpeg", fileData: reader.result as string },
-          ],
-        }));
-      };
-      reader.readAsDataURL(file);
-    });
-    if (docsRef.current) docsRef.current.value = "";
-  };
-
-  const removeDoc = (index: number) => {
-    setNewForm((prev) => {
-      const newDocs = [...(prev.idDocuments || [])];
-      newDocs.splice(index, 1);
-      return { ...prev, idDocuments: newDocs };
-    });
-  };
+  const {
+    newForm, setNewForm,
+    photoPreview, photoData, photoRef, docsRef,
+    handlePhotoSelect, clearPhoto, handleDocSelect, removeDoc,
+  } = useNewProfileForm(ar);
 
   const [bookingType, setBookingType] = useState<"direct" | "upcoming">("direct");
   const [selectedRoomId, setSelectedRoomId] = useState("");
   const [selectedBed, setSelectedBed] = useState("");
   const [checkInDate, setCheckInDate] = useState(new Date().toISOString().split("T")[0]);
-  const [expectedCheckOut, setExpectedCheckOut] = useState("");
   const [notes, setNotes] = useState("");
   const [searchBuilding, setSearchBuilding] = useState("all");
   const [searchFloor, setSearchFloor] = useState("all");
@@ -405,10 +313,6 @@ export default function ReservationsPage() {
   const { data: _pData } = useListProperties();
   const allProperties: any[] = Array.isArray(_pData) ? _pData : ((_pData as any)?.data || []);
 
-  useEffect(() => {
-    // Default search to "all" so cross-property employees are discovered immediately by name/code
-    setSearchPropertyId("all");
-  }, []);
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
 
   const isCrossProperty = Boolean(
@@ -437,98 +341,11 @@ export default function ReservationsPage() {
     return jobTitleValues.filter((t: any) => !t.parentValue || t.parentValue === editForm.department);
   }, [jobTitleValues, editForm.department]);
 
-  // Active assignments indexed by roomId
-  const roomActiveAssignmentsMap = useMemo(() => {
-    const map = new Map<number, any[]>();
-    for (const a of allAssignments) {
-      if (a.status === "ACTIVE") {
-        const rId = Number(a.roomId);
-        if (!map.has(rId)) map.set(rId, []);
-        map.get(rId)!.push(a);
-      }
-    }
-    return map;
-  }, [allAssignments]);
+  const {
+    entireRoomOccupiedSet, singleOccupantRoomsMap, selectedRoomBedMap, occupiedBeds,
+  } = useRoomOccupancy({ rooms, allAssignments, selectedRoomId, ar });
 
-  const entireRoomOccupiedSet = useMemo(() => {
-    const set = new Set<number>();
-    allAssignments
-      .filter((a: any) => a.status === "ACTIVE" && (a.isEntireRoom || a.is_entire_room))
-      .forEach((a: any) => set.add(Number(a.roomId)));
-    return set;
-  }, [allAssignments]);
-
-  // Single occupant rooms: capacity > 1 and currently occupied by exactly 1 person
-  const singleOccupantRoomsMap = useMemo(() => {
-    const map = new Map<number, { residentName: string }>();
-    for (const room of rooms) {
-      const cap = room.capacity ?? 1;
-      if (cap <= 1) continue;
-      const rId = Number(room.id);
-      const activeList = roomActiveAssignmentsMap.get(rId) || [];
-      const occ = room.currentOccupancy ?? 0;
-      const effectiveOcc = Math.max(occ, activeList.length);
-      const isEntire = entireRoomOccupiedSet.has(rId);
-
-      if (effectiveOcc === 1 || (isEntire && cap > 1)) {
-        const first = activeList[0];
-        const name = first
-          ? [first.profileFirstName || first.firstName, first.profileLastName || first.lastName].filter(Boolean).join(" ") || first.employeeName || first.profileName || (ar ? "نزيل مسكن" : "Resident")
-          : (ar ? "نزيل بمفرده" : "Single Resident");
-        map.set(rId, { residentName: name });
-      }
-    }
-    return map;
-  }, [rooms, roomActiveAssignmentsMap, entireRoomOccupiedSet, ar]);
-
-  // Bed occupants map for currently selected room
-  const selectedRoomBedMap = useMemo(() => {
-    const map = new Map<number, { residentName: string }>();
-    if (!selectedRoomId) return map;
-    const rId = parseInt(selectedRoomId);
-    const room = rooms.find((r: any) => r.id === rId);
-    const cap = room?.capacity ?? 1;
-    const activeList = roomActiveAssignmentsMap.get(rId) || [];
-    const isEntire = entireRoomOccupiedSet.has(rId);
-
-    if (isEntire) {
-      for (let b = 1; b <= cap; b++) {
-        map.set(b, { residentName: ar ? "محجوز (غرفة كاملة)" : "Occupied (Full Room)" });
-      }
-      return map;
-    }
-
-    const unassigned: string[] = [];
-    for (const a of activeList) {
-      const name = [a.profileFirstName || a.firstName, a.profileLastName || a.lastName].filter(Boolean).join(" ") || a.employeeName || a.profileName || (ar ? "نزيل مسكن" : "Resident");
-      if (a.bedNumber != null && Number(a.bedNumber) > 0) {
-        map.set(Number(a.bedNumber), { residentName: name });
-      } else {
-        unassigned.push(name);
-      }
-    }
-
-    let nextBed = 1;
-    for (const name of unassigned) {
-      while (nextBed <= cap && map.has(nextBed)) {
-        nextBed++;
-      }
-      if (nextBed <= cap) {
-        map.set(nextBed, { residentName: name });
-        nextBed++;
-      }
-    }
-
-    return map;
-  }, [selectedRoomId, rooms, roomActiveAssignmentsMap, entireRoomOccupiedSet, ar]);
-
-  const occupiedBeds = useMemo(() => {
-    return new Set<number>(Array.from(selectedRoomBedMap.keys()));
-  }, [selectedRoomBedMap]);
-
-  const availableRooms = rooms.filter(
-    (r: any) => !["maintenance", "out_of_service", "oos", "out_of_order", "ooo"].includes(r.status?.toLowerCase())
-  );
+  const availableRooms = rooms.filter((r: any) => isRoomBookable(r));
 
   const filteredRooms = availableRooms.filter((r: any) => {
     const bId = r.buildingId ?? r.building_id;
@@ -596,36 +413,6 @@ export default function ReservationsPage() {
   const bedOptions = selectedRoom ? getBedOptions(selectedRoom.roomType, selectedRoom.capacity) : [];
   const isMultiBed = bedOptions.length > 1;
 
-  const checkinRooms = rooms.filter((r: any) => !["maintenance", "out_of_service", "oos", "out_of_order", "ooo"].includes(r.status?.toLowerCase()));
-
-  const checkinRecommendations = useMemo(() => {
-    if (!checkinDialog.open || !checkinDialog.reservation || rooms.length === 0) {
-      return { bestRoom: null, scoredRooms: [], recommendedMap: {} as Record<number, any> };
-    }
-    const res = checkinDialog.reservation;
-    return recommendBestRooms({
-      profile: {
-        level: res.level,
-        gender: res.gender,
-        department: res.department,
-        nationality: res.nationality,
-      },
-      rooms: checkinRooms,
-      assignments: allAssignments,
-      profiles: profilesList,
-      policySettings: settings || {},
-    });
-  }, [checkinDialog.open, checkinDialog.reservation, checkinRooms, allAssignments, profilesList, settings]);
-
-  const filteredCheckinRooms = useMemo(() => {
-    const list = checkinRooms.filter((r: any) => !checkinRoomSearch.trim() || r.roomNumber?.toLowerCase().includes(checkinRoomSearch.toLowerCase()));
-    return list.sort((a: any, b: any) => {
-      const scoreA = checkinRecommendations.recommendedMap[a.id]?.score ?? 0;
-      const scoreB = checkinRecommendations.recommendedMap[b.id]?.score ?? 0;
-      return scoreB - scoreA;
-    });
-  }, [checkinRooms, checkinRoomSearch, checkinRecommendations]);
-
   const invalidate = () => {
     const numPropId = typeof activePropertyId === "number" ? activePropertyId : undefined;
     queryClient.invalidateQueries({ queryKey: ["listReservations"] });
@@ -687,40 +474,17 @@ export default function ReservationsPage() {
     },
   });
 
-  const checkinMutation = useCheckinReservation({
-    mutation: {
-      onSuccess: (data: any) => {
-        invalidate();
-        toast.success(
-          ar
-            ? "تم التسكين بنجاح وانتقل الحجز إلى قائمة المقيمين"
-            : "Checked in successfully and moved to In-House",
-        );
-        setSelectedRows((prev) => {
-          const next = new Set(prev);
-          if (checkinDialog.id) next.delete(checkinDialog.id);
-          return next;
-        });
-        setCheckinDialog({ open: false, id: null });
-        setCheckinRoomId("");
-
-        const asgn = data?.assignment || {
-          id: data?.assignmentId || data?.id,
-          roomId: data?.roomId,
-          checkInDate: data?.checkInDate,
-          expectedCheckOutDate: data?.checkOutDate,
-        };
-        setLastAssignment(asgn);
-        if (data?.profile) {
-          setSelectedProfile(data.profile);
-        }
-        setKeyPromptOpen(true);
-      },
-      onError: (e: any) => {
-        const msg = e?.data?.error || e?.message || (ar ? "خطأ في التسكين" : "Check-in error");
-        toast.error(msg);
-      },
-    },
+  const {
+    checkinDialog, setCheckinDialog,
+    checkinRoomId, setCheckinRoomId,
+    checkinRoomSearch, setCheckinRoomSearch,
+    resPolicyModal, setResPolicyModal,
+    checkinRecommendations, filteredCheckinRooms,
+    checkinMutation,
+    handleStartCheckin, handleCheckin,
+  } = useReservationCheckin({
+    ar, activePropertyId, rooms, allAssignments, profilesList, settings, invalidate,
+    setSelectedProfile, setLastAssignment, setKeyPromptOpen, setSelectedRows,
   });
 
   const updateMutation = useUpdateReservation({
@@ -761,82 +525,12 @@ export default function ReservationsPage() {
     },
   });
 
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!empSearch.trim() || empSearch.trim().length < 1) {
-      setEmpResults([]);
-      setShowDropdown(false);
-      return;
-    }
-    debounceRef.current = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const effectivePropId =
-          searchPropertyId && searchPropertyId !== "all"
-            ? searchPropertyId
-            : (activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "");
-        const pp = effectivePropId ? `&propertyId=${effectivePropId}` : "";
-        const resp = await fetch(`/api/profiles/search?q=${encodeURIComponent(empSearch.trim())}${pp}`, { credentials: "include" });
-        setEmpResults(await resp.json());
-        setShowDropdown(true);
-      } catch {
-        setEmpResults([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-  }, [empSearch, searchPropertyId, activePropertyId]);
-
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowDropdown(false);
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  const selectProfile = (emp: ProfileResult) => {
-    setSelectedProfile(emp);
-    setEmpSearch(`${emp.firstName} ${emp.lastName} (${emp.profileId})`);
-    setShowDropdown(false);
-    // Auto-populate expected checkout date from contract end date for internal employee
-    if (emp.employmentType !== "THIRD_PARTY" && emp.contractEndDate) {
-      setExpectedCheckOut(emp.contractEndDate.split("T")[0]);
-    }
-  };
-
-  const clearProfile = () => {
-    setSelectedProfile(null);
-    setEmpSearch("");
-    setEmpResults([]);
-  };
-
   const openNewDialog = () => {
     setStep(1);
     setPersonMode(null);
     setSelectedProfile(null);
     setEmpSearch("");
-    setNewForm({
-      profileId: "",
-      firstName: "",
-      lastName: "",
-      thirdName: "",
-      fourthName: "",
-      nationalId: "",
-      nationality: "",
-      gender: "M",
-      phone: "",
-      dateOfBirth: "",
-      address: "",
-      hireDate: new Date().toISOString().split("T")[0],
-      contractEndDate: "",
-      department: "",
-      jobTitle: "",
-      level: "",
-      employmentType: "THIRD_PARTY",
-      companyName: "",
-      idDocuments: [],
-    });
+    setNewForm(makeEmptyNewForm());
     clearPhoto();
     setBookingType("direct");
     setSelectedRoomId("");
@@ -1092,132 +786,9 @@ export default function ReservationsPage() {
     setCrossPropertyModalOpen(false);
   };
 
-  const executeCheckinOperation = (
-    res: any,
-    targetRoomId: number,
-    approval?: { approvedBy: string; reason: string },
-  ) => {
-    setSelectedProfile({
-      id: res.profileId || 0,
-      propertyId: typeof activePropertyId === "number" ? activePropertyId : (res.propertyId || 0),
-      propertyName: null,
-      profileId: res.profileCode || `RES-${res.id}`,
-      firstName: res.firstName,
-      lastName: res.lastName,
-      nationalId: res.guestIdCardNumber || "",
-      jobTitle: res.jobTitle || null,
-      department: res.department || null,
-      nationality: res.nationality || null,
-      phone: res.guestPhone || null,
-      level: res.level || null,
-      status: "ACTIVE",
-      gender: res.gender || null,
-    });
-
-    checkinMutation.mutate({
-      id: res.id,
-      data: {
-        roomId: targetRoomId,
-        actualCheckInDate: new Date().toISOString(),
-        hasPolicyException: Boolean(approval),
-        policyApprovedBy: approval?.approvedBy,
-        policyExceptionReason: approval?.reason,
-      } as any,
-    });
-    setCheckinDialog({ open: false, id: null });
-  };
-
-  const handleStartCheckin = (res: any) => {
-    if (res.roomId) {
-      const chosenRoom = rooms.find((r: any) => r.id === Number(res.roomId));
-      if (chosenRoom) {
-        const compliance = checkPolicyCompliance({
-          profile: {
-            level: res.level,
-            gender: res.gender,
-            department: res.department,
-            nationality: res.nationality,
-          },
-          room: chosenRoom,
-          assignments: allAssignments,
-          profiles: profilesList,
-          policySettings: settings || {},
-        });
-
-        if (
-          !compliance.compliant &&
-          compliance.violations.length > 0 &&
-          (settings as any)?.policyRequireExceptionApproval
-        ) {
-          setResPolicyModal({
-            open: true,
-            violations: compliance.violations,
-            pendingAction: (approval) => {
-              executeCheckinOperation(res, Number(res.roomId), approval);
-            },
-          });
-          return;
-        }
-      }
-
-      executeCheckinOperation(res, Number(res.roomId));
-    } else {
-      // No room was assigned yet: open room picker dialog
-      setCheckinRoomId("");
-      setCheckinDialog({
-        open: true,
-        id: res.id,
-        guestName: `${res.firstName} ${res.lastName}`,
-        reservation: res,
-      });
-    }
-  };
-
-  const handleCheckin = () => {
-    if (!checkinDialog.id || !checkinRoomId) {
-      toast.error(ar ? "الرجاء اختيار غرفة" : "Please select a room");
-      return;
-    }
-    const res = checkinDialog.reservation;
-    const targetRoomId = parseInt(checkinRoomId);
-    const chosenRoom = rooms.find((r: any) => r.id === targetRoomId);
-
-    if (chosenRoom && res) {
-      const compliance = checkPolicyCompliance({
-        profile: {
-          level: res.level,
-          gender: res.gender,
-          department: res.department,
-          nationality: res.nationality,
-        },
-        room: chosenRoom,
-        assignments: allAssignments,
-        profiles: profilesList,
-        policySettings: settings || {},
-      });
-
-      if (
-        !compliance.compliant &&
-        compliance.violations.length > 0 &&
-        (settings as any)?.policyRequireExceptionApproval
-      ) {
-        setResPolicyModal({
-          open: true,
-          violations: compliance.violations,
-          pendingAction: (approval) => {
-            executeCheckinOperation(res, targetRoomId, approval);
-          },
-        });
-        return;
-      }
-    }
-
-    executeCheckinOperation(res, targetRoomId);
-  };
-
   const filteredEditRooms = useMemo(() => {
     return rooms.filter((r: any) => {
-      if (["maintenance", "out_of_service", "oos", "out_of_order", "ooo"].includes(r.status?.toLowerCase())) return false;
+      if (!isRoomBookable(r)) return false;
       if (editBuildingId !== "all" && String(r.buildingId) !== editBuildingId) return false;
       if (editRoomSearch.trim()) {
         const q = editRoomSearch.trim().toLowerCase();
@@ -1284,19 +855,7 @@ export default function ReservationsPage() {
     });
   };
 
-  const statusLabel: Record<string, string> = {
-    UPCOMING: ar ? "حجز مستقبلي" : "Future",
-    CHECKED_IN: ar ? "مقيم" : "Checked In",
-    CANCELLED: ar ? "ملغي" : "Cancelled",
-    COMPLETED: ar ? "منتهي" : "Completed",
-  };
-  const statusColor = (s: string) =>
-    ({
-      UPCOMING: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
-      CHECKED_IN: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
-      CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
-      COMPLETED: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-    })[s] || "bg-gray-100 text-gray-600";
+  const statusLabel = getStatusLabel(ar);
 
   const pagedResIds = (reservations || []).map((r: any) => r.id);
   const allResPageSelected = pagedResIds.length > 0 && pagedResIds.every((id: number) => selectedRows.has(id));
@@ -1359,24 +918,9 @@ export default function ReservationsPage() {
     });
   };
 
-  const RES_COLS = [
-    { key: "guest", label: "Guest & Type", labelAr: "النزيل والتصنيف", defaultVisible: true, fixed: true },
-    { key: "contact", label: "Contact & ID", labelAr: "التواصل والهوية", defaultVisible: true },
-    { key: "stay", label: "Stay Period", labelAr: "فترة الإقامة", defaultVisible: true },
-    { key: "room", label: "Building & Housing", labelAr: "المبنى والتسكين", defaultVisible: true },
-    { key: "status", label: "Status", labelAr: "الحالة", defaultVisible: true },
-    { key: "actions", label: "Actions", labelAr: "إجراءات", defaultVisible: true, fixed: true },
-    // Granular columns for power users via ColumnChooser:
-    { key: "emptype", label: "Type only", labelAr: "النوع فقط", defaultVisible: false },
-    { key: "phone", label: "Phone only", labelAr: "الهاتف فقط", defaultVisible: false },
-    { key: "id", label: "ID only", labelAr: "الهوية فقط", defaultVisible: false },
-    { key: "dept", label: "Dept only", labelAr: "القسم فقط", defaultVisible: false },
-    { key: "roomtype", label: "Room Type only", labelAr: "نوع الغرفة فقط", defaultVisible: false },
-    { key: "checkin", label: "Check-in only", labelAr: "الدخول فقط", defaultVisible: false },
-    { key: "checkout", label: "Check-out only", labelAr: "المغادرة فقط", defaultVisible: false },
-  ];
   const { visible: resVisible, toggle: resToggle, showAll: resShowAll, hideAll: resHideAll, isVisible: isResVisible } = useColumnVisibility(RES_COLS);
   const upcomingCount = (reservations || []).filter((r: any) => r.status === "UPCOMING").length;
+
 
   return (
     <div className="space-y-5">
@@ -1399,24 +943,18 @@ export default function ReservationsPage() {
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground rtl:left-auto rtl:right-3" />
-          <Input className="pl-9 rtl:pr-9 rtl:pl-3" placeholder={ar ? "بحث..." : "Search..."} value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-56"><SelectValue placeholder={ar ? "حالة الحجز" : "Reservation Status"} /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="UPCOMING">{ar ? "الحجوزات المستقبلية" : "Future Reservations"}</SelectItem>
-            <SelectItem value="CHECKED_IN">{ar ? "تم التسكين" : "Checked In"}</SelectItem>
-            <SelectItem value="COMPLETED">{ar ? "منتهي" : "Completed"}</SelectItem>
-            <SelectItem value="CANCELLED">{ar ? "ملغي" : "Cancelled"}</SelectItem>
-            <SelectItem value="all">{ar ? "كل الحالات" : "All Statuses"}</SelectItem>
-          </SelectContent>
-        </Select>
-        <ColumnChooser cols={RES_COLS} visible={resVisible} onToggle={resToggle} onShowAll={resShowAll} onHideAll={resHideAll} ar={ar} />
-        <Button variant="outline" size="sm" onClick={exportResExcel} className="h-10">{ar ? "تصدير" : "Export"}</Button>
-      </div>
+      <ReservationsToolbar
+        ar={ar}
+        search={search}
+        setSearch={setSearch}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        resVisible={resVisible}
+        resToggle={resToggle}
+        resShowAll={resShowAll}
+        resHideAll={resHideAll}
+        exportResExcel={exportResExcel}
+      />
 
       <BulkActionBar
         count={selectedRows.size}
@@ -1443,1297 +981,149 @@ export default function ReservationsPage() {
         ar={ar}
       />
 
-      <div className="border rounded-xl overflow-hidden bg-card shadow-xs">
-        <Table className="w-full table-fixed">
-          <TableHeader>
-            <TableRow className="bg-muted/80 hover:bg-muted/80">
-              <TableHead className="w-10 px-3 sticky ltr:left-0 rtl:right-0 z-20 bg-muted/90"><Checkbox checked={allResPageSelected} onCheckedChange={toggleSelectAllRes} /></TableHead>
-              {isResVisible("guest") && (
-                <TableHead className="font-semibold text-xs text-foreground w-[25%] min-w-0">
-                  {ar ? "النزيل والتصنيف" : "Guest & Type"}
-                </TableHead>
-              )}
-              {isResVisible("contact") && (
-                <TableHead className="font-semibold text-xs text-foreground w-[16%] min-w-0">
-                  {ar ? "التواصل والهوية" : "Contact & ID"}
-                </TableHead>
-              )}
-              {isResVisible("stay") && (
-                <TableHead className="font-semibold text-xs text-foreground w-[19%] min-w-0">
-                  {ar ? "فترة الإقامة" : "Stay Period"}
-                </TableHead>
-              )}
-              {isResVisible("room") && (
-                <TableHead className="font-semibold text-xs text-foreground w-[22%] min-w-0">
-                  {ar ? "المبنى والتسكين" : "Building & Housing"}
-                </TableHead>
-              )}
-              {isResVisible("emptype") && <TableHead className="font-semibold text-xs">{ar ? "النوع" : "Type"}</TableHead>}
-              {isResVisible("phone") && <TableHead className="font-semibold text-xs">{ar ? "الهاتف" : "Phone"}</TableHead>}
-              {isResVisible("id") && <TableHead className="font-semibold text-xs">{ar ? "الهوية" : "ID Card"}</TableHead>}
-              {isResVisible("dept") && <TableHead className="font-semibold text-xs">{ar ? "القسم" : "Dept"}</TableHead>}
-              {isResVisible("roomtype") && <TableHead className="font-semibold text-xs">{ar ? "نوع الغرفة" : "Room Type"}</TableHead>}
-              {isResVisible("checkin") && <TableHead className="font-semibold text-xs">{ar ? "الدخول" : "Check-in"}</TableHead>}
-              {isResVisible("checkout") && <TableHead className="font-semibold text-xs">{ar ? "المغادرة" : "Check-out"}</TableHead>}
-              {isResVisible("status") && (
-                <TableHead className="font-semibold text-xs text-foreground w-[10%] min-w-0 text-center">
-                  {ar ? "الحالة" : "Status"}
-                </TableHead>
-              )}
-              {isResVisible("actions") && (
-                <TableHead className="font-semibold text-xs text-center w-20 sticky ltr:right-0 rtl:left-0 z-20 bg-muted/90 border-s border-border">
-                  {ar ? "إجراءات" : "Actions"}
-                </TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}><TableCell colSpan={8}><Skeleton className="h-4 w-full" /></TableCell></TableRow>
-              ))
-            ) : (reservations || []).length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-16 text-muted-foreground">
-                  <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p>{ar ? "لا توجد حجوزات" : "No reservations found"}</p>
-                </TableCell>
-              </TableRow>
-            ) : (
-              (reservations || []).map((res: any) => {
-                const isSel = selectedRows.has(res.id);
-                const isThirdParty = res.employmentType === "THIRD_PARTY" || res.department === "طرف ثالث";
-                const room = (res.roomId && roomMap.get(Number(res.roomId))) || null;
-                const roomNumber = res.roomNumber || room?.roomNumber || (res.roomId ? String(res.roomId) : null);
-                const buildingName = res.buildingName || (room?.buildingId ? buildingMap[room.buildingId] : null) || room?.buildingName || null;
-                const bedNumber = res.bedNumber || (room?.bedNumber ? String(room.bedNumber) : null);
-                const roomType = res.roomType || room?.type || room?.classification || null;
-
-                const inTime = res.checkInDate ? new Date(res.checkInDate).getTime() : NaN;
-                const outTime = res.checkOutDate ? new Date(res.checkOutDate).getTime() : NaN;
-                const nights = !isNaN(inTime) && !isNaN(outTime) ? Math.max(1, Math.round((outTime - inTime) / (1000 * 60 * 60 * 24))) : null;
-
-                return (
-                  <TableRow key={res.id} className={`group ${isSel ? "bg-primary/5" : "hover:bg-muted/20"}`}>
-                    <TableCell className="px-3 sticky ltr:left-0 rtl:right-0 z-10 bg-card group-hover:bg-accent/40">
-                      <Checkbox checked={isSel} onCheckedChange={() => toggleResRow(res.id)} />
-                    </TableCell>
-
-                    {/* Guest & Profile Type */}
-                    {isResVisible("guest") && (
-                      <TableCell className="py-2.5 min-w-0">
-                        <div className="flex flex-col gap-0.5 min-w-0">
-                          <span className="font-semibold text-sm text-foreground leading-tight truncate block">
-                            {res.firstName} {res.lastName}
-                          </span>
-                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                            {isThirdParty ? (
-                              <Badge className="bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 text-[10px] font-bold px-1.5 py-0 truncate">
-                                <span className="w-1.5 h-1.5 rounded-full bg-purple-600 inline-block mr-1 rtl:ml-1 rtl:mr-0 flex-shrink-0" />
-                                <span className="truncate">{ar ? "طرف ثالث" : "Third Party"}{res.companyName ? ` • ${res.companyName}` : ""}</span>
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 text-[10px] font-bold px-1.5 py-0 truncate">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 inline-block mr-1 rtl:ml-1 rtl:mr-0 flex-shrink-0" />
-                                <span className="truncate">{ar ? "موظف داخلي" : "Internal"}</span>
-                              </Badge>
-                            )}
-                          </div>
-                          {(res.department || res.jobTitle) && (
-                            <div className="text-[11px] text-muted-foreground/80 truncate">
-                              {res.department && res.department !== "طرف ثالث" ? res.department : ""}
-                              {res.department && res.department !== "طرف ثالث" && res.jobTitle ? " • " : ""}
-                              {res.jobTitle ? res.jobTitle : ""}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-
-                    {/* Contact & ID */}
-                    {isResVisible("contact") && (
-                      <TableCell className="py-2.5 min-w-0">
-                        <div className="flex flex-col text-xs gap-0.5 min-w-0">
-                          {res.guestPhone ? (
-                            <span className="font-mono text-foreground font-medium flex items-center gap-1 truncate" dir="ltr">
-                              <Phone className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                              <span className="truncate">{res.guestPhone}</span>
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                          {res.guestIdCardNumber && (
-                            <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                              <CreditCard className="w-3 h-3 text-muted-foreground/70 flex-shrink-0" />
-                              <span className="truncate">{res.guestIdCardNumber}</span>
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-
-                    {/* Stay Period */}
-                    {isResVisible("stay") && (
-                      <TableCell className="py-2.5 min-w-0">
-                        <div className="flex flex-col text-xs gap-0.5 min-w-0">
-                          <div className="flex items-center gap-1 font-medium whitespace-nowrap">
-                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{formatDate(res.checkInDate)}</span>
-                            <span className="text-muted-foreground">←</span>
-                            <span className="text-amber-700 dark:text-amber-400 font-semibold">{formatDate(res.checkOutDate)}</span>
-                          </div>
-                          {nights !== null && (
-                            <span className="text-[11px] text-muted-foreground font-medium">
-                              {ar ? `${nights} ${nights === 1 ? "ليلة" : nights === 2 ? "ليلتان" : nights <= 10 ? "ليالٍ" : "ليلة"}` : `${nights} ${nights === 1 ? "night" : "nights"}`}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-
-                    {/* Building & Housing */}
-                    {isResVisible("room") && (
-                      <TableCell className="py-2.5 min-w-0">
-                        <div className="flex flex-col text-xs gap-0.5 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {buildingName && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800 text-[11px] font-semibold">
-                                <Building2 className="w-3 h-3 text-sky-600 dark:text-sky-400 shrink-0" />
-                                <span>{buildingName}</span>
-                              </span>
-                            )}
-                            {roomNumber ? (
-                              <span className="font-bold text-sm text-primary flex items-center gap-1 truncate">
-                                <BedDouble className="w-3.5 h-3.5 text-primary shrink-0" />
-                                <span>{ar ? `غرفة ${roomNumber}` : `Room ${roomNumber}`}</span>
-                                {bedNumber && (
-                                  <span className="inline-flex items-center px-1.5 py-0 text-[10px] font-semibold rounded bg-primary/10 text-primary border border-primary/20">
-                                    {ar ? `سرير ${bedNumber}` : `Bed ${bedNumber}`}
-                                  </span>
-                                )}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
-                                <BedDouble className="w-3.5 h-3.5 shrink-0 opacity-80" />
-                                <span>{ar ? "لم تُحدد بعد" : "Not Assigned"}</span>
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-muted-foreground truncate">
-                            <span>{roomType || (ar ? "غرفة سكنية" : "Standard")}</span>
-                          </div>
-                        </div>
-                      </TableCell>
-                    )}
-
-                    {/* Granular Fallback Cells if user checked them specifically in ColumnChooser */}
-                    {isResVisible("emptype") && (
-                      <TableCell>
-                        {isThirdParty ? (
-                          <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs font-semibold">
-                            {ar ? "طرف ثالث" : "Third Party"}{res.companyName ? ` • ${res.companyName}` : ""}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs font-semibold">
-                            {ar ? "موظف داخلي" : "Internal"}
-                          </Badge>
-                        )}
-                      </TableCell>
-                    )}
-                    {isResVisible("phone") && <TableCell className="text-sm">{res.guestPhone || "—"}</TableCell>}
-                    {isResVisible("id") && <TableCell className="text-sm font-mono">{res.guestIdCardNumber || "—"}</TableCell>}
-                    {isResVisible("dept") && <TableCell className="text-sm">{res.department || "—"}</TableCell>}
-                    {isResVisible("roomtype") && <TableCell className="text-sm">{res.roomType || "—"}</TableCell>}
-                    {isResVisible("checkin") && <TableCell className="text-sm whitespace-nowrap">{formatDate(res.checkInDate)}</TableCell>}
-                    {isResVisible("checkout") && <TableCell className="text-sm whitespace-nowrap">{formatDate(res.checkOutDate)}</TableCell>}
-
-                    {/* Status */}
-                    {isResVisible("status") && (
-                      <TableCell className="py-2.5 whitespace-nowrap text-center">
-                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusColor(res.status)}`}>
-                          {statusLabel[res.status] || res.status}
-                        </span>
-                      </TableCell>
-                    )}
-
-                    {/* Actions */}
-                    {isResVisible("actions") && (
-                      <TableCell className="w-24 text-center sticky ltr:right-0 rtl:left-0 z-10 bg-card group-hover:bg-accent/40 border-s border-border">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1 font-medium bg-background hover:bg-muted shadow-xs">
-                              {ar ? "إجراءات" : "Actions"} <ChevronDown className="w-3 h-3 opacity-60" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-56 shadow-lg">
-                            {res.status === "UPCOMING" && (
-                              <PermissionGate module="accommodation" action="create">
-                                <DropdownMenuItem onClick={() => handleStartCheckin(res)} className="cursor-pointer font-medium text-emerald-600">
-                                  <CheckCircle className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-500" />{ar ? "تسكين" : "Check-In"}
-                                </DropdownMenuItem>
-                              </PermissionGate>
-                            )}
-                            {res.status === "UPCOMING" && (
-                              <PermissionGate anyPermission={[["whatsapp", "create"], ["accommodation", "edit"]]}>
-                                <DropdownMenuItem
-                                  onClick={() => handleOpenWhatsAppDialog(res)}
-                                  className="cursor-pointer font-medium text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50"
-                                >
-                                  <MessageSquare className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-500" />
-                                  {ar ? "إرسال تأكيد الحجز (واتساب)" : "Send WhatsApp Confirmation"}
-                                </DropdownMenuItem>
-                              </PermissionGate>
-                            )}
-                            <PermissionGate module="accommodation" action="edit">
-                              <DropdownMenuItem onClick={() => openEdit(res)} className="cursor-pointer">
-                                <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-amber-500" />{ar ? "تعديل" : "Edit"}
-                              </DropdownMenuItem>
-                            </PermissionGate>
-                            {res.status === "UPCOMING" && (
-                              <PermissionGate module="accommodation" action="edit">
-                                <DropdownMenuItem
-                                  onClick={() => setCancelDialog({ open: true, reservation: res, reason: "" })}
-                                  className="text-destructive cursor-pointer focus:text-destructive focus:bg-destructive/10 font-medium"
-                                >
-                                  <Ban className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-destructive" />{ar ? "إلغاء الحجز" : "Cancel Reservation"}
-                                </DropdownMenuItem>
-                              </PermissionGate>
-                            )}
-                            <PermissionGate module="accommodation" action="delete">
-                              <DropdownMenuItem onClick={() => setDeleteId(res.id)} className="text-destructive cursor-pointer focus:text-destructive focus:bg-destructive/10">
-                                <Trash className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-destructive" />{ar ? "حذف" : "Delete"}
-                              </DropdownMenuItem>
-                            </PermissionGate>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <ReservationsTable
+        ar={ar}
+        reservations={reservations}
+        isLoading={isLoading}
+        selectedRows={selectedRows}
+        allResPageSelected={allResPageSelected}
+        toggleSelectAllRes={toggleSelectAllRes}
+        toggleResRow={toggleResRow}
+        isResVisible={isResVisible}
+        roomMap={roomMap}
+        buildingMap={buildingMap}
+        statusLabel={statusLabel}
+        statusColor={statusColor}
+        handleStartCheckin={handleStartCheckin}
+        handleOpenWhatsAppDialog={handleOpenWhatsAppDialog}
+        openEdit={openEdit}
+        setCancelDialog={setCancelDialog}
+        setDeleteId={setDeleteId}
+      />
 
       {paginationTotal > 0 && (
         <DataPagination total={paginationTotal} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }} />
       )}
 
       {/* NEW RESERVATION / ASSIGNMENT DIALOG */}
-      <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <BedDouble className="w-5 h-5 text-primary" />
-              {ar ? "حجز / تسكين جديد" : "New Reservation / Assignment"}
-            </DialogTitle>
-            <div className="flex items-center gap-1 mt-2">
-              {[1, 2, 3].map((s) => (<div key={s} className={`h-1.5 rounded-full flex-1 transition-colors ${step >= s ? "bg-primary" : "bg-muted"}`} />))}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {step === 1 && (ar ? "الخطوة 1: تحديد نوع الشخص ونظام الحجز" : "Step 1: Choose person type & booking mode")}
-              {step === 2 && personMode === "existing" && (ar ? "الخطوة 2: البحث عن الموظف المسجل مسبقاً" : "Step 2: Search existing registered profile")}
-              {step === 2 && personMode === "new" && (ar ? "الخطوة 2: إدخال بيانات الملف الجديد والمستندات" : "Step 2: Enter new profile data & upload documents")}
-              {step === 3 && (ar ? "الخطوة 3: اختيار الغرفة وتواريخ الإقامة" : "Step 3: Select room and check-in dates")}
-            </p>
-          </DialogHeader>
+      <NewReservationDialog ar={ar} newDialogOpen={newDialogOpen} setNewDialogOpen={setNewDialogOpen} step={step} personMode={personMode}>
+        {/* STEP 1: CHOOSE MODE */}
+        {step === 1 && (
+          <WizardStepMode
+            ar={ar}
+            personMode={personMode}
+            setPersonMode={setPersonMode}
+            setNewForm={setNewForm}
+            bookingType={bookingType}
+            setBookingType={setBookingType}
+            setStep={setStep}
+          />
+        )}
 
-          {/* STEP 1: CHOOSE MODE */}
-          {step === 1 && (
-            <div className="space-y-5 py-2">
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold">{ar ? "هل الشخص موجود مسبقاً في النظام أم نيو بروفايل؟" : "Is this person registered or a new profile?"}</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button onClick={() => { setPersonMode("existing"); }} className={`flex flex-col items-center gap-3 p-5 border-2 rounded-xl transition-all ${personMode === "existing" ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-border hover:border-primary/50 hover:bg-muted/30"}`}>
-                    <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
-                      <UserCheck className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-semibold text-sm">{ar ? "ملف موظف داخلي" : "Internal Profile"}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{ar ? "البحث عن موظف مسجل مسبقاً في النظام" : "Search existing registered employee"}</p>
-                    </div>
-                  </button>
-                  <button onClick={() => { setPersonMode("new"); setNewForm((f) => ({ ...f, employmentType: "THIRD_PARTY" })); }} className={`flex flex-col items-center gap-3 p-5 border-2 rounded-xl transition-all ${personMode === "new" ? "border-purple-600 bg-purple-500/5 ring-2 ring-purple-500/20" : "border-border hover:border-purple-500/50 hover:bg-muted/30"}`}>
-                    <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-950 flex items-center justify-center">
-                      <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-semibold text-sm">{ar ? "نيو بروفايل" : "New Profile"}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{ar ? "إدخال بيانات شخص وإنشاء بروفايل جديد" : "Enter details & create new profile"}</p>
-                    </div>
-                  </button>
-                </div>
-              </div>
+        {/* STEP 2A: EXISTING PROFILE SEARCH */}
+        {step === 2 && personMode === "existing" && (
+          <WizardStepExistingProfile
+            ar={ar}
+            allProperties={allProperties}
+            activeProp={activeProp}
+            searchPropertyId={searchPropertyId}
+            setSearchPropertyId={setSearchPropertyId}
+            searchRef={searchRef}
+            empSearch={empSearch}
+            setEmpSearch={setEmpSearch}
+            empResults={empResults}
+            isSearching={isSearching}
+            showDropdown={showDropdown}
+            selectedProfile={selectedProfile}
+            selectProfile={selectProfile}
+            clearProfile={clearProfile}
+            isCrossProperty={isCrossProperty}
+            archiveSourceProfile={archiveSourceProfile}
+            setArchiveSourceProfile={setArchiveSourceProfile}
+            setTransferType={setTransferType}
+            setStep={setStep}
+          />
+        )}
 
-              {personMode && (
-                <div className="space-y-2 pt-2 border-t">
-                  <Label className="text-sm font-semibold">{ar ? "طريقة الحجز" : "Booking Mode"}</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => setBookingType("direct")}
-                      className={`flex items-start gap-2.5 p-3 rounded-lg border-2 text-left rtl:text-right transition-all ${bookingType === "direct" ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:border-muted-foreground"}`}
-                    >
-                      <CheckCircle className={`w-4 h-4 mt-0.5 ${bookingType === "direct" ? "text-primary" : "text-muted-foreground"}`} />
-                      <div>
-                        <p className="text-sm font-semibold">{ar ? "تسكين فوري" : "Direct Assignment"}</p>
-                        <p className="text-xs text-muted-foreground">{ar ? "تسكين الشخص في الغرفة والسرير الآن" : "Assign to room & bed immediately"}</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => setBookingType("upcoming")}
-                      className={`flex items-start gap-2.5 p-3 rounded-lg border-2 text-left rtl:text-right transition-all ${bookingType === "upcoming" ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border hover:border-muted-foreground"}`}
-                    >
-                      <CalendarDays className={`w-4 h-4 mt-0.5 ${bookingType === "upcoming" ? "text-primary" : "text-muted-foreground"}`} />
-                      <div>
-                        <p className="text-sm font-semibold">{ar ? "حجز مستقبلي" : "Future Reservation"}</p>
-                        <p className="text-xs text-muted-foreground">{ar ? "حجز لتاريخ مستقبلي ثم تسكينه لاحقاً" : "Book for future date with check-in later"}</p>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              )}
+        {/* STEP 2B: FULL NEW PROFILE FORM (EXACTLY LIKE ADD PROFILE) */}
+        {step === 2 && personMode === "new" && (
+          <WizardStepNewProfile
+            ar={ar}
+            activePropertyId={activePropertyId}
+            newForm={newForm}
+            setNewForm={setNewForm}
+            photoPreview={photoPreview}
+            photoRef={photoRef}
+            docsRef={docsRef}
+            handlePhotoSelect={handlePhotoSelect}
+            clearPhoto={clearPhoto}
+            handleDocSelect={handleDocSelect}
+            removeDoc={removeDoc}
+            resDuplicates={resDuplicates}
+            resHasDuplicates={resHasDuplicates}
+            setStep={setStep}
+          />
+        )}
 
-              <div className="flex justify-end pt-2">
-                <Button onClick={() => setStep(2)} disabled={!personMode}>
-                  {ar ? "التالي" : "Next"} <ChevronRight className="w-4 h-4 ml-1 rtl:rotate-180" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2A: EXISTING PROFILE SEARCH */}
-          {step === 2 && personMode === "existing" && (
-            <div className="space-y-4 py-2">
-              {allProperties.length > 1 && (
-                <Select value={searchPropertyId} onValueChange={(v) => { setSearchPropertyId(v); clearProfile(); }}>
-                  <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={ar ? "كل الفروع" : "All Properties"} /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{ar ? "كل الفروع" : "All Properties"}</SelectItem>
-                    {allProperties.map((p: any) => (<SelectItem key={p.id} value={String(p.id)}>{p.displayName || p.name}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-              )}
-              <div className="relative" ref={searchRef}>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground rtl:left-auto rtl:right-3" />
-                  <Input className="pl-9 pr-9 rtl:pr-9 rtl:pl-9" placeholder={ar ? "ابحث بالاسم أو الكود أو الهوية..." : "Search by name, code, or ID..."} value={empSearch} onChange={(e) => { setEmpSearch(e.target.value); if (selectedProfile) clearProfile(); }} autoComplete="off" />
-                  {empSearch && (<button onClick={clearProfile} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground rtl:right-auto rtl:left-3"><X className="w-4 h-4" /></button>)}
-                </div>
-                {showDropdown && (
-                  <div className="absolute top-full mt-1 left-0 right-0 z-50 bg-card border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    {isSearching && <div className="p-3 text-sm text-muted-foreground">{ar ? "جاري البحث..." : "Searching..."}</div>}
-                    {!isSearching && empResults.length === 0 && <div className="p-3 text-sm text-muted-foreground">{ar ? "لا توجد نتائج" : "No results"}</div>}
-                    {empResults.map((emp) => (
-                      <button key={emp.id} className="w-full text-left rtl:text-right px-4 py-3 hover:bg-muted/50 flex items-start gap-3 border-b last:border-0 transition-colors" onClick={() => selectProfile(emp)}>
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-xs font-bold text-primary">{emp.firstName[0]}{emp.lastName[0]}</span></div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm">{emp.firstName} {emp.lastName}</p>
-                          <p className="text-xs text-muted-foreground">{emp.profileId} • {emp.department || "—"} • {emp.jobTitle || "—"}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            {emp.employmentType === "THIRD_PARTY" ? (
-                              <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">{ar ? "طرف ثالث" : "Third Party"}{emp.companyName ? ` • ${emp.companyName}` : ""}</span>
-                            ) : (
-                              <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-full">{ar ? "داخلي" : "Internal"}</span>
-                            )}
-                            {emp.employmentType !== "THIRD_PARTY" && emp.contractEndDate && (
-                              <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">
-                                {ar ? "انتهاء العقد:" : "Contract End:"} {emp.contractEndDate}
-                              </span>
-                            )}
-                            {emp.accommodationRoom && (
-                              <span className="text-xs bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-800 px-2 py-0.5 rounded-full font-semibold inline-flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
-                                {ar ? `مقيم حالياً: غرفة #${emp.accommodationRoom}` : `In-House: Room #${emp.accommodationRoom}`}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {selectedProfile && (
-                <div className="p-4 border rounded-lg bg-primary/5 border-primary/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center"><span className="text-sm font-bold text-primary">{selectedProfile.firstName[0]}{selectedProfile.lastName[0]}</span></div>
-                    <div>
-                      <p className="font-semibold">{selectedProfile.firstName} {selectedProfile.lastName}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{selectedProfile.profileId} • {selectedProfile.department || "—"} • {selectedProfile.jobTitle || "—"}</p>
-                      {selectedProfile.employmentType !== "THIRD_PARTY" && selectedProfile.contractEndDate && (
-                        <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-0.5">
-                          📄 {ar ? "تاريخ انتهاء العقد:" : "Contract End Date:"} {selectedProfile.contractEndDate}
-                        </p>
-                      )}
-                    </div>
-                    {selectedProfile.employmentType === "THIRD_PARTY" ? (
-                      <Badge className="ml-auto rtl:ml-0 rtl:mr-auto bg-purple-100 text-purple-800 text-xs font-semibold">{ar ? "طرف ثالث" : "Third Party"}{selectedProfile.companyName ? ` • ${selectedProfile.companyName}` : ""}</Badge>
-                    ) : (
-                      <Badge variant="outline" className="ml-auto rtl:ml-0 rtl:mr-auto bg-blue-50 text-blue-700 text-xs font-semibold">{ar ? "موظف داخلي" : "Internal Employee"}</Badge>
-                    )}
-                  </div>
-                  {selectedProfile.accommodationRoom && !isCrossProperty && (
-                    <div className="mt-3 p-3 rounded-lg border border-red-300 bg-red-50/90 dark:bg-red-950/40 text-red-800 dark:text-red-300 text-xs flex items-start gap-2.5">
-                      <X className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-bold">
-                          {ar
-                            ? `تنبيه: هذا الموظف مقيم بالفعل بالسكن في غرفة رقم #${selectedProfile.accommodationRoom} ${selectedProfile.accommodationBuilding ? `(${selectedProfile.accommodationBuilding})` : ""}`
-                            : `Warning: This employee is already residing in Room #${selectedProfile.accommodationRoom}`}
-                        </p>
-                        <p className="mt-1 text-red-700 dark:text-red-400">
-                          {ar
-                            ? "لا يمكن تسكينه مرتين في نفس الفندق. لنقل الموظف لغرفة أخرى، يرجى استخدام خيار (نقل لغرفة أخرى) من صفحة المقيمين بالسكن."
-                            : "Cannot be double-assigned in same hotel. Use 'Room Move' from In-House page instead."}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ── كارت التسكين العابر للفنادق (Cross-Property Transfer Card) ── */}
-                  {isCrossProperty && (
-                    <div className="mt-3 p-3.5 rounded-xl border-2 border-amber-500/60 bg-amber-50/80 dark:bg-amber-950/40 space-y-3">
-                      <div className="flex items-start gap-2.5">
-                        <div className="p-2 rounded-lg bg-amber-500 text-white shrink-0 shadow-2xs">
-                          <ArrowRightLeft className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-xs text-foreground">
-                              {ar ? "تسكين موظف من فندق آخر (Cross-Property Transfer)" : "Cross-Property Employee Assignment"}
-                            </span>
-                            <Badge variant="outline" className="text-[10px] font-semibold border-amber-500/60 bg-amber-100/60 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200">
-                              {selectedProfile.propertyName || (ar ? "فندق خارجي" : "Foreign Hotel")} ➔ {activeProp?.name || (ar ? "الفندق الحالي" : "Target Hotel")}
-                            </Badge>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                            {ar
-                              ? `الموظف مسجل حالياً في (${selectedProfile.propertyName}). سيتم مزامنة بياناته ونقله إلى هذا الفندق فور إتمام التسكين.`
-                              : `Resident belongs to (${selectedProfile.propertyName}). Data will be synchronized upon assignment.`}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* تنبيه إذا كان ساكناً في الفندق القديم */}
-                      {selectedProfile.accommodationRoom && (
-                        <div className="p-2.5 rounded-lg border border-amber-500/50 bg-amber-100/80 dark:bg-amber-900/50 text-amber-950 dark:text-amber-100 text-xs flex items-start gap-2">
-                          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                          <div>
-                            <p className="font-bold text-[11px]">
-                              {ar
-                                ? `تنبيه: الموظف ساكن حالياً في ${selectedProfile.propertyName} - غرفة رقم ${selectedProfile.accommodationRoom}!`
-                                : `Notice: Resident is housed in ${selectedProfile.propertyName} - Room ${selectedProfile.accommodationRoom}!`}
-                            </p>
-                            <p className="text-[10.5px] text-muted-foreground dark:text-amber-200/90 leading-relaxed mt-0.5">
-                              {ar
-                                ? "⚡ سيقوم النظام تلقائياً بإنهاء إقامته السابقة (Check-out) وتحرير السرير هناك فور التسكين، مع الحفاظ الكامل على كافة سجلات الغرف التاريخية 100% دون أي حذف."
-                                : "System will check out previous accommodation and release bed, preserving 100% of historical room logs."}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* خيارات مصير البروفايل */}
-                      <div className="space-y-1.5 pt-0.5">
-                        <label className="text-xs font-bold text-foreground block">
-                          {ar
-                            ? `سؤال: ماذا تريد أن تفعل بملف الموظف في الفندق القديم (${selectedProfile.propertyName})؟`
-                            : `What should happen to the profile in (${selectedProfile.propertyName})?`}
-                        </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setArchiveSourceProfile(true);
-                              setTransferType("PERMANENT");
-                            }}
-                            className={`p-2.5 rounded-lg border text-start transition-all cursor-pointer relative ${
-                              archiveSourceProfile
-                                ? "bg-primary/10 border-primary shadow-2xs ring-1 ring-primary/30"
-                                : "bg-background border-border hover:bg-muted/40"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-foreground">
-                                {ar ? "1. نقله وحذفه من هناك" : "1. Transfer & Archive There"}
-                              </span>
-                              {archiveSourceProfile && <Check className="w-3.5 h-3.5 text-primary" />}
-                            </div>
-                            <Badge variant="outline" className="mt-1 text-[9px] font-medium bg-muted/60 text-muted-foreground">
-                              {ar ? "أرشفة لمنع تكرار الاسم" : "Archive duplicate"}
-                            </Badge>
-                            <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
-                              {ar
-                                ? "أرشفة ملفه هناك لعدم ظهوره مرتين، مع بقاء كل سجلات الإقامة القديمة واللوج 100%."
-                                : "Archive old profile to avoid duplicate active records, keeping all stay logs."}
-                            </p>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setArchiveSourceProfile(false);
-                              setTransferType("TASK_FORCE");
-                            }}
-                            className={`p-2.5 rounded-lg border text-start transition-all cursor-pointer relative ${
-                              !archiveSourceProfile
-                                ? "bg-primary/10 border-primary shadow-2xs ring-1 ring-primary/30"
-                                : "bg-background border-border hover:bg-muted/40"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-foreground">
-                                {ar ? "2. نقله وتسيب البروفايل هناك" : "2. Keep Active in Both"}
-                              </span>
-                              {!archiveSourceProfile && <Check className="w-3.5 h-3.5 text-primary" />}
-                            </div>
-                            <Badge variant="outline" className="mt-1 text-[9px] font-medium bg-muted/60 text-muted-foreground">
-                              {ar ? "انتداب / فرعين" : "Secondment / Dual"}
-                            </Badge>
-                            <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
-                              {ar
-                                ? "إبقاء الملف الشخصي متاحاً ونشطاً في الفندق القديم أيضاً (مناسب للانتداب والمأموريات)."
-                                : "Keep profile active in source hotel too (for Task Force / dual property work)."}
-                            </p>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-              <div className="flex justify-between pt-2">
-                <Button variant="outline" onClick={() => setStep(1)}><ChevronLeft className="w-4 h-4 mr-1 rtl:rotate-180" />{ar ? "رجوع" : "Back"}</Button>
-                <Button onClick={() => setStep(3)} disabled={!selectedProfile || (Boolean(selectedProfile.accommodationRoom) && !isCrossProperty)}>{ar ? "التالي" : "Next"}<ChevronRight className="w-4 h-4 ml-1 rtl:rotate-180" /></Button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2B: FULL NEW PROFILE FORM (EXACTLY LIKE ADD PROFILE) */}
-          {step === 2 && personMode === "new" && (
-            <div className="space-y-5 py-2">
-              {/* Photo Picker */}
-              <div className="flex justify-center">
-                <div className="relative group">
-                  <div
-                    className="w-24 h-24 rounded-full border-2 border-dashed border-muted-foreground/40 flex items-center justify-center overflow-hidden bg-muted cursor-pointer hover:border-primary transition-colors shadow-xs"
-                    onClick={() => photoRef.current?.click()}
-                  >
-                    {photoPreview ? (
-                      <img src={photoPreview} alt="preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="flex flex-col items-center gap-1 text-muted-foreground">
-                        <Camera className="w-7 h-7" />
-                        <span className="text-xs text-center leading-tight px-1 font-medium">
-                          {ar ? "إضافة\nصورة" : "Add\nPhoto"}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  {photoPreview && (
-                    <button
-                      type="button"
-                      onClick={clearPhoto}
-                      className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                  <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
-                </div>
-              </div>
-
-              {/* Third-Party Profile Banner */}
-              <div className="flex items-center gap-2.5 p-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-300 text-xs font-semibold shadow-2xs">
-                <Users className="w-4 h-4 shrink-0 text-purple-600 dark:text-purple-400" />
-                <span>{ar ? "ملف موظف طرف ثالث جديد (مقاول / مورد / شركة خارجية)" : "New Third-Party Profile (Contractor / Vendor)"}</span>
-              </div>
-
-              {/* Section 1: Personal Information (الاسم رباعي والهوية والاتصال) */}
-              <div className="rounded-xl border bg-muted/20 p-4 space-y-4 shadow-2xs">
-                <div className="flex items-center justify-between border-b pb-2">
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{ar ? "1. البيانات الشخصية الأساسية" : "1. Personal Information"}</p>
-                  <span className="text-xs text-muted-foreground font-mono">{newForm.profileId}</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "كود الموظف *" : "Profile Code *"}</Label>
-                    <Input
-                      value={newForm.profileId}
-                      onChange={(e) => setNewForm((f) => ({ ...f, profileId: e.target.value }))}
-                      placeholder={ar ? "مثال: EMP-001" : "e.g. EMP-001"}
-                      className={resDuplicates.profileId ? "border-destructive focus-visible:ring-destructive bg-destructive/5" : ""}
-                    />
-                    {resDuplicates.profileId && (
-                      <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>
-                          {ar
-                            ? `كود الموظف مسجل مسبقاً باسم: ${resDuplicates.profileId.name}`
-                            : `Code already registered to: ${resDuplicates.profileId.name}`}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "الاسم الأول *" : "First Name *"}</Label>
-                    <Input value={newForm.firstName} onChange={(e) => setNewForm((f) => ({ ...f, firstName: e.target.value }))} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "الاسم الثاني *" : "Second Name *"}</Label>
-                    <Input value={newForm.lastName} onChange={(e) => setNewForm((f) => ({ ...f, lastName: e.target.value }))} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "الاسم الثالث" : "Third Name"}</Label>
-                    <Input value={newForm.thirdName} onChange={(e) => setNewForm((f) => ({ ...f, thirdName: e.target.value }))} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "الاسم الرابع" : "Fourth Name"}</Label>
-                    <Input value={newForm.fourthName} onChange={(e) => setNewForm((f) => ({ ...f, fourthName: e.target.value }))} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "رقم الهوية / الإقامة *" : "National ID *"}</Label>
-                    <Input
-                      value={newForm.nationalId}
-                      onChange={(e) => setNewForm((f) => ({ ...f, nationalId: e.target.value }))}
-                      className={resDuplicates.nationalId ? "border-destructive focus-visible:ring-destructive bg-destructive/5" : ""}
-                    />
-                    {resDuplicates.nationalId && (
-                      <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>
-                          {ar
-                            ? `رقم الهوية مسجل مسبقاً للموظف: ${resDuplicates.nationalId.name} (كود: ${resDuplicates.nationalId.profileId})`
-                            : `ID already registered to: ${resDuplicates.nationalId.name} (Code: ${resDuplicates.nationalId.profileId})`}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "الجنسية" : "Nationality"}</Label>
-                    <NationalitySelect
-                      value={newForm.nationality}
-                      onChange={(v) => setNewForm((f) => ({ ...f, nationality: v }))}
-                      propertyId={typeof activePropertyId === "number" ? activePropertyId : undefined}
-                      className="h-9 text-xs"
-                      placeholder={ar ? "اختر الجنسية..." : "Select nationality..."}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "الهاتف *" : "Phone *"}</Label>
-                    <Input
-                      value={newForm.phone}
-                      onChange={(e) => setNewForm((f) => ({ ...f, phone: e.target.value }))}
-                      placeholder="+201..."
-                      className={resDuplicates.phone ? "border-destructive focus-visible:ring-destructive bg-destructive/5" : ""}
-                    />
-                    {resDuplicates.phone && (
-                      <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>
-                          {ar
-                            ? `رقم الهاتف مسجل مسبقاً للموظف: ${resDuplicates.phone.name} (كود: ${resDuplicates.phone.profileId})`
-                            : `Phone already registered to: ${resDuplicates.phone.name} (Code: ${resDuplicates.phone.profileId})`}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "الجنس" : "Gender"}</Label>
-                    <Select value={newForm.gender || "M"} onValueChange={(v) => setNewForm((f) => ({ ...f, gender: v }))}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="M">{ar ? "ذكر" : "Male"}</SelectItem>
-                        <SelectItem value="F">{ar ? "أنثى" : "Female"}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "تاريخ الميلاد" : "Date of Birth"}</Label>
-                    <DateInput value={newForm.dateOfBirth} onChange={(iso) => setNewForm((f) => ({ ...f, dateOfBirth: iso }))} className="h-9" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">{ar ? "العنوان" : "Address"}</Label>
-                    <Input value={newForm.address} onChange={(e) => setNewForm((f) => ({ ...f, address: e.target.value }))} placeholder={ar ? "العنوان بالكامل..." : "Full address..."} className="h-9" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 2: Work & Company Information (بيانات العمل والشركة للطرف الثالث) */}
-              <div className="rounded-xl border bg-muted/20 p-4 space-y-4 shadow-2xs">
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider border-b pb-2 flex items-center gap-1.5">
-                  <Building className="w-3.5 h-3.5 text-primary" />
-                  {ar ? "2. بيانات العمل والشركة (طرف ثالث)" : "2. Work & Company Information (Third-Party)"}
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">
-                      {ar ? "اسم الشركة (المقاول / المورد) *" : "Company Name (Contractor / Vendor) *"} <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      value={newForm.companyName}
-                      onChange={(e) => setNewForm((f) => ({ ...f, companyName: e.target.value }))}
-                      placeholder={ar ? "أدخل اسم شركة المقاول أو المورد..." : "Enter contractor/vendor company..."}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">
-                      {ar ? "الوظيفة / المهنة *" : "Job / Occupation *"} <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      value={newForm.jobTitle}
-                      onChange={(e) => setNewForm((f) => ({ ...f, jobTitle: e.target.value }))}
-                      placeholder={ar ? "مثال: أمن وحراسة، فني، نظافة، سائق..." : "e.g. Security, Tech, Cleaner..."}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 3: ID Documents & Passports (مستندات وصور الهوية) */}
-              <div className="rounded-xl border bg-muted/20 p-4 space-y-3 shadow-2xs">
-                <div className="flex items-center justify-between border-b pb-2">
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{ar ? "3. صور الهوية وجواز السفر والمستندات" : "3. ID Documents & Passport Attachments"}</p>
-                  <span className="text-xs font-medium text-primary">{(newForm.idDocuments || []).length} {ar ? "مرفقات" : "files"}</span>
-                </div>
-                <input ref={docsRef} type="file" multiple accept="image/*,.pdf" className="hidden" onChange={handleDocSelect} />
-                <Button type="button" variant="outline" onClick={() => docsRef.current?.click()} className="w-full border-dashed h-11 gap-2 bg-background hover:bg-muted font-medium">
-                  <FileText className="w-4 h-4 text-primary" />
-                  {ar ? "+ رفع صور البطاقة أو جواز السفر أو عقود العمل" : "+ Upload ID Cards, Passports or Contract Documents"}
-                </Button>
-                {newForm.idDocuments && newForm.idDocuments.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
-                    {newForm.idDocuments.map((doc, i) => (
-                      <div key={i} className="relative group border rounded-lg overflow-hidden h-28 flex flex-col justify-between bg-card shadow-xs">
-                        <div className="relative h-20 w-full bg-muted/30 overflow-hidden flex items-center justify-center">
-                          {doc.fileData.startsWith("data:image") ? (
-                            <img src={doc.fileData} alt={doc.fileName} className="absolute inset-0 w-full h-full object-cover" />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center text-muted-foreground"><span className="text-xs font-mono font-bold">PDF</span></div>
-                          )}
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); removeDoc(i); }}
-                            className="absolute top-1 right-1 w-6 h-6 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full flex items-center justify-center shadow transition-transform active:scale-90 z-20"
-                            title={ar ? "حذف هذا المستند" : "Remove document"}
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <div className="p-1.5 bg-background border-t">
-                          <span className="text-[11px] font-medium truncate block" title={doc.fileName}>{doc.fileName}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-between pt-2">
-                <Button variant="outline" onClick={() => setStep(1)}><ChevronLeft className="w-4 h-4 mr-1 rtl:rotate-180" />{ar ? "رجوع" : "Back"}</Button>
-                <Button
-                  onClick={() => setStep(3)}
-                  disabled={
-                    resHasDuplicates ||
-                    !newForm.firstName?.trim() ||
-                    !newForm.lastName?.trim() ||
-                    !newForm.nationalId?.trim() ||
-                    !newForm.phone?.trim() ||
-                    !newForm.companyName?.trim() ||
-                    !newForm.jobTitle?.trim()
-                  }
-                  className="font-semibold"
-                >
-                  {ar ? "التالي (تحديد الغرفة)" : "Next (Select Room)"}<ChevronRight className="w-4 h-4 ml-1 rtl:rotate-180" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: ROOM & BED SELECTION */}
-          {step === 3 && (
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>{ar ? "تاريخ الدخول" : "Check-in"} <span className="text-destructive">*</span></Label><DateInput value={checkInDate} onChange={(iso) => setCheckInDate(iso)} /></div>
-                <div className="space-y-1.5">
-                  <Label>{ar ? "المغادرة المتوقعة" : "Expected Check-out"}</Label>
-                  <DateInput value={expectedCheckOut} onChange={(iso) => setExpectedCheckOut(iso)} min={checkInDate} />
-                  {((selectedProfile?.employmentType !== "THIRD_PARTY" && selectedProfile?.contractEndDate) || (newForm.employmentType === "INTERNAL" && newForm.contractEndDate)) && (
-                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1.5 mt-0.5">
-                      <FileText className="w-3.5 h-3.5 shrink-0 text-amber-600" />
-                      <span>{ar ? "مرتبط تلقائياً بتاريخ انتهاء عقد الموظف الداخلي" : "Auto-filled from employee's Contract End Date"}</span>
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Select value={searchBuilding} onValueChange={setSearchBuilding}>
-                  <SelectTrigger className="flex-1 h-9 text-sm">
-                    <SelectValue placeholder={ar ? "المبنى" : "Building"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{ar ? "كل المباني" : "All Buildings"}</SelectItem>
-                    {buildings.map((b: any) => (
-                      <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={searchFloor} onValueChange={setSearchFloor}>
-                  <SelectTrigger className="flex-1 h-9 text-sm">
-                    <SelectValue placeholder={ar ? "الطابق" : "Floor"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{ar ? "كل الطوابق" : "All Floors"}</SelectItem>
-                    {floors
-                      .filter(
-                        (f) =>
-                          searchBuilding === "all" ||
-                          String(f.buildingId ?? (f as any).building_id) === String(searchBuilding),
-                      )
-                      .map((f) => (
-                        <SelectItem key={f.id} value={String(f.id)}>
-                          {ar ? "دور" : "Floor"} {f.floorNumber ?? (f as any).floor_number ?? f.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  className="flex-1 h-9 text-sm"
-                  placeholder={ar ? "رقم الغرفة" : "Room #"}
-                  value={searchRoomNumber}
-                  onChange={(e) => setSearchRoomNumber(e.target.value)}
-                />
-                {(searchBuilding !== "all" || searchFloor !== "all" || searchRoomNumber.trim()) && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 px-2.5 text-xs text-muted-foreground hover:text-foreground shrink-0 border border-dashed"
-                    onClick={() => {
-                      setSearchBuilding("all");
-                      setSearchFloor("all");
-                      setSearchRoomNumber("");
-                    }}
-                    title={ar ? "إلغاء الفلاتر وعرض الكل" : "Reset filters"}
-                  >
-                    <X className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
-                    {ar ? "عرض الكل" : "Show All"}
-                  </Button>
-                )}
-              </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
-                <span className="font-medium">{ar ? "اختر الغرفة المناسبة:" : "Select Room:"}</span>
-                <span className="text-[11px]">
-                  {sortedFilteredRooms.length} {ar ? "غرفة" : "rooms"}
-                </span>
-              </div>
-              <div className="max-h-64 overflow-y-auto pr-1">
-                {sortedFilteredRooms.length === 0 ? (
-                  <div className="p-8 text-center border-2 border-dashed rounded-xl bg-muted/10">
-                    <BedDouble className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
-                    <p className="text-sm font-semibold text-muted-foreground">
-                      {ar ? "لا توجد غرف تطابق الفلاتر المحددة" : "No rooms match the selected filters"}
-                    </p>
-                    {(searchBuilding !== "all" || searchFloor !== "all" || searchRoomNumber.trim()) && (
-                      <Button
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        onClick={() => {
-                          setSearchBuilding("all");
-                          setSearchFloor("all");
-                          setSearchRoomNumber("");
-                        }}
-                        className="mt-2 text-xs text-primary"
-                      >
-                        {ar ? "إعادة ضبط الفلاتر وعرض كل الغرف" : "Reset filters and show all rooms"}
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                    {sortedFilteredRooms.map((room) => {
-                      const occ = room.currentOccupancy ?? 0;
-                      const cap = room.capacity ?? 1;
-                      const isEntireReserved = entireRoomOccupiedSet.has(room.id);
-                      const isFull = occ >= cap || isEntireReserved;
-                      const isSingleOccRoom = singleOccupantRoomsMap.has(room.id);
-                      const isBlockedBySingleOcc = isSingleOccRoom && !canOverrideSingleOccupancy;
-                      const isSelectable = !isFull && !isBlockedBySingleOcc;
-                      const isSel = selectedRoomId === String(room.id);
-                      const freeSpots = Math.max(0, cap - occ);
-                      const singleResidentInfo = singleOccupantRoomsMap.get(room.id);
-
-                      return (
-                        <button
-                          type="button"
-                          key={room.id}
-                          disabled={!isSelectable}
-                          onClick={() => {
-                            if (isBlockedBySingleOcc) {
-                              toast.error(
-                                ar
-                                  ? "هذه الغرفة يشغلها شخص بمفرده وبها أسِرّة شاغرة. تسكين نزيل إضافي مع النزيل يتطلب صلاحية إدارية."
-                                  : "This room is occupied by a single resident. Assigning an additional occupant requires administrative permission."
-                              );
-                              return;
-                            }
-                            if (isFull) return;
-                            setSelectedRoomId(String(room.id));
-                            setSelectedBed(cap === 1 ? "1" : "");
-                            // Base the top filters on this room
-                            const bId = room.buildingId ?? (room as any).building_id;
-                            const fId = room.floorId ?? (room as any).floor_id;
-                            const rNum = room.roomNumber ?? (room as any).room_number;
-                            if (bId != null) setSearchBuilding(String(bId));
-                            if (fId != null) setSearchFloor(String(fId));
-                            if (rNum != null) setSearchRoomNumber(String(rNum));
-                          }}
-                          className={`group relative flex flex-col justify-between p-3 rounded-xl border-2 text-start transition-all duration-200 ${
-                            isSel
-                              ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm cursor-pointer"
-                              : !isSelectable
-                              ? "border-border/60 bg-muted/50 opacity-60 cursor-not-allowed select-none"
-                              : "border-border bg-card hover:border-primary/60 hover:bg-muted/30 cursor-pointer"
-                          }`}
-                        >
-                          {/* Header: Room Number + Selection / Lock Status */}
-                          <div className="flex items-start justify-between gap-1.5 w-full">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <div
-                                className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 transition-colors ${
-                                  isSel
-                                    ? "bg-primary text-primary-foreground"
-                                    : !isSelectable
-                                    ? "bg-muted text-muted-foreground"
-                                    : "bg-muted text-foreground"
-                                }`}
-                              >
-                                <BedDouble className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <span className="font-extrabold text-sm font-mono tracking-tight block truncate">
-                                  {ar ? `غرفة ${room.roomNumber}` : `Room ${room.roomNumber}`}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground block truncate">
-                                  {room.roomType || (ar ? "قياسية" : "Standard")}
-                                </span>
-                              </div>
-                            </div>
-
-                            {isSel ? (
-                              <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-2xs">
-                                <CheckCircle className="w-3.5 h-3.5" />
-                              </div>
-                            ) : isFull ? (
-                              <div
-                                className="w-5 h-5 rounded-full bg-destructive/10 text-destructive flex items-center justify-center shrink-0"
-                                title={isEntireReserved ? (ar ? "محجوزة بالكامل" : "Entire Room") : (ar ? "الغرفة ممتلئة" : "Room is full")}
-                              >
-                                <Lock className="w-3 h-3" />
-                              </div>
-                            ) : isBlockedBySingleOcc ? (
-                              <div
-                                className="w-5 h-5 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0"
-                                title={ar ? "يتطلب صلاحية إدارية" : "Permission required"}
-                              >
-                                <Lock className="w-3 h-3" />
-                              </div>
-                            ) : null}
-                          </div>
-
-                          {/* Badges: Full status / Classification */}
-                          <div className="my-2 flex flex-wrap gap-1 min-h-[22px] items-center">
-                            {isFull ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-destructive/10 text-destructive border border-destructive/20 truncate max-w-full">
-                                <Lock className="w-2.5 h-2.5 shrink-0" />
-                                <span className="truncate">
-                                  {isEntireReserved
-                                    ? (ar ? "محجوزة بالكامل" : "Entire Room")
-                                    : (ar ? "ممتلئة (ساكنة)" : "Full / Occupied")}
-                                </span>
-                              </span>
-                            ) : isBlockedBySingleOcc ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 truncate max-w-full" title={ar ? `يشغلها بمفرده: ${singleResidentInfo?.residentName || ""}` : `Occupied alone: ${singleResidentInfo?.residentName || ""}`}>
-                                <Lock className="w-2.5 h-2.5 shrink-0" />
-                                <span className="truncate">
-                                  {ar ? "شخص بمفرده (يتطلب صلاحية)" : "Single Occupant (Req. Perm.)"}
-                                </span>
-                              </span>
-                            ) : isSingleOccRoom ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 truncate max-w-full">
-                                <span>⚠️</span>
-                                <span className="truncate">
-                                  {ar ? "شخص بمفرده (مسموح بالصلاحية)" : "Single Occupant (Authorized)"}
-                                </span>
-                              </span>
-                            ) : room.classification ? (
-                              <span
-                                className={`text-[10px] px-1.5 py-0.5 rounded font-medium border truncate max-w-full ${
-                                  room.classification.toLowerCase().includes("deluxe")
-                                    ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                                    : room.classification.toLowerCase().includes("superior")
-                                    ? "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
-                                    : room.classification.toLowerCase().includes("family")
-                                    ? "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
-                                    : "bg-muted text-foreground border-border"
-                                }`}
-                              >
-                                {room.classification}
-                              </span>
-                            ) : null}
-                          </div>
-
-                          {/* Footer: Building/Floor location & Occupancy */}
-                          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[10.5px] text-muted-foreground w-full">
-                            <span className="truncate max-w-[60%]" title={`${buildingMap[room.buildingId] || "—"} • F${floorMap[room.floorId]?.number ?? "—"}`}>
-                              {buildingMap[room.buildingId] || "—"} {floorMap[room.floorId]?.number ? `• F${floorMap[room.floorId]?.number}` : ""}
-                            </span>
-                            <span
-                              className={`font-semibold shrink-0 px-1.5 py-0.5 rounded text-[10px] ${
-                                isFull
-                                  ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
-                                  : freeSpots === cap
-                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                  : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                              }`}
-                            >
-                              {occ}/{cap} {ar ? "سرير" : "beds"} {isFull ? (ar ? "• ممتلئة" : "• Full") : ""}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* SELECTION: BED OR ENTIRE ROOM */}
-              {selectedRoomId && isMultiBed && (
-                <div className="space-y-3 p-3.5 rounded-xl border bg-muted/20">
-                  {/* Single Occupant Authorized Notice */}
-                  {singleOccupantRoomsMap.has(parseInt(selectedRoomId)) && (
-                    <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold block">
-                          {ar ? "تنبيه: غرفة يشغلها نزيل بمفرده" : "Notice: Room Occupied by Single Resident"}
-                        </span>
-                        <span>
-                          {ar
-                            ? `هذه الغرفة يشغلها حالياً النزيل (${singleOccupantRoomsMap.get(parseInt(selectedRoomId))?.residentName || ""}) بمفرده وبها أسِرّة شاغرة. أنت تقوم بالتسكين المشترك بموجب الصلاحية الإدارية الاستثنائية الممنوحة لك.`
-                            : `This room is currently occupied by (${singleOccupantRoomsMap.get(parseInt(selectedRoomId))?.residentName || ""}) alone. You are assigning shared occupancy under your administrative override permission.`}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-semibold">
-                      {ar ? "تحديد السرير أو الغرفة كاملة" : "Bed or Full Room Selection"} <span className="text-destructive">*</span>
-                    </Label>
-                    <span className="text-xs text-primary font-medium inline-flex items-center gap-1">
-                      {selectedBed === "ALL" ? (
-                        <>
-                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>{ar ? "تم اختيار الغرفة كاملة" : "Full room selected"}</span>
-                        </>
-                      ) : selectedBed ? (
-                        <>
-                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>{ar ? `تم اختيار سرير رقم ${selectedBed}` : `Bed ${selectedBed} selected`}</span>
-                        </>
-                      ) : (
-                        <span className="text-destructive font-semibold">{ar ? "مطلوب التحديد" : "Selection required"}</span>
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <button
-                      type="button"
-                      disabled={!canOverrideSingleOccupancy}
-                      onClick={() => {
-                        if (!canOverrideSingleOccupancy) {
-                          toast.error(
-                            ar
-                              ? "حجز الغرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية."
-                              : "Reserving an entire multi-bed room for a single person requires administrative permission."
-                          );
-                          return;
-                        }
-                        setSelectedBed("ALL");
-                      }}
-                      className={`p-3 rounded-lg border-2 text-sm font-semibold flex items-center justify-between transition-all ${
-                        selectedBed === "ALL"
-                          ? "border-primary bg-primary/10 text-primary ring-1 ring-primary/30"
-                          : !canOverrideSingleOccupancy
-                          ? "border-border bg-muted/40 opacity-60 cursor-not-allowed"
-                          : "border-border hover:border-primary/50 hover:bg-background cursor-pointer"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Building className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-bold">{ar ? "حجز الغرفة بالكامل (خاص)" : "Entire Room (Full Lock)"}</span>
-                        {!canOverrideSingleOccupancy && (
-                          <Lock className="w-3 h-3 text-muted-foreground ml-1" />
-                        )}
-                      </div>
-                      {selectedBed === "ALL" && <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />}
-                    </button>
-
-                    <div className="flex items-center text-[11px] text-muted-foreground px-1 leading-tight">
-                      {ar
-                        ? "اختر (الغرفة كاملة) لحجز كل الأسِرّة لحساب هذا النزيل، أو حدد سرير محدد بالأسفل."
-                        : "Select Entire Room to reserve all beds, or pick an individual bed below."}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 pt-1">
-                    <span className="text-xs text-muted-foreground font-medium">{ar ? "أو اختر سرير محدد:" : "Or select a specific bed:"}</span>
-                    <div className="flex flex-wrap gap-2">
-                      {bedOptions.map((bed) => {
-                        const isOcc = occupiedBeds.has(bed);
-                        const isSel = selectedBed === String(bed);
-                        const occInfo = selectedRoomBedMap.get(bed);
-                        return (
-                          <button
-                            key={bed}
-                            type="button"
-                            disabled={isOcc}
-                            onClick={() => {
-                              if (isOcc) return;
-                              setSelectedBed(String(bed));
-                            }}
-                            title={
-                              isOcc
-                                ? `${ar ? "سرير مشغول" : "Bed Occupied"}: ${occInfo?.residentName || ""}`
-                                : undefined
-                            }
-                            className={`min-w-[80px] h-10 px-3 rounded-lg border-2 text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5 ${
-                              isSel
-                                ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                                : isOcc
-                                ? "border-destructive/30 bg-destructive/10 text-destructive cursor-not-allowed opacity-75 select-none"
-                                : "border-border hover:border-primary hover:bg-primary/10 cursor-pointer"
-                            }`}
-                          >
-                            {isOcc && <Lock className="w-3.5 h-3.5 text-destructive shrink-0" />}
-                            <span>{ar ? `سرير ${bed}` : `Bed ${bed}`}</span>
-                            {isOcc && (
-                              <span className="text-[10px] font-normal opacity-90 truncate max-w-[130px]">
-                                ({occInfo?.residentName || (ar ? "مشغول" : "Occupied")})
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-1.5"><Label>{ar ? "ملاحظات" : "Notes"}</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder={ar ? "أي ملاحظات إضافية..." : "Any additional notes..."} /></div>
-              <div className="flex justify-between pt-2">
-                <Button variant="outline" onClick={() => setStep(2)}><ChevronLeft className="w-4 h-4 mr-1 rtl:rotate-180" />{ar ? "رجوع" : "Back"}</Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={
-                    createAssignmentMutation.isPending ||
-                    createReservationMutation.isPending ||
-                    !selectedRoomId ||
-                    (isMultiBed && !selectedBed)
-                  }
-                  className="font-semibold"
-                >
-                  {createAssignmentMutation.isPending || createReservationMutation.isPending
-                    ? (ar ? "جاري الحفظ والتسكين..." : "Processing...")
-                    : bookingType === "direct"
-                    ? (ar ? "تأكيد وتسكين فوري" : "Confirm & Assign Now")
-                    : (ar ? "إنشاء حجز مستقبلي" : "Create Future Reservation")}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+        {/* STEP 3: ROOM & BED SELECTION */}
+        {step === 3 && (
+          <WizardStepRoomSelection
+            ar={ar}
+            bookingType={bookingType}
+            checkInDate={checkInDate}
+            setCheckInDate={setCheckInDate}
+            expectedCheckOut={expectedCheckOut}
+            setExpectedCheckOut={setExpectedCheckOut}
+            selectedProfile={selectedProfile}
+            newForm={newForm}
+            searchBuilding={searchBuilding}
+            setSearchBuilding={setSearchBuilding}
+            searchFloor={searchFloor}
+            setSearchFloor={setSearchFloor}
+            searchRoomNumber={searchRoomNumber}
+            setSearchRoomNumber={setSearchRoomNumber}
+            buildings={buildings}
+            floors={floors}
+            buildingMap={buildingMap}
+            floorMap={floorMap}
+            sortedFilteredRooms={sortedFilteredRooms}
+            entireRoomOccupiedSet={entireRoomOccupiedSet}
+            singleOccupantRoomsMap={singleOccupantRoomsMap}
+            selectedRoomBedMap={selectedRoomBedMap}
+            occupiedBeds={occupiedBeds}
+            canOverrideSingleOccupancy={canOverrideSingleOccupancy}
+            selectedRoomId={selectedRoomId}
+            setSelectedRoomId={setSelectedRoomId}
+            selectedBed={selectedBed}
+            setSelectedBed={setSelectedBed}
+            isMultiBed={isMultiBed}
+            bedOptions={bedOptions}
+            notes={notes}
+            setNotes={setNotes}
+            setStep={setStep}
+            handleSubmit={handleSubmit}
+            createAssignmentMutation={createAssignmentMutation}
+            createReservationMutation={createReservationMutation}
+          />
+        )}
+      </NewReservationDialog>
 
       {/* CHECK-IN DIALOG */}
-      <Dialog open={checkinDialog.open} onOpenChange={(o) => !o && setCheckinDialog({ open: false, id: null })}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{ar ? "تسكين الحجز" : "Check-In"}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            {checkinDialog.guestName && <p className="text-sm">{ar ? "الضيف:" : "Guest:"} <span className="font-semibold">{checkinDialog.guestName}</span></p>}
-            <Input placeholder={ar ? "بحث عن غرفة..." : "Search room..."} value={checkinRoomSearch} onChange={(e) => setCheckinRoomSearch(e.target.value)} />
-            <div className="max-h-52 overflow-y-auto space-y-2">
-              {filteredCheckinRooms.map((r: any) => {
-                const isEntireReserved = entireRoomOccupiedSet.has(r.id);
-                const isFull = (r.currentOccupancy ?? 0) >= (r.capacity ?? 1) || isEntireReserved;
-                    const rec = checkinRecommendations.recommendedMap[r.id];
-                    const isConflict = rec && rec.score < 0;
-                    return (
-                      <button
-                        key={r.id}
-                        type="button"
-                        disabled={isFull}
-                        onClick={() => {
-                          if (!isFull) setCheckinRoomId(String(r.id));
-                        }}
-                        className={`w-full flex items-center justify-between p-3 border-2 rounded-lg text-sm text-left rtl:text-right transition-all ${
-                          isFull
-                            ? "opacity-50 cursor-not-allowed bg-muted/30 border-border"
-                            : checkinRoomId === String(r.id)
-                            ? "border-primary bg-primary/5 cursor-pointer"
-                            : "border-border hover:border-primary/50 cursor-pointer"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <BedDouble className="w-4 h-4 text-muted-foreground shrink-0" />
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-medium">
-                                {ar ? "غرفة" : "Room"} {r.roomNumber}
-                              </p>
-                              {rec?.badgeLabelAr && (
-                                <Badge className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 text-[10px] px-1.5 py-0 font-medium">
-                                  🤖 {ar ? rec.badgeLabelAr : rec.badgeLabelEn}
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              {buildingMap[r.buildingId] || "—"} • {r.roomType || "—"} • {r.currentOccupancy ?? 0}/{r.capacity ?? 1}
-                            </p>
-                            {isConflict && (
-                              <span className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1 font-medium mt-0.5">
-                                <AlertTriangle className="w-3 h-3" />
-                                {ar ? "تعارض مع سياسات التسكين" : "Policy conflict"}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {isFull ? (
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-destructive/10 text-destructive border border-destructive/20">
-                            {ar ? "مكتملة (ساكنة)" : "Full"}
-                          </span>
-                        ) : checkinRoomId === String(r.id) ? (
-                          <CheckCircle className="w-4 h-4 text-primary ml-auto rtl:ml-0 rtl:mr-auto" />
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setCheckinDialog({ open: false, id: null })}>{ar ? "إلغاء" : "Cancel"}</Button>
-                  <Button onClick={handleCheckin} disabled={!checkinRoomId || checkinMutation.isPending}>{checkinMutation.isPending ? (ar ? "جاري التسكين..." : "...") : (ar ? "تسكين" : "Check-In")}</Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+      <CheckinDialog
+        ar={ar}
+        checkinDialog={checkinDialog}
+        setCheckinDialog={setCheckinDialog}
+        checkinRoomSearch={checkinRoomSearch}
+        setCheckinRoomSearch={setCheckinRoomSearch}
+        filteredCheckinRooms={filteredCheckinRooms}
+        entireRoomOccupiedSet={entireRoomOccupiedSet}
+        checkinRecommendations={checkinRecommendations}
+        checkinRoomId={checkinRoomId}
+        setCheckinRoomId={setCheckinRoomId}
+        buildingMap={buildingMap}
+        handleCheckin={handleCheckin}
+        checkinMutation={checkinMutation}
+      />
 
           {/* Reservation Policy Exception Approval Modal */}
           <PolicyExceptionApprovalModal
@@ -2753,669 +1143,77 @@ export default function ReservationsPage() {
           />
 
       {/* WHATSAPP RESERVATION CONFIRMATION DIALOG */}
-      <Dialog
-        open={whatsAppDialog.open}
-        onOpenChange={(o) => !o && setWhatsAppDialog({ open: false, reservation: null })}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-500/20">
-                <MessageSquare className="w-4 h-4 text-emerald-600" />
-              </div>
-              {ar ? "إرسال تأكيد الحجز (واتساب)" : "Send WhatsApp Confirmation"}
-            </DialogTitle>
-          </DialogHeader>
-
-          {whatsAppDialog.reservation && (
-            <div className="space-y-4 py-2 text-sm">
-              <div className="p-3 bg-muted/40 rounded-lg border space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{ar ? "اسم النزيل:" : "Guest Name:"}</span>
-                  <span className="font-semibold text-foreground">
-                    {whatsAppDialog.reservation.firstName} {whatsAppDialog.reservation.lastName}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{ar ? "رقم الحجز:" : "Booking Ref:"}</span>
-                  <span className="font-mono font-bold text-foreground">#{whatsAppDialog.reservation.id}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{ar ? "تاريخ الوصول:" : "Check-in:"}</span>
-                  <span className="font-medium text-foreground">{formatDate(whatsAppDialog.reservation.checkInDate)}</span>
-                </div>
-                {whatsAppDialog.reservation.roomNumber && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{ar ? "الغرفة المحجوزة:" : "Reserved Room:"}</span>
-                    <span className="font-semibold text-foreground">
-                      غرفة {whatsAppDialog.reservation.roomNumber}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {!whatsAppPhone.trim() && (
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs">
-                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
-                  <span>{ar ? "تنبيه: لا يوجد رقم هاتف مسجل لهذا الحجز. يرجى إدخال الرقم أدناه:" : "Notice: No phone recorded. Enter WhatsApp phone below:"}</span>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">{ar ? "رقم هاتف الواتساب للمستلم:" : "Recipient WhatsApp Phone:"}</Label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="tel"
-                    placeholder="01xxxxxxxxx أو 201xxxxxxxxx"
-                    value={whatsAppPhone}
-                    onChange={(e) => setWhatsAppPhone(e.target.value)}
-                    className="pl-9 font-mono text-sm"
-                  />
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  {ar
-                    ? "سيتم إرسال رسالة تأكيد الحجز الرسمية، مع حفظ الرقم تلقائياً في بيانات الحجز والملف الشخصي."
-                    : "Official booking confirmation will be dispatched and phone will be updated."}
-                </p>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setWhatsAppDialog({ open: false, reservation: null })}
-                  disabled={isSendingWhatsApp}
-                >
-                  {ar ? "إلغاء" : "Cancel"}
-                </Button>
-                <Button
-                  onClick={handleSendWhatsAppConfirmation}
-                  disabled={isSendingWhatsApp || !whatsAppPhone.trim()}
-                  className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-                >
-                  {isSendingWhatsApp ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      {ar ? "جاري الإرسال..." : "Sending..."}
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      {ar ? "إرسال الآن" : "Send Now"}
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <WhatsAppConfirmationDialog
+        ar={ar}
+        whatsAppDialog={whatsAppDialog}
+        setWhatsAppDialog={setWhatsAppDialog}
+        whatsAppPhone={whatsAppPhone}
+        setWhatsAppPhone={setWhatsAppPhone}
+        isSendingWhatsApp={isSendingWhatsApp}
+        handleSendWhatsAppConfirmation={handleSendWhatsAppConfirmation}
+      />
 
       {/* EDIT DIALOG */}
-      <Dialog open={editDialog.open} onOpenChange={(o) => !o && setEditDialog({ open: false, reservation: null })}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{ar ? "تعديل الحجز" : "Edit Reservation"}</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label>{ar ? "الاسم الأول" : "First Name"}</Label><Input value={editForm.firstName} onChange={(e) => setEditForm((f) => ({ ...f, firstName: e.target.value }))} /></div>
-              <div className="space-y-1.5"><Label>{ar ? "اسم العائلة" : "Last Name"}</Label><Input value={editForm.lastName} onChange={(e) => setEditForm((f) => ({ ...f, lastName: e.target.value }))} /></div>
-              <div className="space-y-1.5"><Label>{ar ? "رقم الهوية" : "ID Card"}</Label><Input value={editForm.guestIdCardNumber} onChange={(e) => setEditForm((f) => ({ ...f, guestIdCardNumber: e.target.value }))} /></div>
-              <div className="space-y-1.5"><Label>{ar ? "الهاتف" : "Phone"}</Label><Input value={editForm.guestPhone} onChange={(e) => setEditForm((f) => ({ ...f, guestPhone: e.target.value }))} /></div>
-              <div className="space-y-1.5"><Label>{ar ? "تاريخ الدخول" : "Check-in"}</Label><DateInput value={editForm.checkInDate} onChange={(iso) => setEditForm((f) => ({ ...f, checkInDate: iso }))} /></div>
-              <div className="space-y-1.5"><Label>{ar ? "تاريخ المغادرة" : "Check-out"}</Label><DateInput value={editForm.checkOutDate} onChange={(iso) => setEditForm((f) => ({ ...f, checkOutDate: iso }))} /></div>
-              <div className="space-y-1.5"><Label>{ar ? "القسم" : "Department"}</Label>
-                <Select value={editForm.department || "none"} onValueChange={(v) => setEditForm((f) => ({ ...f, department: v === "none" ? "" : v, jobTitle: "" }))}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent><SelectItem value="none">—</SelectItem>{departmentValues.map((d: any) => (<SelectItem key={d.id} value={d.value}>{d.value}</SelectItem>))}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5"><Label>{ar ? "المسمى الوظيفي" : "Job Title"}</Label>
-                <Select value={editForm.jobTitle || "none"} onValueChange={(v) => setEditForm((f) => ({ ...f, jobTitle: v === "none" ? "" : v }))}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent><SelectItem value="none">—</SelectItem>{filteredEditJobTitles.map((t: any) => (<SelectItem key={t.id} value={t.value}>{t.value}</SelectItem>))}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>{ar ? "نوع النزيل (الجهة)" : "Resident Type"}</Label>
-                <Select
-                  value={editForm.employmentType || "INTERNAL"}
-                  onValueChange={(v) =>
-                    setEditForm((f) => ({
-                      ...f,
-                      employmentType: v,
-                      department: v === "THIRD_PARTY" && !f.department ? (ar ? "طرف ثالث" : "Third Party") : f.department,
-                    }))
-                  }
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="INTERNAL">{ar ? "موظف داخلي" : "Internal Employee"}</SelectItem>
-                    <SelectItem value="THIRD_PARTY">{ar ? "طرف ثالث" : "Third Party"}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>{ar ? "الجنسية" : "Nationality"}</Label>
-                <NationalitySelect
-                  value={editForm.nationality}
-                  onChange={(v) => setEditForm((f) => ({ ...f, nationality: v }))}
-                  propertyId={typeof activePropertyId === "number" ? activePropertyId : undefined}
-                  className="h-9 text-xs"
-                  placeholder={ar ? "اختر الجنسية..." : "Select nationality..."}
-                />
-              </div>
-              {editForm.employmentType === "THIRD_PARTY" && (
-                <div className="space-y-1.5 col-span-2">
-                  <Label>{ar ? "اسم الشركة / الجهة الخارجية" : "Company Name"}</Label>
-                  <Input
-                    placeholder={ar ? "اسم الشركة التابع لها النزيل" : "Company / Contractor Name"}
-                    value={editForm.companyName || ""}
-                    onChange={(e) => setEditForm((f) => ({ ...f, companyName: e.target.value }))}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* ROOM & BED SELECTION */}
-            <div className="space-y-2.5 p-3.5 rounded-xl border bg-muted/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BedDouble className="w-4 h-4 text-primary" />
-                  <span className="font-semibold text-sm">
-                    {ar ? "الغرفة والسرير المحجوز" : "Reserved Room & Bed"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {editForm.roomId && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 gap-1"
-                      onClick={() => {
-                        setEditForm((f) => ({ ...f, roomId: "", bedNumber: "", roomType: "" }));
-                        setShowEditRoomPicker(false);
-                      }}
-                    >
-                      <X className="w-3 h-3" />
-                      {ar ? "إلغاء التخصيص" : "Clear"}
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    variant={showEditRoomPicker ? "secondary" : "outline"}
-                    size="sm"
-                    className="h-7 px-2.5 text-xs gap-1"
-                    onClick={() => setShowEditRoomPicker((prev) => !prev)}
-                  >
-                    <BedDouble className="w-3.5 h-3.5" />
-                    {showEditRoomPicker
-                      ? ar ? "إخفاء قائمة الغرف" : "Hide Rooms"
-                      : editForm.roomId
-                      ? ar ? "تغيير الغرفة" : "Change Room"
-                      : ar ? "تخصيص غرفة" : "Assign Room"}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Current assigned room display */}
-              {editForm.roomId ? (
-                (() => {
-                  const currRoom = rooms.find((r: any) => String(r.id) === String(editForm.roomId));
-                  const bName = currRoom ? buildingMap[currRoom.buildingId] : null;
-                  return (
-                    <div className="flex items-center justify-between p-2.5 rounded-lg border bg-background text-xs">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold font-mono">
-                          {currRoom?.roomNumber || editForm.roomId}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-sm">
-                            {ar ? `غرفة ${currRoom?.roomNumber || editForm.roomId}` : `Room ${currRoom?.roomNumber || editForm.roomId}`}
-                            {bName ? ` - ${bName}` : ""}
-                          </div>
-                          <div className="text-muted-foreground flex items-center gap-2 mt-0.5">
-                            <span>{currRoom?.roomType || editForm.roomType || (ar ? "قياسية" : "Standard")}</span>
-                            <span>•</span>
-                            <span className="font-medium text-primary">
-                              {editForm.bedNumber === "ALL"
-                                ? (ar ? "الغرفة بالكامل" : "Entire Room")
-                                : editForm.bedNumber
-                                ? (ar ? `سرير رقم ${editForm.bedNumber}` : `Bed #${editForm.bedNumber}`)
-                                : (ar ? "بدون سرير محدد" : "Bed unassigned")}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/10 text-[11px]">
-                        {ar ? "غرفة محجوزة" : "Reserved"}
-                      </Badge>
-                    </div>
-                  );
-                })()
-              ) : (
-                <div className="flex items-center justify-between p-2.5 rounded-lg border border-dashed text-xs text-muted-foreground bg-background/50">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-500" />
-                    <span>{ar ? "لم يتم تحديد غرفة لهذا الحجز بعد." : "No room assigned to this reservation yet."}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Collapsible Room Picker */}
-              {showEditRoomPicker && (
-                <div className="space-y-3 pt-2 border-t mt-2">
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="w-full sm:w-48">
-                      <Select value={editBuildingId} onValueChange={setEditBuildingId}>
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue placeholder={ar ? "كل المباني" : "All Buildings"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{ar ? "كل المباني" : "All Buildings"}</SelectItem>
-                          {buildings.map((b: any) => (
-                            <SelectItem key={b.id} value={String(b.id)}>
-                              {b.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="relative flex-1">
-                      <Search className="w-3.5 h-3.5 absolute right-2.5 rtl:right-2.5 rtl:left-auto left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        placeholder={ar ? "بحث برقم الغرفة أو النوع..." : "Search room number or type..."}
-                        value={editRoomSearch}
-                        onChange={(e) => setEditRoomSearch(e.target.value)}
-                        className="h-8 text-xs px-8"
-                      />
-                      {editRoomSearch && (
-                        <button
-                          type="button"
-                          onClick={() => setEditRoomSearch("")}
-                          className="absolute left-2.5 rtl:left-2.5 rtl:right-auto right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Room Cards Scroll Area */}
-                  <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1 border rounded-lg p-1.5 bg-background">
-                    {filteredEditRooms.length === 0 ? (
-                      <div className="py-6 text-center text-xs text-muted-foreground">
-                        {ar ? "لا توجد غرف مطابقة لمعايير البحث" : "No rooms match the criteria"}
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                        {filteredEditRooms.slice(0, 36).map((rm: any) => {
-                          const isSel = String(editForm.roomId) === String(rm.id);
-                          const occ = rm.currentOccupancy ?? 0;
-                          const cap = rm.capacity ?? 1;
-                          const isFull = occ >= cap || entireRoomOccupiedSet.has(rm.id);
-                          const bName = buildingMap[rm.buildingId];
-
-                          return (
-                            <button
-                              key={rm.id}
-                              type="button"
-                              onClick={() => {
-                                setEditForm((f) => ({
-                                  ...f,
-                                  roomId: String(rm.id),
-                                  roomType: rm.roomType || f.roomType,
-                                  bedNumber: (rm.capacity ?? 1) === 1 ? "1" : (f.roomId === String(rm.id) ? f.bedNumber : "1"),
-                                }));
-                              }}
-                              className={`p-2 rounded-lg border text-start transition-all flex flex-col justify-between text-xs ${
-                                isSel
-                                  ? "border-primary bg-primary/10 ring-1 ring-primary"
-                                  : isFull
-                                  ? "border-border/60 bg-muted/40 opacity-70 hover:opacity-100"
-                                  : "border-border hover:border-primary/50 hover:bg-muted/20"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-1 w-full">
-                                <span className="font-bold font-mono text-sm">
-                                  {ar ? `غرفة ${rm.roomNumber}` : `Room ${rm.roomNumber}`}
-                                </span>
-                                {isSel && <Check className="w-3.5 h-3.5 text-primary" />}
-                              </div>
-                              <div className="text-[11px] text-muted-foreground truncate w-full mt-0.5">
-                                {bName ? `${bName} • ` : ""}{rm.roomType || (ar ? "قياسية" : "Standard")}
-                              </div>
-                              <div className="flex items-center justify-between text-[10px] text-muted-foreground mt-1 pt-1 border-t border-border/40 w-full">
-                                <span>{ar ? `السعة: ${cap}` : `Cap: ${cap}`}</span>
-                                <span className={occ >= cap ? "text-amber-600 font-medium" : "text-emerald-600 font-medium"}>
-                                  {occ}/{cap}
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Bed Selector for currently picked room */}
-                  {editForm.roomId && (() => {
-                    const selRoom = rooms.find((r: any) => String(r.id) === String(editForm.roomId));
-                    const cap = selRoom?.capacity ?? (roomTypeCapacity[selRoom?.roomType?.toLowerCase()] || 1);
-                    if (cap <= 1) return null;
-                    const bedOpts = getBedOptions(selRoom?.roomType, cap);
-
-                    return (
-                      <div className="p-2.5 rounded-lg border bg-muted/30 space-y-2">
-                        <Label className="text-xs font-semibold">
-                          {ar ? "تحديد السرير المطلوب في هذه الغرفة:" : "Select Bed in this room:"}
-                        </Label>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={editForm.bedNumber === "ALL" ? "default" : "outline"}
-                            className="h-7 text-xs"
-                            onClick={() => setEditForm((f) => ({ ...f, bedNumber: "ALL" }))}
-                          >
-                            {ar ? "الغرفة بالكامل" : "Entire Room"}
-                          </Button>
-                          {bedOpts.map((bedNum) => (
-                            <Button
-                              key={bedNum}
-                              type="button"
-                              size="sm"
-                              variant={editForm.bedNumber === String(bedNum) ? "default" : "outline"}
-                              className="h-7 text-xs"
-                              onClick={() => setEditForm((f) => ({ ...f, bedNumber: String(bedNum) }))}
-                            >
-                              {ar ? `سرير ${bedNum}` : `Bed ${bedNum}`}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-1.5"><Label>{ar ? "ملاحظات" : "Notes"}</Label><Textarea value={editForm.notes} onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))} rows={2} /></div>
-            <div className="flex items-center justify-between gap-2 pt-2 border-t">
-              <div>
-                {editDialog.reservation?.status === "UPCOMING" && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1.5"
-                    onClick={() => {
-                      const res = editDialog.reservation;
-                      setEditDialog({ open: false, reservation: null });
-                      setCancelDialog({ open: true, reservation: res, reason: "" });
-                    }}
-                  >
-                    <Ban className="w-4 h-4" />
-                    {ar ? "إلغاء هذا الحجز" : "Cancel Reservation"}
-                  </Button>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setEditDialog({ open: false, reservation: null })}>{ar ? "إلغاء" : "Cancel"}</Button>
-                <Button onClick={handleUpdate} disabled={updateMutation.isPending}>{updateMutation.isPending ? (ar ? "جاري..." : "...") : (ar ? "حفظ التعديلات" : "Save Changes")}</Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <EditReservationDialog
+        ar={ar}
+        activePropertyId={activePropertyId}
+        editDialog={editDialog}
+        setEditDialog={setEditDialog}
+        editForm={editForm}
+        setEditForm={setEditForm}
+        departmentValues={departmentValues}
+        filteredEditJobTitles={filteredEditJobTitles}
+        rooms={rooms}
+        buildings={buildings}
+        buildingMap={buildingMap}
+        showEditRoomPicker={showEditRoomPicker}
+        setShowEditRoomPicker={setShowEditRoomPicker}
+        editBuildingId={editBuildingId}
+        setEditBuildingId={setEditBuildingId}
+        editRoomSearch={editRoomSearch}
+        setEditRoomSearch={setEditRoomSearch}
+        filteredEditRooms={filteredEditRooms}
+        entireRoomOccupiedSet={entireRoomOccupiedSet}
+        setCancelDialog={setCancelDialog}
+        handleUpdate={handleUpdate}
+        updateMutation={updateMutation}
+      />
 
       {/* CANCEL RESERVATION CONFIRMATION */}
-      <AlertDialog
-        open={cancelDialog.open}
-        onOpenChange={(o) => !o && setCancelDialog({ open: false, reservation: null, reason: "" })}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <Ban className="w-5 h-5" />
-              {ar ? "تأكيد إلغاء الحجز" : "Confirm Reservation Cancellation"}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2 text-sm text-muted-foreground">
-              <span>
-                {ar
-                  ? `هل أنت متأكد من رغبتك في إلغاء حجز النزيل "${cancelDialog.reservation?.firstName || ""} ${cancelDialog.reservation?.lastName || ""}"؟`
-                  : `Are you sure you want to cancel the reservation for "${cancelDialog.reservation?.firstName || ""} ${cancelDialog.reservation?.lastName || ""}"?`}
-              </span>
-              {cancelDialog.reservation?.roomId && (
-                <span className="block mt-1 text-amber-600 dark:text-amber-400 font-medium">
-                  {ar
-                    ? `ملاحظة: سيتم تحرير الغرفة والسرير المحجوزين تلقائياً.`
-                    : `Note: The reserved room and bed will be released automatically.`}
-                </span>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-2 space-y-1.5">
-            <Label className="text-xs text-muted-foreground">{ar ? "سبب الإلغاء (اختياري)" : "Cancellation Reason (Optional)"}</Label>
-            <Input
-              placeholder={ar ? "أدخل سبب إلغاء الحجز..." : "Enter reason for cancellation..."}
-              value={cancelDialog.reason}
-              onChange={(e) => setCancelDialog((d) => ({ ...d, reason: e.target.value }))}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{ar ? "تراجع" : "Go Back"}</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-1.5"
-              onClick={() => {
-                if (cancelDialog.reservation?.id) {
-                  cancelMutation.mutate({
-                    id: cancelDialog.reservation.id,
-                    reason: cancelDialog.reason || undefined,
-                  });
-                }
-              }}
-              disabled={cancelMutation.isPending}
-            >
-              {cancelMutation.isPending ? (
-                ar ? "جاري الإلغاء..." : "Cancelling..."
-              ) : (
-                <>
-                  <Ban className="w-4 h-4" />
-                  {ar ? "نعم، إلغاء الحجز" : "Yes, Cancel Reservation"}
-                </>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <CancelReservationDialog ar={ar} cancelDialog={cancelDialog} setCancelDialog={setCancelDialog} cancelMutation={cancelMutation} />
 
       {/* DELETE CONFIRM */}
-      <AlertDialog open={deleteId !== null} onOpenChange={(o) => !o && setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>{ar ? "حذف الحجز؟" : "Delete?"}</AlertDialogTitle><AlertDialogDescription>{ar ? "لا يمكن التراجع عن هذا الإجراء." : "This cannot be undone."}</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>{ar ? "إلغاء" : "Cancel"}</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteId && deleteMutation.mutate({ id: deleteId })}>{ar ? "حذف" : "Delete"}</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteReservationDialog ar={ar} deleteId={deleteId} setDeleteId={setDeleteId} deleteMutation={deleteMutation} />
 
       {/* KEY PROMPT */}
-      <Dialog open={keyPromptOpen} onOpenChange={setKeyPromptOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Key className="w-5 h-5 text-primary" />{ar ? "تم التسكين بنجاح!" : "Assignment Successful!"}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">{ar ? "هل تريد إصدار مفتاح الغرفة أو طباعة خطاب السكن؟" : "Issue a room key or print the housing letter?"}</p>
-            {lastAssignment && (
-              <KeyManagementPanel
-                assignmentId={lastAssignment?.id || lastAssignment?.data?.id}
-                roomId={lastAssignment?.roomId || lastAssignment?.data?.roomId}
-                propertyId={typeof activePropertyId === "number" ? activePropertyId : Number(activePropertyId) || 0}
-                checkInDate={checkInDate}
-                checkOutDate={expectedCheckOut || selectedProfile?.contractEndDate || (newForm.employmentType === "INTERNAL" ? newForm.contractEndDate : undefined)}
-              />
-            )}
-            <div className="flex justify-between">
-              <Button variant="outline" size="sm" onClick={() => { const f = newForm as any; const p = selectedProfile || (f.firstName ? { firstName: f.firstName, lastName: f.lastName, firstNameAr: f.firstNameAr, lastNameAr: f.lastNameAr, department: f.department, departmentAr: f.departmentAr, jobTitle: f.jobTitle, jobTitleAr: f.jobTitleAr, nationalId: f.nationalId, nationality: f.nationality, phone: f.phone, level: f.level } : null); if (p && lastAssignment) printHousingLetter(p, lastAssignment); }} className="gap-2"><Printer className="w-4 h-4" />{ar ? "طباعة خطاب السكن" : "Print Housing Letter"}</Button>
-              <Button onClick={() => { setKeyPromptOpen(false); setLocation("/accommodation/in-house"); }}>{ar ? "عرض المقيمين" : "View In-House"}</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <KeyPromptDialog
+        ar={ar}
+        keyPromptOpen={keyPromptOpen}
+        setKeyPromptOpen={setKeyPromptOpen}
+        lastAssignment={lastAssignment}
+        activePropertyId={activePropertyId}
+        checkInDate={checkInDate}
+        expectedCheckOut={expectedCheckOut}
+        selectedProfile={selectedProfile}
+        newForm={newForm}
+        printHousingLetter={printHousingLetter}
+        setLocation={setLocation}
+      />
 
       {/* ── نافذة تأكيد النقل والتسكين العابر للفنادق (Explicit Confirmation Modal) ── */}
-      <Dialog open={crossPropertyModalOpen} onOpenChange={setCrossPropertyModalOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
-              <ArrowRightLeft className="w-5 h-5 text-amber-600" />
-              <span>{ar ? "تأكيد نقل وتسكين موظف من فندق آخر" : "Confirm Cross-Property Assignment"}</span>
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedProfile && (
-            <div className="space-y-4 pt-1">
-              {/* ملخص الموظف والفرعين */}
-              <div className="p-3.5 rounded-xl border bg-muted/30 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-foreground">
-                    {selectedProfile.firstName} {selectedProfile.lastName}
-                  </span>
-                  <Badge variant="outline" className="font-mono text-xs">
-                    #{selectedProfile.profileId}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                  <span className="font-medium text-foreground">
-                    {selectedProfile.jobTitle || selectedProfile.department || (ar ? "موظف" : "Employee")}
-                  </span>
-                  <span>•</span>
-                  <span>{ar ? "الفندق المسجل به حالياً:" : "Current Hotel:"} <strong className="text-foreground">{selectedProfile.propertyName}</strong></span>
-                  <span>➔</span>
-                  <span>{ar ? "فندق التسكين الجديد:" : "Target Hotel:"} <strong className="text-primary">{activeProp?.name}</strong></span>
-                </div>
-              </div>
-
-              {/* تنبيه إذا كان ساكناً في الفندق القديم */}
-              {selectedProfile.accommodationRoom && (
-                <div className="p-3 rounded-lg border-2 border-amber-500/60 bg-amber-100/90 dark:bg-amber-900/60 text-amber-950 dark:text-amber-100 flex items-start gap-2.5 shadow-2xs">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                  <div className="text-xs space-y-0.5">
-                    <p className="font-bold">
-                      {ar
-                        ? `تنبيه: الموظف ساكن حالياً في ${selectedProfile.propertyName} - غرفة رقم ${selectedProfile.accommodationRoom}!`
-                        : `Notice: Resident is currently housed in ${selectedProfile.propertyName} - Room ${selectedProfile.accommodationRoom}!`}
-                    </p>
-                    <p className="text-muted-foreground dark:text-amber-200/90 leading-relaxed">
-                      {ar
-                        ? "⚡ سيقوم النظام تلقائياً بإنهاء إقامته السابقة (Check-out) وتحرير السرير هناك فور تأكيد التسكين، مع الحفاظ الكامل على كافة سجلات الغرف واللوج التاريخي 100% دون أي حذف."
-                        : "System will automatically check out previous accommodation and release bed upon assignment, preserving 100% of historical room logs."}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* السؤال الصريح: ماذا تريد أن تفعل بملف الموظف في الفندق القديم؟ */}
-              <div className="space-y-2 pt-1">
-                <label className="text-sm font-bold text-foreground block">
-                  {ar
-                    ? `سؤال: ماذا تريد أن تفعل بملف الموظف في الفندق القديم (${selectedProfile.propertyName})؟`
-                    : `What should happen to the profile in (${selectedProfile.propertyName})?`}
-                </label>
-
-                <div className="grid grid-cols-1 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setArchiveSourceProfile(true);
-                      setTransferType("PERMANENT");
-                    }}
-                    className={`p-3 rounded-xl border-2 text-start transition-all cursor-pointer relative ${
-                      archiveSourceProfile
-                        ? "bg-primary/10 border-primary shadow-xs ring-1 ring-primary/30"
-                        : "bg-background border-border hover:bg-muted/40"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                          archiveSourceProfile ? "border-primary bg-primary text-white" : "border-muted-foreground"
-                        }`}>
-                          {archiveSourceProfile && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                        </div>
-                        <span className="text-xs font-bold text-foreground">
-                          {ar ? "1. نقله وحذفه من قائمة الفندق القديم (أرشفة لعدم التكرار)" : "1. Transfer & Archive from Old Hotel"}
-                        </span>
-                      </div>
-                      <Badge variant="outline" className="text-[10px] font-medium bg-muted/60 text-muted-foreground">
-                        {ar ? "الموصى به" : "Recommended"}
-                      </Badge>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-1.5 ms-6 leading-relaxed">
-                      {ar
-                        ? "يتم نقل الموظف لهذا الفندق وأرشفة ملفه القديم لعدم تكرار اسمه في القوائم النشطة، مع بقاء كل سجلات الإقامة ولوج الغرف القديمة 100% دون مساس."
-                        : "Permanently move employee, archiving old profile while fully preserving past room stay logs."}
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setArchiveSourceProfile(false);
-                      setTransferType("TASK_FORCE");
-                    }}
-                    className={`p-3 rounded-xl border-2 text-start transition-all cursor-pointer relative ${
-                      !archiveSourceProfile
-                        ? "bg-primary/10 border-primary shadow-xs ring-1 ring-primary/30"
-                        : "bg-background border-border hover:bg-muted/40"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                          !archiveSourceProfile ? "border-primary bg-primary text-white" : "border-muted-foreground"
-                        }`}>
-                          {!archiveSourceProfile && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                        </div>
-                        <span className="text-xs font-bold text-foreground">
-                          {ar ? "2. نقله وتسيب البروفايل موجود ونشط في الفندق القديم أيضاً" : "2. Keep Profile Active in Both Hotels"}
-                        </span>
-                      </div>
-                      <Badge variant="outline" className="text-[10px] font-medium bg-muted/60 text-muted-foreground">
-                        {ar ? "انتداب / فرعين" : "Secondment / Dual"}
-                      </Badge>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-1.5 ms-6 leading-relaxed">
-                      {ar
-                        ? "تسكين الموظف هنا مع إبقاء ملفه الشخصي متاحاً ونشطاً في الفندق القديم أيضاً (مناسب للانتداب أو العمل المشترك بالفرعين)."
-                        : "Assign resident here while keeping profile active in the source property (for Task Force / dual work)."}
-                    </p>
-                  </button>
-                </div>
-              </div>
-
-              {/* أزرار النافذة */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setCrossPropertyModalOpen(false)}
-                >
-                  {ar ? "إلغاء" : "Cancel"}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => executeSubmission()}
-                  disabled={createAssignmentMutation.isPending || createReservationMutation.isPending}
-                  className="gap-2 bg-primary hover:bg-primary/90 font-bold"
-                >
-                  {(createAssignmentMutation.isPending || createReservationMutation.isPending) && (
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  )}
-                  <span>{ar ? "تأكيد التسكين والنقل الآن" : "Confirm Assignment & Transfer"}</span>
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <CrossPropertyConfirmDialog
+        ar={ar}
+        crossPropertyModalOpen={crossPropertyModalOpen}
+        setCrossPropertyModalOpen={setCrossPropertyModalOpen}
+        selectedProfile={selectedProfile}
+        activeProp={activeProp}
+        archiveSourceProfile={archiveSourceProfile}
+        setArchiveSourceProfile={setArchiveSourceProfile}
+        setTransferType={setTransferType}
+        executeSubmission={executeSubmission}
+        createAssignmentMutation={createAssignmentMutation}
+        createReservationMutation={createReservationMutation}
+      />
 
       <PrintLanguageDialog open={langDialogOpen} onSelect={handleSelect} onCancel={handleCancel} />
     </div>
