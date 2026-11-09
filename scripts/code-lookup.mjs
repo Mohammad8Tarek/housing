@@ -382,6 +382,34 @@ const REGISTRY = [
     },
   },
   {
+    id: "reports_center",
+    name: "Reports Center & Print Studio / مركز التقارير والطباعة",
+    keywords: ["report", "reports", "print", "pdf", "excel", "export", "manager flash", "تقرير", "تقارير", "طباعة", "تصدير", "كشف"],
+    frontend: {
+      route: "/:property/reports & /:property/reports/configuration",
+      page: "artifacts/housing/src/pages/reports/ReportsPage.tsx",
+      components: [
+        "Report catalog (6 groups / 26 reports): artifacts/housing/src/pages/reports/constants.tsx (TABS, REPORT_GROUPS) + components/TabsNav.tsx",
+        "Row builders per report: artifacts/housing/src/pages/reports/hooks/processors/*.ts (registry: processors/index.ts)",
+        "Table columns per report: artifacts/housing/src/pages/reports/components/report-table/*.tsx (registry: report-table/index.ts)",
+        "Print Studio + printed document: components/ReportPrintStudioModal.tsx, components/PrintableReportDocument.tsx",
+        "Excel export styling: artifacts/housing/src/lib/xlsx-brand.ts; brand tokens: artifacts/housing/src/lib/sunrise-brand.ts",
+        "Self-contained tabs: components/ManagerFlashTab, OccupancyForecastTab, HousingMapReportTab, ServiceRatingsTab, HousingRatingsTab, RoomMovesTab, AnalyticsTab",
+        "Custom report builder: artifacts/housing/src/pages/reports/ReportConfigurationPage.tsx",
+      ],
+    },
+    backend: {
+      routes: [
+        "artifacts/api-server/src/routes/reports.ts",
+      ],
+    },
+    database: {
+      schemas: [
+        "Reads rooms, assignments, profiles, reservations, maintenance_tickets, hostings, gate logs, room_inventory",
+      ],
+    },
+  },
+  {
     id: "room_inventory",
     name: "Room Amenities & Equipment Inventory / جرد محتويات ومعدات الغرف",
     keywords: ["inventory", "equipment", "amenities", "asset", "assets", "جرد", "معدات", "محتويات الغرف", "عهد"],
@@ -389,7 +417,8 @@ const REGISTRY = [
       route: "Housing -> Room Details Dialog & Reports -> Amenities Tab",
       page: "artifacts/housing/src/pages/housing/components/RoomDetailsDialog.tsx",
       components: [
-        "artifacts/housing/src/pages/reports/components/ReportTable.tsx (equipment_inventory tab)",
+        "Report rows: artifacts/housing/src/pages/reports/hooks/processors/services.ts (processEquipmentInventory)",
+        "Report columns: artifacts/housing/src/pages/reports/components/report-table/services.tsx + EquipmentRoomsDialog.tsx",
         "RoomDetailsDialog.tsx (Equipment inventory card, barcode, condition dropdown, add asset)",
       ],
     },
