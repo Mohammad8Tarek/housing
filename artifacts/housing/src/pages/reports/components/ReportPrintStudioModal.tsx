@@ -1,12 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -16,23 +10,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Printer,
-  FileSpreadsheet,
-  Columns3,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  RotateCw,
-  Languages,
-  Check,
-  Type,
-  FileText,
-  PenTool,
-  BarChart2,
-  X,
-} from "lucide-react";
-import * as XLSX from "xlsx";
+import { Printer, FileSpreadsheet, Columns3, ZoomIn, ZoomOut, Maximize2, RotateCw, FileText, PenTool, BarChart2, X } from "lucide-react";
+import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { getExportFileName, formatDate } from "@/lib/date-utils";
 import {
   PrintableReportDocument,
@@ -186,7 +165,7 @@ export function ReportPrintStudioModal({
     const wb = XLSX.utils.book_new();
     const cleanSheetName = (isAr ? titleAr || title : title).slice(0, 31).replace(/[\\/?*[\]]/g, "_");
     XLSX.utils.book_append_sheet(wb, ws, cleanSheetName);
-    XLSX.writeFile(wb, getExportFileName(`${docTitle}_Report`, "xlsx"));
+    writeSunriseWorkbook(wb, getExportFileName(`${docTitle}_Report`, "xlsx"), { rtl: isAr });
   };
 
   return (

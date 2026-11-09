@@ -1,21 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import {
-  Wrench,
-  Sparkles,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Flame,
-  Star,
-  Activity,
-  ThumbsUp,
-  Layers,
-  Filter,
-} from "lucide-react";
+import { Wrench, Sparkles, Clock, CheckCircle2, Flame, Star, Activity, Layers } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 interface TrackStats {

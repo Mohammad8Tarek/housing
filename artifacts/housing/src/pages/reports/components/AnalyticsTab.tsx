@@ -1,28 +1,5 @@
 import React, { useState } from "react";
-import {
-  Building2,
-  BedDouble,
-  Users,
-  Wrench,
-  Home,
-  TrendingUp,
-  Printer,
-  Sparkles,
-  ShieldCheck,
-  Star,
-  Activity,
-  Layers,
-  CheckCircle2,
-  Clock,
-  ThumbsUp,
-  AlertCircle,
-  ArrowDownRight,
-  ArrowUpRight,
-  Calendar,
-  Briefcase,
-  Brush,
-  Search,
-} from "lucide-react";
+import { Building2, BedDouble, Users, Wrench, Home, TrendingUp, Sparkles, Star, Activity, Layers, CheckCircle2, Clock, ArrowDownRight, ArrowUpRight, Calendar, Briefcase, Brush, Search } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -42,7 +19,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 interface AnalyticsTabProps {

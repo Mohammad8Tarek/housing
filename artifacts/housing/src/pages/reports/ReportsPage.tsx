@@ -19,7 +19,6 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ClipboardCheck, AlertOctagon, Palmtree, SlidersHorizontal } from "lucide-react";
 import { ExportToolbar } from "./components/ExportToolbar";
-import { StatsCards } from "./components/StatsCards";
 import { TabsNav } from "./components/TabsNav";
 import { ReportFilters } from "./components/ReportFilters";
 import { ReportTable } from "./components/ReportTable";
@@ -180,18 +179,6 @@ export default function Reports() {
     });
   }, []);
 
-  const batchWaterCheck = useCallback((keys: string[], val: boolean) => {
-    setWaterCheckState((prev) => {
-      const next = { ...prev };
-      keys.forEach((k) => {
-        next[k] = val;
-      });
-      try {
-        localStorage.setItem("water_distribution_checks", JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }, []);
 
   const exportActions =
     useReportExport({
@@ -313,10 +300,8 @@ export default function Reports() {
             handleExportAnalyticsPDF={handleExportAnalyticsPDF}
             handleExportExcel={handleExportExcel}
             handleExportPDF={handleExportPDF}
-            handleSmartExportPdf={smartExport.exportPdf}
             handleSmartExportCsv={smartExport.exportCsv}
             handleSmartExportXlsx={smartExport.exportXlsx}
-            isSmartExportingPdf={smartExport.isExportingPdf}
             isSmartExportingCsv={smartExport.isExportingCsv}
             isSmartExportingXlsx={smartExport.isExportingXlsx}
             hasSmartReport={!!smartDef}

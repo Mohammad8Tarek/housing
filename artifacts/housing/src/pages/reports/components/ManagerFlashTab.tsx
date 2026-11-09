@@ -1,27 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
-import * as XLSX from "xlsx";
+import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
+import { getExportFileName } from "@/lib/date-utils";
 import { formatNationality } from "@/lib/countries";
 import { getProfileDisplayDepartment } from "@/lib/profile-display-utils";
-import {
-  FileBarChart2,
-  Building2,
-  BedDouble,
-  Users,
-  Wrench,
-  Sparkles,
-  Printer,
-  Calendar,
-  ArrowDownRight,
-  ArrowUpRight,
-  Clock,
-  CheckCircle2,
-  Hotel,
-  ShieldCheck,
-  Building,
-  RotateCcw,
-} from "lucide-react";
+import { Building2, BedDouble, Users, Wrench, Sparkles, Calendar, ArrowDownRight, ArrowUpRight, Clock, CheckCircle2, Hotel, ShieldCheck, Building, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -294,8 +278,7 @@ export function ManagerFlashTab({
     const wsNat = XLSX.utils.json_to_sheet(natRows);
     XLSX.utils.book_append_sheet(wb, wsNat, ar ? "توزيع الجنسيات" : "Nationalities");
 
-    const dateStr = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `Daily_Morning_Operations_Report_${dateStr}.xlsx`);
+    writeSunriseWorkbook(wb, getExportFileName("Daily_Morning_Operations_Report", "xlsx"), { rtl: ar });
   };
 
   const [isStudioOpen, setIsStudioOpen] = useState(false);

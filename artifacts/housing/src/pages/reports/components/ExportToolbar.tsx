@@ -1,6 +1,6 @@
 import type { MutableRefObject, RefObject } from "react";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, FileText, Download, Printer, ChevronDown } from "lucide-react";
+import { FileSpreadsheet, Download, Printer, ChevronDown } from "lucide-react";
 import { Tab } from "../types";
 import { ColumnChooser, ColDef } from "@/components/ui/column-chooser";
 import {
@@ -23,10 +23,8 @@ interface ExportToolbarProps {
   onShowAll?: () => void;
   onHideAll?: () => void;
   // Smart report export props (jsPDF + AutoTable system)
-  handleSmartExportPdf?: () => void;
   handleSmartExportCsv?: () => void;
   handleSmartExportXlsx?: () => void;
-  isSmartExportingPdf?: boolean;
   isSmartExportingCsv?: boolean;
   isSmartExportingXlsx?: boolean;
   hasSmartReport?: boolean;
@@ -58,10 +56,8 @@ export function ExportToolbar({
   onToggle,
   onShowAll,
   onHideAll,
-  handleSmartExportPdf,
   handleSmartExportCsv,
   handleSmartExportXlsx,
-  isSmartExportingPdf,
   isSmartExportingCsv,
   isSmartExportingXlsx,
   hasSmartReport,
@@ -180,15 +176,12 @@ export function ExportToolbar({
           variant="default"
           size="sm"
           onClick={() => handlePdfClick("all")}
-          disabled={isSmartExportingPdf}
           className="gap-2 bg-[#2AA8AB] hover:bg-[#1F7F81] active:bg-[#1F7F81] text-white text-xs font-bold h-9 px-3.5 rounded-l-lg rtl:rounded-l-none rtl:rounded-r-lg rounded-r-none rtl:rounded-l-none border-0 transition-all cursor-pointer"
           title={ar ? "طباعة التقرير كاملاً بصيغة PDF (الافتراضي)" : "Print complete report as PDF"}
         >
           <Printer className="w-4 h-4 text-white shrink-0" />
           <span>
-            {isSmartExportingPdf
-              ? (ar ? "جاري التجهيز..." : "Generating...")
-              : (ar ? "طباعة تقرير PDF" : "Print PDF Report")}
+            {ar ? "طباعة تقرير PDF" : "Print PDF Report"}
           </span>
         </Button>
         <DropdownMenu>
@@ -196,8 +189,7 @@ export function ExportToolbar({
             <Button
               variant="default"
               size="sm"
-              disabled={isSmartExportingPdf}
-              className="bg-[#1F7F81] hover:bg-[#196a6c] text-white h-9 px-1.5 rounded-r-lg rtl:rounded-r-none rtl:rounded-l-lg rounded-l-none rtl:rounded-r-none border-0 border-l rtl:border-l-0 rtl:border-r border-white/30 transition-all cursor-pointer"
+                  className="bg-[#1F7F81] hover:bg-[#196a6c] text-white h-9 px-1.5 rounded-r-lg rtl:rounded-r-none rtl:rounded-l-lg rounded-l-none rtl:rounded-r-none border-0 border-l rtl:border-l-0 rtl:border-r border-white/30 transition-all cursor-pointer"
               title={ar ? "خيارات الطباعة" : "Print options"}
             >
               <ChevronDown className="w-3.5 h-3.5" />

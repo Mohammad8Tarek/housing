@@ -1,23 +1,9 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
+import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
-import {
-  ArrowLeftRight,
-  Building2,
-  Calendar,
-  Clock,
-  Filter,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  User,
-  Wrench,
-  TrendingUp,
-  Sparkles,
-  BedDouble,
-} from "lucide-react";
+import { ArrowLeftRight, Clock, RefreshCw, Search, ShieldCheck, User, Wrench, TrendingUp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
@@ -38,7 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/date-utils";
+import { getExportFileName } from "@/lib/date-utils";
 import { DataPagination } from "@/components/DataPagination";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -152,7 +138,7 @@ export function RoomMovesTab({
     XLSX.utils.book_append_sheet(wb, ws, "Room Moves Report");
 
     const propName = properties.find((p) => String(p.id) === String(queryPropertyId))?.name || "All_Properties";
-    XLSX.writeFile(wb, `Room_Moves_Report_${propName}_${new Date().toISOString().split("T")[0]}.xlsx`);
+    writeSunriseWorkbook(wb, getExportFileName(`Room_Moves_Report_${propName}`, "xlsx"), { rtl: ar });
   };
 
   function formatDateTimeCell(dt: string | Date | null | undefined): string {
