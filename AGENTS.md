@@ -100,7 +100,10 @@ cd ../../lib/db
 $env:DATABASE_URL="postgresql://postgres:admin123@localhost:5432/staff-housing"
 npx tsx src/run-migration.ts
 
-# 4. Check Git Status and Commit Cleanly
+# 4. Room lifecycle integration suite (needs a running api-server + DB; self-skips otherwise)
+API_URL=http://localhost:4000 ADMIN_USER=admin ADMIN_PASS=<password> PROPERTY_ID=1 pnpm run test:lifecycle
+
+# 5. Check Git Status and Commit Cleanly
 cd ../..
 git status
 git add <modified-files>
