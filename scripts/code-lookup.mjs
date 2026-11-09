@@ -128,7 +128,6 @@ const REGISTRY = [
       page: "artifacts/housing/src/pages/accommodation/guest-hosting/GuestHostingPage.tsx",
       components: [
         "GuestHostingPage.tsx",
-        "EditHostingDialog.tsx",
         "HostingRequestsList.tsx: artifacts/housing/src/pages/hosting-requests/HostingRequestsList.tsx",
         "CreateHostingRequest.tsx, EditHostingRequest.tsx, HostingRequestDetail.tsx",
       ],
@@ -156,7 +155,6 @@ const REGISTRY = [
       page: "artifacts/housing/src/pages/housing/HousingPage.tsx",
       components: [
         "BuildingsTab: artifacts/housing/src/pages/housing/components/buildings/BuildingsTab.tsx",
-        "BuildingModals: artifacts/housing/src/pages/housing/components/buildings/BuildingModals.tsx",
         "FloorsTab: artifacts/housing/src/pages/housing/components/floors/FloorsTab.tsx",
         "FloorModals: artifacts/housing/src/pages/housing/components/floors/FloorModals.tsx",
         "RoomsTab: artifacts/housing/src/pages/housing/components/rooms/RoomsTab.tsx",
@@ -218,7 +216,6 @@ const REGISTRY = [
         "ProfileDialog (Create): artifacts/housing/src/pages/profiles/components/ProfileDialog.tsx",
         "EditProfileDialog: artifacts/housing/src/pages/profiles/components/EditProfileDialog.tsx",
         "ExcelImportDialog: artifacts/housing/src/pages/profiles/components/ExcelImportDialog.tsx",
-        "PhotoUploadBtn: artifacts/housing/src/pages/profiles/components/PhotoUploadBtn.tsx",
       ],
     },
     backend: {
@@ -266,11 +263,9 @@ const REGISTRY = [
       page: "artifacts/housing/src/pages/users/index.tsx & detail.tsx",
       components: [
         "PermissionMatrixCenter.tsx: artifacts/housing/src/pages/users/components/PermissionMatrixCenter.tsx",
-        "PermissionMatrixDialog.tsx: artifacts/housing/src/pages/users/components/PermissionMatrixDialog.tsx",
-        "CreateUserDialog.tsx & EditUserDialog.tsx: artifacts/housing/src/pages/users/components/",
-        "EditPropertiesDialog.tsx (Hotel property multi-assignment)",
-        "PermissionGate.tsx: artifacts/housing/src/components/auth/PermissionGate.tsx",
-        "usePermission hook: artifacts/housing/src/hooks/use-permission.tsx",
+        "CreateUserDialog.tsx & DeleteUserDialog.tsx: artifacts/housing/src/pages/users/components/",
+        "PermissionGate.tsx: artifacts/housing/src/components/ui/permission-gate.tsx",
+        "usePermission hook: artifacts/housing/src/hooks/use-permission.ts",
         "Permissions Definition: artifacts/housing/src/lib/permissions.ts",
       ],
     },
@@ -278,7 +273,7 @@ const REGISTRY = [
       routes: [
         "artifacts/api-server/src/routes/users.ts (GET /, POST /, GET /:id, PATCH /:id, DELETE /:id, PATCH /:id/permissions)",
         "artifacts/api-server/src/routes/auth.ts (POST /login, POST /logout, GET /me)",
-        "artifacts/api-server/src/middlewares/permissions.js (requirePermission middleware)",
+        "artifacts/api-server/src/middlewares/permissions.ts (requirePermission middleware)",
       ],
     },
     database: {
@@ -336,8 +331,8 @@ const REGISTRY = [
     backend: {
       routes: [
         "artifacts/api-server/src/routes/properties.ts (GET /, POST /, PATCH /:id)",
-        "artifacts/api-server/src/lib/db.ts (withTenant helper setting search_path)",
-        "artifacts/api-server/src/lib/migrations.ts (auto-runs migrations on all tenant schemas)",
+        "lib/db/src/index.ts (withTenant helper setting search_path)",
+        "artifacts/api-server/src/lib/migrations/index.ts (auto-runs migrations on all tenant schemas)",
       ],
     },
     database: {
@@ -362,7 +357,7 @@ const REGISTRY = [
         "Overview Tab: artifacts/employee-portal/src/components/TabOverview.tsx",
         "Requests Tab: artifacts/employee-portal/src/components/TabRequests.tsx",
         "Documents Tab: artifacts/employee-portal/src/components/TabDocuments.tsx",
-        "Chat Tab: artifacts/employee-portal/src/components/chat/ChatContainer.tsx",
+        "Chat Tab: artifacts/employee-portal/src/components/chat/TabChat.tsx",
         "Activities Tab: artifacts/employee-portal/src/components/TabActivities.tsx",
         "Food & Transport: artifacts/employee-portal/src/components/TabFood.tsx, TabTransport.tsx",
         "Settings & PWA: artifacts/employee-portal/src/components/TabPortalSettings.tsx, PWAInstallBanner.tsx",
@@ -394,7 +389,7 @@ const REGISTRY = [
       route: "Housing -> Room Details Dialog & Reports -> Amenities Tab",
       page: "artifacts/housing/src/pages/housing/components/RoomDetailsDialog.tsx",
       components: [
-        "artifacts/housing/src/pages/reports/components/AmenitiesInventoryTab.tsx",
+        "artifacts/housing/src/pages/reports/components/ReportTable.tsx (equipment_inventory tab)",
         "RoomDetailsDialog.tsx (Equipment inventory card, barcode, condition dropdown, add asset)",
       ],
     },

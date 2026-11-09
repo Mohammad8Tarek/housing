@@ -1,11 +1,5 @@
-import {
-  db,
-  pool,
-  hostingsTable,
-  hostingCompanionsTable,
-  withTenant,
-} from "./index.js";
-import { eq, inArray } from "drizzle-orm";
+import { pool, hostingsTable, hostingCompanionsTable, withTenant } from "./index.js";
+import { eq } from "drizzle-orm";
 
 /**
  * Script لإضافة مرافقين لبيانات الاستضافة الموجودة

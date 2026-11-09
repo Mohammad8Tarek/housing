@@ -148,14 +148,6 @@ export const changePasswordRateLimit = createRateLimiter({
   keyFn: (req) =>
     `change_pw:${getIp(req)}:${(req.session as any)?.userId ?? "anon"}`,
 });
-
-export const hrSyncRateLimit = createRateLimiter({
-  windowMs: 60 * 1000,
-  max: 5,
-  message: "HR sync rate limit exceeded. Max 5 syncs per minute.",
-  keyFn: (req) => `hr_sync:${(req.session as any)?.propertyId ?? "unknown"}`,
-});
-
 export const portalRateLimit = createRateLimiter({
   windowMs: 60 * 1000,
   max: 200,

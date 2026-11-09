@@ -1,17 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useLanguage } from "@/context/LanguageContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Building2,
-  Users,
-  Search,
-  BarChart3,
-  LayoutGrid,
-  Table as TableIcon,
-  Sparkles,
-  Trophy,
-  X,
-} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Building2, Users, Search, BarChart3, LayoutGrid, Table as TableIcon, Trophy, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 

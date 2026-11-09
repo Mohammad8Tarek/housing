@@ -20,13 +20,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -54,32 +47,8 @@ import {
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { useProperty } from "@/context/PropertyContext";
-import {
-  User,
-  Briefcase,
-  Building2,
-  Phone,
-  Camera,
-  Calendar,
-  MapPin,
-  Globe2,
-  Shield,
-  ArrowLeft,
-  BedDouble,
-  History,
-  Home,
-  Printer,
-  Download,
-  Trash2,
-  Eye,
-  ExternalLink,
-  FileText,
-  Clock,
-  CalendarPlus,
-  X,
-  Pencil,
-} from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { User, Briefcase, Building2, Phone, Camera, Calendar, MapPin, Globe2, Shield, ArrowLeft, BedDouble, History, Home, Printer, Download, Trash2, Eye, FileText, Clock, CalendarPlus, Pencil } from "lucide-react";
+import { differenceInDays } from "date-fns";
 import { formatDate } from "@/lib/date-utils";
 import { generateHousingLetterPdf } from "@/lib/pdf-utils";
 import { EditProfileDialog } from "./components/EditProfileDialog";

@@ -1,36 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
-import {
-  ShieldCheck,
-  Building2,
-  Users,
-  Calendar,
-  Home,
-  QrCode,
-  UtensilsCrossed,
-  Bus,
-  Clock,
-  Sparkles,
-  FileText,
-  Wrench,
-  ChevronRight,
-  ChevronLeft,
-  CheckCircle2,
-  AlertCircle,
-  MessageCircle,
-  Phone,
-  Mail,
-  Key,
-  Download,
-  Loader2,
-  Star,
-  Smile,
-  Meh,
-  Frown,
-  Lock,
-  HeartHandshake,
-} from "lucide-react";
+import { ShieldCheck, Users, Home, QrCode, UtensilsCrossed, Bus, FileText, Wrench, ChevronRight, ChevronLeft, CheckCircle2, MessageCircle, Phone, Mail, Download, Loader2, Star, Smile, Meh, Frown, Lock, HeartHandshake } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
 import { ResidentQRCode } from "./ResidentQRCode";

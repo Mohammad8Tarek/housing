@@ -174,52 +174,6 @@ export function buildReservationSearchConditions(
 
   return and(...tokenConditions)!;
 }
-
-/**
- * Builds multi-token search conditions for maintenance tickets.
- */
-export function buildMaintenanceSearchConditions(
-  searchQuery: string,
-  tables: {
-    maintenanceTicketsTable: any;
-    roomsTable?: any;
-    buildingsTable?: any;
-  },
-): SQL | null {
-  const { maintenanceTicketsTable, roomsTable, buildingsTable } = tables;
-  const norm = normalizeSearchString(searchQuery);
-  const tokens = norm.split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return null;
-
-  const titleSql = sqlNormalizeArabic(maintenanceTicketsTable.title);
-  const descSql = sqlNormalizeArabic(maintenanceTicketsTable.description);
-  const reqNameSql = sqlNormalizeArabic(maintenanceTicketsTable.requesterName);
-
-  const tokenConditions: SQL[] = tokens.map((token) => {
-    const pattern = `%${token}%`;
-    const checks: SQL[] = [
-      sql`cast(${maintenanceTicketsTable.id} as text) ILIKE ${pattern}`,
-      sql`${titleSql} ILIKE ${pattern}`,
-      sql`${descSql} ILIKE ${pattern}`,
-      sql`${reqNameSql} ILIKE ${pattern}`,
-      ilike(maintenanceTicketsTable.category, pattern),
-      ilike(maintenanceTicketsTable.priority, pattern),
-      ilike(maintenanceTicketsTable.status, pattern),
-    ];
-
-    if (roomsTable?.roomNumber) {
-      checks.push(ilike(roomsTable.roomNumber, pattern));
-    }
-    if (buildingsTable?.name) {
-      checks.push(sql`${sqlNormalizeArabic(buildingsTable.name)} ILIKE ${pattern}`);
-    }
-
-    return or(...checks)!;
-  });
-
-  return and(...tokenConditions)!;
-}
-
 /**
  * Builds multi-token search conditions for rooms table.
  */

@@ -1,22 +1,7 @@
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Wrench,
-  Sparkles,
-  FileText,
-  Clock,
-  User,
-  CheckCircle2,
-  Play,
-  RotateCcw,
-  Check,
-  Eye,
-  Trash,
-  MoreVertical,
-  AlertCircle,
-  Building,
-} from "lucide-react";
+import { FileText, Clock, User, CheckCircle2, Play, RotateCcw, Check, Eye, Trash, MoreVertical, AlertCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +9,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { formatDate } from "@/lib/date-utils";
 
 interface TicketsKanbanBoardProps {
   tickets: any[];

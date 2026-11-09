@@ -1,7 +1,7 @@
 import cron from "node-cron";
 import { logger } from "./logger.js";
 import { db, propertiesTable, roomsTable, withTenant } from "@workspace/db";
-import { inArray, notInArray, eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { broadcastToProperty } from "./websocket.js";
 
 export function initHousekeepingCron() {

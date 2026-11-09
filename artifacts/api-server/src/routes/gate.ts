@@ -12,8 +12,8 @@ import {
   gateLogsTable,
 } from "@workspace/db";
 import { eq, and, desc, sql, or, ilike } from "drizzle-orm";
-import { getTenantId, su } from "../lib/request-utils.js";
-import { requireAuth, loadAuthUser, requirePermission, hasPermission } from "../middlewares/permissions.js";
+import { getTenantId } from "../lib/request-utils.js";
+import { loadAuthUser, requirePermission, hasPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { GateLogBody, GateLogsQuery, GateStatsQuery, GateVerifyBody } from "../validation/schemas.js";
 import { portalSession } from "./portal-auth.js";

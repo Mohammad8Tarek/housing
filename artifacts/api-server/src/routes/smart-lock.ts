@@ -1,15 +1,6 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod/v4";
-import {
-  db,
-  withTenant,
-  roomLocksTable,
-  roomKeysTable,
-  keyAuditLogTable,
-  roomsTable,
-  assignmentsTable,
-  profilesTable,
-} from "@workspace/db";
+import { withTenant, roomLocksTable, roomKeysTable, keyAuditLogTable, roomsTable, assignmentsTable, profilesTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions.js";
 import { getTenantId } from "../lib/request-utils.js";

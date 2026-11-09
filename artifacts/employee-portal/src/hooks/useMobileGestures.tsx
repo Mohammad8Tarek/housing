@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useRef } from "react";
 
 interface SwipeOptions {
   onSwipeLeft?: () => void;
@@ -53,23 +53,6 @@ export function useSwipeGesture({
   return { handleTouchStart, handleTouchEnd };
 }
 
-export function useDeviceType() {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth <= 768 : false,
-  );
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  return { isMobile };
-}
-
 export function useHapticFeedback() {
   return {
     tap: () => {
@@ -88,32 +71,4 @@ export function useHapticFeedback() {
       }
     },
   };
-}
-
-export function useOrientationChange() {
-  const [orientation, setOrientation] = useState(() =>
-    typeof window !== "undefined"
-      ? window.innerHeight > window.innerWidth
-        ? "portrait"
-        : "landscape"
-      : "portrait",
-  );
-
-  useEffect(() => {
-    const handleOrientationChange = () => {
-      setOrientation(
-        window.innerHeight > window.innerWidth ? "portrait" : "landscape",
-      );
-    };
-
-    window.addEventListener("orientationchange", handleOrientationChange);
-    window.addEventListener("resize", handleOrientationChange);
-
-    return () => {
-      window.removeEventListener("orientationchange", handleOrientationChange);
-      window.removeEventListener("resize", handleOrientationChange);
-    };
-  }, []);
-
-  return orientation;
 }

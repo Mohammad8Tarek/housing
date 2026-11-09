@@ -1,10 +1,5 @@
 import * as React from "react";
-import {
-  useGetDashboardStats,
-  useGetOccupancyByBuilding,
-  useGetRecentActivity,
-  useListProfiles,
-} from "@workspace/api-client-react";
+import { useGetDashboardStats, useGetOccupancyByBuilding, useListProfiles } from "@workspace/api-client-react";
 import {
   Card,
   CardContent,
@@ -12,39 +7,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Users,
-  Building2,
-  BedDouble,
-  AlertCircle,
-  CheckCircle2,
-  AlertTriangle,
-  Wrench,
-  ArrowRight,
-  ArrowUpRight,
-  CalendarCheck,
-  UserCheck,
-  UserPlus,
-  Sparkles,
-  LayoutGrid,
-  TrendingUp,
-  ShieldCheck,
-  Clock,
-  Layers,
-  Activity,
-  BarChart3,
-  RefreshCw,
-  DoorOpen,
-  Home,
-  SlidersHorizontal,
-} from "lucide-react";
+import { Users, Building2, BedDouble, AlertCircle, Wrench, ArrowRight, CalendarCheck, Sparkles, LayoutGrid, TrendingUp, Layers, Activity, BarChart3, RefreshCw, DoorOpen, Home, SlidersHorizontal } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
-import { formatDate } from "@/lib/date-utils";
 import { motion, useSpring, useTransform } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { usePermission } from "@/hooks/use-permission";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { PageLoader } from "@/components/ui/loader";
 import { Button } from "@/components/ui/button";
 import {
   BarChart,
@@ -63,7 +31,6 @@ import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { getPropertySlug } from "@/lib/property-slug";
 
 // Executive Components
 import { DashboardKpiCard } from "./components/DashboardKpiCard";

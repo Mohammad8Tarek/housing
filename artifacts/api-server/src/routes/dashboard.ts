@@ -13,8 +13,8 @@ import {
   floorsTable,
   propertiesTable,
 } from "@workspace/db";
-import { eq, and, lte, gte, count, desc, sql, gt } from "drizzle-orm";
-import { requireAuth, requirePermission, requireSuperAdmin } from "../middlewares/permissions.js";
+import { eq, and, lte, gte, count, desc, sql } from "drizzle-orm";
+import { requirePermission, requireSuperAdmin } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { DashboardActivityQuery, DashboardHorizonQuery } from "../validation/schemas.js";
 import { getTenantId } from "../lib/request-utils.js";

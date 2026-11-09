@@ -1,4 +1,4 @@
-import { Users, Mail, Phone, Briefcase, MapPin, Info, MessageSquare, MessageCircle } from "lucide-react";
+import { Users, Mail, Phone, Info, MessageSquare } from "lucide-react";
 import { useTheme } from "../lib/theme";
 
 interface Roommate {

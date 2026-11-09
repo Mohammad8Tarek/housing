@@ -20,26 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  QrCode,
-  ScanLine,
-  LogIn,
-  LogOut,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  User,
-  Building,
-  RefreshCw,
-  Search,
-  Download,
-  Users,
-  ShieldCheck,
-  Camera,
-  Keyboard,
-  Clock,
-  Maximize2,
-} from "lucide-react";
+import { QrCode, ScanLine, LogIn, LogOut, CheckCircle2, XCircle, AlertTriangle, User, RefreshCw, Search, Download, Users, Camera, Keyboard, Clock, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { GateCameraScanner } from "./GateCameraScanner";

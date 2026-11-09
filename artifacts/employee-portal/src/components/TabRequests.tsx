@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Loader2, Camera, X, Star } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Loader2, X, Star } from "lucide-react";
 import { useLocation } from "wouter";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";

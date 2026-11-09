@@ -1,11 +1,4 @@
-import {
-  db,
-  pool,
-  withTenant,
-  settingsTable,
-  passwordHistoryTable,
-} from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { pool, withTenant, settingsTable } from "@workspace/db";
 import bcrypt from "bcryptjs";
 
 export interface PasswordPolicy {

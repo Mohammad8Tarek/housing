@@ -7,9 +7,9 @@ import {
   floorsTable,
   maintenanceTable,
 } from "@workspace/db";
-import { eq, and, or, ilike, desc, count, sql, SQL } from "drizzle-orm";
+import { eq, and, or, ilike, desc, count, SQL } from "drizzle-orm";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import { requireAnyPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams } from "../validation/common.js";
 import { CreateInventoryItemBody, CreateInventoryTicketBody, ListInventoryQuery, SyncInventoryBody, UpdateInventoryItemBody } from "../validation/schemas.js";

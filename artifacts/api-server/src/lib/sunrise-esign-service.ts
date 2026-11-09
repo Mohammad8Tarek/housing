@@ -1,5 +1,5 @@
-import { pool, withTenant, profilesTable, propertiesTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { pool, withTenant, profilesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { logger } from "./logger.js";
 import { enrichProfileBilingual, splitCompoundName } from "./bilingual-translator.js";
 

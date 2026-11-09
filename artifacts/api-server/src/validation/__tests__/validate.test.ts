@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { z, ZodError } from "zod";
+import { ZodError } from "zod";
 import { validate } from "../../middlewares/validate.js";
 import {
   UpdateSettingsBody,

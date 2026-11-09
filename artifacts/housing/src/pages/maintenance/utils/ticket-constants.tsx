@@ -104,20 +104,6 @@ export const statusColor = (s: string) => {
       return "bg-slate-100 text-slate-600";
   }
 };
-
-export const categoryColor = (c: string) => {
-  switch (c) {
-    case "maintenance":
-      return "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-800";
-    case "housekeeping":
-      return "bg-sky-50 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300 border-sky-200 dark:border-sky-800";
-    case "general":
-      return "bg-purple-50 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-800";
-    default:
-      return "bg-slate-100 text-slate-600";
-  }
-};
-
 export const TICKET_COLS = [
   { key: "id", label: "ID", labelAr: "رقم", defaultVisible: true },
   { key: "building_floor", label: "BUILDING & FLOOR", labelAr: "المبنى والدور", defaultVisible: true },

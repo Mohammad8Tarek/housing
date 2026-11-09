@@ -12,26 +12,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import {
-  Wrench,
-  Sparkles,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Flame,
-  ArrowRight,
-  Star,
-  Activity,
-  UserCheck,
-  Building,
-  Home,
-  MessageSquare,
-  ThumbsUp,
-  ChevronRight,
-  ExternalLink,
-} from "lucide-react";
+import { Wrench, Sparkles, Clock, CheckCircle2, Flame, ArrowRight, Star, Activity, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatDate } from "@/lib/date-utils";
 
 interface TrackStats {
   total: number;

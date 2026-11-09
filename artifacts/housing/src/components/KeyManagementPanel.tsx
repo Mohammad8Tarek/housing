@@ -10,15 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Key,
-  Wifi,
-  WifiOff,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Loader2,
-} from "lucide-react";
+import { Key, Wifi, WifiOff, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import {
   getKeysQueryKey,

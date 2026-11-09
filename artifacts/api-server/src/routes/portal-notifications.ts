@@ -10,7 +10,7 @@ import {
 } from "@workspace/db";
 import { eq, and, desc, or, isNull, gt, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requirePermission } from "../middlewares/permissions.js";
+import { requirePermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { requirePortalAuth, portalSession } from "./portal-auth.js";
 import { logActivity } from "../lib/activity-logger.js";

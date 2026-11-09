@@ -24,8 +24,3 @@ export function canHover() {
   if (typeof window === "undefined") return false;
   return window.matchMedia("(hover: hover)").matches;
 }
-
-export function isTouchDevice() {
-  if (typeof window === "undefined") return false;
-  return !window.matchMedia("(hover: hover)").matches;
-}

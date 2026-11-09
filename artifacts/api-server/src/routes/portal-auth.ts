@@ -14,10 +14,7 @@ import { eq, and, not, sql, or, ilike } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logActivity } from "../lib/activity-logger.js";
-import {
-  defaultProfilePortalPassword,
-  ensureProfilePortalAccount,
-} from "../lib/portal-accounts.js";
+import { ensureProfilePortalAccount } from "../lib/portal-accounts.js";
 import { requirePermission } from "../middlewares/permissions.js";
 import { portalLoginRateLimit } from "../middlewares/rate-limit.js";
 

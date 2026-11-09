@@ -3,9 +3,7 @@ import { exportQueue } from "@workspace/queue";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { asyncHandler } from "../lib/async-handler.js";
 import { z } from "zod";
-import path from "node:path";
 import fs from "node:fs";
-import os from "node:os";
 
 const router = Router();
 

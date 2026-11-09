@@ -11,17 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  SlidersHorizontal,
-  RotateCcw,
-  Eye,
-  EyeOff,
-  Lock,
-  Search,
-  CheckCircle2,
-  Sparkles,
-  LayoutGrid,
-} from "lucide-react";
+import { SlidersHorizontal, RotateCcw, Eye, EyeOff, Lock, Search, CheckCircle2, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type DashboardWidgetMeta,

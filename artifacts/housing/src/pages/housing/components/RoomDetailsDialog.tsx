@@ -1,4 +1,4 @@
-import { History, Check, Sparkles, AlertTriangle, Palmtree, Plus, X, Pencil, FileText, Tag, PackageCheck, Trash2, Wrench, RefreshCw } from "lucide-react";
+import { History, Sparkles, Palmtree, Plus, X, Pencil, FileText, Tag, PackageCheck, Trash2, Wrench, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useProperty } from "@/context/PropertyContext";

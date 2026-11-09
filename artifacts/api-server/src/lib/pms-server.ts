@@ -45,10 +45,6 @@ const propertyPorts = new Map<number, number>();
 
 let _app: any = null; // Express app reference for WebSocket broadcast
 
-export function setPmsServerApp(app: any): void {
-  _app = app;
-}
-
 // ─── Format Dates for FIAS ────────────────────────────────────────────────────
 function formatFiasDate(d: Date): string {
   const yy = String(d.getFullYear()).slice(-2);
@@ -534,88 +530,6 @@ export function stopPmsServerForProperty(propertyId: number): void {
       // console.log(`[PMS-Bridge - Port ${port}] 🛑 Stopped PMS Server`);
     }
   }
-}
-
-// ─── Main port sharing (HTTP + FIAS on same port) ─────────────────────────
-
-export function registerMainPortProperty(propertyId: number): void {
-  if (!portServers.has(MAIN_PORT_KEY)) {
-    portServers.set(MAIN_PORT_KEY, {
-      port: MAIN_PORT_KEY,
-      server: null,
-      socket: null,
-      pendingCmd: null,
-      activePropertyIds: new Set(),
-    });
-  }
-  const pms = portServers.get(MAIN_PORT_KEY)!;
-  pms.activePropertyIds.add(propertyId);
-  propertyPorts.set(propertyId, MAIN_PORT_KEY);
-}
-
-export function handleMainPortConnection(
-  socket: net.Socket,
-  data: Buffer,
-): void {
-  const addr = `${socket.remoteAddress}:${socket.remotePort}`;
-  const pms = portServers.get(MAIN_PORT_KEY);
-  if (!pms) {
-    console.warn(`[PMS-Bridge - Main Port] No main port properties registered`);
-    socket.destroy();
-    return;
-  }
-  console.warn(
-    `[PMS-Bridge - Main Port] Hotek PMSServer connected from ${addr}`,
-  );
-
-  if (pms.socket && !pms.socket.destroyed) {
-    pms.socket.destroy();
-  }
-  pms.socket = socket;
-
-  syncStatusToDb(MAIN_PORT_KEY, true, addr);
-
-  socket.setKeepAlive(true, 5000);
-  socket.setNoDelay(true);
-  socket.setTimeout(300000);
-
-  const pingInterval = setInterval(() => {
-    if (pms && pms.socket && !pms.socket.destroyed) {
-      const la = `LA|DA${formatFiasDate(new Date())}|TI${formatFiasTime(new Date())}|`;
-      pms.socket.write(buildFiasFrame(la));
-    }
-  }, 20000);
-
-  let buffer: Buffer = Buffer.alloc(0);
-  buffer = Buffer.concat([buffer, data]);
-  buffer = handleHotekData(buffer, MAIN_PORT_KEY);
-
-  socket.on("data", (chunk: Buffer) => {
-    buffer = Buffer.concat([buffer, chunk]);
-    buffer = handleHotekData(buffer, MAIN_PORT_KEY);
-  });
-
-  socket.on("error", (err: Error) => {
-    console.error(`[PMS-Bridge - Main Port] Hotek socket error:`, err.message);
-    if (pms.pendingCmd) {
-      pms.pendingCmd.reject(
-        new Error(`Hotek connection error: ${err.message}`),
-      );
-      pms.pendingCmd = null;
-    }
-  });
-
-  socket.on("close", () => {
-    clearInterval(pingInterval);
-    if (pms.socket === socket) {
-      pms.socket = null;
-    }
-    if (pms.pendingCmd) {
-      pms.pendingCmd.reject(new Error("Hotek disconnected"));
-      pms.pendingCmd = null;
-    }
-    syncStatusToDb(MAIN_PORT_KEY, false);
-  });
 }
 
 /** Stop all PMS servers (used during graceful shutdown) */

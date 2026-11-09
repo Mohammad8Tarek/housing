@@ -19,23 +19,8 @@ import { formatNationality } from "@/lib/countries";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import {
-  Building2,
-  BedDouble,
-  Calendar,
-  Phone,
-  Shield,
-  Globe2,
-  User,
-  Users,
-  Home,
-  History,
-  Briefcase,
-  ExternalLink,
-  FileText,
-  Image as ImageIcon,
-} from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { Building2, BedDouble, Calendar, Phone, Shield, Globe2, User, Users, Home, History, ExternalLink, FileText, Image as ImageIcon } from "lucide-react";
+import { differenceInDays } from "date-fns";
 import { formatDate } from "@/lib/date-utils";
 import { Link } from "wouter";
 import { ImageLightbox } from "@/components/ui/image-lightbox";

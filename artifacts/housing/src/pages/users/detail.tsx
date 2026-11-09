@@ -43,80 +43,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Save,
-  RotateCcw,
-  Shield,
-  ShieldCheck,
-  ShieldAlert,
-  KeyRound,
-  Lock,
-  Unlock,
-  Building2,
-  Building,
-  Pen,
-  Upload,
-  Trash2,
-  Clock,
-  Activity,
-  Check,
-  CheckCheck,
-  Copy,
-  Sparkles,
-  RefreshCw,
-  Sliders,
-  SlidersHorizontal,
-  Eye,
-  EyeOff,
-  Crown,
-  Briefcase,
-  Wrench,
-  Headphones,
-  Zap,
-  AlertTriangle,
-  Star,
-  Filter,
-  Layers,
-  FileSpreadsheet,
-  UserCheck,
-  UserX,
-  History,
-  ChevronDown,
-  ChevronUp,
-  User,
-  Mail,
-  Phone,
-  Fingerprint,
-  Search,
-  CheckCircle2,
-  XCircle,
-  ExternalLink,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Save, ShieldCheck, ShieldAlert, KeyRound, Lock, Unlock, Building2, Pen, Upload, Trash2, Activity, Check, Copy, Sparkles, RefreshCw, SlidersHorizontal, Eye, EyeOff, Crown, Briefcase, Zap, AlertTriangle, Star, UserX, History, ChevronDown, ChevronUp, User, Mail, Phone, Fingerprint, Search, CheckCircle2, XCircle } from "lucide-react";
 import {
   SYSTEM_ROLES,
   WORKFLOW_ROLES,
   roleColor,
 } from "./utils";
-import {
-  MODULES,
-  MODULE_ACTIONS,
-  MODULE_LABELS,
-  ACTION_LABELS,
-  PERMISSION_GROUPS,
-  ROLE_DEFAULT_PERMISSIONS,
-  permKey,
-  type Module,
-  type Action,
-} from "@/lib/permissions";
+import { MODULES, MODULE_ACTIONS, MODULE_LABELS, ACTION_LABELS, PERMISSION_GROUPS, ROLE_DEFAULT_PERMISSIONS, permKey, type Action } from "@/lib/permissions";
 import {
   PasswordStrengthMeter,
   evaluatePassword,
 } from "./components/PasswordStrengthMeter";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
 
 const ALL_ROLES = [...SYSTEM_ROLES, ...WORKFLOW_ROLES];
 

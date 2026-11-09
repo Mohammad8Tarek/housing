@@ -1,7 +1,6 @@
 import { profilePortalAccountsTable, withTenant } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { randomBytes } from "node:crypto";
 
 export type PortalAccountSyncResult = {
   profileId: string;

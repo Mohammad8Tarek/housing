@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
 import MaterialIcon from "./MaterialIcon";

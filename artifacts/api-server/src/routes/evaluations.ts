@@ -10,7 +10,7 @@ import {
   assignmentsTable,
   propertyHousingPulseConfigTable,
 } from "@workspace/db";
-import { eq, desc, sql, isNull, and, inArray } from "drizzle-orm";
+import { eq, desc, sql, isNull, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { broadcastToProperty, broadcastSyncAll } from "../lib/websocket.js";
 import { logActivity } from "../lib/activity-logger.js";

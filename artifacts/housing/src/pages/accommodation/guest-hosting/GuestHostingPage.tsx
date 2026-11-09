@@ -26,9 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -45,8 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format } from "date-fns";
-import { formatDate, formatDateTime, getExportFileName } from "@/lib/date-utils";
+import { formatDate, formatDateTime } from "@/lib/date-utils";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   LogIn,
@@ -69,11 +66,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { drawPdfHeader, pdfTextSafe, loadImgDataUrl, printLuxuryReport } from "@/lib/pdf-utils";
+import { printLuxuryReport } from "@/lib/pdf-utils";
 import KeyManagementPanel from "@/components/KeyManagementPanel";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { Checkbox } from "@/components/ui/checkbox";
-import * as XLSX from "xlsx";
 import { exportExcel } from "@/pages/reports/utils/export";
 import { DataPagination } from "@/components/DataPagination";
 import { ImageLightbox } from "@/components/ui/image-lightbox";

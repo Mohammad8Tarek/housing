@@ -8,7 +8,7 @@ import {
   propertiesTable,
   maintenanceTable,
 } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import QRCode from "qrcode";
 import { broadcastToProperty } from "../lib/websocket.js";

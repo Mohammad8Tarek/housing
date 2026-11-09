@@ -18,7 +18,7 @@ import {
   roomMovesTable,
 } from "@workspace/db";
 import { eq, and, or, ilike, desc, sql, count } from "drizzle-orm";
-import { requireAuth, requirePermission } from "../middlewares/permissions.js";
+import { requirePermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams } from "../validation/common.js";
 import { CreateReportTemplateBody, CustomReportQueryBody, RatingsReportQuery, ReportsListQuery, RoomMovesReportQuery, UpdateReportTemplateBody, VacationsReportQuery } from "../validation/schemas.js";

@@ -6,20 +6,8 @@ import bcrypt from "bcryptjs";
 import { LoginBody, ChangePasswordBody } from "@workspace/api-zod";
 import { sendOtpEmail } from "../lib/email-service.js";
 import { logActivity, getClientIp } from "../lib/activity-logger.js";
-import {
-  loginRateLimit,
-  changePasswordRateLimit,
-  resetLoginAttempts,
-} from "../middlewares/rate-limit.js";
-import {
-  getPasswordPolicy,
-  validatePassword,
-  checkPasswordHistory,
-  recordPasswordHistory,
-  cleanupOldPasswordHistory,
-  isPasswordExpired,
-  PasswordPolicy,
-} from "../lib/password-policy.js";
+import { changePasswordRateLimit, resetLoginAttempts } from "../middlewares/rate-limit.js";
+import { getPasswordPolicy, validatePassword, checkPasswordHistory, recordPasswordHistory, cleanupOldPasswordHistory, isPasswordExpired } from "../lib/password-policy.js";
 import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
 import { formatZodError } from "../utils/error-response.js";
 import { createWsAuthToken } from "../lib/ws-auth-token.js";

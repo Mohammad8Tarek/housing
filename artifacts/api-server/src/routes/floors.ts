@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, withTenant, floorsTable } from "@workspace/db";
+import { withTenant, floorsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import {
   CreateFloorBody,

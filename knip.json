@@ -1,0 +1,90 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    "artifacts/housing": {
+      "entry": [
+        "src/main.tsx"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}"
+      ]
+    },
+    "artifacts/employee-portal": {
+      "entry": [
+        "src/sw.ts"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}"
+      ]
+    },
+    "artifacts/api-server": {
+      "entry": [
+        "src/index.ts",
+        "src/run-migration.ts",
+        "src/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts"
+      ]
+    },
+    "lib/*": {
+      "project": [
+        "src/**/*.ts"
+      ]
+    },
+    "scripts": {
+      "entry": [
+        "*.{mjs,ts,js}"
+      ],
+      "project": [
+        "*.{mjs,ts,js}"
+      ]
+    }
+  },
+  "ignoreWorkspaces": [
+    "lib/api-spec"
+  ],
+  "ignore": [
+    "interfaces/**",
+    "tests/**",
+    "migrate-data.ts",
+    "wait-deploy.js",
+    "lib/db/src/check_tickets.ts",
+    "lib/db/src/close_open_tickets.ts",
+    "lib/db/src/fix-dob.ts",
+    "lib/db/src/seed*.ts",
+    "lib/db/src/migrations/*.ts",
+    "artifacts/api-server/src/check.ts",
+    "artifacts/api-server/src/update-password.ts",
+    "artifacts/api-server/src/scripts/**",
+    "artifacts/employee-portal/src/types/**"
+  ],
+  "ignoreDependencies": [
+    "tailwindcss",
+    "tw-animate-css",
+    "@tailwindcss/typography",
+    "rollup",
+    "@rollup/rollup-win32-x64-msvc",
+    "@tailwindcss/oxide-win32-x64-msvc",
+    "lightningcss-win32-x64-msvc",
+    "@capacitor/keyboard",
+    "pino-pretty",
+    "thread-stream",
+    "bullmq",
+    "ioredis",
+    "bcryptjs",
+    "@types/bcryptjs",
+    "@types/node-cron",
+    "tsx",
+    "@opentelemetry/api"
+  ],
+  "rules": {
+    "exports": "warn",
+    "types": "warn",
+    "duplicates": "warn",
+    "enumMembers": "warn",
+    "classMembers": "off",
+    "nsExports": "warn",
+    "nsTypes": "warn"
+  }
+}

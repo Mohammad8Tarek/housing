@@ -13,39 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import {
-  MessageSquare,
-  QrCode,
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-  Send,
-  ShieldCheck,
-  Smartphone,
-  Copy,
-  Sparkles,
-  PhoneCall,
-  RotateCcw,
-  Loader2,
-  CheckCheck,
-  Globe,
-  Radio,
-  BookmarkCheck,
-  Clock,
-  Layers,
-  Info,
-  Fingerprint,
-  Timer,
-  KeyRound,
-  ExternalLink,
-  ShieldAlert,
-  Zap,
-  Award,
-  HelpCircle,
-  Check,
-  Sliders,
-  Link2,
-} from "lucide-react";
+import { MessageSquare, QrCode, CheckCircle2, XCircle, RefreshCw, Send, ShieldCheck, Smartphone, Sparkles, PhoneCall, RotateCcw, Loader2, CheckCheck, Globe, Radio, BookmarkCheck, Clock, Layers, Info, Fingerprint, Timer, KeyRound, ExternalLink, ShieldAlert, Zap, Award, HelpCircle, Check, Sliders, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { BroadcastWhatsAppDialog } from "@/components/BroadcastWhatsAppDialog";
 import { PermissionGate } from "@/components/ui/permission-gate";

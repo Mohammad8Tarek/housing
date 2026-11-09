@@ -50,25 +50,6 @@ export async function generateRoomQrDataUrl(
     return getRoomQrImageUrl(propertyId, roomId, "png");
   }
 }
-
-/**
- * Generates a QR Code as an SVG string for sharp vector printing
- */
-export async function generateRoomQrSvg(
-  propertyId: number,
-  roomId: number
-): Promise<string> {
-  const targetUrl = getRoomServiceUrl(propertyId, roomId);
-  return await QRCode.toString(targetUrl, {
-    type: "svg",
-    margin: 1,
-    color: {
-      dark: "#0F2A44",
-      light: "#FFFFFF",
-    },
-  });
-}
-
 /**
  * Returns the server-side generated image URL as a fallback
  */

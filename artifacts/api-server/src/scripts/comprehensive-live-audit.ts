@@ -1,30 +1,6 @@
-import {
-  db,
-  pool,
-  withTenant,
-  propertiesTable,
-  usersTable,
-  roomsTable,
-  assignmentsTable,
-  profilesTable,
-  reservationsTable,
-  hostingsTable,
-  maintenanceTable,
-  profileVacationsTable,
-  portalConversationsTable,
-  portalMessagesTable,
-  profilePortalAccountsTable,
-  buildingsTable,
-  floorsTable,
-} from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
-import {
-  findAssignmentAcrossAllProperties,
-  findRoomAcrossAllProperties,
-  findReservationAcrossAllProperties,
-  findHostingAcrossAllProperties,
-  findProfileAcrossAllProperties,
-} from "../lib/cross-property-service.js";
+import { db, withTenant, propertiesTable, roomsTable, assignmentsTable, profilesTable, reservationsTable, hostingsTable, maintenanceTable, profileVacationsTable, portalConversationsTable, portalMessagesTable, buildingsTable, floorsTable } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
+import { findAssignmentAcrossAllProperties, findRoomAcrossAllProperties, findReservationAcrossAllProperties, findHostingAcrossAllProperties } from "../lib/cross-property-service.js";
 import { resolveProfileTenant } from "../routes/profiles.js";
 
 interface AuditResult {

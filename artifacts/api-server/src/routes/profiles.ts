@@ -1,30 +1,7 @@
 import { Router } from "express";
-import {
-  db,
-  pool,
-  withTenant,
-  profilesTable,
-  profileDocumentsTable,
-  profileVacationsTable,
-  assignmentsTable,
-  roomsTable,
-  buildingsTable,
-  floorsTable,
-  propertiesTable,
-  lookupValuesTable,
-} from "@workspace/db";
-import { eq, and, or, ilike, sql, SQL, asc, desc } from "drizzle-orm";
-import {
-  CreateProfileBody,
-  UpdateProfileBody,
-  GetProfileParams,
-  UpdateProfileParams,
-  DeleteProfileParams,
-  ListProfilesQueryParams,
-  ListProfilesResponse,
-  GetProfileResponse,
-  UpdateProfileResponse,
-} from "@workspace/api-zod";
+import { db, withTenant, profilesTable, profileDocumentsTable, profileVacationsTable, assignmentsTable, roomsTable, buildingsTable, floorsTable, propertiesTable, lookupValuesTable } from "@workspace/db";
+import { eq, and, or, sql, SQL, asc, desc } from "drizzle-orm";
+import { CreateProfileBody, UpdateProfileBody, GetProfileParams, UpdateProfileParams, DeleteProfileParams, ListProfilesQueryParams, GetProfileResponse, UpdateProfileResponse } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import {
   requirePermission,

@@ -1,5 +1,5 @@
 import { RoomImportWizard } from "./components/import/RoomImportWizard";
-import { FileSpreadsheet, Download, FileDown, Building, MapPin, Users, Key, Info, LayoutGrid, Sparkles, BedDouble } from "lucide-react";
+import { FileSpreadsheet, Download, FileDown, Building, MapPin, Users, Key, Info, LayoutGrid, BedDouble } from "lucide-react";
 import * as XLSX from "xlsx";
 import { getExportFileName } from "@/lib/date-utils";
 import { toast } from "sonner";
@@ -10,7 +10,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { PermissionGate } from "@/components/ui/permission-gate";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { usePermission } from "@/hooks/use-permission";
 import {

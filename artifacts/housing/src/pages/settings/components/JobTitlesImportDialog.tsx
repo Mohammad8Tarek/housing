@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,33 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  FileSpreadsheet,
-  Download,
-  Upload,
-  CheckCircle2,
-  AlertTriangle,
-  AlertCircle,
-  Loader2,
-  Building2,
-  Briefcase,
-  Layers,
-  Search,
-  Check,
-  RotateCcw,
-  ShieldCheck,
-  ArrowRight,
-  RefreshCw,
-  PlusCircle,
-} from "lucide-react";
-import {
-  downloadLookupTemplate,
-  downloadJobTitlesTemplate,
-  parseJobTitlesFile,
-  type ParseResult,
-  type ParsedJobTitleRow,
-  type RowAction,
-} from "@/lib/job-title-importer-engine";
+import { FileSpreadsheet, Download, Upload, AlertCircle, Loader2, Search, Check, RotateCcw, ShieldCheck, RefreshCw, PlusCircle } from "lucide-react";
+import { downloadLookupTemplate, parseJobTitlesFile, type ParseResult, type RowAction } from "@/lib/job-title-importer-engine";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
 interface JobTitlesImportDialogProps {

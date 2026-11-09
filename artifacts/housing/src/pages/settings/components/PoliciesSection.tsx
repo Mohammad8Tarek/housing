@@ -11,14 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormDescription,
-} from "@/components/ui/form";
+import { FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -43,37 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  ShieldAlert,
-  Users,
-  Clock,
-  FileText,
-  UserCheck,
-  Building,
-  Phone,
-  Mail,
-  Printer,
-  Sparkles,
-  HeartHandshake,
-  Plus,
-  Trash2,
-  Pencil,
-  Briefcase,
-  Layers,
-  CheckCircle2,
-  AlertCircle,
-  HelpCircle,
-  FileSpreadsheet,
-  Upload,
-  Download,
-  Bot,
-  ShieldCheck,
-  AlertTriangle,
-  ArrowUp,
-  ArrowDown,
-  RotateCcw,
-  FileCheck,
-} from "lucide-react";
+import { ShieldAlert, Users, Clock, FileText, UserCheck, Building, Printer, Sparkles, HeartHandshake, Plus, Trash2, Pencil, CheckCircle2, FileSpreadsheet, Upload, Bot, ShieldCheck, ArrowUp, ArrowDown, RotateCcw, FileCheck } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useFormContext } from "react-hook-form";
 import type { SettingsFormData, JobLevelPolicy } from "../hooks/useSettingsForm";

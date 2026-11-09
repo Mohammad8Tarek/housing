@@ -6,7 +6,7 @@ import {
   portalDocumentsTable,
   profilesTable,
 } from "@workspace/db";
-import { desc, sql, and, gte, isNull, isNotNull } from "drizzle-orm";
+import { gte, isNull, isNotNull } from "drizzle-orm";
 import { getCategoryLabel } from "../lib/portal-catalog.js";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";

@@ -148,10 +148,6 @@ export function isEmployeeOnline(profileDbId: number, propertyId?: number): bool
   return false;
 }
 
-export function getEmployeeLastSeen(profileDbId: number): string | null {
-  return employeeLastSeen.get(profileDbId) || null;
-}
-
 export function getAllEmployeeLastSeen(): Record<number, string> {
   const res: Record<number, string> = {};
   for (const [id, ts] of employeeLastSeen.entries()) {
@@ -701,26 +697,6 @@ export function broadcastDataUpdatedAll(module: WsModule, action: WsAction): voi
     if (fastSend(client.ws, serialized)) sent++;
   }
   logger.info({ module, action, recipients: sent }, "[WS] Global data_updated broadcast");
-}
-
-/** Returns count of currently connected clients */
-export function getConnectedCount(): number {
-  return clients.size;
-}
-
-/** Returns client list (for admin endpoints) */
-export function getConnectedClients(): Array<{
-  userId: number;
-  propertyId: number;
-  username: string;
-  connectedAt: string;
-}> {
-  return Array.from(clients.values()).map((c) => ({
-    userId: Number(c.userId),
-    propertyId: c.propertyId,
-    username: c.username,
-    connectedAt: new Date(c.connectedAt).toISOString(),
-  }));
 }
 /**
  * closeWebSocket — Closes all active WebSocket connections and clears the registry.

@@ -1,5 +1,4 @@
 import { RoomImportWizard } from "../import/RoomImportWizard";
-import { downloadRoomImportTemplate } from "@/lib/room-importer-engine";
 import { Search, Plus, FileDown, Trash2, QrCode } from "lucide-react";
 import * as XLSX from "xlsx";
 import { getExportFileName } from "@/lib/date-utils";

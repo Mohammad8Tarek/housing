@@ -11,14 +11,7 @@
  * 7. Logout reason stored → login page shows "Session expired" message
  */
 
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import type { User } from "@workspace/api-client-react";
@@ -48,21 +41,6 @@ export interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// ─── Token helpers ─────────────────────────────────────────────────────────
-export function getStoredToken(): string | null {
-  try {
-    return (
-      localStorage.getItem("session_id") ??
-      sessionStorage.getItem("session_id") ??
-      localStorage.getItem("auth_token") ??
-      sessionStorage.getItem("auth_token")
-    );
-  } catch {
-    return null;
-  }
-}
-
 export function storeToken(token?: string | null, persistent: boolean = true): void {
   const val = token || "session_active";
   try {

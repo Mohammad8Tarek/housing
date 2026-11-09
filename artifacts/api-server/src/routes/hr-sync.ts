@@ -1,32 +1,10 @@
 import { Router } from "express";
-import {
-  db,
-  pool,
-  withTenant,
-  profilesTable,
-  profileDocumentsTable,
-  profileVacationsTable,
-  assignmentsTable,
-  roomsTable,
-  buildingsTable,
-  propertiesTable,
-  lookupValuesTable,
-  profilePortalAccountsTable,
-} from "@workspace/db";
-import { eq, and, inArray, desc } from "drizzle-orm";
+import { pool, withTenant, profilesTable, assignmentsTable, roomsTable, buildingsTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { ensureProfilePortalAccount } from "../lib/portal-accounts.js";
-import { requirePermission, requireAnyPermission, loadAuthUser, hasPermission } from "../middlewares/permissions.js";
+import { requireAnyPermission, loadAuthUser, hasPermission } from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import {
-  enrichProfileBilingual,
-  translateDepartment,
-  translateJobTitle,
-  hasArabic,
-  splitCompoundName,
-} from "../lib/bilingual-translator.js";
-import { broadcastToProperty } from "../lib/websocket.js";
 import {
   getEsignConfig,
   getEsignConfigs,

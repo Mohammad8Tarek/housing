@@ -40,42 +40,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  WorkerDialog,
-  Worker,
-  WORKER_SPECIALTIES,
-  WORKER_STATUSES,
-} from "./WorkerDialog";
+import { WorkerDialog, Worker, WORKER_SPECIALTIES } from "./WorkerDialog";
 import { toast } from "sonner";
-import {
-  Users,
-  UserPlus,
-  Search,
-  Wrench,
-  Zap,
-  Droplet,
-  Wind,
-  Hammer,
-  Sparkles,
-  Paintbrush,
-  Tv,
-  Phone,
-  MessageCircle,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Briefcase,
-  Building,
-  DollarSign,
-  MoreVertical,
-  Edit2,
-  Trash2,
-  LayoutGrid,
-  List,
-  Filter,
-  RefreshCw,
-  HardHat,
-} from "lucide-react";
+import { Users, UserPlus, Search, Wrench, Phone, MessageCircle, Clock, CheckCircle2, MoreVertical, Edit2, Trash2, LayoutGrid, List, Filter, RefreshCw, HardHat } from "lucide-react";
 
 interface WorkersTabProps {
   propertyId: number;

@@ -19,20 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  ArrowLeft,
-  MessageSquare,
-  CheckCircle2,
-  Play,
-  Trash,
-  Lock,
-  Star,
-  Loader2,
-  DoorClosed,
-  Building2,
-  Layers,
-  User,
-} from "lucide-react";
+import { ArrowLeft, MessageSquare, CheckCircle2, Play, Lock, Star, Loader2, DoorClosed, Building2, Layers, User } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { differenceInMinutes, differenceInHours } from "date-fns";
 import { formatDateTime } from "@/lib/date-utils";

@@ -1,70 +1,14 @@
 import { useState } from "react";
-import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { toast } from "sonner";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { useGetSettings, useUpdateSettings } from "@workspace/api-client-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import PortalDocuments from "@/components/PortalDocuments";
 import PortalAnalyticsDashboard from "@/components/PortalAnalyticsDashboard";
 
 import PortalReports from "@/components/PortalReports";
 import PortalCategoriesAndTags from "@/components/PortalCategoriesAndTags";
 import PortalFoodTransport from "@/components/PortalFoodTransport";
 import PortalChat from "@/components/PortalChat";
-import {
-  Star,
-  Plus,
-  Trash2,
-  Calendar,
-  MapPin,
-  Trophy,
-  MessageSquare,
-  Globe,
-  Mail,
-  Phone,
-  BarChart3,
-  Bell,
-  Users,
-  Shield,
-  RefreshCw,
-  CheckCircle,
-  XCircle,
-  Palette,
-  UtensilsCrossed,
-  MessageCircle,
-} from "lucide-react";
+import { Star, Trophy, MessageSquare, Globe, BarChart3, Users, Palette, UtensilsCrossed, MessageCircle } from "lucide-react";
 
 import { PortalContactsSection } from "./components/PortalContactsSection";
 import { EvaluationsSection } from "./components/EvaluationsSection";

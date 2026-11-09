@@ -3,7 +3,6 @@
  * Run: DATABASE_URL="..." npx tsx src/migrations/portal_migration.ts
  */
 import { readFileSync, existsSync } from "node:fs";
-import { randomBytes } from "node:crypto";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);

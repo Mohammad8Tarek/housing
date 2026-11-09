@@ -1,44 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import {
-  Sparkles,
-  Volume2,
-  PhoneCall,
-  Eye,
-  Home,
-  Building,
-  User,
-  Trash2,
-  ExternalLink,
-  Pause,
-  Play,
-  Download,
-  Loader2,
-  Send,
-  Search,
-  ArrowLeft,
-  ArrowRight,
-  Plus,
-  Smile,
-  X,
-  Phone,
-  Video,
-  MoreVertical,
-  Paperclip,
-  Camera,
-  Mic,
-  Image as ImageIcon,
-  FileText,
-  MapPin,
-  MessageSquarePlus,
-  Check,
-  CheckCheck,
-  Clock,
-  Filter,
-} from "lucide-react";
+import { Eye, User, Trash2, ExternalLink, Pause, Play, Download, Loader2, Send, Search, ArrowLeft, ArrowRight, Smile, X, Phone, Video, MoreVertical, Paperclip, Camera, Mic, Image as ImageIcon, FileText, MapPin, MessageSquarePlus, CheckCheck, Clock } from "lucide-react";
 import { useTheme } from "../../lib/theme";
 import { apiFetch } from "../../lib/api";
 import { Capacitor } from "@capacitor/core";
-import { LocalNotifications } from "@capacitor/local-notifications";
 import { WhatsAppDoodleBg } from "./WhatsAppDoodleBg";
 import { WhatsAppCallModal } from "./WhatsAppCallModal";
 import { toast } from "sonner";
@@ -91,18 +55,7 @@ interface TabChatProps {
 }
 
 import { EMOJI_CATEGORIES } from "./emoji-data";
-import {
-  formatTime,
-  formatDate,
-  formatLastSeen,
-  requestNotificationPermission,
-  playNotificationSound,
-  ensureNotificationChannel,
-  showNotification,
-  getNotificationMessagePreview,
-  renderLastMessagePreview,
-  TickIcon,
-} from "./chat-helpers";
+import { formatTime, formatDate, formatLastSeen, requestNotificationPermission, playNotificationSound, showNotification, getNotificationMessagePreview, renderLastMessagePreview, TickIcon } from "./chat-helpers";
 
 /* ════════════════════════════════════════════════════════════════
    MAIN COMPONENT

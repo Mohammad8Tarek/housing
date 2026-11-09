@@ -1,22 +1,7 @@
 import { Router } from "express";
 import { db, pool, withTenant, assignmentsTable, roomsTable, profilesTable, buildingsTable, floorsTable, roomMovesTable } from "@workspace/db";
-import { eq, and, or, ilike, sql, SQL, desc, not, count } from "drizzle-orm";
-import {
-  CreateAssignmentBody,
-  UpdateAssignmentBody,
-  CheckoutAssignmentBody,
-  TransferAssignmentBody,
-  GetAssignmentParams,
-  UpdateAssignmentParams,
-  CheckoutAssignmentParams,
-  TransferAssignmentParams,
-  ListAssignmentsQueryParams,
-  ListAssignmentsResponse,
-  GetAssignmentResponse,
-  UpdateAssignmentResponse,
-  CheckoutAssignmentResponse,
-  TransferAssignmentResponse,
-} from "@workspace/api-zod";
+import { eq, and, or, sql, SQL, desc, not, count } from "drizzle-orm";
+import { CreateAssignmentBody, UpdateAssignmentBody, CheckoutAssignmentBody, TransferAssignmentBody, UpdateAssignmentParams, CheckoutAssignmentParams, TransferAssignmentParams, ListAssignmentsQueryParams, ListAssignmentsResponse, GetAssignmentResponse, UpdateAssignmentResponse, CheckoutAssignmentResponse, TransferAssignmentResponse } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { requirePermission, requireAnyPermission, hasPermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";

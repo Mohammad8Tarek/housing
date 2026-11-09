@@ -2,14 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 import { useListProperties } from "@workspace/api-client-react";
 import { useAuth } from "./AuthContext";
 import { usePermission } from "@/hooks/use-permission";
-import {
-  type PropertyInfo,
-  RESERVED_FIRST_SEGMENTS,
-  getPropertySlug,
-  findPropertyBySlug,
-  extractPropertySlugFromPath,
-  resolveInitialPropertyId,
-} from "@/lib/property-slug";
+import { type PropertyInfo, getPropertySlug, findPropertyBySlug, extractPropertySlugFromPath, resolveInitialPropertyId } from "@/lib/property-slug";
 
 export type Property = PropertyInfo;
 

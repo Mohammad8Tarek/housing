@@ -1,17 +1,11 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  useListProfiles,
-  useCreateProfile,
-  useDeleteProfile,
-  useUpdateProfile,
-  getListProfilesQueryKey,
-} from "@workspace/api-client-react";
+import { useListProfiles, useCreateProfile, useDeleteProfile, getListProfilesQueryKey } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
-import { formatDate, getExportFileName } from "@/lib/date-utils";
+import { formatDate } from "@/lib/date-utils";
 import { formatNationality } from "@/lib/countries";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import type { ProfileForm } from "./types";
@@ -23,17 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { motion, AnimatePresence } from "framer-motion";
-import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -54,31 +39,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Link } from "wouter";
-import {
-  Eye,
-  Trash2,
-  Plus,
-  Search,
-  Users,
-  AlertCircle,
-  FileSpreadsheet,
-  FileDown,
-  Pencil,
-  Download,
-  Upload,
-  X,
-  CheckCircle2,
-  Camera,
-  Key,
-  ArrowRightLeft,
-  LayoutGrid,
-  List,
-  MoreVertical,
-  ChevronDown,
-  Phone,
-  CreditCard,
-  QrCode,
-} from "lucide-react";
+import { Eye, Trash2, Plus, Search, Users, AlertCircle, FileSpreadsheet, FileDown, Pencil, Key, LayoutGrid, List, ChevronDown, Phone, CreditCard, QrCode } from "lucide-react";
 import { GatePassModal } from "@/pages/accommodation/GatePassModal";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { SortableHead } from "@/components/ui/sortable-head";
@@ -96,18 +57,14 @@ import {
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import * as XLSX from "xlsx";
 import { exportExcel } from "@/pages/reports/utils/export";
 import { DataPagination } from "@/components/DataPagination";
-import { PaginationBar } from "@/components/ui/PaginationBar";
 
 const MAX_PROFILE_IMPORT_FILE_SIZE = 1024 * 1024;
 const PROFILE_IMPORT_EXTENSIONS = [".xlsx", ".xls"];
 
 /* ── Profile Photo Avatar ──────────────────────────────────────────────── */
 import { ProfileAvatar } from "./components/ProfileAvatar";
-import { PhotoUploadBtn } from "./components/PhotoUploadBtn";
-import { FormRow } from "./components/FormRow";
 import { StatusBadge } from "./components/StatusBadge";
 import { ProfileDialog } from "./components/ProfileDialog";
 import { EditProfileDialog } from "./components/EditProfileDialog";

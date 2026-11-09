@@ -6,7 +6,7 @@ import {
   validateAndNormalizeRows,
   downloadRoomImportTemplate,
 } from "@/lib/room-importer-engine";
-import { FileSpreadsheet, CheckCircle2, Download } from "lucide-react";
+import { FileSpreadsheet, Download } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -48,30 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Edit,
-  Trash,
-  Plus,
-  Building2,
-  Globe,
-  Palette,
-  Shield,
-  Eye,
-  EyeOff,
-  UserPlus,
-  UserCheck,
-  Search,
-  Check,
-  CheckSquare,
-  Square,
-  Upload,
-  X,
-  Users,
-  Phone,
-  Mail,
-  MessageCircle,
-  Info,
-} from "lucide-react";
+import { Edit, Trash, Plus, Building2, Globe, Palette, Shield, Eye, EyeOff, UserPlus, UserCheck, Search, Upload, X, Users, Phone, Mail, MessageCircle, Info } from "lucide-react";
 import { useRef } from "react";
 import {
   ColumnChooser,

@@ -1,9 +1,4 @@
-import type { Request, Response } from "express";
 import { ZodError } from "zod";
-
-export function isArabic(req: Request): boolean {
-  return (req.headers["accept-language"] ?? "").toLowerCase().startsWith("ar");
-}
 
 const FIELD_LABELS: Record<string, { en: string; ar: string }> = {
   username: { en: "Username", ar: "اسم المستخدم" },
@@ -66,13 +61,4 @@ export function formatZodError(error: ZodError, ar: boolean): string {
     default:
       return first.message || (ar ? `خطأ في ${label}` : `Error in ${label}`);
   }
-}
-
-export function sendError(
-  res: Response,
-  status: number,
-  message: string,
-  extra?: Record<string, unknown>,
-): void {
-  res.status(status).json({ success: false, message, ...extra });
 }
