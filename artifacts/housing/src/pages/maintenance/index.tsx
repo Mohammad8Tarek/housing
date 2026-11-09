@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   useListMaintenance,
   useCreateMaintenance,
@@ -15,230 +15,33 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/use-permission";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
-import { PermissionGate } from "@/components/ui/permission-gate";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { BulkActionBar } from "@/components/ui/bulk-action-bar";
-import { motion, AnimatePresence } from "framer-motion";
-import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import {
-  Trash,
-  Plus,
-  Wrench,
-  CheckCircle2,
-  Play,
-  Sparkles,
-  FileText,
-  Eye,
-  Camera,
-  ImageIcon,
-  X,
-  Upload,
-  Layers,
-  Clock,
-  AlertCircle,
-  ShieldCheck,
-  User,
-  CheckCircle,
-  List,
-  LayoutGrid,
-  ChevronDown,
-  HardHat,
-  Users,
-  Search,
-  RotateCcw,
-  MoreVertical,
-  Calendar,
-  Filter,
-  Building2,
-  DoorClosed,
-  Star,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
-  ColumnChooser,
-  useColumnVisibility,
-} from "@/components/ui/column-chooser";
+import { useColumnVisibility } from "@/components/ui/column-chooser";
 import TicketDetailModal from "@/components/ui/ticket-detail-modal";
-import * as XLSX from "xlsx";
-import { exportExcel as exportExcelUtil } from "@/pages/reports/utils/export";
-import { format, differenceInMinutes } from "date-fns";
-import { formatDate, getExportFileName } from "@/lib/date-utils";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { DateInput } from "@/components/ui/date-input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DataPagination } from "@/components/DataPagination";
 import { TicketsKanbanBoard } from "./components/TicketsKanbanBoard";
-
-const CATEGORIES = ["maintenance", "housekeeping", "general"];
-const CATEGORIES_AR = {
-  maintenance: "صيانة",
-  housekeeping: "هاوس كيبنج",
-  general: "عام",
-};
-const CATEGORIES_EN: Record<string, string> = {
-  maintenance: "Maintenance",
-  housekeeping: "Housekeeping",
-  general: "General",
-};
-const CATEGORY_ICONS = {
-  maintenance: <Wrench className="w-3.5 h-3.5" />,
-  housekeeping: <Sparkles className="w-3.5 h-3.5" />,
-  general: <FileText className="w-3.5 h-3.5" />,
-};
-
-const MAINTENANCE_PROBLEM_TYPES = [
-  { key: "Plumbing", labelEn: "Plumbing", labelAr: "سباكة" },
-  { key: "Electrical", labelEn: "Electrical", labelAr: "كهرباء" },
-  { key: "HVAC", labelEn: "HVAC & AC", labelAr: "تكييف وتبريد" },
-  { key: "Furniture", labelEn: "Furniture & Woodwork", labelAr: "أثاث ونجارة" },
-  { key: "Internet", labelEn: "Internet & Network", labelAr: "إنترنت وشبكات" },
-  { key: "Appliances", labelEn: "Appliances", labelAr: "أجهزة كهربائية" },
-  { key: "Other", labelEn: "Other Maintenance", labelAr: "أعطال أخرى" },
-];
-
-const HOUSEKEEPING_ORDER_TYPES = [
-  { key: "room_cleaning", labelEn: "Room Cleaning", labelAr: "تنظيف الغرفة" },
-  { key: "bed_sheets", labelEn: "Bed Linen Change", labelAr: "تغيير المفارش والأسرة" },
-  { key: "towels", labelEn: "Towels & Amenities", labelAr: "توفر مناشف ومستلزمات" },
-  { key: "deep_cleaning", labelEn: "Deep Cleaning", labelAr: "تنظيف شامل وعميق" },
-  { key: "waste_removal", labelEn: "Trash Removal", labelAr: "تفريغ المهملات" },
-  { key: "sanitization", labelEn: "Sanitization & Disinfection", labelAr: "تعقيم وتطهير" },
-  { key: "turnover", labelEn: "Turnover Preparation", labelAr: "تجهيز لنزيل جديد" },
-  { key: "other", labelEn: "Special / Other Request", labelAr: "طلب نظافة آخر" },
-];
-
-const GENERAL_PROBLEM_TYPES = [
-  { key: "general_inquiry", labelEn: "General Inquiry", labelAr: "استفسار عام" },
-  { key: "inspection", labelEn: "Room Inspection", labelAr: "فحص ومعاينة" },
-  { key: "pest_control", labelEn: "Pest Control", labelAr: "مكافحة حشرات" },
-  { key: "other", labelEn: "Other", labelAr: "أخرى" },
-];
-
-const PROBLEM_TYPES_MAP: Record<string, { labelEn: string; labelAr: string }> = {
-  Plumbing: { labelEn: "Plumbing", labelAr: "سباكة" },
-  Electrical: { labelEn: "Electrical", labelAr: "كهرباء" },
-  HVAC: { labelEn: "HVAC & AC", labelAr: "تكييف وتبريد" },
-  Furniture: { labelEn: "Furniture & Woodwork", labelAr: "أثاث ونجارة" },
-  Internet: { labelEn: "Internet & Network", labelAr: "إنترنت وشبكات" },
-  Appliances: { labelEn: "Appliances", labelAr: "أجهزة كهربائية" },
-  Cleaning: { labelEn: "Cleaning", labelAr: "نظافة" },
-  Other: { labelEn: "Other", labelAr: "أعطال أخرى" },
-  room_cleaning: { labelEn: "Room Cleaning", labelAr: "تنظيف الغرفة" },
-  bed_sheets: { labelEn: "Bed Linen Change", labelAr: "تغيير المفارش والأسرة" },
-  towels: { labelEn: "Towels & Amenities", labelAr: "مناشف ومستلزمات" },
-  deep_cleaning: { labelEn: "Deep Cleaning", labelAr: "تنظيف شامل وعميق" },
-  waste_removal: { labelEn: "Trash Removal", labelAr: "تفريغ المهملات" },
-  sanitization: { labelEn: "Sanitization & Disinfection", labelAr: "تعقيم وتطهير" },
-  turnover: { labelEn: "Turnover Preparation", labelAr: "تجهيز لنزيل جديد" },
-  general_inquiry: { labelEn: "General Inquiry", labelAr: "استفسار عام" },
-  inspection: { labelEn: "Room Inspection", labelAr: "فحص ومعاينة" },
-  pest_control: { labelEn: "Pest Control", labelAr: "مكافحة حشرات" },
-  other: { labelEn: "Other", labelAr: "طلب آخر" },
-};
-
-const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"];
-const PRIORITY_AR: Record<string, string> = {
-  LOW: "منخفضة",
-  MEDIUM: "متوسطة",
-  HIGH: "عالية",
-  URGENT: "عاجلة",
-};
-const STATUS_AR: Record<string, string> = {
-  open: "لم تبدأ / مفتوحة",
-  in_progress: "قيد التنفيذ",
-  resolved: "تم الإنجاز",
-  closed: "مغلقة",
-};
-const STATUS_EN: Record<string, string> = {
-  open: "Not Started",
-  in_progress: "In Progress",
-  resolved: "Order Completed",
-  closed: "Closed",
-};
-
-function getDurationMins(
-  startedAt: any,
-  resolvedAt: any,
-  reportedAt: any,
-): number {
-  const start = reportedAt ?? startedAt;
-  if (!start) return -1;
-  const startDate = new Date(start);
-  const endDate = resolvedAt ? new Date(resolvedAt) : new Date();
-  return differenceInMinutes(endDate, startDate);
-}
-
-function formatDuration(
-  startedAt: any,
-  resolvedAt: any,
-  reportedAt: any,
-  ar: boolean = false,
-): string {
-  const totalMins = getDurationMins(startedAt, resolvedAt, reportedAt);
-  if (totalMins < 0) return "—";
-  if (totalMins < 1) return ar ? "< دقيقة" : "< 1 min";
-  if (totalMins >= 60) {
-    const hours = Math.floor(totalMins / 60);
-    const mins = totalMins % 60;
-    return ar ? `${hours} س ${mins} د` : `${hours}h ${mins}m`;
-  }
-  return ar ? `${totalMins} دقيقة` : `${totalMins} min`;
-}
-
-function getDurationColor(
-  startedAt: any,
-  resolvedAt: any,
-  reportedAt: any,
-): string {
-  const totalMins = getDurationMins(startedAt, resolvedAt, reportedAt);
-  if (totalMins < 0) return "text-muted-foreground";
-  if (totalMins <= 30) return "text-emerald-600 dark:text-emerald-400";
-  if (totalMins <= 120) return "text-amber-500 dark:text-amber-400";
-  return "text-red-500 dark:text-red-400 font-bold";
-}
+import { TicketsHeader } from "./components/TicketsHeader";
+import { TicketsStatusStrip } from "./components/TicketsStatusStrip";
+import { TicketsFilterPanel } from "./components/TicketsFilterPanel";
+import { TicketsToolbar } from "./components/TicketsToolbar";
+import { NewTicketDialog, type TicketForm } from "./components/NewTicketDialog";
+import { TicketsBulkActions } from "./components/TicketsBulkActions";
+import { TicketsTable } from "./components/TicketsTable";
+import { TicketPhotoLightbox } from "./components/TicketPhotoLightbox";
+import { TicketDeleteDialog } from "./components/TicketDeleteDialog";
+import {
+  CATEGORIES,
+  CATEGORIES_AR,
+  CATEGORY_ICONS,
+  PROBLEM_TYPES_MAP,
+  PRIORITY_AR,
+  TICKET_COLS,
+} from "./utils/ticket-constants";
+import { formatDuration, getDurationColor, STATUS_AR } from "./utils/ticket-duration";
+import {
+  exportTicketsExcel,
+  exportSelectedTicketsExcel as exportSelectedTicketsExcelUtil,
+} from "./utils/ticket-export";
 
 export default function Tickets() {
   const { user } = useAuth();
@@ -365,7 +168,6 @@ export default function Tickets() {
   const [creatorTypeFilter, setCreatorTypeFilter] = useState("");
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [formPhotoUrl, setFormPhotoUrl] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync category filter with role boundaries
   useEffect(() => {
@@ -388,7 +190,7 @@ export default function Tickets() {
     return "";
   });
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<TicketForm>({
     roomId: "",
     category: defaultCreateCategory,
     problemType: defaultCreateCategory === "housekeeping" ? "room_cleaning" : "Plumbing",
@@ -466,9 +268,9 @@ export default function Tickets() {
     data: allTicketsWrapper,
     isLoading,
   } = useListMaintenance(
-    { 
-      propertyId: effectivePropertyId, 
-      page: currentPage, 
+    {
+      propertyId: effectivePropertyId,
+      page: currentPage,
       limit: viewMode === "kanban" ? 200 : pageSize,
       search: debouncedSearch || undefined,
       status: statusFilter === "all" ? undefined : statusFilter,
@@ -556,20 +358,6 @@ export default function Tickets() {
     });
     return map;
   }, [assignments, profiles]);
-
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error(ar ? "حجم الصورة كبير جداً (أقصى حد 5 ميجابايت)" : "Image too large (max 5MB)");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormPhotoUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
 
   const invalidate = () => {
     queryClient.invalidateQueries({
@@ -758,65 +546,7 @@ export default function Tickets() {
     });
   };
 
-  const priorityColor = (p: string) => {
-    switch ((p || "").toLowerCase()) {
-      case "urgent":
-        return "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300 border-red-200 dark:border-red-800";
-      case "high":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-950/50 dark:text-orange-300 border-orange-200 dark:border-orange-800";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/50 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800";
-      case "low":
-        return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700";
-      default:
-        return "bg-slate-100 text-slate-700";
-    }
-  };
-
-  const statusColor = (s: string) => {
-    switch ((s || "").toLowerCase()) {
-      case "open":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200 dark:border-blue-800";
-      case "in_progress":
-        return "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200 dark:border-amber-800";
-      case "resolved":
-        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
-      case "closed":
-        return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700";
-      default:
-        return "bg-slate-100 text-slate-600";
-    }
-  };
-
-  const categoryColor = (c: string) => {
-    switch (c) {
-      case "maintenance":
-        return "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-800";
-      case "housekeeping":
-        return "bg-sky-50 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300 border-sky-200 dark:border-sky-800";
-      case "general":
-        return "bg-purple-50 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-800";
-      default:
-        return "bg-slate-100 text-slate-600";
-    }
-  };
-
-  const COLS = [
-    { key: "id", label: "ID", labelAr: "رقم", defaultVisible: true },
-    { key: "building_floor", label: "BUILDING & FLOOR", labelAr: "المبنى والدور", defaultVisible: true },
-    { key: "room", label: "ROOM", labelAr: "رقم الغرفة", defaultVisible: true },
-    { key: "requester", label: "REQUESTER / RESIDENT", labelAr: "مقدم الطلب / المقيم", defaultVisible: true },
-    { key: "property", label: "PROPERTY / HOUSING", labelAr: "الفندق / السكن", defaultVisible: false },
-    { key: "problem", label: "PROBLEM", labelAr: "المشكلة والوصف", defaultVisible: true },
-    { key: "department", label: "DEPARTMENT", labelAr: "القسم والخدمة", defaultVisible: false },
-    { key: "status", label: "STATUS", labelAr: "الحالة", defaultVisible: true },
-    { key: "priority", label: "PRIORITY", labelAr: "الأولوية", defaultVisible: true },
-    { key: "assigned_to", label: "ASSIGNED TO", labelAr: "المسند إليه / الفني", defaultVisible: true },
-    { key: "at", label: "REPORTED AT", labelAr: "تاريخ البدء", defaultVisible: false },
-    { key: "duration", label: "DURATION", labelAr: "المدة", defaultVisible: false },
-    { key: "rating", label: "RATING", labelAr: "التقييم", defaultVisible: false },
-    { key: "actions", label: "ACTIONS", labelAr: "إجراءات", defaultVisible: true, fixed: true },
-  ];
+  const COLS = TICKET_COLS;
 
   const { visible, toggle, showAll, hideAll, isVisible } = useColumnVisibility(COLS);
 
@@ -825,63 +555,6 @@ export default function Tickets() {
       return isVisible("property") || propertyFilter === "all";
     }
     return isVisible(key);
-  };
-
-  const renderRequester = (ticket: any) => {
-    const rep = (ticket.reportedBy || "").trim();
-    if (rep) {
-      const isSystemAdmin = ["admin", "super_admin", "system_admin", "system", "test_superadmin"].includes(rep.toLowerCase());
-      if (isSystemAdmin) {
-        return (
-          <div className="flex flex-col gap-0.5">
-            <span className="inline-flex items-center gap-1 font-semibold text-xs text-foreground">
-              <ShieldCheck className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-              <span>{ar ? "إدارة السكن" : "Housing Admin"}</span>
-              <span className="text-[10px] text-muted-foreground font-mono">({rep})</span>
-            </span>
-            {ticket.residentName && (
-              <span className="text-[11px] text-muted-foreground flex items-center gap-1" title={ticket.residentName}>
-                <User className="w-3 h-3 text-slate-400 shrink-0" />
-                <span className="truncate max-w-[140px]">{ticket.residentName}</span>
-              </span>
-            )}
-          </div>
-        );
-      }
-
-      const isQr = rep.includes("مسح QR") || rep.includes("QR");
-      const cleanName = rep.replace(/\s*-\s*\[مسح QR.*?\]/g, "").trim();
-
-      return (
-        <div className="flex flex-col gap-0.5">
-          <span className="inline-flex items-center gap-1 font-bold text-xs text-foreground">
-            <User className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span className="truncate max-w-[160px]" title={cleanName}>{cleanName}</span>
-          </span>
-          {isQr && (
-            <Badge variant="outline" className="w-fit text-[9px] px-1 py-0 h-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300">
-              {ar ? "مسح QR الغرفة" : "Room QR Scan"}
-            </Badge>
-          )}
-        </div>
-      );
-    }
-
-    if (ticket.residentName) {
-      return (
-        <span className="inline-flex items-center gap-1 font-semibold text-xs text-foreground" title={ticket.residentName}>
-          <User className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span className="truncate max-w-[160px]">{ticket.residentName}</span>
-        </span>
-      );
-    }
-
-    return (
-      <span className="text-[11px] text-muted-foreground/70 italic flex items-center gap-1">
-        <User className="w-3 h-3 opacity-40 shrink-0" />
-        <span>{ar ? "شاغرة (بدون نزيل)" : "Vacant"}</span>
-      </span>
-    );
   };
 
   const roomMap = Object.fromEntries(
@@ -913,98 +586,11 @@ export default function Tickets() {
   const generalCount = useMemo(() => allTickets?.filter((t: any) => t.category === "general").length || 0, [allTickets]);
 
   const exportExcel = () => {
-    const rows = filtered.map((req: any) => ({
-      [ar ? "رقم الطلب" : "ID"]: req.id,
-      [ar ? "Resident" : "Resident"]:
-        req.propertyName ||
-        properties?.find((p: any) => p.id === req.propertyId)?.name ||
-        "—",
-      [ar ? "الغرفة" : "Room"]:
-        `${ar ? "الغرفة" : "Room"} ${req.roomNumber || (roomMap[req.roomId] ?? req.roomId)}`,
-      [ar ? "المبنى" : "Building"]: req.buildingName || "—",
-      [ar ? "الدور" : "Floor"]: req.floorNumber ? `${ar ? "الدور " : "Floor "}${req.floorNumber}` : "—",
-      [ar ? "مقدم البلاغ" : "Reported By"]: req.reportedBy || "—",
-      [ar ? "النزيل المقيم" : "Occupant"]: roomOccupantMap[req.roomId] || "—",
-      [ar ? "القسم / النوع" : "Type"]: ar
-        ? ((CATEGORIES_AR as Record<string, string>)[req.category] ?? req.category)
-        : req.category,
-      [ar ? "نوع المشكلة / الخدمة" : "Problem / Service"]: ar
-        ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
-        : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType),
-      [ar ? "الفني المعين" : "Assigned Worker"]: req.workerName || "—",
-      [ar ? "الوصف" : "Description"]: req.description,
-      [ar ? "الأولوية" : "Priority"]: ar
-        ? (PRIORITY_AR[req.priority?.toUpperCase()] ?? req.priority)
-        : req.priority,
-      [ar ? "الحالة" : "Status"]: ar
-        ? (STATUS_AR[req.status?.toLowerCase()] ?? req.status)
-        : req.status,
-      [ar ? "تاريخ الإبلاغ" : "Reported (Date)"]: formatDate(req.reportedAt, ""),
-      [ar ? "المدة" : "Duration"]: formatDuration(
-        req.startedAt,
-        req.resolvedAt,
-        req.reportedAt,
-      ),
-      [ar ? "التقييم" : "Rating"]: req.rating
-        ? `${req.rating}/5`
-        : ["resolved", "closed"].includes(req.status)
-        ? (ar ? "بانتظار التقييم" : "Pending")
-        : "—",
-      [ar ? "ملاحظات التقييم" : "Rating Comment"]: req.ratingComment || "—",
-    }));
-    exportExcelUtil("Tickets_Hub", rows, {
-      sheetName: ar ? "التذاكر" : "Tickets",
-      orientation: "landscape",
-    });
+    exportTicketsExcel(filtered, { ar, properties, roomMap, roomOccupantMap });
   };
 
   const exportSelectedTicketsExcel = () => {
-    const target =
-      selectedTicketIds.size > 0
-        ? allTickets.filter((t: any) => selectedTicketIds.has(t.id))
-        : allTickets;
-    if (target.length === 0) return;
-    const rows = target.map((req: any) => ({
-      [ar ? "رقم الطلب" : "Ticket #"]: req.id,
-      [ar ? "Resident" : "Resident"]:
-        req.propertyName ||
-        properties?.find((p: any) => p.id === req.propertyId)?.name ||
-        "—",
-      [ar ? "الغرفة" : "Room"]: req.roomNumber || (roomMap[req.roomId] ?? req.roomId),
-      [ar ? "المبنى" : "Building"]: req.buildingName || "—",
-      [ar ? "الدور" : "Floor"]: req.floorNumber ? `${ar ? "الدور " : "Floor "}${req.floorNumber}` : "—",
-      [ar ? "مقدم البلاغ" : "Reported By"]: req.reportedBy || "—",
-      [ar ? "النوع" : "Category"]: ar
-        ? ((CATEGORIES_AR as Record<string, string>)[req.category] ?? req.category)
-        : req.category,
-      [ar ? "المشكلة" : "Problem Type"]: ar
-        ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
-        : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType),
-      [ar ? "الفني المعين" : "Assigned Worker"]: req.workerName || "—",
-      [ar ? "الوصف" : "Description"]: req.description,
-      [ar ? "الأولوية" : "Priority"]: ar
-        ? (PRIORITY_AR[req.priority?.toUpperCase()] ?? req.priority)
-        : req.priority,
-      [ar ? "الحالة" : "Status"]: ar
-        ? (STATUS_AR[req.status?.toLowerCase()] ?? req.status)
-        : req.status,
-      [ar ? "تاريخ الإبلاغ" : "Reported"]: formatDate(req.reportedAt, ""),
-      [ar ? "المدة" : "Duration"]: formatDuration(
-        req.startedAt,
-        req.resolvedAt,
-        req.reportedAt,
-      ),
-      [ar ? "التقييم" : "Rating"]: req.rating
-        ? `${req.rating}/5`
-        : ["resolved", "closed"].includes(req.status)
-        ? (ar ? "بانتظار التقييم" : "Pending")
-        : "—",
-      [ar ? "ملاحظات التقييم" : "Rating Comment"]: req.ratingComment || "—",
-    }));
-    exportExcelUtil("Selected_Tickets", rows, {
-      sheetName: ar ? "التذاكر المحددة" : "Selected Tickets",
-      orientation: "landscape",
-    });
+    exportSelectedTicketsExcelUtil(allTickets, selectedTicketIds, { ar, properties, roomMap, roomOccupantMap });
   };
 
   const handleBulkStatusChange = async (newStatus: string) => {
@@ -1087,823 +673,99 @@ export default function Tickets() {
   return (
     <div className="min-h-screen bg-background space-y-4">
       {/* Executive Header (Linear Style) */}
-      <div className="px-4 sm:px-6 pt-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl shadow-xs ${
-              isOnlyHousekeeping
-                ? "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400"
-                : isOnlyMaintenance
-                  ? "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
-                  : "bg-primary/10 text-primary"
-            }`}>
-              {isOnlyHousekeeping ? (
-                <Sparkles className="w-6 h-6" />
-              ) : isOnlyMaintenance ? (
-                <Wrench className="w-6 h-6" />
-              ) : (
-                <Layers className="w-6 h-6" />
-              )}
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                {isOnlyHousekeeping
-                  ? (ar ? "طلبات وأوامر الهاوس كيبنج" : "Housekeeping Orders")
-                  : isOnlyMaintenance
-                    ? (ar ? "بلاغات وأوامر الصيانة الفنية" : "Maintenance Work Orders")
-                    : (ar ? "مركز التذاكر وأوامر العمل" : "Operations & Tickets Hub")}
-              </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {isOnlyHousekeeping
-                  ? (ar ? "متابعة وإسناد طلبات النظافة وتجهيز الغرف والمستلزمات" : "Track and assign room cleaning, linens, and housekeeping orders")
-                  : isOnlyMaintenance
-                    ? (ar ? "متابعة وإسناد بلاغات الأعطال والصيانة الوقائية والطارئة" : "Track and dispatch engineering and repair work orders")
-                    : (ar ? "متابعة وإسناد أوامر العمل وبلاغات الصيانة والنظافة" : "Track and assign work orders, maintenance, and housekeeping")}
-              </p>
-            </div>
-          </div>
-
-          {/* Action Bar: Create Ticket */}
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            {canCreateAny && (
-              <Button
-                onClick={() => setIsOpen(true)}
-                className="gap-2 shadow-xs font-semibold"
-                size="sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>
-                  {isOnlyHousekeeping
-                    ? (ar ? "طلب هاوس كيبنج جديد" : "New Housekeeping Order")
-                    : isOnlyMaintenance
-                      ? (ar ? "بلاغ صيانة جديد" : "New Maintenance Ticket")
-                      : (ar ? "إنشاء تذكرة جديدة" : "New Ticket")}
-                </span>
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
+      <TicketsHeader
+        ar={ar}
+        isOnlyHousekeeping={isOnlyHousekeeping}
+        isOnlyMaintenance={isOnlyMaintenance}
+        canCreateAny={canCreateAny}
+        onCreate={() => setIsOpen(true)}
+      />
 
       {/* Status & Category Metric Tabs Strip */}
-      <div className="px-4 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-1 border-b">
-          <div className="flex items-center gap-1.5 overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => setStatusFilter("all")}
-              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all shrink-0 ${
-                statusFilter === "all"
-                  ? "bg-primary/10 text-primary border-b-2 border-primary shadow-xs"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-              }`}
-            >
-              <span>{ar ? "كل التذاكر" : "All Tickets"}</span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold">
-                {totalCount}
-              </Badge>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setStatusFilter("open")}
-              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all shrink-0 ${
-                statusFilter === "open"
-                  ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-b-2 border-blue-500 shadow-xs"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-blue-500" />
-              <span>{ar ? "مفتوحة" : "Open"}</span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
-                {openCount}
-              </Badge>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setStatusFilter("in_progress")}
-              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all shrink-0 ${
-                statusFilter === "in_progress"
-                  ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-b-2 border-amber-500 shadow-xs"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              <span>{ar ? "قيد التنفيذ" : "In Progress"}</span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
-                {inProgressCount}
-              </Badge>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setStatusFilter("resolved")}
-              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all shrink-0 ${
-                statusFilter === "resolved"
-                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-b-2 border-emerald-500 shadow-xs"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>{ar ? "تم الحل" : "Resolved"}</span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
-                {resolvedCount}
-              </Badge>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setStatusFilter("closed")}
-              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-lg transition-all shrink-0 ${
-                statusFilter === "closed"
-                  ? "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-b-2 border-slate-500 shadow-xs"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-slate-400" />
-              <span>{ar ? "مغلقة" : "Closed"}</span>
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold">
-                {closedCount}
-              </Badge>
-            </button>
-          </div>
-
-          {/* Quick Category Scope Switcher */}
-          <div className="flex items-center gap-1 bg-muted/60 dark:bg-muted/30 p-1 rounded-xl border border-border/50 shrink-0">
-            {hasBoth && (
-              <button
-                type="button"
-                onClick={() => setCategoryFilter("all")}
-                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                  categoryFilter === "all"
-                    ? "bg-background text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {ar ? "الكل" : "All"}
-              </button>
-            )}
-            {canViewMnt && (
-              <button
-                type="button"
-                onClick={() => setCategoryFilter("maintenance")}
-                disabled={isOnlyMaintenance}
-                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                  categoryFilter === "maintenance"
-                    ? "bg-amber-600 text-white shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                } ${isOnlyMaintenance ? "cursor-default opacity-90" : ""}`}
-              >
-                <Wrench className="w-3.5 h-3.5" />
-                <span>{ar ? "أوردرات الصيانة" : "Maintenance"}</span>
-                {isOnlyMaintenance && (
-                  <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 bg-amber-700 text-white font-semibold">
-                    {ar ? "فقط" : "Only"}
-                  </Badge>
-                )}
-              </button>
-            )}
-            {canViewHsk && (
-              <button
-                type="button"
-                onClick={() => setCategoryFilter("housekeeping")}
-                disabled={isOnlyHousekeeping}
-                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                  categoryFilter === "housekeeping"
-                    ? "bg-sky-600 text-white shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                } ${isOnlyHousekeeping ? "cursor-default opacity-90" : ""}`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{ar ? "أوردرات الهاوس كيبنج" : "Housekeeping"}</span>
-                {isOnlyHousekeeping && (
-                  <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 bg-sky-700 text-white font-semibold">
-                    {ar ? "فقط" : "Only"}
-                  </Badge>
-                )}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      <TicketsStatusStrip
+        ar={ar}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        categoryFilter={categoryFilter}
+        setCategoryFilter={setCategoryFilter}
+        totalCount={totalCount}
+        openCount={openCount}
+        inProgressCount={inProgressCount}
+        resolvedCount={resolvedCount}
+        closedCount={closedCount}
+        hasBoth={hasBoth}
+        canViewMnt={canViewMnt}
+        canViewHsk={canViewHsk}
+        isOnlyMaintenance={isOnlyMaintenance}
+        isOnlyHousekeeping={isOnlyHousekeeping}
+      />
 
       {/* 2-Row Filter Grid (Opera / HotSOS Hotel Standard) */}
-      <div className="px-4 sm:px-6">
-        <div className="bg-card p-4 rounded-xl border shadow-xs space-y-3.5">
-          {/* Row 1: Hotels, From Date, To Date, Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            {/* Property Filter */}
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-primary" />
-                <span>{ar ? "الفندق / السكن" : "Property / Housing"}</span>
-              </Label>
-              <Select value={propertyFilter} onValueChange={(v) => setPropertyFilter(v)}>
-                <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue placeholder={ar ? "جميع الفنادق والوحدات" : "All Properties"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{ar ? "جميع الفنادق والوحدات" : "All Properties"}</SelectItem>
-                  {properties.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.displayName || p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* From Date */}
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-primary" />
-                <span>{ar ? "من تاريخ" : "From Date"}</span>
-              </Label>
-              <DateInput
-                value={fromDate}
-                onChange={(iso) => setFromDate(iso)}
-                className="h-9 text-xs bg-background"
-              />
-            </div>
-
-            {/* To Date */}
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-primary" />
-                <span>{ar ? "إلى تاريخ" : "To Date"}</span>
-              </Label>
-              <DateInput
-                value={toDate}
-                onChange={(iso) => setToDate(iso)}
-                className="h-9 text-xs bg-background"
-              />
-            </div>
-
-            {/* Status Filter */}
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                <CheckCircle className="w-3.5 h-3.5 text-primary" />
-                <span>{ar ? "الحالة" : "Status"}</span>
-              </Label>
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
-                <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue placeholder={ar ? "كل الحالات" : "All Statuses"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{ar ? "كل الحالات" : "All Statuses"}</SelectItem>
-                  <SelectItem value="open">{ar ? "لم تبدأ / مفتوحة" : "Not Started"}</SelectItem>
-                  <SelectItem value="in_progress">{ar ? "قيد التنفيذ" : "In Progress"}</SelectItem>
-                  <SelectItem value="resolved">{ar ? "تم الإنجاز" : "Order Completed"}</SelectItem>
-                  <SelectItem value="closed">{ar ? "مغلقة" : "Closed"}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Row 2: Type, Priority, Departments, Creator Type + Reset */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-end">
-            {/* Type */}
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-primary" />
-                <span>{ar ? "النوع" : "Type"}</span>
-              </Label>
-              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v)}>
-                <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue placeholder={ar ? "كل الأنواع" : "All Types"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {hasBoth && (
-                    <SelectItem value="all">{ar ? "كل الأنواع" : "All Types"}</SelectItem>
-                  )}
-                  {canViewMnt && (
-                    <SelectItem value="maintenance">{ar ? "صيانة فنية" : "Maintenance"}</SelectItem>
-                  )}
-                  {canViewHsk && (
-                    <SelectItem value="housekeeping">{ar ? "هاوس كيبنج" : "Housekeeping"}</SelectItem>
-                  )}
-                  {hasBoth && (
-                    <SelectItem value="general">{ar ? "عام" : "General"}</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Priority */}
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5 text-primary" />
-                <span>{ar ? "الأولوية" : "Priority"}</span>
-              </Label>
-              <Select value={priorityFilter || "all"} onValueChange={(v) => setPriorityFilter(v === "all" ? "" : v)}>
-                <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue placeholder={ar ? "كل الأولويات" : "All Priorities"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{ar ? "كل الأولويات" : "All Priorities"}</SelectItem>
-                  {PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      <div className="flex items-center gap-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          p === "URGENT" ? "bg-red-500" :
-                          p === "HIGH" ? "bg-orange-500" :
-                          p === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
-                        }`} />
-                        <span>{ar ? PRIORITY_AR[p] : p}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Assignment Scope */}
-            <div className="space-y-1">
-              <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                <HardHat className="w-3.5 h-3.5 text-primary" />
-                <span>{ar ? "نطاق التعيين" : "Assignment"}</span>
-              </Label>
-              <Select value={scopeFilter} onValueChange={(v: "all" | "me" | "unassigned") => setScopeFilter(v)}>
-                <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue placeholder={ar ? "كل التذاكر" : "All Tickets"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{ar ? "كل التذاكر" : "All Tickets"}</SelectItem>
-                  <SelectItem value="me">{ar ? "تذاكري المسندة إليّ" : "Assigned to Me"}</SelectItem>
-                  <SelectItem value="unassigned">{ar ? "تذاكر غير مسندة" : "Unassigned"}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Creator Type & Reset */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <Label className="text-[11px] font-semibold text-muted-foreground uppercase flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-primary" />
-                  <span>{ar ? "جهة البلاغ" : "Creator Type"}</span>
-                </Label>
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    onClick={clearAllFilters}
-                    className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors font-medium"
-                    title={ar ? "إعادة ضبط جميع الفلاتر" : "Reset all filters"}
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>{ar ? "إعادة ضبط" : "Reset"}</span>
-                  </button>
-                )}
-              </div>
-              <Select value={creatorTypeFilter || "all"} onValueChange={(v) => setCreatorTypeFilter(v === "all" ? "" : v)}>
-                <SelectTrigger className="h-9 text-xs bg-background">
-                  <SelectValue placeholder={ar ? "كل جهات البلاغ" : "All Creators"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{ar ? "الكل" : "All"}</SelectItem>
-                  <SelectItem value="staff">{ar ? "إدارة السكن / المشرف" : "Staff / Supervisor"}</SelectItem>
-                  <SelectItem value="resident">{ar ? "النزيل / بوابة المقيمين" : "Resident / Portal"}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      </div>
+      <TicketsFilterPanel
+        ar={ar}
+        properties={properties}
+        propertyFilter={propertyFilter}
+        setPropertyFilter={setPropertyFilter}
+        fromDate={fromDate}
+        setFromDate={setFromDate}
+        toDate={toDate}
+        setToDate={setToDate}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        categoryFilter={categoryFilter}
+        setCategoryFilter={setCategoryFilter}
+        priorityFilter={priorityFilter}
+        setPriorityFilter={setPriorityFilter}
+        scopeFilter={scopeFilter}
+        setScopeFilter={setScopeFilter}
+        creatorTypeFilter={creatorTypeFilter}
+        setCreatorTypeFilter={setCreatorTypeFilter}
+        hasBoth={hasBoth}
+        canViewMnt={canViewMnt}
+        canViewHsk={canViewHsk}
+        hasActiveFilters={hasActiveFilters}
+        clearAllFilters={clearAllFilters}
+      />
 
       {/* Action & Search Bar */}
-      <div className="px-4 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-2.5 rounded-xl border shadow-xs">
-          {/* Search Box */}
-          <div className="relative w-full sm:w-72">
-            <Search className="w-3.5 h-3.5 absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={ar ? "بحث برقم الغرفة، الوصف، الفني..." : "Search tickets..."}
-              className="h-8.5 text-xs ps-8 pe-7 bg-background"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm("")}
-                className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* View Mode Toggle */}
-            <div className="flex items-center p-0.5 bg-muted rounded-lg border">
-              <button
-                type="button"
-                onClick={() => handleSetViewMode("list")}
-                className={`p-1.5 rounded-md text-xs transition-colors ${
-                  viewMode === "list"
-                    ? "bg-background text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title={ar ? "عرض الجدول" : "Table View"}
-              >
-                <List className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSetViewMode("kanban")}
-                className={`p-1.5 rounded-md text-xs transition-colors ${
-                  viewMode === "kanban"
-                    ? "bg-background text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title={ar ? "لوحة كانبان" : "Kanban Board"}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Export Excel */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportExcel}
-              className="h-8 text-xs gap-1.5 font-medium bg-background"
-              title={ar ? "تصدير إلى Excel" : "Export Excel"}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">{ar ? "تصدير" : "Export"}</span>
-            </Button>
-
-            {/* Toggle Columns */}
-            {viewMode === "list" && (
-              <ColumnChooser
-                cols={COLS}
-                visible={visible}
-                onToggle={toggle}
-                onShowAll={showAll}
-                onHideAll={hideAll}
-                ar={ar}
-              />
-            )}
-          </div>
-        </div>
-      </div>
+      <TicketsToolbar
+        ar={ar}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        viewMode={viewMode}
+        onSetViewMode={handleSetViewMode}
+        onExportExcel={exportExcel}
+        cols={COLS}
+        visible={visible}
+        toggle={toggle}
+        showAll={showAll}
+        hideAll={hideAll}
+      />
 
       {/* New Ticket Dialog */}
-      <Dialog
+      <NewTicketDialog
         open={isOpen}
         onOpenChange={(v) => {
           setIsOpen(v);
           if (!v) resetForm();
         }}
-      >
-        <DialogContent
-          className="max-w-md sm:max-w-lg"
-          srTitle={ar ? "إنشاء طلب جديد" : "Create New Ticket"}
-        >
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5 text-primary" />
-              {ar ? "إنشاء طلب / تذكرة جديدة" : "Create New Ticket"}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-2">
-            {/* Property Selector */}
-            {properties.length > 1 && (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
-                  {ar ? "الـ Resident" : "Resident"} <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={formPropertyId}
-                  onValueChange={(v) => {
-                    setFormPropertyId(v);
-                    setForm((f) => ({ ...f, roomId: "" }));
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={ar ? "اختر الـ Resident" : "Select Resident"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {properties.map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>
-                        {p.displayName || p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Category Selector (if multiple allowed) */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                {ar ? "نوع الطلب والقسم المختص" : "Ticket Category & Department"} <span className="text-red-500">*</span>
-              </Label>
-              {allowedCreateCategories.length > 1 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm((f) => ({
-                        ...f,
-                        category: "maintenance",
-                        problemType: "Plumbing",
-                      }))
-                    }
-                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                      form.category === "maintenance"
-                        ? "bg-amber-500/15 border-amber-500 text-amber-800 dark:text-amber-300 shadow-xs ring-1 ring-amber-500"
-                        : "bg-background hover:bg-muted/50 text-muted-foreground"
-                    }`}
-                  >
-                    <Wrench className="w-4 h-4 text-amber-600" />
-                    <span>{ar ? "صيانة فنية" : "Maintenance"}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm((f) => ({
-                        ...f,
-                        category: "housekeeping",
-                        problemType: "room_cleaning",
-                      }))
-                    }
-                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                      form.category === "housekeeping"
-                        ? "bg-sky-500/15 border-sky-500 text-sky-800 dark:text-sky-300 shadow-xs ring-1 ring-sky-500"
-                        : "bg-background hover:bg-muted/50 text-muted-foreground"
-                    }`}
-                  >
-                    <Sparkles className="w-4 h-4 text-sky-600" />
-                    <span>{ar ? "هاوس كيبنج" : "Housekeeping"}</span>
-                  </button>
-                  {allowedCreateCategories.includes("general") && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm((f) => ({
-                          ...f,
-                          category: "general",
-                          problemType: "general_inquiry",
-                        }))
-                      }
-                      className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                        form.category === "general"
-                          ? "bg-purple-500/15 border-purple-500 text-purple-800 dark:text-purple-300 shadow-xs ring-1 ring-purple-500"
-                          : "bg-background hover:bg-muted/50 text-muted-foreground"
-                      }`}
-                    >
-                      <FileText className="w-4 h-4 text-purple-600" />
-                      <span>{ar ? "طلب عام" : "General"}</span>
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/60 border text-xs font-semibold">
-                  {form.category === "housekeeping" ? (
-                    <>
-                      <Sparkles className="w-4 h-4 text-sky-600" />
-                      <span>{ar ? "طلب هاوس كيبنج ونظافة" : "Housekeeping Order"}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Wrench className="w-4 h-4 text-amber-600" />
-                      <span>{ar ? "بلاغ صيانة وعطل فني" : "Maintenance Work Order"}</span>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Dynamic Problem Type based on category */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                {form.category === "housekeeping"
-                  ? (ar ? "نوع خدمة النظافة" : "Housekeeping Service Type")
-                  : form.category === "maintenance"
-                    ? (ar ? "نوع المشكلة والعطل" : "Issue / Problem Type")
-                    : (ar ? "التصنيف" : "Classification")}{" "}
-                <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={form.problemType}
-                onValueChange={(v) => setForm((f) => ({ ...f, problemType: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={ar ? "اختر النوع..." : "Select type..."} />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4} className="max-h-64 overflow-y-auto">
-                  {(form.category === "housekeeping"
-                    ? HOUSEKEEPING_ORDER_TYPES
-                    : form.category === "maintenance"
-                      ? MAINTENANCE_PROBLEM_TYPES
-                      : GENERAL_PROBLEM_TYPES
-                  ).map((item) => (
-                    <SelectItem key={item.key} value={item.key}>
-                      {ar ? item.labelAr : item.labelEn}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Room Selector */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                {ar ? "الغرفة" : "Room"} <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={form.roomId}
-                onValueChange={(v) => setForm((f) => ({ ...f, roomId: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={ar ? "اختر الغرفة..." : "Select room..."} />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4} className="max-h-64 overflow-y-auto">
-                  {(modalRooms.length > 0 ? modalRooms : rooms)?.map((r: any) => (
-                    <SelectItem key={r.id} value={String(r.id)}>
-                      <span className="flex items-center justify-between w-full gap-3">
-                        <span>{ar ? "الغرفة" : "Room"} {r.roomNumber}</span>
-                        {roomOccupantMap[r.id] && (
-                          <span className="text-[11px] text-muted-foreground font-normal">
-                            ({roomOccupantMap[r.id]})
-                          </span>
-                        )}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {form.roomId && roomOccupantMap[Number(form.roomId)] && (
-                <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
-                  <User className="w-3.5 h-3.5 text-primary" />
-                  <span>{ar ? "النزيل المقيم:" : "Current Occupant:"} <strong>{roomOccupantMap[Number(form.roomId)]}</strong></span>
-                </p>
-              )}
-            </div>
-
-            {/* Priority */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">{ar ? "الأولوية" : "Priority"}</Label>
-              <Select
-                value={form.priority}
-                onValueChange={(v) => setForm((f) => ({ ...f, priority: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4}>
-                  {PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      <span className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${
-                          p === "URGENT" ? "bg-red-500" :
-                          p === "HIGH" ? "bg-orange-500" :
-                          p === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
-                        }`} />
-                        <span>{ar ? PRIORITY_AR[p] : p}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Assign Worker (Optional) */}
-            {formWorkers.length > 0 && (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center gap-1.5">
-                  <HardHat className="w-3.5 h-3.5 text-primary" />
-                  <span>
-                    {form.category === "housekeeping"
-                      ? (ar ? "تعيين موظف نظافة (اختياري)" : "Assign Cleaner (Optional)")
-                      : (ar ? "تعيين فني من فريق العمل (اختياري)" : "Assign Technician (Optional)")}
-                  </span>
-                </Label>
-                <Select
-                  value={form.workerId || "unassigned"}
-                  onValueChange={(v) => setForm((f) => ({ ...f, workerId: v === "unassigned" ? "" : v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        form.category === "housekeeping"
-                          ? (ar ? "اختر موظف النظافة..." : "Select cleaner...")
-                          : (ar ? "اختر الفني..." : "Select worker...")
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent position="popper" sideOffset={4} className="max-h-56 overflow-y-auto">
-                    <SelectItem value="unassigned">
-                      — {ar ? "بدون تعيين حالياً" : "None / Unassigned"} —
-                    </SelectItem>
-                    {formWorkers.map((w: any) => (
-                      <SelectItem key={w.id} value={String(w.id)}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{w.name}</span>
-                          <span className="text-muted-foreground text-[10px]">
-                            ({w.specialty})
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Description */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                {ar ? "تفاصيل الطلب / المشكلة" : "Description & Details"}{" "}
-                <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                placeholder={
-                  form.category === "housekeeping"
-                    ? (ar ? "اكتب تفاصيل طلب النظافة أو المستلزمات المطلوبة..." : "Describe cleaning or amenities requested...")
-                    : (ar ? "صف المشكلة أو العطل بدقة..." : "Describe the maintenance issue...")
-                }
-                value={form.description}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, description: e.target.value }))
-                }
-                rows={3}
-              />
-            </div>
-
-            {/* Photo Upload */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">{ar ? "صورة مرفقة (اختياري)" : "Attach Photo (Optional)"}</Label>
-              <div className="flex items-center gap-3">
-                {formPhotoUrl ? (
-                  <div className="relative w-20 h-20 rounded-lg overflow-hidden border">
-                    <img
-                      src={formPhotoUrl}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setFormPhotoUrl("")}
-                      className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white hover:bg-black"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <label className="flex flex-col items-center gap-1 px-4 py-3 rounded-lg bg-surface border cursor-pointer hover:border-primary/40 transition-colors">
-                      <Camera className="w-5 h-5 text-primary" />
-                      <span className="text-[10px] text-muted-foreground">
-                        {ar ? "كاميرا" : "Camera"}
-                      </span>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        className="hidden"
-                        onChange={handlePhotoUpload}
-                      />
-                    </label>
-                    <label className="flex flex-col items-center gap-1 px-4 py-3 rounded-lg bg-surface border cursor-pointer hover:border-primary/40 transition-colors">
-                      <ImageIcon className="w-5 h-5 text-primary" />
-                      <span className="text-[10px] text-muted-foreground">
-                        {ar ? "معرض" : "Gallery"}
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handlePhotoUpload}
-                      />
-                    </label>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2 justify-end pt-2">
-              <Button variant="outline" onClick={() => setIsOpen(false)}>
-                {ar ? "إلغاء" : "Cancel"}
-              </Button>
-              <Button onClick={onSubmit} disabled={createMutation.isPending}>
-                {createMutation.isPending
-                  ? ar
-                    ? "جاري الحفظ..."
-                    : "Saving..."
-                  : ar
-                    ? "إنشاء الطلب"
-                    : "Create Ticket"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+        onCancel={() => setIsOpen(false)}
+        ar={ar}
+        properties={properties}
+        formPropertyId={formPropertyId}
+        setFormPropertyId={setFormPropertyId}
+        form={form}
+        setForm={setForm}
+        allowedCreateCategories={allowedCreateCategories}
+        modalRooms={modalRooms}
+        rooms={rooms}
+        roomOccupantMap={roomOccupantMap}
+        formWorkers={formWorkers}
+        formPhotoUrl={formPhotoUrl}
+        setFormPhotoUrl={setFormPhotoUrl}
+        onSubmit={onSubmit}
+        isPending={createMutation.isPending}
+      />
 
       {/* Main Content Area: Kanban Board vs Data Table */}
       {isLoading ? (
@@ -1941,576 +803,81 @@ export default function Tickets() {
       ) : (
         <div className="px-4 sm:px-6 pb-6 space-y-4">
           {/* Bulk Action Bar */}
-          <BulkActionBar
+          <TicketsBulkActions
+            ar={ar}
             count={selectedTicketIds.size}
             onClear={() => setSelectedTicketIds(new Set())}
             onExportExcel={exportSelectedTicketsExcel}
-            extraActions={
-              (canEditAny || canDeleteAny) ? (
-                <div className="flex items-center gap-2">
-                  {canEditAny && (
-                    <Select
-                      disabled={bulkStatusLoading}
-                      onValueChange={(val) => handleBulkStatusChange(val)}
-                    >
-                      <SelectTrigger className="w-[180px] h-8 text-xs bg-background">
-                        <SelectValue
-                          placeholder={
-                            ar ? "تغيير الحالة جماعياً..." : "Change Status..."
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="open">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                            <span>{ar ? "مفتوحة" : "Open"}</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="in_progress">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                            <span>{ar ? "قيد التنفيذ" : "In Progress"}</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="resolved">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                            <span>{ar ? "تم الحل" : "Resolved"}</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="closed">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                            <span>{ar ? "مغلقة" : "Closed"}</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                  {canDeleteAny && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={handleBulkDelete}
-                      className="gap-1.5 h-8 text-xs font-semibold"
-                    >
-                      <Trash className="w-3.5 h-3.5" />
-                      {ar ? "حذف المحدد" : "Delete"}
-                    </Button>
-                  )}
-                </div>
-              ) : undefined
-            }
-            ar={ar}
+            canEditAny={canEditAny}
+            canDeleteAny={canDeleteAny}
+            bulkStatusLoading={bulkStatusLoading}
+            onBulkStatusChange={handleBulkStatusChange}
+            onBulkDelete={handleBulkDelete}
           />
 
-          <div className="border rounded-xl bg-card overflow-hidden shadow-xs w-full">
-            <Table className="w-full table-fixed">
-              <TableHeader>
-                <TableRow className="bg-muted/40 hover:bg-muted/40 text-[11px]">
-                  <TableHead className="w-9 px-2 text-center">
-                    <Checkbox
-                      checked={
-                        paged.length > 0 &&
-                        paged.every((t: any) => selectedTicketIds.has(t.id))
-                      }
-                      onCheckedChange={(checked) => {
-                        setSelectedTicketIds(
-                          checked
-                            ? new Set([
-                                ...selectedTicketIds,
-                                ...paged.map((t: any) => t.id),
-                              ])
-                            : new Set(
-                                Array.from(selectedTicketIds).filter(
-                                  (id) => !paged.some((t: any) => t.id === id),
-                                ),
-                              ),
-                        );
-                      }}
-                    />
-                  </TableHead>
-                  {isVisible("id") && (
-                    <TableHead className="font-semibold w-12 px-2 text-center">
-                      {ar ? "رقم" : "ID"}
-                    </TableHead>
-                  )}
-                  {isColVisible("building_floor") && (
-                    <TableHead className="font-semibold w-[15%] px-2">
-                      {ar ? "المبنى والدور" : "BUILDING & FLOOR"}
-                    </TableHead>
-                  )}
-                  {isColVisible("room") && (
-                    <TableHead className="font-semibold w-[8%] px-2">
-                      {ar ? "رقم الغرفة" : "ROOM"}
-                    </TableHead>
-                  )}
-                  {isColVisible("requester") && (
-                    <TableHead className="font-semibold w-[15%] px-2">
-                      {ar ? "مقدم الطلب" : "REQUESTER"}
-                    </TableHead>
-                  )}
-                  {isColVisible("property") && (
-                    <TableHead className="font-semibold w-[12%] px-2">
-                      {ar ? "الفندق / السكن" : "PROPERTY / HOUSING"}
-                    </TableHead>
-                  )}
-                  {isVisible("problem") && (
-                    <TableHead className="font-semibold w-[22%] px-2">
-                      {ar ? "المشكلة والوصف" : "PROBLEM"}
-                    </TableHead>
-                  )}
-                  {isVisible("department") && (
-                    <TableHead className="font-semibold w-[10%] px-2">
-                      {ar ? "القسم" : "DEPT"}
-                    </TableHead>
-                  )}
-                  {isVisible("status") && (
-                    <TableHead className="font-semibold w-[11%] px-2">
-                      {ar ? "الحالة" : "STATUS"}
-                    </TableHead>
-                  )}
-                  {isVisible("priority") && (
-                    <TableHead className="font-semibold w-[8%] px-2">
-                      {ar ? "الأولوية" : "PRIORITY"}
-                    </TableHead>
-                  )}
-                  {isColVisible("assigned_to") && (
-                    <TableHead className="font-semibold w-[13%] px-2">
-                      {ar ? "المسند إليه" : "ASSIGNED TO"}
-                    </TableHead>
-                  )}
-                  {isVisible("at") && (
-                    <TableHead className="font-semibold w-[10%] px-2">
-                      {ar ? "تاريخ البلاغ" : "REPORTED"}
-                    </TableHead>
-                  )}
-                  {isVisible("duration") && (
-                    <TableHead className="font-semibold w-[8%] px-2">
-                      {ar ? "المدة" : "DURATION"}
-                    </TableHead>
-                  )}
-                  {isVisible("rating") && (
-                    <TableHead className="font-semibold w-[8%] px-2">
-                      {ar ? "التقييم" : "RATING"}
-                    </TableHead>
-                  )}
-                  {isVisible("actions") && (
-                    <TableHead className="font-semibold w-14 px-2 text-center">
-                      {ar ? "إجراءات" : "ACTIONS"}
-                    </TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paged.map((req: any) => (
-                  <TableRow
-                    key={req.id}
-                    onClick={() => handleSelectTicket(req.id)}
-                    className="cursor-pointer hover:bg-muted/40 transition-colors group"
-                  >
-                    <TableCell className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedTicketIds.has(req.id)}
-                        onCheckedChange={(checked) => {
-                          setSelectedTicketIds((prev) => {
-                            const next = new Set(prev);
-                            if (checked) next.add(req.id);
-                            else next.delete(req.id);
-                            return next;
-                          });
-                        }}
-                      />
-                    </TableCell>
-
-                    {isVisible("id") && (
-                      <TableCell className="font-mono text-xs font-bold text-muted-foreground px-2 text-center">
-                        #{req.id}
-                      </TableCell>
-                    )}
-
-                    {isColVisible("building_floor") && (
-                      <TableCell className="text-xs font-medium px-2 overflow-hidden">
-                        {(req.buildingName || req.floorNumber) ? (
-                          <div className="flex items-center gap-1 flex-wrap">
-                            {req.buildingName && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800 text-[11px] font-medium truncate max-w-full" title={req.buildingName}>
-                                <Building2 className="w-3 h-3 shrink-0 text-sky-600 dark:text-sky-400" />
-                                <span className="truncate">{req.buildingName}</span>
-                              </span>
-                            )}
-                            {req.floorNumber && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800 text-[11px] font-medium shrink-0" title={ar ? "الدور / الطابق" : "Floor"}>
-                                <Layers className="w-3 h-3 shrink-0 text-amber-600 dark:text-amber-400" />
-                                <span>{ar ? `د ${req.floorNumber}` : `Fl ${req.floorNumber}`}</span>
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground/50 text-xs">—</span>
-                        )}
-                      </TableCell>
-                    )}
-
-                    {isColVisible("room") && (
-                      <TableCell className="text-xs font-bold text-foreground whitespace-nowrap px-2 overflow-hidden">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 border text-xs font-bold" title={req.roomNumber || roomMap[req.roomId] || (req.roomId ? `#${req.roomId}` : "—")}>
-                          <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <span className="truncate">{req.roomNumber || roomMap[req.roomId] || (req.roomId ? `#${req.roomId}` : "—")}</span>
-                        </span>
-                      </TableCell>
-                    )}
-
-                    {isColVisible("requester") && (
-                      <TableCell className="text-xs font-medium px-2 overflow-hidden">
-                        {renderRequester(req)}
-                      </TableCell>
-                    )}
-
-                    {isColVisible("property") && (
-                      <TableCell className="text-xs px-2 overflow-hidden">
-                        <div className="flex items-center gap-1.5 truncate" title={req.propertyName || properties.find((p: any) => p.id === req.propertyId)?.displayName || (ar ? "سكن العاملين" : "Staff Housing")}>
-                          <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <span className="font-medium text-foreground truncate">
-                            {req.propertyName ||
-                              properties.find((p: any) => p.id === req.propertyId)?.displayName ||
-                              properties.find((p: any) => p.id === req.propertyId)?.name ||
-                              (ar ? "سكن العاملين" : "Staff Housing")}
-                          </span>
-                        </div>
-                      </TableCell>
-                    )}
-
-                    {isVisible("problem") && (
-                      <TableCell className="text-xs px-2 overflow-hidden">
-                        <div className="flex flex-col gap-0.5 min-w-0">
-                          <span className="font-semibold text-foreground text-xs truncate" title={req.title || req.description}>
-                            {req.title || (ar ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType) : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType)) || (ar ? "طلب صيانة" : "Maintenance Ticket")}
-                          </span>
-                          {req.description && (
-                            <span className="text-[11px] text-muted-foreground truncate" title={req.description}>
-                              {req.description}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-
-                    {isVisible("department") && (
-                      <TableCell className="text-xs px-2 overflow-hidden">
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-bold text-foreground truncate">
-                            {ar
-                              ? ((CATEGORIES_AR as Record<string, string>)[req.category] || req.category)
-                              : ((CATEGORIES_EN as Record<string, string>)[req.category] || req.category?.toUpperCase())}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground truncate">
-                            {ar
-                              ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
-                              : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType)}
-                          </span>
-                        </div>
-                      </TableCell>
-                    )}
-
-                    {isVisible("status") && (
-                      <TableCell className="px-2 overflow-hidden">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border max-w-full ${statusColor(req.status)}`}
-                          title={ar
-                            ? (STATUS_AR[req.status?.toLowerCase()] || req.status)
-                            : (STATUS_EN[req.status?.toLowerCase()] || req.status)}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                              req.status === "open"
-                                ? "bg-blue-500"
-                                : req.status === "in_progress"
-                                  ? "bg-amber-500"
-                                  : req.status === "resolved"
-                                    ? "bg-emerald-500"
-                                    : "bg-slate-400"
-                            }`}
-                          />
-                          <span className="truncate">
-                            {ar
-                              ? (STATUS_AR[req.status?.toLowerCase()] || req.status)
-                              : (STATUS_EN[req.status?.toLowerCase()] || req.status)}
-                          </span>
-                        </span>
-                      </TableCell>
-                    )}
-
-                    {isVisible("priority") && (
-                      <TableCell className="px-2 overflow-hidden">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold border max-w-full ${priorityColor(req.priority)}`}
-                          title={ar ? (PRIORITY_AR[req.priority?.toUpperCase()] || req.priority) : req.priority}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                            (req.priority || "").toUpperCase() === "URGENT" ? "bg-red-600 animate-pulse" :
-                            (req.priority || "").toUpperCase() === "HIGH" ? "bg-orange-500" :
-                            (req.priority || "").toUpperCase() === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
-                          }`} />
-                          <span className="truncate">
-                            {ar
-                              ? (PRIORITY_AR[req.priority?.toUpperCase()] || req.priority)
-                              : req.priority}
-                          </span>
-                        </span>
-                      </TableCell>
-                    )}
-
-                    {isColVisible("assigned_to") && (
-                      <TableCell className="text-xs px-2 overflow-hidden">
-                        {req.assignedToName || req.workerName ? (
-                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-medium max-w-full" title={req.assignedToName || req.workerName}>
-                            <Wrench className="w-3 h-3 shrink-0 text-purple-600 dark:text-purple-400" />
-                            <span className="truncate">{req.assignedToName || req.workerName}</span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground/50 text-[11px] italic">
-                            {ar ? "غير مسند" : "Unassigned"}
-                          </span>
-                        )}
-                      </TableCell>
-                    )}
-
-                    {isVisible("at") && (
-                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap px-2 overflow-hidden">
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-foreground truncate">
-                            {ar ? "البدء: " : "Start: "}{req.reportedAt ? format(new Date(req.reportedAt), "dd-MM-yyyy") : "—"}
-                          </span>
-                          <span className="text-muted-foreground text-[10px] font-mono">
-                            {req.reportedAt ? format(new Date(req.reportedAt), "hh:mm:ss a") : ""}
-                          </span>
-                        </div>
-                      </TableCell>
-                    )}
-
-                    {isVisible("duration") && (
-                      <TableCell className="px-2 overflow-hidden">
-                        {req.startedAt || req.reportedAt ? (
-                          <Badge
-                            variant="secondary"
-                            className="font-mono text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 truncate"
-                          >
-                            {formatDuration(
-                              req.startedAt,
-                              req.resolvedAt,
-                              req.reportedAt,
-                              ar,
-                            )}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground/50 text-xs">—</span>
-                        )}
-                      </TableCell>
-                    )}
-
-                    {isVisible("rating") && (
-                      <TableCell className="px-2 overflow-hidden">
-                        {req.rating ? (
-                          <div className="flex flex-col gap-0.5">
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 w-fit shadow-2xs">
-                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
-                              <span>{req.rating}/5</span>
-                            </div>
-                            {req.ratingComment && (
-                              <span
-                                className="text-[10px] text-muted-foreground truncate max-w-full"
-                                title={req.ratingComment}
-                              >
-                                {req.ratingComment}
-                              </span>
-                            )}
-                          </div>
-                        ) : ["resolved", "closed"].includes(req.status) ? (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 font-medium truncate"
-                          >
-                            {ar ? "بانتظار التقييم" : "Pending"}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground/40 text-xs">—</span>
-                        )}
-                      </TableCell>
-                    )}
-
-                    {isVisible("actions") && (
-                      <TableCell className="px-2 text-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-1">
-                          <Button
-                            size="icon"
-                            className="h-7 w-7 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs"
-                            onClick={() => handleSelectTicket(req.id)}
-                            title={ar ? "عرض التفاصيل ومتابعة سير العمل" : "View Details & Workflow"}
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </Button>
-
-                          {(isSuperAdmin || isAdmin || (req.category === "housekeeping" ? canDeleteHsk : canDeleteMnt)) && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                >
-                                  <MoreVertical className="w-3.5 h-3.5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-44 text-xs">
-                                <DropdownMenuItem
-                                  onClick={() => handleSelectTicket(req.id)}
-                                  className="gap-2 cursor-pointer font-medium"
-                                >
-                                  <Eye className="w-3.5 h-3.5 text-primary" />
-                                  <span>{ar ? "سير العمل والتفاصيل" : "Workflow & Details"}</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => setDeleteId(req.id)}
-                                  className="gap-2 text-destructive focus:text-destructive cursor-pointer"
-                                >
-                                  <Trash className="w-3.5 h-3.5" />
-                                  <span>{ar ? "حذف التذكرة" : "Delete Ticket"}</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-
-                {filtered.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={visible.size + 1}
-                      className="py-16 text-center"
-                    >
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <div className="w-16 h-16 bg-muted/60 rounded-full flex items-center justify-center mb-2">
-                          {categoryFilter === "housekeeping" ? (
-                            <Sparkles className="w-8 h-8 text-sky-500/60" />
-                          ) : (
-                            <Wrench className="w-8 h-8 text-amber-500/60" />
-                          )}
-                        </div>
-                        <p className="text-base font-bold text-foreground">
-                          {categoryFilter === "housekeeping"
-                            ? (ar ? "لا توجد طلبات هاوس كيبنج حالياً" : "No housekeeping orders found")
-                            : categoryFilter === "maintenance"
-                              ? (ar ? "لا توجد بلاغات صيانة حالياً" : "No maintenance orders found")
-                              : (ar ? "لم يتم العثور على أي تذاكر مطابقة" : "No tickets found")}
-                        </p>
-                        <p className="text-xs text-muted-foreground max-w-sm text-center">
-                          {ar
-                            ? "لا توجد تذاكر تطابق معايير البحث الحالية. يمكنك مسح الفلاتر أو إنشاء طلب جديد."
-                            : "There are no tickets matching your active filter criteria. Try clearing filters or create a new ticket."}
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-2 text-xs"
-                          onClick={() => {
-                            setSearchTerm("");
-                            if (!isOnlyHousekeeping && !isOnlyMaintenance) {
-                              setCategoryFilter("all");
-                            }
-                            setStatusFilter("all");
-                            setPriorityFilter("");
-                          }}
-                        >
-                          {ar ? "مسح جميع الفلاتر" : "Clear All Filters"}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-
-            {paginationData.total > 0 && (
-              <DataPagination
-                total={paginationData.total}
-                pageSize={pageSize}
-                onPageSizeChange={(size) => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                currentPage={currentPage}
-                onPageChange={setCurrentPage}
-              />
-            )}
-          </div>
+          <TicketsTable
+            ar={ar}
+            paged={paged}
+            filtered={filtered}
+            selectedTicketIds={selectedTicketIds}
+            setSelectedTicketIds={setSelectedTicketIds}
+            visible={visible}
+            isVisible={isVisible}
+            isColVisible={isColVisible}
+            onSelectTicket={handleSelectTicket}
+            onDeleteTicket={(id) => setDeleteId(id)}
+            roomMap={roomMap}
+            properties={properties}
+            isSuperAdmin={isSuperAdmin}
+            isAdmin={isAdmin}
+            canDeleteHsk={canDeleteHsk}
+            canDeleteMnt={canDeleteMnt}
+            categoryFilter={categoryFilter}
+            onClearEmptyFilters={() => {
+              setSearchTerm("");
+              if (!isOnlyHousekeeping && !isOnlyMaintenance) {
+                setCategoryFilter("all");
+              }
+              setStatusFilter("all");
+              setPriorityFilter("");
+            }}
+            paginationData={paginationData}
+            pageSize={pageSize}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+          />
         </div>
       )}
 
       {/* Lightbox */}
-      <Dialog
-        open={!!photoDialog}
-        onOpenChange={(open) => {
-          if (!open) setPhotoDialog(null);
-        }}
-      >
-        <DialogContent
-          className="max-w-2xl max-h-screen overflow-y-auto p-2"
-          srTitle={ar ? "عرض الصورة" : "View Photo"}
-        >
-          {photoDialog && (
-            <img
-              src={photoDialog}
-              alt=""
-              className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      <TicketPhotoLightbox
+        ar={ar}
+        photoUrl={photoDialog}
+        onClose={() => setPhotoDialog(null)}
+      />
 
       {/* Delete Confirmation */}
-      <AlertDialog
+      <TicketDeleteDialog
+        ar={ar}
         open={deleteId !== null}
         onOpenChange={(open) => {
           if (!open) setDeleteId(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {ar ? "تأكيد حذف التذكرة؟" : "Delete Ticket?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {ar
-                ? "هل أنت متأكد من رغبتك في حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء."
-                : "Are you sure you want to delete this ticket? This action cannot be undone."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{ar ? "إلغاء" : "Cancel"}</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (deleteId) {
-                  const targetTicket = allTickets?.find((t: any) => t.id === deleteId);
-                  const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
-                  deleteMutation.mutate({
-                    id: deleteId,
-                    params: pId ? { propertyId: pId } : undefined,
-                  } as any);
-                }
-              }}
-            >
-              {ar ? "حذف التذكرة" : "Delete Ticket"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={() => {
+          if (deleteId) {
+            const targetTicket = allTickets?.find((t: any) => t.id === deleteId);
+            const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+            deleteMutation.mutate({
+              id: deleteId,
+              params: pId ? { propertyId: pId } : undefined,
+            } as any);
+          }
+        }}
+      />
 
       {/* Ticket Detail Modal */}
       {(() => {
