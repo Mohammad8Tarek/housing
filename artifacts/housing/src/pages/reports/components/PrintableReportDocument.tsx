@@ -1,5 +1,12 @@
 import React, { forwardRef } from "react";
 import { formatDate } from "@/lib/date-utils";
+import {
+  SR,
+  SR_FONT_ARABIC,
+  SR_FONT_PRINT,
+  SR_LOGO_TEAL,
+  srStatusTone,
+} from "@/lib/sunrise-brand";
 
 export interface ReportColumnConfig {
   key: string;
@@ -99,7 +106,7 @@ export const PrintableReportDocument = forwardRef<
     compact: {
       body: "7pt",
       header: "7.5pt",
-      title: orientation === "portrait" ? "8.5pt" : "9.5pt",
+      title: orientation === "portrait" ? "11pt" : "12pt",
       subtitle: "6.5pt",
       padding: "2.5px 4px",
       kpiVal: "10pt",
@@ -108,7 +115,7 @@ export const PrintableReportDocument = forwardRef<
     standard: {
       body: "8pt",
       header: "8.5pt",
-      title: orientation === "portrait" ? "9.5pt" : "11pt",
+      title: orientation === "portrait" ? "12pt" : "14pt",
       subtitle: "7pt",
       padding: "3.5px 5px",
       kpiVal: "11pt",
@@ -117,7 +124,7 @@ export const PrintableReportDocument = forwardRef<
     large: {
       body: "9pt",
       header: "9.5pt",
-      title: orientation === "portrait" ? "10.5pt" : "12pt",
+      title: orientation === "portrait" ? "13pt" : "15pt",
       subtitle: "7.5pt",
       padding: "4.5px 6px",
       kpiVal: "12pt",
@@ -125,16 +132,60 @@ export const PrintableReportDocument = forwardRef<
     },
   }[fontSize];
 
+  const textAlignFor = (col: ReportColumnConfig): "left" | "center" | "right" =>
+    col.align ||
+    (col.type === "index" || col.type === "number" || col.type === "date" || col.type === "status"
+      ? "center"
+      : isAr
+      ? "right"
+      : "left");
+
+  const logoSrc = systemLogoUrl || SR_LOGO_TEAL;
+  // Brand rule: logo width 1/7–1/2 of layout, min 35 mm with destination line.
+  const logoWidth = orientation === "landscape" ? "40mm" : "36mm";
+
+  const signatureTiers = [
+    {
+      title:
+        signatures?.preparedByTitle || (isAr ? "إعداد وتجهيز" : "Prepared By"),
+      name: signatures?.preparedByName || generatedBy || "",
+      line: isAr ? "التوقيع والتاريخ" : "Signature & Date",
+    },
+    {
+      title:
+        signatures?.reviewedByTitle || (isAr ? "مراجعة وتدقيق" : "Reviewed By"),
+      name:
+        signatures?.reviewedByName ||
+        (isAr ? "مدير السكن / الإشراف" : "Housing Manager / Supervisor"),
+      line: isAr ? "التوقيع والتاريخ" : "Signature & Date",
+    },
+    {
+      title:
+        signatures?.approvedByTitle || (isAr ? "اعتماد الإدارة" : "Approved By"),
+      name:
+        signatures?.approvedByName ||
+        (isAr ? "مدير الموارد البشرية / المدير العام" : "HR Director / General Manager"),
+      line: isAr ? "التوقيع والخاتم" : "Signature & Stamp",
+    },
+  ];
+
+  const metaLabel: React.CSSProperties = {
+    color: SR.teal,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.6px",
+    fontSize: "6pt",
+  };
+
   return (
     <div
       ref={ref}
       dir={isAr ? "rtl" : "ltr"}
-      className="sunrise-printable-document bg-white text-slate-900"
+      className="sunrise-printable-document"
       style={{
-        fontFamily:
-          isAr
-            ? "'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-            : "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+        background: SR.white,
+        color: SR.ink,
+        fontFamily: isAr ? SR_FONT_ARABIC : SR_FONT_PRINT,
         WebkitPrintColorAdjust: "exact",
         printColorAdjust: "exact",
         colorAdjust: "exact",
@@ -161,19 +212,13 @@ export const PrintableReportDocument = forwardRef<
             border-collapse: collapse !important;
             table-layout: fixed !important;
           }
-          .sunrise-report-table thead {
-            display: table-header-group !important;
-          }
-          .sunrise-report-table tfoot {
-            display: table-footer-group !important;
-          }
+          .sunrise-report-table thead { display: table-header-group !important; }
+          .sunrise-report-table tfoot { display: table-footer-group !important; }
           .sunrise-report-table tr {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
-          .no-print {
-            display: none !important;
-          }
+          .no-print { display: none !important; }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -181,79 +226,62 @@ export const PrintableReportDocument = forwardRef<
         }
       `}</style>
 
-      {/* Top Corporate Branding Header — First Page Only */}
+      {/* ── First-page masthead: teal top bar → logo · title · meta ── */}
       <div
         className="sunrise-report-first-page-header"
-        style={{
-          marginBottom: "6px",
-          pageBreakAfter: "avoid",
-          breakAfter: "avoid",
-        }}
+        style={{ marginBottom: "8px", pageBreakAfter: "avoid", breakAfter: "avoid" }}
       >
-        {/* Top Corporate Branding Bar — strictly direction: ltr so logos never flip in Arabic RTL */}
+        <div style={{ height: "5px", background: SR.teal, marginBottom: "8px" }} />
+
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            borderBottom: "1.5px solid #0f2a44",
-            paddingBottom: "4px",
-            marginBottom: "5px",
-            direction: "ltr",
+            gap: "14px",
+            paddingBottom: "8px",
+            borderBottom: `1px solid ${SR.rule}`,
+            marginBottom: "8px",
+            direction: "ltr", // logos never flip in RTL
           }}
         >
-          {/* Left: System / Brand Logo */}
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", direction: "ltr" }}>
-            {systemLogoUrl ? (
-              <img
-                src={systemLogoUrl}
-                alt="System Logo"
-                style={{ maxHeight: "26px", maxWidth: "110px", objectFit: "contain" }}
-              />
-            ) : (
-              <div
-                style={{
-                  background: "#0f2a44",
-                  color: "#ffffff",
-                  fontWeight: 900,
-                  padding: "2px 6px",
-                  borderRadius: "3px",
-                  fontSize: "8.5pt",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                SUNRISE
-              </div>
-            )}
+          {/* Brand logo (official file, untouched) */}
+          <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: "10px" }}>
+            <img
+              src={logoSrc}
+              alt="SUNRISE Resorts & Cruises"
+              style={{ width: logoWidth, height: "auto", objectFit: "contain", display: "block" }}
+            />
+          </div>
+
+          {/* Title block */}
+          <div
+            dir={isAr ? "rtl" : "ltr"}
+            style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "0 6px" }}
+          >
             {propertyName && (
               <div
                 style={{
-                  fontSize: "7.5pt",
-                  color: "#0f2a44",
+                  fontSize: "7pt",
+                  color: SR.sand,
                   fontWeight: 700,
-                  lineHeight: 1.2,
-                  textAlign: "left",
+                  letterSpacing: "1.2px",
+                  textTransform: "uppercase",
+                  marginBottom: "2px",
                 }}
               >
-                {propertyName}{" "}
+                {propertyName}
                 {propertyCode && (
-                  <span style={{ fontFamily: "monospace", fontSize: "7pt", color: "#64748b" }}>
-                    [{propertyCode}]
-                  </span>
+                  <span style={{ color: SR.muted, fontWeight: 400 }}> · {propertyCode}</span>
                 )}
               </div>
             )}
-          </div>
-
-          {/* Center: Report Title & Subtitle */}
-          <div style={{ textAlign: "center", flex: 1, padding: "0 10px" }}>
             <div
               style={{
                 fontSize: fontSizes.title,
-                fontWeight: 800,
-                color: "#0f2a44",
+                fontWeight: 700,
+                color: SR.tealDark,
                 lineHeight: 1.15,
-                letterSpacing: "0.2px",
               }}
             >
               {displayTitle}
@@ -262,10 +290,9 @@ export const PrintableReportDocument = forwardRef<
               <div
                 style={{
                   fontSize: fontSizes.subtitle,
-                  color: "#475569",
-                  fontWeight: 600,
-                  marginTop: "1px",
-                  lineHeight: 1.15,
+                  color: SR.muted,
+                  marginTop: "2px",
+                  lineHeight: 1.2,
                 }}
               >
                 {displaySubtitle}
@@ -273,94 +300,80 @@ export const PrintableReportDocument = forwardRef<
             )}
           </div>
 
-          {/* Right: Metadata & Property Logo (Pinned strictly on the right) */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              direction: "ltr",
-              justifyContent: "flex-end",
-            }}
-          >
-            <div style={{ fontSize: "6.8pt", color: "#64748b", lineHeight: 1.25, textAlign: "right" }}>
-              <div>
-                <span style={{ fontWeight: 700 }}>
-                  {isAr ? "التاريخ:" : "Date:"}
-                </span>{" "}
-                {formattedDate}
-              </div>
+          {/* Meta + property logo */}
+          <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: "10px" }}>
+            <div
+              dir={isAr ? "rtl" : "ltr"}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "auto auto",
+                columnGap: "8px",
+                rowGap: "1px",
+                fontSize: "7pt",
+                color: SR.ink,
+                alignItems: "baseline",
+              }}
+            >
+              <span style={metaLabel}>{isAr ? "التاريخ" : "Date"}</span>
+              <span>{formattedDate}</span>
               {generatedBy && (
-                <div>
-                  <span style={{ fontWeight: 700 }}>
-                    {isAr ? "المستخدم:" : "User:"}
-                  </span>{" "}
-                  {generatedBy}
-                </div>
+                <>
+                  <span style={metaLabel}>{isAr ? "المستخدم" : "User"}</span>
+                  <span>{generatedBy}</span>
+                </>
               )}
-              <div>
-                <span style={{ fontWeight: 700 }}>
-                  {isAr ? "السجلات:" : "Records:"}
-                </span>{" "}
-                {rows.length}
-              </div>
+              <span style={metaLabel}>{isAr ? "السجلات" : "Records"}</span>
+              <span style={{ fontWeight: 700 }}>{rows.length}</span>
             </div>
-            {propertyLogoUrl && propertyLogoUrl !== systemLogoUrl && (
+            {propertyLogoUrl && propertyLogoUrl !== logoSrc && (
               <img
                 src={propertyLogoUrl}
                 alt="Property Logo"
-                style={{ maxHeight: "26px", maxWidth: "90px", objectFit: "contain" }}
+                style={{ maxHeight: "34px", maxWidth: "90px", objectFit: "contain" }}
               />
             )}
           </div>
         </div>
 
-        {/* Active Filter Indicators Bar */}
+        {/* Active filters */}
         {filtersSummary && Object.keys(filtersSummary).length > 0 && (
           <div
             style={{
               display: "flex",
               flexWrap: "wrap",
               alignItems: "center",
-              gap: "6px",
-              background: "#f1f5f9",
-              border: "1px solid #e2e8f0",
-              borderRadius: "4px",
-              padding: "3px 8px",
+              gap: "5px",
               marginBottom: "8px",
               fontSize: "7pt",
             }}
           >
-            <span style={{ fontWeight: 800, color: "#0f2a44" }}>
-              🔍 {isAr ? "المحددات النشطة:" : "Active Filters:"}
+            <span style={{ ...metaLabel, marginInlineEnd: "2px" }}>
+              {isAr ? "المحددات" : "Filters"}
             </span>
             {Object.entries(filtersSummary).map(([key, val]) => (
               <span
                 key={key}
                 style={{
-                  background: "#ffffff",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: "3px",
-                  padding: "1px 5px",
-                  color: "#334155",
-                  fontWeight: 600,
+                  background: SR.sandTint,
+                  border: `1px solid ${SR.sand}55`,
+                  borderRadius: "999px",
+                  padding: "1px 7px",
+                  color: SR.ink,
                 }}
               >
-                <strong style={{ color: "#0f2a44" }}>{key}:</strong> {val}
+                <span style={{ color: SR.muted }}>{key}:</span>{" "}
+                <strong style={{ fontWeight: 700 }}>{val}</strong>
               </span>
             ))}
           </div>
         )}
 
-        {/* Optional KPI Summary Strip */}
+        {/* KPI strip */}
         {showKpis && kpis.length > 0 && (
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: `repeat(${Math.min(
-                kpis.length,
-                6,
-              )}, minmax(0, 1fr))`,
+              gridTemplateColumns: `repeat(${Math.min(kpis.length, 6)}, minmax(0, 1fr))`,
               gap: "6px",
               marginBottom: "8px",
             }}
@@ -369,29 +382,17 @@ export const PrintableReportDocument = forwardRef<
               <div
                 key={idx}
                 style={{
-                  border: "1px solid #cbd5e1",
-                  borderRadius: "4px",
-                  padding: "4px 6px",
-                  background: "#f8fafc",
-                  textAlign: "center",
+                  borderTop: `2px solid ${SR.teal}`,
+                  background: SR.tealTint,
+                  padding: "5px 8px 4px",
+                  textAlign: "start",
                 }}
               >
                 <div
                   style={{
-                    fontSize: fontSizes.kpiVal,
-                    fontWeight: 900,
-                    color: "#0f2a44",
-                    lineHeight: 1.1,
-                  }}
-                >
-                  {kpi.value}
-                </div>
-                <div
-                  style={{
                     fontSize: fontSizes.kpiLabel,
-                    color: "#475569",
+                    color: SR.muted,
                     fontWeight: 700,
-                    marginTop: "1px",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -399,15 +400,32 @@ export const PrintableReportDocument = forwardRef<
                 >
                   {isAr ? kpi.labelAr || kpi.label : kpi.label}
                 </div>
+                <div
+                  style={{
+                    fontSize: fontSizes.kpiVal,
+                    fontWeight: 700,
+                    color: SR.tealDark,
+                    lineHeight: 1.15,
+                    marginTop: "1px",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {kpi.value}
+                </div>
+                {(kpi.sublabel || kpi.sublabelAr) && (
+                  <div style={{ fontSize: "6pt", color: SR.muted }}>
+                    {isAr ? kpi.sublabelAr || kpi.sublabel : kpi.sublabel}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Main Document Table layout for flawless multi-page repeat */}
+      {/* ── Data table: thead repeats per page, tfoot = slim brand footer per page ── */}
       <table
-        className="sunrise-report-table w-full border-collapse"
+        className="sunrise-report-table"
         style={{
           width: "100%",
           borderCollapse: "collapse",
@@ -415,67 +433,37 @@ export const PrintableReportDocument = forwardRef<
           fontSize: fontSizes.body,
         }}
       >
-        {/* Table Header containing ONLY Column Names so they repeat cleanly on subsequent pages */}
         <thead style={{ display: "table-header-group" }}>
-          {/* Actual Column Headers Row */}
-          <tr
-            style={{
-              background: "#0f2a44",
-              color: "#ffffff",
-              borderBottom: "1.5px solid #091a2b",
-            }}
-          >
-            {columns.map((col, idx) => {
-              const headerText = isAr
-                ? col.headerAr || col.header
-                : col.header;
-              const textAlign =
-                col.align ||
-                (col.type === "index" ||
-                col.type === "number" ||
-                col.type === "date" ||
-                col.type === "status"
-                  ? "center"
-                  : isAr
-                  ? "right"
-                  : "left");
-
-              return (
-                <th
-                  key={col.key || idx}
-                  style={{
-                    width: col.width || "auto",
-                    padding: fontSizes.padding,
-                    textAlign,
-                    fontSize: fontSizes.header,
-                    fontWeight: 800,
-                    letterSpacing: "0.2px",
-                    borderRight:
-                      idx < columns.length - 1
-                        ? "1px solid rgba(255,255,255,0.15)"
-                        : "none",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {headerText}
-                </th>
-              );
-            })}
+          <tr style={{ background: SR.teal, color: SR.white }}>
+            {columns.map((col, idx) => (
+              <th
+                key={col.key || idx}
+                style={{
+                  width: col.width || "auto",
+                  padding: fontSizes.padding,
+                  textAlign: textAlignFor(col),
+                  fontSize: fontSizes.header,
+                  fontWeight: 700,
+                  letterSpacing: "0.2px",
+                  borderInlineEnd:
+                    idx < columns.length - 1 ? "1px solid rgba(255,255,255,0.25)" : "none",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {isAr ? col.headerAr || col.header : col.header}
+              </th>
+            ))}
           </tr>
         </thead>
 
-        {/* Data Rows */}
         <tbody>
           {rows.length === 0 ? (
             <tr>
               <td
                 colSpan={columns.length}
-                style={{
-                  textAlign: "center",
-                  padding: "24px",
-                  color: "#64748b",
-                  fontStyle: "italic",
-                }}
+                style={{ textAlign: "center", padding: "24px", color: SR.muted }}
               >
                 {isAr
                   ? "لا توجد سجلات مطابقة لمعايير البحث المحددة"
@@ -483,341 +471,142 @@ export const PrintableReportDocument = forwardRef<
               </td>
             </tr>
           ) : (
-            rows.map((row, rIdx) => {
-              const isEven = rIdx % 2 === 0;
-              return (
-                <tr
-                  key={rIdx}
-                  style={{
-                    background: isEven ? "#ffffff" : "#f8fafc",
-                    borderBottom: "1px solid #e2e8f0",
-                    pageBreakInside: "avoid",
-                    breakInside: "avoid",
-                  }}
-                >
-                  {columns.map((col, cIdx) => {
-                    const val =
-                      col.type === "index" ? rIdx + 1 : row[col.key] ?? row[col.header] ?? "—";
-                    const textAlign =
-                      col.align ||
-                      (col.type === "index" ||
-                      col.type === "number" ||
-                      col.type === "date" ||
-                      col.type === "status"
-                        ? "center"
-                        : isAr
-                        ? "right"
-                        : "left");
+            rows.map((row, rIdx) => (
+              <tr
+                key={rIdx}
+                style={{
+                  background: rIdx % 2 === 1 ? SR.tealTint : SR.white,
+                  borderBottom: `1px solid ${SR.rule}`,
+                  pageBreakInside: "avoid",
+                  breakInside: "avoid",
+                }}
+              >
+                {columns.map((col, cIdx) => {
+                  const val =
+                    col.type === "index" ? rIdx + 1 : row[col.key] ?? row[col.header] ?? "—";
+                  const cellBase: React.CSSProperties = {
+                    padding: fontSizes.padding,
+                    textAlign: textAlignFor(col),
+                    fontSize: fontSizes.body,
+                  };
 
-                    // Render status badges with print-safe styles
-                    if (col.type === "status" || col.type === "badge") {
-                      const str = String(val).toLowerCase();
-                      let badgeBg = "#f1f5f9";
-                      let badgeColor = "#475569";
-                      let badgeBorder = "#cbd5e1";
-
-                      if (
-                        str.includes("active") ||
-                        str.includes("نشط") ||
-                        str.includes("available") ||
-                        str.includes("شاغر") ||
-                        str.includes("clean") ||
-                        str.includes("جاهز") ||
-                        str.includes("confirmed") ||
-                        str.includes("مؤكد")
-                      ) {
-                        badgeBg = "#dcfce7";
-                        badgeColor = "#15803d";
-                        badgeBorder = "#86efac";
-                      } else if (
-                        str.includes("occupied") ||
-                        str.includes("مشغول") ||
-                        str.includes("dirty") ||
-                        str.includes("متسخ") ||
-                        str.includes("pending") ||
-                        str.includes("معلق") ||
-                        str.includes("vacation") ||
-                        str.includes("إجازة")
-                      ) {
-                        badgeBg = "#fef3c7";
-                        badgeColor = "#b45309";
-                        badgeBorder = "#fde68a";
-                      } else if (
-                        str.includes("out_of_service") ||
-                        str.includes("out_of_order") ||
-                        str.includes("صيانة") ||
-                        str.includes("rejected") ||
-                        str.includes("مرفوض") ||
-                        str.includes("cancelled") ||
-                        str.includes("ملغي")
-                      ) {
-                        badgeBg = "#fee2e2";
-                        badgeColor = "#b91c1c";
-                        badgeBorder = "#fca5a5";
-                      }
-
-                      return (
-                        <td
-                          key={col.key || cIdx}
+                  if (col.type === "status" || col.type === "badge") {
+                    const tone = srStatusTone(val);
+                    return (
+                      <td key={col.key || cIdx} style={cellBase}>
+                        <span
                           style={{
-                            padding: fontSizes.padding,
-                            textAlign,
-                            borderRight: "1px solid #f1f5f9",
-                            fontSize: fontSizes.body,
+                            display: "inline-block",
+                            padding: "0 6px",
+                            borderRadius: "999px",
+                            fontWeight: 700,
+                            fontSize: "6.8pt",
+                            lineHeight: 1.6,
+                            background: tone.bg,
+                            color: tone.fg,
+                            border: `1px solid ${tone.border}`,
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          <span
-                            style={{
-                              display: "inline-block",
-                              padding: "1px 6px",
-                              borderRadius: "3px",
-                              fontWeight: 700,
-                              fontSize: "6.8pt",
-                              background: badgeBg,
-                              color: badgeColor,
-                              border: `1px solid ${badgeBorder}`,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {String(val)}
-                          </span>
-                        </td>
-                      );
-                    }
-
-                    let displayVal = "—";
-                    if (val !== null && val !== undefined && val !== "") {
-                      if (val instanceof Date) {
-                        displayVal = formatDate(val);
-                      } else if (
-                        typeof val === "string" &&
-                        /^\d{4}-\d{2}-\d{2}(T|\b)/.test(val.trim())
-                      ) {
-                        displayVal = formatDate(val.trim().slice(0, 10));
-                      } else {
-                        displayVal = String(val);
-                      }
-                    }
-
-                    return (
-                      <td
-                        key={col.key || cIdx}
-                        style={{
-                          padding: fontSizes.padding,
-                          textAlign,
-                          borderRight: "1px solid #f1f5f9",
-                          fontSize: fontSizes.body,
-                          fontWeight: col.type === "index" ? 700 : 500,
-                          color: col.type === "index" ? "#0f2a44" : "#1e293b",
-                          fontFamily:
-                            col.type === "number" || col.type === "date"
-                              ? "monospace"
-                              : "inherit",
-                          wordBreak: "break-word",
-                        }}
-                      >
-                        {displayVal}
+                          {String(val)}
+                        </span>
                       </td>
                     );
-                  })}
-                </tr>
-              );
-            })
+                  }
+
+                  let displayVal = "—";
+                  if (val !== null && val !== undefined && val !== "") {
+                    if (val instanceof Date) {
+                      displayVal = formatDate(val);
+                    } else if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}(T|\b)/.test(val.trim())) {
+                      displayVal = formatDate(val.trim().slice(0, 10));
+                    } else {
+                      displayVal = String(val);
+                    }
+                  }
+
+                  const numeric = col.type === "number" || col.type === "date" || col.type === "index";
+                  return (
+                    <td
+                      key={col.key || cIdx}
+                      style={{
+                        ...cellBase,
+                        fontWeight: col.type === "index" ? 700 : 400,
+                        color: col.type === "index" ? SR.tealDark : SR.ink,
+                        fontVariantNumeric: numeric ? "tabular-nums" : undefined,
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {displayVal}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))
           )}
         </tbody>
 
-        {/* Footer containing Summary & Approvals */}
         <tfoot style={{ display: "table-footer-group" }}>
           <tr>
-            <td
-              colSpan={columns.length}
-              style={{
-                paddingTop: "10px",
-                border: "none",
-                background: "transparent",
-              }}
-            >
-              {/* Official 3-Tier Approval Signatures Box */}
-              {showSignatures && (
-                <div
-                  style={{
-                    border: "1px solid #cbd5e1",
-                    borderRadius: "4px",
-                    background: "#ffffff",
-                    padding: "8px 14px",
-                    marginTop: "8px",
-                    marginBottom: "6px",
-                    pageBreakInside: "avoid",
-                    breakInside: "avoid",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr",
-                      gap: "20px",
-                      textAlign: "center",
-                    }}
-                  >
-                    {/* Tier 1: Prepared By */}
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "7.5pt",
-                          fontWeight: 800,
-                          color: "#0f2a44",
-                          marginBottom: "2px",
-                        }}
-                      >
-                        {signatures?.preparedByTitle ||
-                          (isAr
-                            ? "إعداد وتجهيز (Prepared By)"
-                            : "Prepared By")}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "7pt",
-                          color: "#64748b",
-                          minHeight: "14px",
-                        }}
-                      >
-                        {signatures?.preparedByName || generatedBy || "—"}
-                      </div>
-                      <div
-                        style={{
-                          borderBottom: "1px dashed #94a3b8",
-                          marginTop: "20px",
-                          width: "80%",
-                          marginInline: "auto",
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: "6.5pt",
-                          color: "#94a3b8",
-                          marginTop: "2px",
-                        }}
-                      >
-                        {isAr ? "التوقيع والتاريخ" : "Signature & Date"}
-                      </div>
-                    </div>
-
-                    {/* Tier 2: Reviewed By */}
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "7.5pt",
-                          fontWeight: 800,
-                          color: "#0f2a44",
-                          marginBottom: "2px",
-                        }}
-                      >
-                        {signatures?.reviewedByTitle ||
-                          (isAr
-                            ? "مراجعة وتدقيق (Reviewed By)"
-                            : "Reviewed By (Housing Mgr)")}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "7pt",
-                          color: "#64748b",
-                          minHeight: "14px",
-                        }}
-                      >
-                        {signatures?.reviewedByName || "مدير السكن / الإشراف"}
-                      </div>
-                      <div
-                        style={{
-                          borderBottom: "1px dashed #94a3b8",
-                          marginTop: "20px",
-                          width: "80%",
-                          marginInline: "auto",
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: "6.5pt",
-                          color: "#94a3b8",
-                          marginTop: "2px",
-                        }}
-                      >
-                        {isAr ? "التوقيع والتاريخ" : "Signature & Date"}
-                      </div>
-                    </div>
-
-                    {/* Tier 3: Approved By GM / HR */}
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "7.5pt",
-                          fontWeight: 800,
-                          color: "#0f2a44",
-                          marginBottom: "2px",
-                        }}
-                      >
-                        {signatures?.approvedByTitle ||
-                          (isAr
-                            ? "اعتماد الإدارة (Approved By)"
-                            : "Approved By (HR / GM)")}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "7pt",
-                          color: "#64748b",
-                          minHeight: "14px",
-                        }}
-                      >
-                        {signatures?.approvedByName || "مدير الموارد البشرية / المدير العام"}
-                      </div>
-                      <div
-                        style={{
-                          borderBottom: "1px dashed #94a3b8",
-                          marginTop: "20px",
-                          width: "80%",
-                          marginInline: "auto",
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: "6.5pt",
-                          color: "#94a3b8",
-                          marginTop: "2px",
-                        }}
-                      >
-                        {isAr ? "التوقيع والخاتم" : "Signature & Stamp"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Bottom Copyright & Confidentiality Strip */}
+            <td colSpan={columns.length} style={{ padding: "8px 0 0", border: "none" }}>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
+                  gap: "10px",
+                  background: SR.teal,
+                  color: SR.white,
                   fontSize: "6.8pt",
-                  color: "#94a3b8",
-                  borderTop: "1px solid #e2e8f0",
-                  paddingTop: "4px",
+                  padding: "3px 10px",
                 }}
               >
                 <span>
                   {isAr
-                    ? "نظام إدارة سكن العاملين — منتجعات وفنادق صن رايز • وثيقة إدارية رسمية معتمدة"
-                    : "Sunrise Staff Housing Management System • Official Confidential Document"}
+                    ? "SUNRISE Resorts & Cruises · نظام إدارة سكن العاملين · وثيقة داخلية سرية"
+                    : "SUNRISE Resorts & Cruises · Staff Housing Management · Internal & Confidential"}
                 </span>
-                <span>
-                  {isAr
-                    ? `إجمالي السجلات: ${rows.length}`
-                    : `Total Records: ${rows.length}`}
+                <span
+                  style={{
+                    background: SR.white,
+                    color: SR.tealDark,
+                    fontWeight: 700,
+                    padding: "0 8px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {displayTitle} · {isAr ? `${rows.length} سجل` : `${rows.length} records`}
                 </span>
               </div>
             </td>
           </tr>
         </tfoot>
       </table>
+
+      {/* ── Approvals: printed once, after the last row ── */}
+      {showSignatures && (
+        <div
+          style={{
+            marginTop: "14px",
+            pageBreakInside: "avoid",
+            breakInside: "avoid",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gap: "24px",
+          }}
+        >
+          {signatureTiers.map((tier, i) => (
+            <div key={i} style={{ textAlign: "start" }}>
+              <div style={{ ...metaLabel, fontSize: "6.5pt" }}>{tier.title}</div>
+              <div style={{ fontSize: "7.5pt", color: SR.ink, minHeight: "12px", marginTop: "1px" }}>
+                {tier.name}
+              </div>
+              <div style={{ borderBottom: `1px solid ${SR.ink}`, marginTop: "22px" }} />
+              <div style={{ fontSize: "6.3pt", color: SR.muted, marginTop: "2px" }}>{tier.line}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 });
