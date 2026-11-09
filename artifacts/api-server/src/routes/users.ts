@@ -18,7 +18,7 @@ import { getPasswordPolicy, validatePassword } from "../lib/password-policy.js";
 
 const router: Router = Router();
 
-// ℹ️  Schema column 'property_ids' is managed via migration (scripts/add-missing-indexes.sql)
+// ℹ️  Schema column 'property_ids' is managed via migration (scripts/db/add-missing-indexes.sql)
 //    Do NOT run DDL here — it was removed to prevent startup delays and silent failures.
 
 /** Returns true if the roles array contains a system-admin role */

@@ -17,8 +17,7 @@ reviews:
     - "!dist/**"
     - "!local_backup.dump"
     - "!postgres.zip"
-    - "!dump.sql"
-    - "!full_dump.sql"
+    - "!database/dumps/**"
     - "!backup_clean.sql/**"
     - "!postgres_bin/**"
 

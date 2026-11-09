@@ -90,7 +90,7 @@ function normalizePhotoData(value: unknown): string | null {
   return photo;
 }
 
-// ℹ️  Schema column 'photo_url' is managed via migration (scripts/add-missing-indexes.sql)
+// ℹ️  Schema column 'photo_url' is managed via migration (scripts/db/add-missing-indexes.sql)
 //    Do NOT run DDL here — it was removed to prevent startup delays and silent failures.
 
 router.get(

@@ -47,8 +47,8 @@
   "ignore": [
     "interfaces/**",
     "tests/**",
-    "migrate-data.ts",
-    "wait-deploy.js",
+    "scripts/db/**",
+    "scripts/deploy/**", "scripts/audit/**", "scripts/assets/**",
     "lib/db/src/check_tickets.ts",
     "lib/db/src/close_open_tickets.ts",
     "lib/db/src/fix-dob.ts",

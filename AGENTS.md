@@ -139,6 +139,6 @@ Always consult this direct map before editing code (or run `node scripts/code-lo
 ---
 
 ## 5. Key Directory Map
-- `CODEBASE_MAP.md`: Master architectural and component registry.
+- `docs/CODEBASE_MAP.md`: Master architectural and component registry.
 - `scripts/code-lookup.mjs`: CLI instant lookup command.
-- `SYSTEM_DOCUMENTATION.md`: Full system documentation.
+- `docs/SYSTEM_DOCUMENTATION.md`: Full system documentation.
