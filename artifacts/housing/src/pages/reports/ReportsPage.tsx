@@ -33,6 +33,7 @@ import { MaintenanceDualTrackReportRibbon } from "./components/MaintenanceDualTr
 import { HousingRatingsTab } from "./components/HousingRatingsTab";
 import { RoomMovesTab } from "./components/RoomMovesTab";
 import { ReportPrintStudioModal } from "./components/ReportPrintStudioModal";
+import { TABS, groupOfTab } from "./constants";
 
 export default function Reports() {
   const { activePropertyId, propertySlug } = useProperty();
@@ -248,6 +249,9 @@ export default function Reports() {
     language: ar ? 'ar' : 'en',
   });
 
+  const activeTabConfig = TABS.find((t) => t.id === filters.activeTab);
+  const reportGroup = groupOfTab(filters.activeTab);
+
   const customExportRef = useRef<{
     exportExcel?: () => void;
     exportPDF?: () => void;
@@ -268,10 +272,26 @@ export default function Reports() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {ar ? "مركز التقارير الشاملة" : "Comprehensive Reports"}
-          </h1>
+        <div className="flex items-stretch gap-3 min-w-0">
+          <span className="w-1 rounded-full bg-[#2AA8AB] shrink-0" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#BC9F6F]">
+              {ar ? reportGroup.labelAr : reportGroup.label}
+              {propertyLabel ? ` · ${propertyLabel}` : ""}
+            </p>
+            <h1 className="text-2xl font-bold tracking-tight truncate">
+              {activeTabConfig
+                ? ar
+                  ? activeTabConfig.labelAr
+                  : activeTabConfig.label
+                : ar
+                ? "مركز التقارير"
+                : "Reports"}
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {ar ? "مركز التقارير الشاملة" : "Comprehensive Reports Center"}
+            </p>
+          </div>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
           {can("reports", "config") && (
@@ -279,9 +299,9 @@ export default function Reports() {
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/40"
+                className="gap-2 border-[#2AA8AB]/40 text-[#1F7F81] dark:text-[#59B7A8] hover:bg-[#2AA8AB]/10"
               >
-                <SlidersHorizontal className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                <SlidersHorizontal className="w-4 h-4" />
                 <span>{ar ? "كستم ريبورت" : "Custom Reports"}</span>
               </Button>
             </Link>

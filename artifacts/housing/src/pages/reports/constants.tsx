@@ -27,7 +27,7 @@ import {
   SlidersHorizontal,
   HeartHandshake,
 } from "lucide-react";
-import { TabConfig } from "./types";
+import { Tab, TabConfig } from "./types";
 
 export const TABS: TabConfig[] = [
   {
@@ -187,3 +187,68 @@ export const TABS: TabConfig[] = [
     icon: <ArrowLeftRight className="w-4 h-4 text-indigo-500" />,
   },
 ];
+
+/** Report catalog groups — the 26 reports organised by business area for navigation. */
+export interface ReportGroup {
+  id: string;
+  label: string;
+  labelAr: string;
+  tabs: Tab[];
+}
+
+export const REPORT_GROUPS: ReportGroup[] = [
+  {
+    id: "operations",
+    label: "Daily Operations",
+    labelAr: "التشغيل اليومي",
+    tabs: [
+      "manager_flash",
+      "arrivals_manifest",
+      "departures_manifest",
+      "daily_movement",
+      "housekeeping_sheet",
+      "room_discrepancy",
+      "room_moves",
+    ],
+  },
+  {
+    id: "occupancy",
+    label: "Occupancy & Rooms",
+    labelAr: "الإشغال والغرف",
+    tabs: [
+      "assignments",
+      "vacant_rooms",
+      "housing",
+      "occupancy_forecast",
+      "department_occupancy",
+      "housing_map",
+    ],
+  },
+  {
+    id: "people",
+    label: "Residents & HR",
+    labelAr: "المقيمون والموارد البشرية",
+    tabs: ["profiles", "expiring_contracts", "vacations", "hostings"],
+  },
+  {
+    id: "compliance",
+    label: "Security & Compliance",
+    labelAr: "الأمن والامتثال",
+    tabs: ["gate_logs", "police_report", "policy_exceptions"],
+  },
+  {
+    id: "services",
+    label: "Services & Assets",
+    labelAr: "الخدمات والعهد",
+    tabs: ["maintenance", "equipment_inventory", "water_distribution"],
+  },
+  {
+    id: "quality",
+    label: "Quality & Analytics",
+    labelAr: "الجودة والتحليلات",
+    tabs: ["analytics", "service_ratings", "housing_ratings"],
+  },
+];
+
+export const groupOfTab = (tab: Tab): ReportGroup =>
+  REPORT_GROUPS.find((g) => g.tabs.includes(tab)) ?? REPORT_GROUPS[0];
