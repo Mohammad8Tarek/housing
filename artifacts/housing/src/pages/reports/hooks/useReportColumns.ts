@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
 import { ColDef } from "@/components/ui/column-chooser";
-import { Tab } from "../types";
 
 export const REPORT_TAB_COLUMNS: Record<string, ColDef[]> = {
   manager_flash: [

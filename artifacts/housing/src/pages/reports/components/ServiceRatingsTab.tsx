@@ -1,23 +1,10 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
+import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
 import { transliterateFullName, hasArabicCharacters } from "@/lib/bilingual-name-engine";
-import {
-  Star,
-  Award,
-  ThumbsUp,
-  Wrench,
-  Sparkles,
-  Clock,
-  Filter,
-  Calendar,
-  Building2,
-  CheckCircle2,
-  AlertCircle,
-  TrendingUp,
-} from "lucide-react";
+import { Star, Award, ThumbsUp, Wrench, Sparkles, Clock, Filter, Calendar, CheckCircle2, AlertCircle, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
@@ -39,7 +26,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { formatDateTime } from "@/lib/date-utils";
+import { formatDateTime, getExportFileName } from "@/lib/date-utils";
 
 interface ServiceRatingsTabProps {
   ar: boolean;
@@ -146,8 +133,7 @@ export function ServiceRatingsTab({
     const wsTickets = XLSX.utils.json_to_sheet(ticketRows);
     XLSX.utils.book_append_sheet(wb, wsTickets, ar ? "سجل التقييمات التفصيلي" : "Ratings Detail Log");
 
-    const dateStr = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `Service_Ratings_Report_${dateStr}.xlsx`);
+    writeSunriseWorkbook(wb, getExportFileName("Service_Ratings_Report", "xlsx"), { rtl: ar });
   };
 
   const [isStudioOpen, setIsStudioOpen] = useState(false);

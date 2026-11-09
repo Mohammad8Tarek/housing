@@ -1,24 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
+import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
-import {
-  HeartHandshake,
-  Star,
-  Smile,
-  Meh,
-  Frown,
-  Calendar,
-  Building2,
-  Lock,
-  Search,
-  CheckCircle2,
-  TrendingUp,
-  MessageSquare,
-  RefreshCw,
-  Sparkles,
-} from "lucide-react";
+import { HeartHandshake, Star, Smile, Meh, Frown, Building2, Lock, Search, CheckCircle2, TrendingUp, MessageSquare, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
@@ -40,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { formatDate } from "@/lib/date-utils";
+import { formatDate, getExportFileName } from "@/lib/date-utils";
 import { DataPagination } from "@/components/DataPagination";
 
 interface HousingRatingsTabProps {
@@ -135,7 +120,7 @@ export function HousingRatingsTab({
     XLSX.utils.book_append_sheet(wb, ws, "Housing Pulse Ratings");
 
     const propName = properties.find((p) => String(p.id) === String(queryPropertyId))?.name || "All_Properties";
-    XLSX.writeFile(wb, `Housing_Pulse_Ratings_${propName}_${new Date().toISOString().split("T")[0]}.xlsx`);
+    writeSunriseWorkbook(wb, getExportFileName(`Housing_Pulse_Ratings_${propName}`, "xlsx"), { rtl: ar });
   };
 
   const [isStudioOpen, setIsStudioOpen] = useState(false);

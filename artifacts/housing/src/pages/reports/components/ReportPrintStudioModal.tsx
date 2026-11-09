@@ -1,12 +1,6 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -16,23 +10,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Printer,
-  FileSpreadsheet,
-  Columns3,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  RotateCw,
-  Languages,
-  Check,
-  Type,
-  FileText,
-  PenTool,
-  BarChart2,
-  X,
-} from "lucide-react";
-import * as XLSX from "xlsx";
+import { Printer, FileSpreadsheet, Columns3, ZoomIn, ZoomOut, Maximize2, RotateCw, FileText, PenTool, BarChart2, X } from "lucide-react";
+import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { getExportFileName, formatDate } from "@/lib/date-utils";
 import {
   PrintableReportDocument,
@@ -104,6 +83,21 @@ export function ReportPrintStudioModal({
     () => new Set(availableColumns.map((c) => c.key))
   );
 
+  // The modal stays mounted across report tabs, so the initial state above can
+  // belong to a previous report. When the column set changes, re-select all
+  // columns and re-derive layout defaults — otherwise the preview shows 0 columns.
+  const columnSignature = availableColumns.map((c) => c.key).join("\u0001");
+  useEffect(() => {
+    setVisibleColumnKeys(new Set(availableColumns.map((c) => c.key)));
+    setOrientation(availableColumns.length > 7 ? "landscape" : "portrait");
+    setFontSize(availableColumns.length > 9 ? "compact" : "standard");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnSignature]);
+
+  useEffect(() => {
+    setShowKpis(kpis.length > 0);
+  }, [kpis.length]);
+
   // Zoom level for on-screen preview
   const [zoom, setZoom] = useState<number>(100);
 
@@ -171,7 +165,7 @@ export function ReportPrintStudioModal({
     const wb = XLSX.utils.book_new();
     const cleanSheetName = (isAr ? titleAr || title : title).slice(0, 31).replace(/[\\/?*[\]]/g, "_");
     XLSX.utils.book_append_sheet(wb, ws, cleanSheetName);
-    XLSX.writeFile(wb, getExportFileName(`${docTitle}_Report`, "xlsx"));
+    writeSunriseWorkbook(wb, getExportFileName(`${docTitle}_Report`, "xlsx"), { rtl: isAr });
   };
 
   return (
@@ -182,13 +176,13 @@ export function ReportPrintStudioModal({
           <div className="flex items-center justify-between gap-4">
             {/* Title & Document Badge */}
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+              <div className="w-9 h-9 rounded-lg bg-[#2AA8AB]/10 border border-[#2AA8AB]/25 flex items-center justify-center text-[#59B7A8]">
                 <Printer className="w-5 h-5" />
               </div>
               <div>
                 <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
                   <span>{isAr ? "استوديو الطباعة والتقارير الفندقية" : "Sunrise Report Print Studio"}</span>
-                  <Badge variant="outline" className="text-[10px] font-mono border-rose-500/30 text-rose-400 bg-rose-500/5">
+                  <Badge variant="outline" className="text-[10px] font-mono border-[#2AA8AB]/30 text-[#59B7A8] bg-[#2AA8AB]/5">
                     A4 {orientation === "landscape" ? (isAr ? "أفقي" : "Landscape") : (isAr ? "رأسي" : "Portrait")}
                   </Badge>
                 </DialogTitle>
@@ -214,7 +208,7 @@ export function ReportPrintStudioModal({
                 variant="default"
                 size="sm"
                 onClick={() => handlePrint()}
-                className="gap-2 h-9 text-xs font-bold bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-md shadow-rose-900/30 px-4"
+                className="gap-2 h-9 text-xs font-bold bg-[#2AA8AB] hover:bg-[#1F7F81] active:bg-[#1F7F81] text-white shadow-md shadow-black/30 px-4"
               >
                 <Printer className="w-4 h-4" />
                 <span>{isAr ? "طباعة / حفظ كـ PDF" : "Print / Save PDF"}</span>
@@ -244,7 +238,7 @@ export function ReportPrintStudioModal({
                   onClick={() => setOrientation("landscape")}
                   className={`h-7 px-2.5 text-xs rounded-sm ${
                     orientation === "landscape"
-                      ? "bg-rose-600 text-white font-bold"
+                      ? "bg-[#2AA8AB] text-white font-bold"
                       : "text-slate-300 hover:text-white"
                   }`}
                 >
@@ -257,7 +251,7 @@ export function ReportPrintStudioModal({
                   onClick={() => setOrientation("portrait")}
                   className={`h-7 px-2.5 text-xs rounded-sm ${
                     orientation === "portrait"
-                      ? "bg-rose-600 text-white font-bold"
+                      ? "bg-[#2AA8AB] text-white font-bold"
                       : "text-slate-300 hover:text-white"
                   }`}
                 >
@@ -345,7 +339,7 @@ export function ReportPrintStudioModal({
                     size="sm"
                     className="h-8 gap-1.5 border-slate-700 bg-slate-800/90 text-slate-200 hover:bg-slate-700 hover:text-white text-xs font-semibold"
                   >
-                    <Columns3 className="w-3.5 h-3.5 text-rose-400" />
+                    <Columns3 className="w-3.5 h-3.5 text-[#59B7A8]" />
                     <span>
                       {isAr ? "الأعمدة" : "Columns"} ({activeColumns.length}/
                       {availableColumns.length})
@@ -364,7 +358,7 @@ export function ReportPrintStudioModal({
                       variant="ghost"
                       size="sm"
                       onClick={selectAllColumns}
-                      className="h-6 text-[11px] text-rose-400 hover:text-rose-300 p-0"
+                      className="h-6 text-[11px] text-[#59B7A8] hover:text-white p-0"
                     >
                       {isAr ? "تحديد الكل" : "Select All"}
                     </Button>
@@ -380,7 +374,7 @@ export function ReportPrintStudioModal({
                           <Checkbox
                             checked={isChecked}
                             onCheckedChange={() => toggleColumn(col.key)}
-                            className="border-slate-600 data-[state=checked]:bg-rose-600 data-[state=checked]:border-rose-600"
+                            className="border-slate-600 data-[state=checked]:bg-[#2AA8AB] data-[state=checked]:border-[#2AA8AB]"
                           />
                           <span className="truncate">
                             {isAr ? col.headerAr || col.header : col.header}
@@ -400,7 +394,7 @@ export function ReportPrintStudioModal({
                   onClick={() => setShowKpis(!showKpis)}
                   className={`h-8 gap-1.5 border-slate-700 text-xs font-medium ${
                     showKpis
-                      ? "bg-slate-800 text-rose-400 border-rose-500/40"
+                      ? "bg-slate-800 text-[#59B7A8] border-[#2AA8AB]/40"
                       : "bg-slate-900/60 text-slate-400 hover:text-white"
                   }`}
                 >
@@ -416,7 +410,7 @@ export function ReportPrintStudioModal({
                 onClick={() => setShowSignatures(!showSignatures)}
                 className={`h-8 gap-1.5 border-slate-700 text-xs font-medium ${
                   showSignatures
-                    ? "bg-slate-800 text-rose-400 border-rose-500/40"
+                    ? "bg-slate-800 text-[#59B7A8] border-[#2AA8AB]/40"
                     : "bg-slate-900/60 text-slate-400 hover:text-white"
                 }`}
               >

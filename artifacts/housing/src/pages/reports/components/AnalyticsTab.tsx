@@ -1,28 +1,5 @@
 import React, { useState } from "react";
-import {
-  Building2,
-  BedDouble,
-  Users,
-  Wrench,
-  Home,
-  TrendingUp,
-  Printer,
-  Sparkles,
-  ShieldCheck,
-  Star,
-  Activity,
-  Layers,
-  CheckCircle2,
-  Clock,
-  ThumbsUp,
-  AlertCircle,
-  ArrowDownRight,
-  ArrowUpRight,
-  Calendar,
-  Briefcase,
-  Brush,
-  Search,
-} from "lucide-react";
+import { Building2, BedDouble, Users, Wrench, Home, TrendingUp, Sparkles, Star, Activity, Layers, CheckCircle2, Clock, ArrowDownRight, ArrowUpRight, Calendar, Briefcase, Brush, Search } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -42,7 +19,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 interface AnalyticsTabProps {
@@ -111,57 +87,57 @@ export function AnalyticsTab({
     {
       label: ar ? "إجمالي الغرف" : "Total Rooms",
       value: totalRooms,
-      color: "text-foreground",
-      border: "border-t-primary",
+      color: "text-[#1F7F81] dark:text-[#59B7A8]",
+      border: "border-t-[#2AA8AB]",
       icon: Home,
     },
     {
       label: ar ? "غرف شاغرة" : "Available Rooms",
       value: availRooms,
-      color: "text-emerald-600 dark:text-emerald-400",
-      border: "border-t-emerald-500",
+      color: "text-[#41645A] dark:text-[#59B7A8]",
+      border: "border-t-[#2AA8AB]",
       icon: CheckCircle2,
     },
     {
       label: ar ? "غرف مشغولة" : "Occupied Rooms",
       value: occRooms,
-      color: "text-blue-600 dark:text-blue-400",
-      border: "border-t-blue-500",
+      color: "text-[#1F7F81] dark:text-[#59B7A8]",
+      border: "border-t-[#2AA8AB]",
       icon: BedDouble,
     },
     {
       label: ar ? "غرف صيانة" : "Maintenance",
       value: maintRooms,
-      color: "text-orange-600 dark:text-orange-400",
-      border: "border-t-orange-500",
+      color: "text-[#D7731B]",
+      border: "border-t-[#2AA8AB]",
       icon: Wrench,
     },
     {
       label: ar ? "إجمالي الأسِرّة" : "Total Beds",
       value: totalBeds,
-      color: "text-foreground",
-      border: "border-t-indigo-500",
+      color: "text-[#1F7F81] dark:text-[#59B7A8]",
+      border: "border-t-[#2AA8AB]",
       icon: Layers,
     },
     {
       label: ar ? "أسِرّة شاغرة" : "Available Beds",
       value: availBeds,
-      color: "text-emerald-600 dark:text-emerald-400",
-      border: "border-t-emerald-500",
+      color: "text-[#41645A] dark:text-[#59B7A8]",
+      border: "border-t-[#2AA8AB]",
       icon: CheckCircle2,
     },
     {
       label: ar ? "أسِرّة مشغولة" : "Occupied Beds",
       value: occBeds,
-      color: "text-blue-600 dark:text-blue-400",
-      border: "border-t-blue-500",
+      color: "text-[#1F7F81] dark:text-[#59B7A8]",
+      border: "border-t-[#2AA8AB]",
       icon: Users,
     },
     {
       label: ar ? "نسبة الإشغال" : "Occupancy Rate",
       value: `${occRate}%`,
       color: occColorClass,
-      border: "border-t-primary",
+      border: "border-t-[#2AA8AB]",
       icon: Activity,
     },
   ];
@@ -179,7 +155,7 @@ export function AnalyticsTab({
               <h2 className="text-base font-bold text-foreground">
                 {ar ? "لوحة التحليلات والمؤشرات الشاملة للسكن" : "Executive Housing Analytics & Insights"}
               </h2>
-              <Badge variant="outline" className="text-[10px] font-mono py-0.5 border-primary/30 text-primary">
+              <Badge variant="outline" className="text-[10px] tabular-nums py-0.5 border-primary/30 text-primary">
                 {ar ? "تقرير معتمد" : "Official Report"}
               </Badge>
             </div>
@@ -218,9 +194,9 @@ export function AnalyticsTab({
         <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
           <div>
             <span className="text-[10px] text-muted-foreground block">{ar ? "وصول متوقع اليوم" : "Today Due In"}</span>
-            <span className="text-base font-extrabold font-mono text-emerald-600">{analytics?.todayArrivals ?? 0}</span>
+            <span className="text-base font-extrabold tabular-nums text-[#1F7F81] dark:text-[#59B7A8]">{analytics?.todayArrivals ?? 0}</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#2AA8AB]/10 text-[#2AA8AB] flex items-center justify-center">
             <ArrowDownRight className="w-4 h-4" />
           </div>
         </div>
@@ -228,9 +204,9 @@ export function AnalyticsTab({
         <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
           <div>
             <span className="text-[10px] text-muted-foreground block">{ar ? "مغادرة اليوم" : "Today Due Out"}</span>
-            <span className="text-base font-extrabold font-mono text-rose-600">{analytics?.todayDepartures ?? 0}</span>
+            <span className="text-base font-extrabold tabular-nums text-[#A52D2C]">{analytics?.todayDepartures ?? 0}</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#A52D2C]/10 text-[#A52D2C] flex items-center justify-center">
             <ArrowUpRight className="w-4 h-4" />
           </div>
         </div>
@@ -238,11 +214,11 @@ export function AnalyticsTab({
         <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
           <div>
             <span className="text-[10px] text-muted-foreground block">{ar ? "صافي حركة اليوم" : "Net Movement"}</span>
-            <span className={`text-base font-extrabold font-mono ${(analytics?.netMovement ?? 0) >= 0 ? "text-blue-600" : "text-amber-600"}`}>
+            <span className={`text-base font-extrabold tabular-nums ${(analytics?.netMovement ?? 0) >= 0 ? "text-[#1F7F81] dark:text-[#59B7A8]" : "text-[#D7731B]"}`}>
               {(analytics?.netMovement ?? 0) > 0 ? `+${analytics?.netMovement}` : (analytics?.netMovement ?? 0)}
             </span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#2AA8AB]/10 text-[#2AA8AB] flex items-center justify-center">
             <Activity className="w-4 h-4" />
           </div>
         </div>
@@ -250,9 +226,9 @@ export function AnalyticsTab({
         <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
           <div>
             <span className="text-[10px] text-muted-foreground block">{ar ? "حجوزات قادمة" : "Reservations"}</span>
-            <span className="text-base font-extrabold font-mono text-indigo-600">{analytics?.upcomingReservations ?? 0}</span>
+            <span className="text-base font-extrabold tabular-nums text-[#1F7F81] dark:text-[#59B7A8]">{analytics?.upcomingReservations ?? 0}</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#2AA8AB]/10 text-[#2AA8AB] flex items-center justify-center">
             <Calendar className="w-4 h-4" />
           </div>
         </div>
@@ -260,9 +236,9 @@ export function AnalyticsTab({
         <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
           <div>
             <span className="text-[10px] text-muted-foreground block">{ar ? "استضافات نشطة" : "Active Hostings"}</span>
-            <span className="text-base font-extrabold font-mono text-amber-600">{analytics?.activeHostings ?? 0}</span>
+            <span className="text-base font-extrabold tabular-nums text-[#1F7F81] dark:text-[#59B7A8]">{analytics?.activeHostings ?? 0}</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#2AA8AB]/10 text-[#2AA8AB] flex items-center justify-center">
             <Users className="w-4 h-4" />
           </div>
         </div>
@@ -270,9 +246,9 @@ export function AnalyticsTab({
         <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
           <div>
             <span className="text-[10px] text-muted-foreground block">{ar ? "عقود تنتهي (30يوم)" : "Expiring (30d)"}</span>
-            <span className="text-base font-extrabold font-mono text-purple-600">{analytics?.expiringContracts ?? 0}</span>
+            <span className="text-base font-extrabold tabular-nums text-[#1F7F81] dark:text-[#59B7A8]">{analytics?.expiringContracts ?? 0}</span>
           </div>
-          <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#2AA8AB]/10 text-[#2AA8AB] flex items-center justify-center">
             <Clock className="w-4 h-4" />
           </div>
         </div>
@@ -287,7 +263,7 @@ export function AnalyticsTab({
               {ar ? "جاهزية الغرف والنظافة التشغيلية (Housekeeping Turnover)" : "Housekeeping & Room Readiness"}
             </h3>
           </div>
-          <div className="flex items-center gap-3 text-xs font-mono">
+          <div className="flex items-center gap-3 text-xs tabular-nums">
             <span className="text-muted-foreground">
               {ar ? "غرف محجوزة بالكامل:" : "Full Room Locks:"}{" "}
               <strong className="text-foreground">{analytics?.entireRoomLocks ?? 0}</strong>
@@ -303,7 +279,7 @@ export function AnalyticsTab({
             <span className="text-[10px] text-emerald-700 dark:text-emerald-300 block font-medium">
               {ar ? "شاغرة جاهزة للتسكين" : "Clean & Ready"}
             </span>
-            <strong className="text-base font-extrabold text-emerald-600 font-mono">
+            <strong className="text-base font-extrabold text-emerald-600 tabular-nums">
               {analytics?.cleanReadyRooms ?? 0} {ar ? "غرفة" : "rooms"}
             </strong>
           </div>
@@ -311,7 +287,7 @@ export function AnalyticsTab({
             <span className="text-[10px] text-amber-700 dark:text-amber-300 block font-medium">
               {ar ? "شاغرة تحتاج تنظيف" : "Dirty Pending"}
             </span>
-            <strong className="text-base font-extrabold text-amber-600 font-mono">
+            <strong className="text-base font-extrabold text-amber-600 tabular-nums">
               {analytics?.dirtyRooms ?? 0} {ar ? "غرفة" : "rooms"}
             </strong>
           </div>
@@ -319,7 +295,7 @@ export function AnalyticsTab({
             <span className="text-[10px] text-blue-700 dark:text-blue-300 block font-medium">
               {ar ? "مشغولة ونظيفة" : "Occupied Clean"}
             </span>
-            <strong className="text-base font-extrabold text-blue-600 font-mono">
+            <strong className="text-base font-extrabold text-blue-600 tabular-nums">
               {analytics?.occupiedCleanRooms ?? 0} {ar ? "غرفة" : "rooms"}
             </strong>
           </div>
@@ -327,7 +303,7 @@ export function AnalyticsTab({
             <span className="text-[10px] text-rose-700 dark:text-rose-300 block font-medium">
               {ar ? "مشغولة وتحتاج نظافة" : "Occupied Dirty"}
             </span>
-            <strong className="text-base font-extrabold text-rose-600 font-mono">
+            <strong className="text-base font-extrabold text-rose-600 tabular-nums">
               {analytics?.occupiedDirtyRooms ?? 0} {ar ? "غرفة" : "rooms"}
             </strong>
           </div>
@@ -342,16 +318,16 @@ export function AnalyticsTab({
             <h3 className="font-bold text-sm text-foreground">
               {ar ? "معدل الإشغال الفعلي للأسِرّة" : "Overall Bed Occupancy & Capacity Utilization"}
             </h3>
-            <span className="text-xs text-muted-foreground font-mono">
+            <span className="text-xs text-muted-foreground tabular-nums">
               ({occBeds} / {totalBeds} {ar ? "سرير مشغول" : "beds occupied"})
             </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">
               {ar ? "السعة الشاغرة المتاحة:" : "Available Beds:"}{" "}
-              <strong className="text-emerald-600 font-bold font-mono">{availBeds}</strong>
+              <strong className="text-emerald-600 font-bold tabular-nums">{availBeds}</strong>
             </span>
-            <span className={`text-xl font-black font-mono ${occColorClass}`}>
+            <span className={`text-xl font-black tabular-nums ${occColorClass}`}>
               {occRate}%
             </span>
           </div>
@@ -364,7 +340,7 @@ export function AnalyticsTab({
           />
         </div>
 
-        <div className="flex justify-between text-[11px] text-muted-foreground font-mono mt-1.5 px-0.5">
+        <div className="flex justify-between text-[11px] text-muted-foreground tabular-nums mt-1.5 px-0.5">
           <span>0% ({ar ? "سكن شاغر" : "Vacant"})</span>
           <span>50% ({ar ? "إشغال متوازن" : "Balanced"})</span>
           <span>75% ({ar ? "ضغط تشغيلي" : "High Demand"})</span>
@@ -383,7 +359,7 @@ export function AnalyticsTab({
                 <TrendingUp className="w-4 h-4 text-primary" />
                 {ar ? "مسار تطور الإشغال (آخر 6 أشهر)" : "Occupancy Trajectory (Last 6 Months)"}
               </h3>
-              <Badge variant="secondary" className="text-[10px] font-mono">
+              <Badge variant="secondary" className="text-[10px] tabular-nums">
                 {ar ? "مؤشر زمني" : "Monthly Trend"}
               </Badge>
             </div>
@@ -502,7 +478,7 @@ export function AnalyticsTab({
                       <div key={b.id} className="p-2.5 rounded-lg bg-muted/30 border border-border/40">
                         <div className="flex items-center justify-between text-xs mb-1.5">
                           <span className="font-bold text-foreground truncate max-w-[170px]">{b.name}</span>
-                          <span className="text-muted-foreground text-[11px] font-mono">
+                          <span className="text-muted-foreground text-[11px] tabular-nums">
                             {b.currentOccupancy} / {b.capacity} {ar ? "سرير" : "beds"} · {b.availableRooms} {ar ? "غرفة شاغرة" : "avail"}
                           </span>
                         </div>
@@ -513,7 +489,7 @@ export function AnalyticsTab({
                               style={{ width: `${Math.min(100, Math.max(2, bRate))}%` }}
                             />
                           </div>
-                          <span className={`text-xs font-mono font-bold w-10 text-right ${color.split(" ").slice(1).join(" ")}`}>
+                          <span className={`text-xs tabular-nums font-bold w-10 text-right ${color.split(" ").slice(1).join(" ")}`}>
                             {bRate}%
                           </span>
                         </div>
@@ -544,10 +520,10 @@ export function AnalyticsTab({
                           <p className="text-[10px] text-muted-foreground truncate">{f.buildingName}</p>
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="font-mono text-muted-foreground text-[11px]">
+                          <span className="tabular-nums text-muted-foreground text-[11px]">
                             {f.occupied} / {f.capacity} {ar ? "سرير" : "beds"}
                           </span>
-                          <span className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded ${color}`}>
+                          <span className={`text-xs tabular-nums font-bold px-1.5 py-0.5 rounded ${color}`}>
                             {fRate}%
                           </span>
                         </div>
@@ -569,7 +545,7 @@ export function AnalyticsTab({
                 <Briefcase className="w-4 h-4 text-primary" />
                 {ar ? "هيكل العمالة والشركات (داخلي / توريد)" : "Workforce Structure & Contractors"}
               </h3>
-              <Badge variant="secondary" className="text-[10px] font-mono">
+              <Badge variant="secondary" className="text-[10px] tabular-nums">
                 {analytics?.thirdPartyStaffCount > 0 ? (ar ? "متعدد الشركات" : "Multi-Source") : (ar ? "فندقي فقط" : "Direct")}
               </Badge>
             </div>
@@ -580,7 +556,7 @@ export function AnalyticsTab({
                 <span className="text-[10px] text-blue-700 dark:text-blue-300 block font-medium">
                   {ar ? "عمالة الفندق الأساسية" : "Direct Hotel Staff"}
                 </span>
-                <p className="text-xl font-black text-blue-700 dark:text-blue-400 font-mono">
+                <p className="text-xl font-black text-blue-700 dark:text-blue-400 tabular-nums">
                   {analytics?.internalStaffCount ?? 0}
                 </p>
               </div>
@@ -588,7 +564,7 @@ export function AnalyticsTab({
                 <span className="text-[10px] text-purple-700 dark:text-purple-300 block font-medium">
                   {ar ? "شركات توريد خارجية" : "3rd-Party Outsource"}
                 </span>
-                <p className="text-xl font-black text-purple-700 dark:text-purple-400 font-mono">
+                <p className="text-xl font-black text-purple-700 dark:text-purple-400 tabular-nums">
                   {analytics?.thirdPartyStaffCount ?? 0}
                 </p>
               </div>
@@ -600,7 +576,7 @@ export function AnalyticsTab({
                 {analytics.byCompany.map((c: any) => (
                   <div key={c.company} className="flex items-center justify-between text-xs bg-muted/40 px-2.5 py-1 rounded-md">
                     <span className="text-foreground truncate max-w-[200px]">{c.company}</span>
-                    <span className="font-mono font-bold text-purple-600">{c.count} {ar ? "فرد" : "pax"}</span>
+                    <span className="tabular-nums font-bold text-purple-600">{c.count} {ar ? "فرد" : "pax"}</span>
                   </div>
                 ))}
               </div>
@@ -624,7 +600,7 @@ export function AnalyticsTab({
                       <div key={d.dept} className="text-xs">
                         <div className="flex justify-between items-center mb-0.5">
                           <span className="font-medium text-foreground truncate max-w-[180px]">{d.dept}</span>
-                          <span className="font-mono text-muted-foreground text-[10px]">
+                          <span className="tabular-nums text-muted-foreground text-[10px]">
                             <strong className="text-foreground">{d.count}</strong> {ar ? "موظف" : "staff"}
                           </span>
                         </div>
@@ -677,13 +653,13 @@ export function AnalyticsTab({
                       return (
                         <TableRow key={t.type} className="hover:bg-muted/30">
                           <TableCell className="font-semibold text-xs py-2">{t.type}</TableCell>
-                          <TableCell className="text-center text-xs py-2 font-mono">{t.rooms}</TableCell>
-                          <TableCell className="text-center text-xs py-2 font-mono">{t.capacity}</TableCell>
-                          <TableCell className="text-center text-xs py-2 font-mono font-bold text-primary">
+                          <TableCell className="text-center text-xs py-2 tabular-nums">{t.rooms}</TableCell>
+                          <TableCell className="text-center text-xs py-2 tabular-nums">{t.capacity}</TableCell>
+                          <TableCell className="text-center text-xs py-2 tabular-nums font-bold text-primary">
                             {t.occupied}
                           </TableCell>
                           <TableCell className="text-center py-2">
-                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md font-mono ${badgeColor}`}>
+                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md tabular-nums ${badgeColor}`}>
                               {rate}%
                             </span>
                           </TableCell>
@@ -710,7 +686,7 @@ export function AnalyticsTab({
                 <h3 className="font-bold text-sm text-foreground">
                   {ar ? "التحليل الشامل لإشغال الأقسام وحصص الغرف والأسِرّة" : "Comprehensive Department Occupancy & Bed Quotas"}
                 </h3>
-                <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+                <Badge variant="outline" className="text-[10px] tabular-nums border-primary/30 text-primary">
                   {allDepts.length} {ar ? "قسم / إدارة" : "Departments"}
                 </Badge>
               </div>
@@ -766,7 +742,7 @@ export function AnalyticsTab({
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-center py-2 font-mono font-bold text-xs text-primary">
+                      <TableCell className="text-center py-2 tabular-nums font-bold text-xs text-primary">
                         {d.residentCount ?? d.count ?? 0}
                       </TableCell>
                       <TableCell className="py-2 text-center">
@@ -777,25 +753,25 @@ export function AnalyticsTab({
                               style={{ width: `${Math.min(100, pct)}%` }}
                             />
                           </div>
-                          <span className="font-mono text-[11px] font-bold text-foreground">
+                          <span className="tabular-nums text-[11px] font-bold text-foreground">
                             {d.shareOfHousing || pct}%
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-center py-2 font-mono text-xs font-semibold">
+                      <TableCell className="text-center py-2 tabular-nums text-xs font-semibold">
                         {d.roomsCount ?? 0}
                       </TableCell>
-                      <TableCell className="text-center py-2 font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+                      <TableCell className="text-center py-2 tabular-nums text-xs font-bold text-blue-600 dark:text-blue-400">
                         {d.occupiedBeds ?? 0}
                       </TableCell>
-                      <TableCell className="text-center py-2 font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      <TableCell className="text-center py-2 tabular-nums text-xs font-bold text-emerald-600 dark:text-emerald-400">
                         {d.availableBeds ?? 0}
                       </TableCell>
-                      <TableCell className="text-center py-2 font-mono text-xs text-muted-foreground">
+                      <TableCell className="text-center py-2 tabular-nums text-xs text-muted-foreground">
                         {d.capacity ?? 0}
                       </TableCell>
                       <TableCell className="text-center py-2 text-xs">
-                        <div className="flex items-center justify-center gap-1 text-[11px] font-mono">
+                        <div className="flex items-center justify-center gap-1 text-[11px] tabular-nums">
                           <span className="text-blue-600 dark:text-blue-400 font-bold" title={ar ? "ذكور" : "Males"}>
                             {d.maleCount ?? 0} ♂
                           </span>
@@ -819,25 +795,25 @@ export function AnalyticsTab({
                   <TableCell className="py-2.5 font-bold">
                     {ar ? `الإجمالي (${allDepts.length} قسم)` : `Total (${allDepts.length} depts)`}
                   </TableCell>
-                  <TableCell className="text-center py-2.5 font-mono text-primary font-bold">
+                  <TableCell className="text-center py-2.5 tabular-nums text-primary font-bold">
                     {totalDeptResidents}
                   </TableCell>
-                  <TableCell className="text-center py-2.5 font-mono">
+                  <TableCell className="text-center py-2.5 tabular-nums">
                     100%
                   </TableCell>
-                  <TableCell className="text-center py-2.5 font-mono font-bold">
+                  <TableCell className="text-center py-2.5 tabular-nums font-bold">
                     {totalDeptRooms}
                   </TableCell>
-                  <TableCell className="text-center py-2.5 font-mono text-blue-600 dark:text-blue-400 font-bold">
+                  <TableCell className="text-center py-2.5 tabular-nums text-blue-600 dark:text-blue-400 font-bold">
                     {totalDeptOccupiedBeds}
                   </TableCell>
-                  <TableCell className="text-center py-2.5 font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                  <TableCell className="text-center py-2.5 tabular-nums text-emerald-600 dark:text-emerald-400 font-bold">
                     {totalDeptAvailableBeds}
                   </TableCell>
-                  <TableCell className="text-center py-2.5 font-mono">
+                  <TableCell className="text-center py-2.5 tabular-nums">
                     {totalDeptCapacity}
                   </TableCell>
-                  <TableCell className="text-center py-2.5 font-mono">
+                  <TableCell className="text-center py-2.5 tabular-nums">
                     <span className="text-blue-600 dark:text-blue-400">{totalDeptMales} ♂</span>
                     {" / "}
                     <span className="text-purple-600 dark:text-purple-400">{totalDeptFemales} ♀</span>
@@ -862,7 +838,7 @@ export function AnalyticsTab({
                 <Wrench className="w-4 h-4 text-orange-500" />
                 {ar ? "أولويات الصيانة وجاهزية المرافق" : "Maintenance Priorities"}
               </h3>
-              <span className="text-[10px] font-mono text-muted-foreground">
+              <span className="text-[10px] tabular-nums text-muted-foreground">
                 {ar ? "معدل الإنجاز" : "Resolved"}: {analytics?.resolutionRate ?? 100}%
               </span>
             </div>
@@ -870,7 +846,7 @@ export function AnalyticsTab({
             {/* Open / In Progress */}
             <div className="grid grid-cols-2 gap-2 mb-3">
               <div className="bg-red-50/80 dark:bg-red-950/30 border border-red-200/60 dark:border-red-900/40 rounded-lg p-2 text-center">
-                <p className="text-base font-black text-red-600 dark:text-red-400 font-mono">
+                <p className="text-base font-black text-red-600 dark:text-red-400 tabular-nums">
                   {analytics?.openMaint ?? 0}
                 </p>
                 <p className="text-[10px] text-red-700 dark:text-red-300 font-medium">
@@ -878,7 +854,7 @@ export function AnalyticsTab({
                 </p>
               </div>
               <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 rounded-lg p-2 text-center">
-                <p className="text-base font-black text-amber-600 dark:text-amber-400 font-mono">
+                <p className="text-base font-black text-amber-600 dark:text-amber-400 tabular-nums">
                   {analytics?.inProg ?? 0}
                 </p>
                 <p className="text-[10px] text-amber-700 dark:text-amber-300 font-medium">
@@ -891,19 +867,19 @@ export function AnalyticsTab({
             <div className="grid grid-cols-4 gap-1 text-center text-xs mb-2.5">
               <div className="bg-red-100/60 dark:bg-red-950/30 rounded p-1">
                 <span className="text-[9px] text-red-700 dark:text-red-300 block">{ar ? "طارئة" : "Emerg"}</span>
-                <strong className="font-mono text-red-700 dark:text-red-400">{analytics?.byPriority?.emergency ?? 0}</strong>
+                <strong className="tabular-nums text-red-700 dark:text-red-400">{analytics?.byPriority?.emergency ?? 0}</strong>
               </div>
               <div className="bg-orange-100/60 dark:bg-orange-950/30 rounded p-1">
                 <span className="text-[9px] text-orange-700 dark:text-orange-300 block">{ar ? "عالية" : "High"}</span>
-                <strong className="font-mono text-orange-700 dark:text-orange-400">{analytics?.byPriority?.high ?? 0}</strong>
+                <strong className="tabular-nums text-orange-700 dark:text-orange-400">{analytics?.byPriority?.high ?? 0}</strong>
               </div>
               <div className="bg-amber-100/60 dark:bg-amber-950/30 rounded p-1">
                 <span className="text-[9px] text-amber-700 dark:text-amber-300 block">{ar ? "متوسطة" : "Med"}</span>
-                <strong className="font-mono text-amber-700 dark:text-amber-400">{analytics?.byPriority?.medium ?? 0}</strong>
+                <strong className="tabular-nums text-amber-700 dark:text-amber-400">{analytics?.byPriority?.medium ?? 0}</strong>
               </div>
               <div className="bg-blue-100/60 dark:bg-blue-950/30 rounded p-1">
                 <span className="text-[9px] text-blue-700 dark:text-blue-300 block">{ar ? "منخفضة" : "Low"}</span>
-                <strong className="font-mono text-blue-700 dark:text-blue-400">{analytics?.byPriority?.low ?? 0}</strong>
+                <strong className="tabular-nums text-blue-700 dark:text-blue-400">{analytics?.byPriority?.low ?? 0}</strong>
               </div>
             </div>
 
@@ -911,15 +887,15 @@ export function AnalyticsTab({
             <div className="grid grid-cols-3 gap-1 text-center text-[10px]">
               <div className="bg-muted/40 rounded p-1">
                 <span className="text-muted-foreground block">{ar ? "سباكة" : "Plumb"}</span>
-                <strong className="font-mono text-foreground">{analytics?.ticketsByCategory?.plumbing ?? 0}</strong>
+                <strong className="tabular-nums text-foreground">{analytics?.ticketsByCategory?.plumbing ?? 0}</strong>
               </div>
               <div className="bg-muted/40 rounded p-1">
                 <span className="text-muted-foreground block">{ar ? "كهرباء" : "Elect"}</span>
-                <strong className="font-mono text-foreground">{analytics?.ticketsByCategory?.electrical ?? 0}</strong>
+                <strong className="tabular-nums text-foreground">{analytics?.ticketsByCategory?.electrical ?? 0}</strong>
               </div>
               <div className="bg-muted/40 rounded p-1">
                 <span className="text-muted-foreground block">{ar ? "تكييف" : "AC"}</span>
-                <strong className="font-mono text-foreground">{analytics?.ticketsByCategory?.ac ?? 0}</strong>
+                <strong className="tabular-nums text-foreground">{analytics?.ticketsByCategory?.ac ?? 0}</strong>
               </div>
             </div>
           </div>
@@ -940,7 +916,7 @@ export function AnalyticsTab({
                   key={g.gender}
                   className="flex-1 bg-muted/40 border border-border/50 rounded-lg p-2 text-center"
                 >
-                  <p className="text-base font-extrabold text-foreground font-mono">{g.count}</p>
+                  <p className="text-base font-extrabold text-foreground tabular-nums">{g.count}</p>
                   <p className="text-[10px] text-muted-foreground font-medium">
                     {g.gender === "female" ? (ar ? "إناث" : "Female") : (ar ? "ذكور" : "Male")}
                   </p>
@@ -953,7 +929,7 @@ export function AnalyticsTab({
               {(analytics?.byNationality || []).slice(0, 3).map((n: any) => (
                 <div key={n.nationality} className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground truncate">{n.nationality}</span>
-                  <span className="font-mono font-bold text-foreground">{n.count} {ar ? "نزيل" : "pax"}</span>
+                  <span className="tabular-nums font-bold text-foreground">{n.count} {ar ? "نزيل" : "pax"}</span>
                 </div>
               ))}
             </div>
@@ -969,7 +945,7 @@ export function AnalyticsTab({
             </h3>
 
             <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-xl p-3 text-center mb-3">
-              <div className="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono flex items-center justify-center gap-1">
+              <div className="text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums flex items-center justify-center gap-1">
                 <span>⭐</span>
                 <span>{evalStats?.average ? evalStats.average : "4.8"}</span>
                 <span className="text-xs text-muted-foreground font-normal">/ 5.0</span>
@@ -981,7 +957,7 @@ export function AnalyticsTab({
 
             <div className="grid grid-cols-2 gap-2 text-center text-xs">
               <div className="bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/50 rounded-lg p-2">
-                <p className="text-sm font-bold text-emerald-600 font-mono">
+                <p className="text-sm font-bold text-emerald-600 tabular-nums">
                   {evalStats?.positive || 0}
                 </p>
                 <p className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium">
@@ -989,7 +965,7 @@ export function AnalyticsTab({
                 </p>
               </div>
               <div className="bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/50 rounded-lg p-2">
-                <p className="text-sm font-bold text-rose-600 font-mono">
+                <p className="text-sm font-bold text-rose-600 tabular-nums">
                   {evalStats?.negative || 0}
                 </p>
                 <p className="text-[10px] text-rose-700 dark:text-rose-300 font-medium">

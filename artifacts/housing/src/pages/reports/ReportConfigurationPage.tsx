@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
@@ -9,44 +9,13 @@ import { toast } from "sonner";
 import { useGetSettings } from "@workspace/api-client-react";
 
 // Icons
-import {
-  SlidersHorizontal,
-  ArrowLeft,
-  ArrowRight,
-  Download,
-  FileSpreadsheet,
-  Printer,
-  BookmarkPlus,
-  FolderOpen,
-  RotateCcw,
-  Check,
-  CheckSquare,
-  Square,
-  Search,
-  Building2,
-  Layers,
-  Briefcase,
-  Award,
-  Filter,
-  Eye,
-  Trash2,
-  Calendar,
-  Sparkles,
-  Info,
-  Clock,
-  Settings2,
-  Users,
-  FileBarChart2,
-  FileText,
-  ShieldAlert,
-} from "lucide-react";
+import { SlidersHorizontal, ArrowLeft, ArrowRight, FileSpreadsheet, Printer, BookmarkPlus, FolderOpen, RotateCcw, CheckSquare, Square, Search, Trash2, Info, Users, FileBarChart2, ShieldAlert } from "lucide-react";
 
 // Components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { DataPagination } from "@/components/DataPagination";
 import {
   Dialog,
@@ -64,7 +33,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Config & Export
 import {
@@ -74,7 +42,6 @@ import {
   CustomColumnDef,
 } from "./config/customReportConfig";
 import { exportExcel } from "./utils/export";
-import { printLuxuryReport, ReportKpiCard } from "./utils/luxury-report-engine";
 import { formatDate } from "@/lib/date-utils";
 import { ReportPrintStudioModal } from "./components/ReportPrintStudioModal";
 import type { ReportColumnConfig, ReportKpiItem } from "./components/PrintableReportDocument";

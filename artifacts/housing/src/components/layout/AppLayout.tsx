@@ -529,11 +529,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   }
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ${
                     isGroupActive
-                      ? "bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold shadow-sm"
+                      ? "bg-[#2AA8AB]/15 text-[#2AA8AB] font-semibold"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                   }`}
                 >
-                  <div className={`p-1.5 rounded-lg transition-colors ${isGroupActive ? 'bg-violet-500/20 text-violet-600 dark:text-violet-400' : 'text-sidebar-foreground/70'}`}>
+                  <div className={`p-1.5 rounded-lg transition-colors ${isGroupActive ? 'bg-[#2AA8AB]/20 text-[#2AA8AB]' : 'text-sidebar-foreground/70'}`}>
                     <item.icon className="h-4 w-4 flex-shrink-0" />
                   </div>
                   <span className="flex-1 text-start font-medium">{item.label}</span>
@@ -562,7 +562,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                           <span
                             className={`block px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
                               active
-                                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-md shadow-violet-500/20 translate-x-1"
+                                ? "bg-[#2AA8AB] text-white font-semibold shadow-md shadow-[#2AA8AB]/20 translate-x-1"
                                 : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 hover:translate-x-1"
                             }`}
                           >
@@ -587,7 +587,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <span
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ${
                   active
-                    ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-semibold shadow-lg shadow-violet-500/25 scale-[1.02]"
+                    ? "bg-[#2AA8AB] text-white font-semibold shadow-lg shadow-[#2AA8AB]/25 scale-[1.02]"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:scale-[1.01]"
                 }`}
               >

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { exportExcel, exportAnalyticsPDF, printArabicAnalyticsReport } from "../utils/export";
+import { exportExcel, printArabicAnalyticsReport } from "../utils/export";
 import { formatDate } from "@/lib/date-utils";
 import {
   translateReportHeader,
@@ -16,7 +16,6 @@ import {
   generateAutoKpis,
 } from "../utils/luxury-report-engine";
 import { formatNationality } from "@/lib/countries";
-import { getProfileDisplayDepartment } from "@/lib/profile-display-utils";
 import { getRoomStatusLabel } from "@/pages/housing/utils";
 import { toast } from "sonner";
 import type {

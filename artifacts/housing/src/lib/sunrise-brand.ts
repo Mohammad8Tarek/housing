@@ -40,7 +40,7 @@ export function srStatusTone(value: unknown): { fg: string; bg: string; border: 
     return { fg: SR.red, bg: "#F6E6E6", border: "#E0B4B3" };
   if (has("occupied", "مشغول", "dirty", "متسخ", "pending", "معلق", "vacation", "إجازة"))
     return { fg: "#9A4F0E", bg: "#FBEEE2", border: "#EFC7A2" };
-  if (has("active", "نشط", "available", "شاغر", "clean", "جاهز", "confirmed", "مؤكد", "returned", "عاد"))
+  if (has("active", "نشط", "available", "vacant", "شاغر", "clean", "جاهز", "confirmed", "مؤكد", "returned", "عاد"))
     return { fg: SR.green, bg: "#E5EEEB", border: "#B5CBC4" };
   return { fg: SR.muted, bg: "#F1F4F4", border: SR.rule };
 }

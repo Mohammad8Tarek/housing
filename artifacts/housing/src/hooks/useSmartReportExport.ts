@@ -1,19 +1,19 @@
 // ════════════════════════════════════════════════════════════
 // useSmartReportExport — Smart report export hook
 // ════════════════════════════════════════════════════════════
-// Returns { exportPdf, exportCsv, exportXlsx } with loading states.
+// Returns { exportCsv, exportXlsx } with loading states. (PDF goes through Print Studio.)
 // Uses the jsPDF + AutoTable column type system for PDF,
 // formatted CSV with BOM for Excel-compatible Unicode,
 // and xlsx library for proper .xlsx workbooks.
 // ════════════════════════════════════════════════════════════
 
 import { useState, useCallback } from 'react';
-import { printLuxuryReport } from '@/pages/reports/utils/luxury-report-engine';
-import type { ReportMeta } from '@/lib/report/pdfGenerator';
+import type { ReportMeta } from '@/lib/report/columnTypes';
 import type { ReportColumnDef } from '@/lib/report/columnTypes';
 import { formatValue } from '@/lib/report/columnTypes';
 import { getNestedValue } from '@/lib/report/widthEngine';
-import * as XLSX from 'xlsx';
+import { XLSX, writeSunriseWorkbook } from '@/lib/xlsx-brand';
+import { getExportFileName } from '@/lib/date-utils';
 
 export interface SmartReportExportOptions {
   columns: ReportColumnDef[];
@@ -30,11 +30,9 @@ export function useSmartReportExport({
   generatedBy,
   language,
 }: SmartReportExportOptions) {
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingCsv, setIsExportingCsv] = useState(false);
   const [isExportingXlsx, setIsExportingXlsx] = useState(false);
 
-  const dateStr = new Date().toISOString().slice(0, 10);
   const fileBaseName = meta.title.toLowerCase().replace(/\s+/g, '-');
 
   // ── Helper: get export columns (filter hiddenInPdf) ──
@@ -51,29 +49,6 @@ export function useSmartReportExport({
       return formatValue(value, col.type);
     });
   }, []);
-
-  // ── 1. PDF Export ──
-  const exportPdf = useCallback(async () => {
-    setIsExportingPdf(true);
-    try {
-      const data = await getData();
-      const exportCols = getExportCols();
-      const useAr = language === 'ar';
-      const headers = exportCols.map(c => (useAr && c.headerAr) ? c.headerAr : c.header);
-      const rows = data.map((row, rowIdx) => formatRow(row, rowIdx, exportCols));
-      await printLuxuryReport({
-        title: meta.title,
-        subtitle: meta.subtitle,
-        language: useAr ? 'ar' : 'en',
-        headers,
-        rows,
-      });
-    } catch (err) {
-      console.error('Smart PDF export failed:', err);
-    } finally {
-      setIsExportingPdf(false);
-    }
-  }, [getData, getExportCols, formatRow, language, meta]);
 
   // ── 2. CSV Export ──
   const exportCsv = useCallback(async () => {
@@ -96,7 +71,7 @@ export function useSmartReportExport({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${fileBaseName}-${dateStr}.csv`;
+      a.download = getExportFileName(fileBaseName, 'csv');
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -104,7 +79,7 @@ export function useSmartReportExport({
     } finally {
       setIsExportingCsv(false);
     }
-  }, [getData, getExportCols, formatRow, language, fileBaseName, dateStr]);
+  }, [getData, getExportCols, formatRow, language, fileBaseName]);
 
   // ── 3. XLSX Export ──
   const exportXlsx = useCallback(async () => {
@@ -147,19 +122,17 @@ export function useSmartReportExport({
       const wb = XLSX.utils.book_new();
       const sheetName = meta.title.slice(0, 31); // Excel sheet name max 31 chars
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      XLSX.writeFile(wb, `${fileBaseName}-${dateStr}.xlsx`);
+      writeSunriseWorkbook(wb, getExportFileName(fileBaseName, 'xlsx'), { rtl: useAr });
     } catch (err) {
       console.error('Smart XLSX export failed:', err);
     } finally {
       setIsExportingXlsx(false);
     }
-  }, [getData, getExportCols, formatRow, language, meta.title, fileBaseName, dateStr]);
+  }, [getData, getExportCols, formatRow, language, meta.title, fileBaseName]);
 
   return {
-    exportPdf,
     exportCsv,
     exportXlsx,
-    isExportingPdf,
     isExportingCsv,
     isExportingXlsx,
   };

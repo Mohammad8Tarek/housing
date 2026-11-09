@@ -1,37 +1,10 @@
 import * as React from "react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
-import {
-  Building2,
-  Layers,
-  BedDouble,
-  Search,
-  CheckCircle2,
-  AlertTriangle,
-  Users,
-  User,
-  Home,
-  RefreshCw,
-  ChevronDown,
-  ChevronUp,
-  Wrench,
-  DoorOpen,
-  LayoutGrid,
-  ListTree,
-  Table as TableIcon,
-  Printer,
-  Download,
-  Filter,
-  Sparkles,
-  MapPin,
-  Bed,
-  Check,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
+import { getExportFileName } from "@/lib/date-utils";
+import { Building2, Layers, BedDouble, Search, Users, Home, RefreshCw, ChevronDown, ChevronUp, DoorOpen, LayoutGrid, Table as TableIcon, Bed, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -42,12 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { PageLoader } from "@/components/ui/loader";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
@@ -434,8 +401,7 @@ export function HousingMapReportTab({
     XLSX.utils.book_append_sheet(workbook, worksheet, ar ? "خريطة السكن" : "Housing Map");
 
     const currentPropName = properties.find((p) => p.id === selectedPropertyId)?.name || "Housing";
-    const dateStr = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(workbook, `Housing_Map_Report_${currentPropName}_${dateStr}.xlsx`);
+    writeSunriseWorkbook(workbook, getExportFileName(`Housing_Map_Report_${currentPropName}`, "xlsx"), { rtl: ar });
   };
 
   // Print Luxury Opera PMS Report Handler

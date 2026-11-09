@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Bed, User, Phone, Calendar, Briefcase, Building, CheckCircle, ShieldCheck } from "lucide-react";
+import { Bed, Phone, Calendar, Briefcase, Building, CheckCircle, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface InHouseGroupedRoomsViewProps {

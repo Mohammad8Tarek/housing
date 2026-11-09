@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Bed, Building, Clock, AlertTriangle, CheckCircle2, Eye, PackageCheck, DoorClosed, Building2, Layers, User, Star } from "lucide-react";
+import { Bed, Building, AlertTriangle, Eye, PackageCheck, DoorClosed, Building2, Layers, User, Star } from "lucide-react";
 import { roomStatusBadge, getRoomStatusLabel } from "@/pages/housing/utils";
 import { SortableHead } from "@/components/ui/sortable-head";
 
