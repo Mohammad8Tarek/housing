@@ -500,13 +500,13 @@ export default function Reports() {
           )}
 
           {filters.activeTab === "housekeeping_sheet" && (
-            <div className="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-sky-900 dark:text-sky-200">
+            <div className="bg-[#2AA8AB]/5 border border-[#2AA8AB]/30 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-foreground">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 shrink-0">
+                <div className="p-2 rounded-lg bg-[#2AA8AB]/15 text-[#1F7F81] dark:text-[#59B7A8] shrink-0">
                   <ClipboardCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm">
+                  <h4 className="font-bold text-sm text-[#1F7F81] dark:text-[#59B7A8]">
                     {ar ? "كشف مهام وتوزيع أعمال الهاوس كيبنج الميداني" : "Room Attendant Daily Task Assignment Sheet"}
                   </h4>
                   <p className="text-muted-foreground mt-0.5">
@@ -534,13 +534,13 @@ export default function Reports() {
           )}
 
           {filters.activeTab === "room_discrepancy" && (
-            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+            <div className="bg-[#2AA8AB]/5 border border-[#2AA8AB]/30 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-foreground">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 shrink-0">
+                <div className="p-2 rounded-lg bg-[#2AA8AB]/15 text-[#1F7F81] dark:text-[#59B7A8] shrink-0">
                   <AlertOctagon className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm">
+                  <h4 className="font-bold text-sm text-[#1F7F81] dark:text-[#59B7A8]">
                     {ar ? "مركز تدقيق ومطابقة حالات الغرف والنزلاء" : "Room Status Discrepancy & Audit Center"}
                   </h4>
                   <p className="text-muted-foreground mt-0.5">
@@ -551,7 +551,7 @@ export default function Reports() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="px-2.5 py-1 rounded-md bg-rose-600 text-white font-bold text-xs">
+                <span className="px-2.5 py-1 rounded-md bg-[#A52D2C] text-white font-bold text-xs">
                   {ar ? "فحص فوري للمشرف" : "Immediate Inspection Required"}
                 </span>
               </div>
@@ -559,13 +559,13 @@ export default function Reports() {
           )}
 
           {filters.activeTab === "vacations" && (
-            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-emerald-900 dark:text-emerald-200">
+            <div className="bg-[#2AA8AB]/5 border border-[#2AA8AB]/30 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-foreground">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 shrink-0">
+                <div className="p-2 rounded-lg bg-[#2AA8AB]/15 text-[#1F7F81] dark:text-[#59B7A8] shrink-0">
                   <Palmtree className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm">
+                  <h4 className="font-bold text-sm text-[#1F7F81] dark:text-[#59B7A8]">
                     {ar ? "تقرير الإجازات (استعلام زمني بالتاريخ)" : "Vacations Report (Date Range Query)"}
                   </h4>
                   <p className="text-muted-foreground mt-0.5">

@@ -204,6 +204,7 @@ export function ReportFilters({
   };
 
   const statusOptions = getStatusOptions();
+  const statusAllOption = statusOptions.find((s) => s.value === "all");
   const showBuildingFloor = ["housing", "vacant_rooms", "assignments", "profiles", "maintenance", "hostings", "housekeeping", "equipment_inventory", "policy_exceptions", "vacations", "water_distribution", "department_occupancy"].includes(activeTab);
   const showEmploymentType = ["assignments", "profiles", "analytics", "vacations", "water_distribution"].includes(activeTab);
   const showRoomType = [
@@ -490,11 +491,14 @@ export function ReportFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">
-                  {activeTab === "policy_exceptions"
+                  {statusAllOption
+                    ? ar ? statusAllOption.labelAr : statusAllOption.label
+                    : activeTab === "policy_exceptions"
                     ? ar ? "كافة الحالات (القائمة والمصححة والمعتمدة)" : "All (Active, Resolved & Approved)"
                     : ar ? "كل الحالات" : "All Status"}
                 </SelectItem>
-                {statusOptions.map((s) => (
+                {/* "all" is rendered above — a duplicate value="all" item makes Radix print both labels in the trigger */}
+                {statusOptions.filter((s) => s.value !== "all").map((s) => (
                   <SelectItem key={s.value} value={s.value}>{ar ? s.labelAr : s.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -555,7 +559,9 @@ export function ReportFilters({
               </SelectTrigger>
               <SelectContent className="max-h-80">
                 <SelectItem value="all">
-                  {activeTab === "policy_exceptions"
+                  {statusAllOption
+                    ? ar ? statusAllOption.labelAr : statusAllOption.label
+                    : activeTab === "policy_exceptions"
                     ? ar ? "كافة أنواع السياسات والمخالفات" : "All Policies & Violations"
                     : ar ? "كل الفئات" : "All Categories"}
                 </SelectItem>

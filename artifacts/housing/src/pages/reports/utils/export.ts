@@ -1,3 +1,4 @@
+import { SR_LOGO_TEAL } from "@/lib/sunrise-brand";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { getExportFileName, formatDate } from "@/lib/date-utils";
@@ -179,7 +180,8 @@ export const drawPdfHeader = async (
   let sysImg: { dataUrl: string; w: number; h: number } | null = null;
   let propImg: { dataUrl: string; w: number; h: number } | null = null;
 
-  if (systemLogoUrl) sysImg = await loadImgDataUrl(systemLogoUrl);
+  // System logo always top-left (falls back to the official SUNRISE logo), property logo top-right.
+  sysImg = await loadImgDataUrl(systemLogoUrl || SR_LOGO_TEAL);
   if (propLogoUrl && propLogoUrl !== systemLogoUrl)
     propImg = await loadImgDataUrl(propLogoUrl);
 
@@ -200,14 +202,14 @@ export const drawPdfHeader = async (
     doc.addImage(propImg.dataUrl, "PNG", pageW - MARGIN - w, 4, w, LOGO_H - 2);
   }
 
-  doc.setDrawColor(201, 162, 77);
+  doc.setDrawColor(42, 168, 171); // SUNRISE teal
   doc.setLineWidth(0.8);
   doc.line(MARGIN, LOGO_H + 6, pageW - MARGIN, LOGO_H + 6);
 
   const titleY = LOGO_H + 15;
   doc.setFontSize(15);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(15, 42, 68);
+  doc.setTextColor(31, 127, 129); // teal-dark
   doc.text(title, MARGIN, titleY);
 
   doc.setFontSize(8.5);

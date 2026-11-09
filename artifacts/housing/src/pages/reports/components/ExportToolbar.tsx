@@ -107,17 +107,17 @@ export function ExportToolbar({
     <div className="flex items-center gap-2 flex-wrap">
       {columnChooserElement}
 
-      {/* Unified Excel Split Button */}
-      <div className="inline-flex rounded-lg shadow-xs overflow-hidden shrink-0">
+      {/* Unified Excel Split Button (secondary, outlined) */}
+      <div className="inline-flex rounded-lg border border-[#2AA8AB]/40 overflow-hidden shrink-0">
         <Button
           variant="default"
           size="sm"
           onClick={() => handleExcelClick("all")}
           disabled={isSmartExportingXlsx}
-          className="gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold h-9 px-3.5 rounded-l-lg rtl:rounded-l-none rtl:rounded-r-lg rounded-r-none rtl:rounded-l-none border-0 transition-all cursor-pointer"
+          className="gap-2 bg-background hover:bg-[#2AA8AB]/10 text-[#1F7F81] dark:text-[#59B7A8] text-xs font-bold h-9 px-3.5 rounded-l-lg rtl:rounded-l-none rtl:rounded-r-lg rounded-r-none rtl:rounded-l-none border-0 transition-all cursor-pointer"
           title={ar ? "تصدير جميع النتائج كملف Excel (الافتراضي)" : "Export all results to Excel (.xlsx)"}
         >
-          <FileSpreadsheet className="w-4 h-4 text-white shrink-0" />
+          <FileSpreadsheet className="w-4 h-4 text-[#41645A] dark:text-[#59B7A8] shrink-0" />
           <span>
             {isSmartExportingXlsx
               ? (ar ? "جاري التصدير..." : "Exporting...")
@@ -130,7 +130,7 @@ export function ExportToolbar({
               variant="default"
               size="sm"
               disabled={isSmartExportingXlsx}
-              className="bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white h-9 px-1.5 rounded-r-lg rtl:rounded-r-none rtl:rounded-l-lg rounded-l-none rtl:rounded-r-none border-0 border-l rtl:border-l-0 rtl:border-r border-emerald-500/40 transition-all cursor-pointer"
+              className="bg-background hover:bg-[#2AA8AB]/10 text-[#1F7F81] dark:text-[#59B7A8] h-9 px-1.5 rounded-r-lg rtl:rounded-r-none rtl:rounded-l-lg rounded-l-none rtl:rounded-r-none border-0 border-l rtl:border-l-0 rtl:border-r border-[#2AA8AB]/40 transition-all cursor-pointer"
               title={ar ? "خيارات التصدير" : "Export options"}
             >
               <ChevronDown className="w-3.5 h-3.5" />
@@ -141,14 +141,14 @@ export function ExportToolbar({
               onClick={() => handleExcelClick("all")}
               className="text-xs font-medium cursor-pointer"
             >
-              <FileSpreadsheet className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-emerald-600" />
+              <FileSpreadsheet className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-[#41645A]" />
               <span>{ar ? "تصدير جميع النتائج (الافتراضي)" : "Export All Results (Default)"}</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleExcelClick("page")}
               className="text-xs font-medium cursor-pointer"
             >
-              <FileSpreadsheet className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-emerald-600" />
+              <FileSpreadsheet className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-[#41645A]" />
               <span>{ar ? "تصدير الصفحة الحالية فقط" : "Export Current Page Only"}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -162,7 +162,7 @@ export function ExportToolbar({
           size="sm"
           onClick={handleSmartExportCsv}
           disabled={isSmartExportingCsv}
-          className="gap-2 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 text-xs font-semibold h-9 px-3 rounded-lg shrink-0 cursor-pointer"
+          className="gap-2 text-[#1F7F81] dark:text-[#59B7A8] border-[#2AA8AB]/40 hover:bg-[#2AA8AB]/10 text-xs font-semibold h-9 px-3 rounded-lg shrink-0 cursor-pointer"
           title={ar ? "تصدير كملف CSV" : "Export as CSV"}
         >
           <Download className="w-4 h-4 shrink-0" />
@@ -174,14 +174,14 @@ export function ExportToolbar({
         </Button>
       )}
 
-      {/* Unified Print / PDF Report Split Button */}
+      {/* Unified Print / PDF Report Split Button (primary action, brand teal) */}
       <div className="inline-flex rounded-lg shadow-xs overflow-hidden shrink-0">
         <Button
           variant="default"
           size="sm"
           onClick={() => handlePdfClick("all")}
           disabled={isSmartExportingPdf}
-          className="gap-2 bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white text-xs font-bold h-9 px-3.5 rounded-l-lg rtl:rounded-l-none rtl:rounded-r-lg rounded-r-none rtl:rounded-l-none border-0 transition-all cursor-pointer"
+          className="gap-2 bg-[#2AA8AB] hover:bg-[#1F7F81] active:bg-[#1F7F81] text-white text-xs font-bold h-9 px-3.5 rounded-l-lg rtl:rounded-l-none rtl:rounded-r-lg rounded-r-none rtl:rounded-l-none border-0 transition-all cursor-pointer"
           title={ar ? "طباعة التقرير كاملاً بصيغة PDF (الافتراضي)" : "Print complete report as PDF"}
         >
           <Printer className="w-4 h-4 text-white shrink-0" />
@@ -197,7 +197,7 @@ export function ExportToolbar({
               variant="default"
               size="sm"
               disabled={isSmartExportingPdf}
-              className="bg-rose-700 hover:bg-rose-800 active:bg-rose-900 text-white h-9 px-1.5 rounded-r-lg rtl:rounded-r-none rtl:rounded-l-lg rounded-l-none rtl:rounded-r-none border-0 border-l rtl:border-l-0 rtl:border-r border-rose-500/40 transition-all cursor-pointer"
+              className="bg-[#1F7F81] hover:bg-[#196a6c] text-white h-9 px-1.5 rounded-r-lg rtl:rounded-r-none rtl:rounded-l-lg rounded-l-none rtl:rounded-r-none border-0 border-l rtl:border-l-0 rtl:border-r border-white/30 transition-all cursor-pointer"
               title={ar ? "خيارات الطباعة" : "Print options"}
             >
               <ChevronDown className="w-3.5 h-3.5" />
@@ -208,14 +208,14 @@ export function ExportToolbar({
               onClick={() => handlePdfClick("all")}
               className="text-xs font-medium cursor-pointer"
             >
-              <Printer className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-rose-600" />
+              <Printer className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-[#2AA8AB]" />
               <span>{ar ? "طباعة جميع النتائج (الافتراضي)" : "Print All Results (Default)"}</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handlePdfClick("page")}
               className="text-xs font-medium cursor-pointer"
             >
-              <Printer className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-rose-600" />
+              <Printer className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-[#2AA8AB]" />
               <span>{ar ? "طباعة الصفحة الحالية فقط" : "Print Current Page Only"}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
