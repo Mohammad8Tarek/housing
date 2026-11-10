@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requirePermission } from "../middlewares/permissions.js";
 import { sanitizeFields } from "../lib/sanitize.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams } from "../validation/schemas.js";
 
 const router = Router();
 
@@ -100,6 +102,7 @@ router.post(
 router.put(
   "/portal-contacts/:id",
   requirePermission("portal_content", "edit"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -156,6 +159,7 @@ router.put(
 router.delete(
   "/portal-contacts/:id",
   requirePermission("portal_content", "delete"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

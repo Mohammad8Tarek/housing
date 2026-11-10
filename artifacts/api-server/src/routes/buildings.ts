@@ -5,6 +5,8 @@ import { CreateBuildingBody, UpdateBuildingBody, UpdateBuildingParams, DeleteBui
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery, IdParams } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -18,6 +20,7 @@ router.get(
     ["maintenance", "view"],
     ["reports", "view"],
   ),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -171,6 +174,7 @@ router.post(
 router.patch(
   "/buildings/:id",
   requirePermission("housing", "edit"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -249,6 +253,7 @@ router.patch(
 router.delete(
   "/buildings/:id",
   requirePermission("housing", "delete"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);

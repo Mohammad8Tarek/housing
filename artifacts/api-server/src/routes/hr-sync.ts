@@ -63,6 +63,8 @@ const router: Router = Router();
 import { syncEmployeeAccommodationLifecycle } from "../lib/hr-sync/lifecycle.js";
 import { processReceive } from "../lib/hr-sync/process-receive.js";
 import { buildMockHrFeed } from "../lib/hr-sync/mock-feed.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery, ProfileCodeParams } from "../validation/schemas.js";
 
 // ============================================================================
 // GET /api/hr-sync/config — Get HR sync config for current property
@@ -311,7 +313,8 @@ router.put(
 // POST /api/hr-sync/receive — Receive profile data pushed from HR system
 // Body: { propertyId, profiles: [...], mapping?: {...}, ...options }
 // ============================================================================
-router.post("/receive", async (req, res): Promise<void> => {
+router.post("/receive", validate({ query: CommonListQuery }),
+  async (req, res): Promise<void> => {
   const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
   const providedKey = String(req.headers["x-api-key"] || "").trim();
   const isAdmin = Boolean((req as any).session?.userId);
@@ -669,7 +672,8 @@ router.post(
 // ============================================================================
 // GET /api/hr-sync/mock-feed — Realistic Mock API feed for testing multi-hotel sync
 // ============================================================================
-router.get("/mock-feed", (req, res): void => {
+router.get("/mock-feed", validate({ query: CommonListQuery }),
+  (req, res): void => {
   const hotel = String(req.query.hotel || "all").toLowerCase();
   const testUpgrade = req.query.test_casual_upgrade === "true";
 
@@ -691,7 +695,8 @@ router.get("/mock-feed", (req, res): void => {
 // POST /api/hr-sync/notify-vacation — Direct Vacation Start or Return Webhook
 // Body: { propertyId, profileId, type: "START"|"RETURN", startDate?, endDate?, notes? }
 // ============================================================================
-router.post("/notify-vacation", async (req, res): Promise<void> => {
+router.post("/notify-vacation", validate({ query: CommonListQuery }),
+  async (req, res): Promise<void> => {
   const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
   const providedKey = String(req.headers["x-api-key"] || "").trim();
   if (expectedKey) {
@@ -830,7 +835,8 @@ router.post("/notify-vacation", async (req, res): Promise<void> => {
 // POST /api/hr-sync/notify-departure — HR system notifies termination/departure
 // Body: { propertyId, profileId, departureDate?, reason? }
 // ============================================================================
-router.post("/notify-departure", async (req, res): Promise<void> => {
+router.post("/notify-departure", validate({ query: CommonListQuery }),
+  async (req, res): Promise<void> => {
   try {
     const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
     const providedKey = String(req.headers["x-api-key"] || "").trim();
@@ -955,6 +961,7 @@ router.post("/notify-departure", async (req, res): Promise<void> => {
 router.get(
   "/logs",
   requireAnyPermission(["hr_sync", "view"], ["settings", "view"]),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -975,7 +982,8 @@ router.get(
 // ============================================================================
 // GET /api/hr-sync/profiles/:profileId — Full profile data for HR system
 // ============================================================================
-router.get("/profiles/:profileId", async (req, res): Promise<void> => {
+router.get("/profiles/:profileId", validate({ params: ProfileCodeParams }),
+  async (req, res): Promise<void> => {
   const expectedKey = process.env["HR_SYNC_API_KEY"];
   const providedKey = req.headers["x-api-key"];
   const isAdmin = Boolean((req as any).session?.userId);
@@ -1015,7 +1023,7 @@ router.get("/profiles/:profileId", async (req, res): Promise<void> => {
     const [profile] = await tenantDb
       .select()
       .from(profilesTable)
-      .where(eq(profilesTable.profileId, profileId));
+      .where(eq(profilesTable.profileId, String(profileId)));
 
     if (!profile) {
       res.status(404).json({ success: false, error: "Profile not found" });
@@ -1114,6 +1122,7 @@ router.get(
     ["hr_sync", "edit"],
     ["accommodation", "create"],
   ),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);

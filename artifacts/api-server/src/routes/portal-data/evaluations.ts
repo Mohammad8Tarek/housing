@@ -4,6 +4,8 @@ import { profilesTable, propertyHousingRatingsTable, propertyHousingPulseConfigT
 import { eq, and, desc, sql, inArray, or, isNull, gte, isNotNull } from "drizzle-orm";
 import { portalSession } from "../portal-auth/shared.js";
 import { logActivity } from "../../lib/activity-logger.js";
+import { validate } from "../../middlewares/validate.js";
+import { IdParams } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -140,7 +142,8 @@ router.get("/my-evaluations", async (req, res): Promise<void> => {
 });
 
 // Profile submits multi-item responses to an evaluation
-router.post("/my-evaluations/:id/respond", async (req, res): Promise<void> => {
+router.post("/my-evaluations/:id/respond", validate({ params: IdParams }),
+  async (req, res): Promise<void> => {
   try {
     const sess = portalSession(req)!;
     if (!sess) {

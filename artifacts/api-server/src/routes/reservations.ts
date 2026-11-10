@@ -9,6 +9,8 @@ import { broadcastToProperty } from "../lib/websocket.js";
 import { sendCheckInWhatsAppNotification, sendReservationConfirmationWhatsApp } from "../lib/whatsapp-engine.js";
 import { findReservationAcrossAllProperties } from "../lib/cross-property-service.js";
 import { buildReservationSearchConditions } from "../lib/search-helper.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery, IdParams } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -45,6 +47,7 @@ function cleanText(value: unknown, max = 250): string {
 router.get(
   "/reservations",
   requirePermission("reservations", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res) => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -413,6 +416,7 @@ router.post(
 router.get(
   "/reservations/:id",
   requirePermission("reservations", "view"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -459,6 +463,7 @@ router.get(
 router.patch(
   "/reservations/:id",
   requirePermission("reservations", "edit"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -556,6 +561,7 @@ router.patch(
 router.delete(
   "/reservations/:id",
   requirePermission("reservations", "delete"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -628,6 +634,7 @@ router.delete(
 router.post(
   "/reservations/:id/checkin",
   requireAnyPermission(["reservations", "checkin"], ["reservations", "edit"]),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const params = CheckinReservationParams.safeParse(req.params);
@@ -961,6 +968,7 @@ router.patch(
     ["accommodation", "checkout"],
     ["accommodation", "edit"]
   ),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const id = parseInt(req.params.id as string);
@@ -1172,6 +1180,7 @@ router.post("/reservations/:id/cancel", requirePermission("reservations", "edit"
 router.post(
   "/reservations/:id/send-whatsapp",
   requirePermission("reservations", "view"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);

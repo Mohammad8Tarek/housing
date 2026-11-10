@@ -8,6 +8,8 @@ import {
 } from "@workspace/db";
 import { eq, and, lte, gte, isNull, sql } from "drizzle-orm";
 import { requireAuth, hasPermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -20,6 +22,7 @@ function can(authUser: any, module: string, action: string): boolean {
 router.get(
   "/notifications",
   requireAuth,
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const { propertyId } = req.query as Record<string, string>;
     const pid = propertyId ? parseInt(propertyId) : null;

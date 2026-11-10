@@ -13,11 +13,14 @@ import { z } from "zod";
 import QRCode from "qrcode";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { logActivity } from "../lib/activity-logger.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery } from "../validation/schemas.js";
 
 const router: Router = Router();
 
 // ─── 1. Get Room Info (Public) ──────────────────────────────────
-router.get("/public/room-info", async (req, res): Promise<void> => {
+router.get("/public/room-info", validate({ query: CommonListQuery }),
+  async (req, res): Promise<void> => {
   try {
     const propertyId = Number(req.query.propertyId || req.query.p);
     const roomId = Number(req.query.roomId || req.query.r);
@@ -241,7 +244,8 @@ router.post("/public/room-request", async (req, res): Promise<void> => {
 });
 
 // ─── 3. Generate QR Code Image / Data URL (Public or Admin) ────
-router.get("/public/room-qr", async (req, res): Promise<void> => {
+router.get("/public/room-qr", validate({ query: CommonListQuery }),
+  async (req, res): Promise<void> => {
   try {
     const propertyId = Number(req.query.propertyId || req.query.p);
     const roomId = Number(req.query.roomId || req.query.r);

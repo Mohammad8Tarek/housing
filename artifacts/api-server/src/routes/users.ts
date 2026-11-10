@@ -15,6 +15,8 @@ import { logActivity } from "../lib/activity-logger.js";
 import { requireAuth, requirePermission, hasPermission, loadAuthUser, effectivePermissions, normalizePermission, invalidateAuthUserCache } from "../middlewares/permissions.js";
 import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
 import { getPasswordPolicy, validatePassword } from "../lib/password-policy.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery, IdParams } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -169,6 +171,7 @@ function requireUserUpdatePermission(req: any, res: any, next: any): void {
 router.get(
   "/users",
   requirePermission("users", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const authUser = (req as any).authUser;
     const isSystemAdmin = (req.session as any)?.isSystemAdmin || Boolean(authUser?.isSystemAdmin);
@@ -383,6 +386,7 @@ router.get(
 router.get(
   "/users/:id",
   requirePermission("users", "view"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
@@ -537,6 +541,7 @@ router.post(
 router.patch(
   "/users/:id",
   requireUserUpdatePermission,
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const params = UpdateUserParams.safeParse(req.params);
     if (!params.success) {
@@ -717,6 +722,7 @@ router.patch(
 router.post(
   "/users/:id/unlock",
   requirePermission("users", "unlock"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const id = Number(req.params.id);
     if (!id) {
@@ -770,6 +776,7 @@ router.post(
 router.delete(
   "/users/:id",
   requirePermission("users", "delete"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const params = DeleteUserParams.safeParse(req.params);
     if (!params.success) {

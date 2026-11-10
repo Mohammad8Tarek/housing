@@ -3,12 +3,15 @@ import { db, withTenant, activityLogsTable, propertiesTable } from "@workspace/d
 import { eq, desc, or, and, SQL, sql } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions.js";
 import { getTenantId } from "../lib/request-utils.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery } from "../validation/schemas.js";
 
 const router: Router = Router();
 
 router.get(
   "/activity-logs",
   requirePermission("activity_log", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     try {
       const rawPropertyId = req.query.propertyId as string | undefined;
@@ -219,6 +222,7 @@ router.get(
 router.get(
   "/activity-logs/security",
   requirePermission("activity_log", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

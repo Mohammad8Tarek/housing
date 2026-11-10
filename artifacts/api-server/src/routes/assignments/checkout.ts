@@ -8,6 +8,8 @@ import { broadcastToProperty } from "../../lib/websocket.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
 import { findAssignmentAcrossAllProperties } from "../../lib/cross-property-service.js";
 import { fmtAssignment } from "./shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { IdParams } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -15,6 +17,7 @@ const router: Router = Router();
 router.post(
   "/assignments/:id/checkout",
   requireAnyPermission(["accommodation", "checkout"], ["accommodation", "edit"]),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
 

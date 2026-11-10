@@ -17,6 +17,8 @@ import { logActivity } from "../lib/activity-logger.js";
 import { requirePermission } from "../middlewares/permissions.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
 import { getTenantId } from "../lib/request-utils.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -243,6 +245,7 @@ const UpdateItemsSchema = z.object({
 router.put(
   "/evaluations/:id/items",
   requirePermission("evaluations", "edit"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -432,6 +435,7 @@ router.get(
 router.get(
   "/evaluations/:id/responses",
   requirePermission("evaluations", "view"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -550,6 +554,7 @@ router.get(
 router.delete(
   "/evaluations/:id",
   requirePermission("evaluations", "delete"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);

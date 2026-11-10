@@ -15,6 +15,8 @@ import { z } from "zod";
 import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { stripHtml } from "../lib/sanitize.js";
+import { validate } from "../middlewares/validate.js";
+import { FeedbackContentParams, IdParams } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -52,7 +54,8 @@ const FeedbackSchema = z.object({
 });
 
 // ─── GET /:contentType/:contentId — جلب كل التعليقات والتقييم لمحتوى ─────
-router.get("/:contentType/:contentId", async (req, res, next) => {
+router.get("/:contentType/:contentId", validate({ params: FeedbackContentParams }),
+  async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
     const { contentType, contentId } = req.params;
@@ -65,7 +68,7 @@ router.get("/:contentType/:contentId", async (req, res, next) => {
         .from(portalFeedbackTable)
         .where(
           and(
-            eq(portalFeedbackTable.contentType, contentType),
+            eq(portalFeedbackTable.contentType, String(contentType)),
             eq(portalFeedbackTable.contentId, cid),
           ),
         );
@@ -99,7 +102,7 @@ router.get("/:contentType/:contentId", async (req, res, next) => {
         )
         .where(
           and(
-            eq(portalCommentsTable.contentType, contentType),
+            eq(portalCommentsTable.contentType, String(contentType)),
             eq(portalCommentsTable.contentId, cid),
             isNull(portalCommentsTable.parentCommentId),
           ),
@@ -126,7 +129,7 @@ router.get("/:contentType/:contentId", async (req, res, next) => {
         )
         .where(
           and(
-            eq(portalCommentsTable.contentType, contentType),
+            eq(portalCommentsTable.contentType, String(contentType)),
             eq(portalCommentsTable.contentId, cid),
             isNotNull(portalCommentsTable.parentCommentId),
           ),
@@ -296,7 +299,8 @@ router.post("/comments", async (req, res, next) => {
 });
 
 // ─── DELETE /comments/:id — حذف تعليق ───────────────────────────────────
-router.delete("/comments/:id", async (req, res, next): Promise<any> => {
+router.delete("/comments/:id", validate({ params: IdParams }),
+  async (req, res, next): Promise<any> => {
   try {
     const sess = portalSession(req)!;
     const id = Number(req.params.id);
@@ -354,7 +358,8 @@ router.delete("/comments/:id", async (req, res, next): Promise<any> => {
 });
 
 // ─── POST /comments/:id/like — إعجاب/إلغاء إعجاب ────────────────────────
-router.post("/comments/:id/like", async (req, res, next) => {
+router.post("/comments/:id/like", validate({ params: IdParams }),
+  async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
     const id = Number(req.params.id);

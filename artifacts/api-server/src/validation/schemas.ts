@@ -431,3 +431,39 @@ export const DashboardHorizonQuery = z
   .passthrough();
 
 export const AnalyticsDaysQuery = z.object({ days: z.coerce.number().int().min(1).max(365).default(30) }).passthrough();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Route-parameter and list-query guards (AGENTS.md Rule 2, layer 3).
+// Values stay strings — handlers keep parsing them as before — but malformed
+// input is rejected with a bilingual 400 instead of reaching SQL as NaN.
+// ─────────────────────────────────────────────────────────────────────────────
+const numericIdParam = z.string().regex(/^[1-9]\d{0,9}$/, "must be a positive integer");
+const numericParams = <K extends string>(...keys: K[]) =>
+  z.object(Object.fromEntries(keys.map((k) => [k, numericIdParam])) as Record<K, typeof numericIdParam>).passthrough();
+
+export const IdParams = numericParams("id");
+export const RoomIdParams = numericParams("roomId");
+export const IdCompanionIdParams = numericParams("id", "companionId");
+/** Hosting requests accept the numeric id or the request number (e.g. "HR-2026-0001"). */
+export const RequestRefParams = z.object({ id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/) }).passthrough();
+/** BullMQ job ids. */
+export const JobIdParams = z.object({ id: z.string().regex(/^[\w:.-]{1,128}$/) }).passthrough();
+/** Employee/profile codes (alphanumeric codes, not database ids). */
+export const ProfileCodeParams = z.object({ profileId: z.string().min(1).max(100) }).passthrough();
+export const ClockNumberParams = z.object({ clockNumber: z.string().min(1).max(100) }).passthrough();
+export const FeedbackContentParams = z
+  .object({
+    contentType: z.enum(["activity", "evaluation", "document", "accommodation", "services"]),
+    contentId: z.string().regex(/^\d{1,10}$/, "must be a non-negative integer"),
+  })
+  .passthrough();
+
+const digitsQuery = z.string().regex(/^\d{1,6}$/, "must be a whole number");
+/** Common list-query keys; any other key passes through untouched for the handler. */
+export const CommonListQuery = z
+  .object({
+    page: digitsQuery.optional(),
+    limit: digitsQuery.optional(),
+    search: z.string().max(200).optional(),
+  })
+  .passthrough();

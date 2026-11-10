@@ -9,6 +9,8 @@ import {
 import { getTenantId } from "../../lib/request-utils.js";
 import { buildProfileSearchConditions, buildAssignmentSearchConditions } from "../../lib/search-helper.js";
 import { resolveProfileTenant, filterSensitive } from "./shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { CommonListQuery, IdParams } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -18,6 +20,7 @@ const router: Router = Router();
 router.get(
   "/profiles",
   requirePermission("profiles", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res) => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -143,6 +146,7 @@ router.get(
 router.get(
   "/profiles/search",
   requirePermission("profiles", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const { q = "", propertyId } = req.query as Record<string, string>;
     const conditions: SQL[] = [];
@@ -251,6 +255,7 @@ router.get(
 router.get(
   "/profiles/check-duplicate",
   requirePermission("profiles", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -404,6 +409,7 @@ router.get(
 router.get(
   "/profiles/:id",
   requirePermission("profiles", "view"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const params = GetProfileParams.safeParse(req.params);
     if (!params.success) {
@@ -521,6 +527,7 @@ router.get(
 router.get(
   "/profiles/:id/photo",
   requirePermission("profiles", "view"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const id = Number(req.params.id);

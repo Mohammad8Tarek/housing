@@ -9,6 +9,8 @@ import { broadcastToProperty } from "../lib/websocket.js";
 import { syncRoomFeaturesToInventory } from "./room-inventory.js";
 import { findProfileAcrossAllProperties, findRoomAcrossAllProperties } from "../lib/cross-property-service.js";
 import { buildRoomSearchConditions } from "../lib/search-helper.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams, CommonListQuery } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -23,6 +25,7 @@ router.get(
     ["maintenance", "view"],
     ["reports", "view"],
   ),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -135,6 +138,7 @@ router.get(
     ["maintenance", "view"],
     ["reports", "view"],
   ),
+  validate({ query: CommonListQuery }),
   async (req, res) => {
   try {
     const propertyId = getTenantId(req);
@@ -237,6 +241,7 @@ router.get(
     ["maintenance", "view"],
     ["reports", "view"],
   ),
+  validate({ query: CommonListQuery }),
   async (req, res) => {
     try {
       const propertyId = getTenantId(req);
@@ -350,6 +355,7 @@ router.get(
 router.get(
   "/rooms/:id/history",
   requirePermission("housing", "view"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       const id = parseInt(req.params.id as string);
@@ -613,6 +619,7 @@ router.get(
     ["maintenance", "view"],
     ["reports", "view"],
   ),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -656,6 +663,7 @@ router.get(
 router.patch(
   "/rooms/:id",
   requireAnyPermission(["housing", "edit"], ["housekeeping", "edit"]),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -899,6 +907,7 @@ router.patch(
 router.patch(
   "/rooms/:id/features",
   requirePermission("housing", "edit"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -985,6 +994,7 @@ router.patch(
       next(err);
     }
   },
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -1190,6 +1200,7 @@ router.post(
 router.delete(
   "/rooms/:id",
   requirePermission("housing", "delete"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);

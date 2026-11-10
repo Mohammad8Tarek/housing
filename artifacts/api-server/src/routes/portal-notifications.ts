@@ -15,6 +15,8 @@ import { broadcastToProperty } from "../lib/websocket.js";
 import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { sendPushToProperty } from "./push-notifications.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -113,7 +115,8 @@ router.get("/my", requirePortalAuth, async (req, res, next) => {
 });
 
 // PUT /portal-notifications/read/:id — تحديد إشعار كمقروء
-router.put("/read/:id", requirePortalAuth, async (req, res, next) => {
+router.put("/read/:id", requirePortalAuth, validate({ params: IdParams }),
+  async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
     const notifId = Number(req.params.id);
@@ -255,7 +258,8 @@ router.post("/", requirePermission("portal_notifications", "create"), async (req
 });
 
 // DELETE /:id — حذف إشعار
-router.delete("/:id", requirePermission("portal_notifications", "delete"), async (req, res, next): Promise<any> => {
+router.delete("/:id", requirePermission("portal_notifications", "delete"), validate({ params: IdParams }),
+  async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     const userId = (req.session as any)?.userId;

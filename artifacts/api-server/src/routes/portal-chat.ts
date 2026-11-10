@@ -17,6 +17,8 @@ import {
 } from "../lib/websocket.js";
 import { getTenantId } from "../lib/request-utils.js";
 import { sendPushToProfiles } from "./push-notifications.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams, CommonListQuery } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -239,6 +241,7 @@ function setTyping(convId: number, profileId: number) {
 router.get(
   "/conversations/:id/messages",
   requirePortalAuth,
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const sess = portalSession(req)!;
@@ -342,6 +345,7 @@ router.get(
 router.post(
   "/conversations/:id/messages",
   requirePortalAuth,
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const sess = portalSession(req)!;
@@ -440,6 +444,7 @@ router.post(
 router.put(
   "/conversations/:id/read",
   requirePortalAuth,
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const sess = portalSession(req)!;
@@ -503,6 +508,7 @@ router.put(
 router.post(
   "/conversations/:id/typing",
   requirePortalAuth,
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const sess = portalSession(req)!;
@@ -554,6 +560,7 @@ router.get("/admin/conversations", requirePermission("portal_content", "view"), 
 router.get(
   "/admin/conversations/:id/messages",
   requirePermission("portal_content", "view"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -610,6 +617,7 @@ router.get(
 router.post(
   "/admin/conversations/:id/messages",
   requirePermission("portal_content", "create"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -655,7 +663,8 @@ router.post(
 );
 
 // DELETE /portal-chat/admin/messages/:id — حذف رسالة (moderation)
-router.delete("/admin/messages/:id", requirePermission("portal_content", "delete"), async (req, res, next) => {
+router.delete("/admin/messages/:id", requirePermission("portal_content", "delete"), validate({ params: IdParams }),
+  async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const id = Number(req.params.id);
@@ -699,7 +708,8 @@ router.get("/admin/stats", requirePermission("portal_content", "view"), async (r
 });
 
 // GET /portal-chat/employees — بحث زملاء العمل للشات
-router.get("/employees", requirePortalAuth, async (req, res, next) => {
+router.get("/employees", requirePortalAuth, validate({ query: CommonListQuery }),
+  async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
     const search = ((req.query.search as string) || "").trim();

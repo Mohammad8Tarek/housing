@@ -4,6 +4,8 @@ import { logActivity } from "../../lib/activity-logger.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { getPropertySignaturePolicy, CreateFamilyVisitBody, su, ensureProfileInTargetSchema, resolveRequestId, canAccessProperty, generateRequestNumber, getRequestWithSteps } from "./shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { RequestRefParams } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -220,6 +222,7 @@ router.post(
 router.post(
   "/hosting-requests/:id/create-guest-hosting",
   requirePermission("hosting_requests", "create"),
+  validate({ params: RequestRefParams }),
   async (req, res): Promise<void> => {
     const user = su(req);
     try {

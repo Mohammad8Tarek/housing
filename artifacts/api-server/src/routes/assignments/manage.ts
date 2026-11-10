@@ -7,6 +7,8 @@ import { requirePermission, requireAnyPermission } from "../../middlewares/permi
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
 import { fmtAssignment, findPropertyByAssignmentId } from "./shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { IdParams } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -14,6 +16,7 @@ const router: Router = Router();
 router.patch(
   "/assignments/:id",
   requireAnyPermission(["accommodation", "edit"], ["accommodation", "create"]),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
 
@@ -94,6 +97,7 @@ router.patch(
 router.delete(
   "/assignments/:id",
   requirePermission("accommodation", "delete"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const assignmentId = parseInt(String(req.params.id), 10);

@@ -4,6 +4,8 @@ import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { asyncHandler } from "../lib/async-handler.js";
 import { z } from "zod";
 import fs from "node:fs";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery, JobIdParams } from "../validation/schemas.js";
 
 const router = Router();
 
@@ -21,6 +23,7 @@ const enqueueExportSchema = z.object({
 router.post(
   "/export",
   requirePermission("reports", "export"),
+  validate({ query: CommonListQuery }),
   asyncHandler(async (req, res) => {
     const body = enqueueExportSchema.parse(req.body);
     // @ts-ignore — session typings
@@ -58,6 +61,7 @@ router.post(
 // ─── GET /jobs/:id/status — Poll job progress ─────────────────
 router.get(
   "/:id/status",
+  validate({ params: JobIdParams }),
   asyncHandler(async (req, res) => {
     if (!exportQueue) {
       return res.status(503).json({
@@ -118,6 +122,7 @@ router.get(
 // ─── GET /jobs/:id/download — Download completed export ───────
 router.get(
   "/:id/download",
+  validate({ params: JobIdParams }),
   asyncHandler(async (req, res) => {
     if (!exportQueue) {
       return res.status(503).json({

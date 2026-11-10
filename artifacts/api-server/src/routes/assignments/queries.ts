@@ -7,6 +7,8 @@ import { getTenantId } from "../../lib/request-utils.js";
 import { findProfileAcrossAllProperties } from "../../lib/cross-property-service.js";
 import { buildAssignmentSearchConditions } from "../../lib/search-helper.js";
 import { fmtAssignment } from "./shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { CommonListQuery } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -14,6 +16,7 @@ const router: Router = Router();
 router.get(
   "/assignments/in-house",
   requirePermission("accommodation", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -172,6 +175,7 @@ router.get(
 router.get(
   "/assignments/history",
   requirePermission("accommodation", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -327,6 +331,7 @@ router.get(
 router.get(
   "/assignments",
   requirePermission("accommodation", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

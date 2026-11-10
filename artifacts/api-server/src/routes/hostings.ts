@@ -6,6 +6,8 @@ import { logActivity } from "../lib/activity-logger.js";
 import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { findHostingAcrossAllProperties } from "../lib/cross-property-service.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery, IdParams, IdCompanionIdParams } from "../validation/schemas.js";
 
 const router: Router = Router();
 const MAX_DOCUMENT_IMAGE_LENGTH = 7 * 1024 * 1024;
@@ -120,6 +122,7 @@ async function fetchCompanions(tenantDb: any, hostingId: number) {
 router.get(
   "/hostings",
   requirePermission("guest_hosting", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -384,6 +387,7 @@ router.post(
 router.get(
   "/hostings/:id",
   requirePermission("guest_hosting", "view"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const hostingId = parseInt(req.params.id as string);
@@ -493,6 +497,7 @@ router.get(
 router.patch(
   "/hostings/:id",
   requirePermission("guest_hosting", "edit"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     try {
@@ -598,6 +603,7 @@ router.patch(
 router.delete(
   "/hostings/:id",
   requirePermission("guest_hosting", "delete"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const params = DeleteHostingParams.safeParse(req.params);
@@ -663,6 +669,7 @@ router.delete(
 router.post(
   "/hostings/:id/approve",
   requirePermission("guest_hosting", "approve"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     try {
@@ -760,6 +767,7 @@ router.post(
 router.post(
   "/hostings/:id/checkin",
   requireAnyPermission(["guest_hosting", "checkin"], ["guest_hosting", "edit"]),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     try {
@@ -918,6 +926,7 @@ router.post(
     ["accommodation", "checkout"],
     ["accommodation", "edit"]
   ),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     try {
@@ -1039,6 +1048,7 @@ router.post(
 router.get(
   "/hostings/:id/companions",
   requirePermission("guest_hosting", "view"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -1066,6 +1076,7 @@ router.get(
 router.post(
   "/hostings/:id/companions",
   requirePermission("guest_hosting", "create"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -1105,6 +1116,7 @@ router.post(
 router.delete(
   "/hostings/:id/companions/:companionId",
   requirePermission("guest_hosting", "delete"),
+  validate({ params: IdCompanionIdParams }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

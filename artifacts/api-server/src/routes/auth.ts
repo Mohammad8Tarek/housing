@@ -11,6 +11,8 @@ import { getPasswordPolicy, validatePassword, checkPasswordHistory, recordPasswo
 import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
 import { formatZodError } from "../utils/error-response.js";
 import { createWsAuthToken } from "../lib/ws-auth-token.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -255,7 +257,8 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/auth/ws-token", (req, res): void => {
+router.get("/auth/ws-token", validate({ query: CommonListQuery }),
+  (req, res): void => {
   const session = req.session as any;
   const userId = Number(session?.userId);
   const sessionPropertyId = Number(session?.propertyId);
