@@ -429,15 +429,7 @@ export function downloadLookupTemplate(
       : (ar ? "نموذج_استيراد_المسميات_والاقسام.xlsx" : "job_titles_template.xlsx");
 
   XLSX.writeFile(wb, filename, { bookType: format });
-}
-
-/**
- * Backward compatibility alias for downloadLookupTemplate("job_title", format, language)
- */
-export function downloadJobTitlesTemplate(format: "xlsx" | "csv" = "xlsx", language: "ar" | "en" = "ar") {
-  return downloadLookupTemplate("job_title", format, language);
-}
-/**
+}/**
  * Intelligently identifies matching column in a row object
  */
 function findValueByAliases(row: Record<string, any>, aliases: string[]): string {

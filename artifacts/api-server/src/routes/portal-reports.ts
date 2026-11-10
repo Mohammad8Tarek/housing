@@ -8,7 +8,7 @@ import {
   surveyItemResponsesTable,
   activityRegistrationsTable,
 } from "@workspace/db";
-import { eq, inArray, isNull } from "drizzle-orm";
+import { inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { logActivity } from "../lib/activity-logger.js";

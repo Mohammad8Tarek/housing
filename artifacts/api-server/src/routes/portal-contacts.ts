@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { db, withTenant, portalContactsTable } from "@workspace/db";
+import { withTenant, portalContactsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requirePermission } from "../middlewares/permissions.js";
+import { requirePermission } from "../middlewares/permissions.js";
 import { sanitizeFields } from "../lib/sanitize.js";
 
 const router = Router();

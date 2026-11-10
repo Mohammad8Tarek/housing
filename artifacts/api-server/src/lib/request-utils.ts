@@ -1,4 +1,3 @@
-import type { Request } from "express";
 
 export function getTenantId(req: any): number {
   return (

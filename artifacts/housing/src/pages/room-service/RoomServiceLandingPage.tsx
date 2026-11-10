@@ -1,34 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import {
-  Wrench,
-  Brush,
-  CheckCircle2,
-  AlertCircle,
-  Building,
-  Layers,
-  Phone,
-  User,
-  Camera,
-  X,
-  Clock,
-  Sparkles,
-  Droplets,
-  Zap,
-  Snowflake,
-  Hammer,
-  Tv,
-  Paintbrush,
-  HelpCircle,
-  BedDouble,
-  Sparkle,
-  Trash2,
-  Bug,
-  Shirt,
-  Send,
-  Loader2,
-  Languages,
-} from "lucide-react";
+import { Wrench, Brush, CheckCircle2, AlertCircle, Phone, User, Camera, X, Clock, Sparkles, Droplets, Zap, Snowflake, Hammer, Tv, Paintbrush, HelpCircle, BedDouble, Trash2, Bug, Shirt, Send, Loader2, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, withTenant, portalDocumentsTable } from "@workspace/db";
+import { withTenant, portalDocumentsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { requirePermission } from "../middlewares/permissions.js";

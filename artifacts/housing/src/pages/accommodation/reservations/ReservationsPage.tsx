@@ -39,7 +39,7 @@ import { exportExcel } from "@/pages/reports/utils/export";
 import { Plus, CalendarDays } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
-import { type ProfileResult, getBedOptions } from "../shared/profile-search";
+import { getBedOptions } from "../shared/profile-search";
 import type { CancelDialogState, EditDialogState, EditFormState, WhatsAppDialogState } from "./types";
 import { RES_COLS, getStatusLabel, statusColor, isRoomBookable, makeEmptyNewForm } from "./utils";
 import { useNewProfileForm } from "./hooks/useNewProfileForm";

@@ -8,16 +8,14 @@ import {
   profilesTable,
 } from "@workspace/db";
 import { eq, and, desc, asc, inArray, sql, not, or, ilike } from "drizzle-orm";
-import { z } from "zod";
-import { requireAuth, requirePermission } from "../middlewares/permissions.js";
-import { requirePortalAuth, portalSession } from "./portal-auth.js";
+import { requirePermission } from "../middlewares/permissions.js";
+import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import {
   broadcastToProperty,
   getOnlineEmployeeIds,
   getAllEmployeeLastSeen,
 } from "../lib/websocket.js";
-import { logActivity } from "../lib/activity-logger.js";
-import { getTenantId, su } from "../lib/request-utils.js";
+import { getTenantId } from "../lib/request-utils.js";
 import { sendPushToProfiles } from "./push-notifications.js";
 
 const router: Router = Router();

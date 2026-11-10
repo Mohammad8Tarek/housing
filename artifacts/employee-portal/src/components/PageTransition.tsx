@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, type FC, type ReactNode } from "react";
+import { useEffect, type FC, type ReactNode } from "react";
 import { usePrefersReducedMotion } from "../hooks/useReducedMotion";
 import { useTheme } from "../lib/theme";
 import MaterialIcon from "./MaterialIcon";
@@ -156,48 +156,4 @@ interface TabTransitionProps {
   tabKey: string;
   children: ReactNode;
   distance?: number;
-}
-
-export const TabTransition: FC<TabTransitionProps> = ({
-  tabKey,
-  children,
-  distance = 12,
-}) => {
-  const reduced = usePrefersReducedMotion();
-  const { lang } = useTheme();
-  const rtl = lang === "ar";
-
-  const tabVariants = {
-    initial: {
-      opacity: 0,
-      x: rtl ? distance : -distance,
-    },
-    animate: { opacity: 1, x: 0 },
-    exit: {
-      opacity: 0,
-      x: rtl ? -distance : distance,
-    },
-  };
-
-  return (
-    <motion.div
-      key={tabKey}
-      variants={tabVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      transition={{ duration: reduced ? 0 : 0.22, ease: "easeOut" }}
-    >
-      {children}
-    </motion.div>
-  );
-};
-
-export function useSignatureTransition() {
-  const [active, setActive] = useState(false);
-  return {
-    trigger: () => setActive(true),
-    complete: () => setActive(false),
-    isActive: active,
-  };
 }

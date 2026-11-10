@@ -6,34 +6,7 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
-import {
-  HeartHandshake,
-  Star,
-  Smile,
-  Meh,
-  Frown,
-  Download,
-  Printer,
-  Calendar,
-  Building2,
-  Lock,
-  Search,
-  CheckCircle2,
-  TrendingUp,
-  MessageSquare,
-  RefreshCw,
-  Sparkles,
-  Send,
-  Settings2,
-  Bell,
-  Clock,
-  Radio,
-  Sliders,
-  AlertCircle,
-  HelpCircle,
-  FileSpreadsheet,
-  Users,
-} from "lucide-react";
+import { HeartHandshake, Star, Smile, Meh, Frown, Download, Printer, Lock, Search, TrendingUp, MessageSquare, RefreshCw, Sparkles, Send, Settings2, Bell, Clock, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

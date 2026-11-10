@@ -2,9 +2,8 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
-import { Sparkles, BedDouble, ArrowUpRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { Sparkles, BedDouble, ArrowUpRight, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
-import { cn } from "@/lib/utils";
 
 interface DirtyRoom {
   id: number;

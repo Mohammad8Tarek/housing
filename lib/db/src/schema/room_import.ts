@@ -1,6 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, index, boolean, jsonb } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
+import { pgTable, text, serial, integer, timestamp, index, jsonb } from "drizzle-orm/pg-core";
 import { roomsTable } from "./rooms";
 
 export const roomImportHistoryTable = pgTable("room_import_history", {

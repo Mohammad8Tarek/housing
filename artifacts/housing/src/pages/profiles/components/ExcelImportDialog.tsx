@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -10,22 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  FileSpreadsheet,
-  Download,
-  Upload,
-  X,
-  CheckCircle2,
-  AlertTriangle,
-  AlertCircle,
-  Loader2,
-  Search,
-  RotateCcw,
-  Check,
-  FileDown,
-  PlusCircle,
-  RefreshCw,
-} from "lucide-react";
+import { FileSpreadsheet, Download, Upload, X, CheckCircle2, AlertTriangle, AlertCircle, Loader2, Search, RotateCcw, FileDown, PlusCircle, RefreshCw } from "lucide-react";
 import * as XLSX from "xlsx";
 
 const MAX_PROFILE_IMPORT_FILE_SIZE = 25 * 1024 * 1024;

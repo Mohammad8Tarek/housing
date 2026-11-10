@@ -1,5 +1,5 @@
 import { pool, withTenant, maintenanceTable } from "./index.js";
-import { ne, and } from "drizzle-orm";
+import { ne } from "drizzle-orm";
 
 async function main() {
   const res = await pool.query("SELECT id, name FROM public.properties");

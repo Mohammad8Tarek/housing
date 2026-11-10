@@ -1,10 +1,5 @@
 import * as React from "react";
-import {
-  formatDMY,
-  isoToDate,
-  parseDMY,
-  toISODate,
-} from "@workspace/dates";
+import { formatDMY, isoToDate, parseDMY } from "@workspace/dates";
 import MaterialIcon from "./MaterialIcon";
 
 type PortalDateInputProps = {

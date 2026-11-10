@@ -1,12 +1,5 @@
 import { Router } from "express";
-import {
-  db,
-  propertiesTable,
-  usersTable,
-  settingsTable,
-  pool,
-  invalidateSchemaCache,
-} from "@workspace/db";
+import { db, propertiesTable, usersTable, pool, invalidateSchemaCache } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {

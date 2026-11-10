@@ -3,9 +3,8 @@ import { z } from "zod/v4";
 import { pool } from "@workspace/db";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import { requireAnyPermission } from "../middlewares/permissions.js";
 import { getHotekStatus } from "../lib/pms-server.js";
-import { isIpReachable } from "../utils/ping.js";
 
 const router: Router = Router();
 

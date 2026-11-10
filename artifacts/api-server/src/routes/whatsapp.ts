@@ -1,26 +1,11 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { getTenantId } from "../lib/request-utils.js";
-import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import { requireAnyPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { safeSchemaName } from "../lib/pg-ident.js";
 import { BroadcastPreviewBody, BroadcastSendBody, WhatsAppConfigBody, WhatsAppLogsQuery, WhatsAppTestBody } from "../validation/schemas.js";
-import {
-  getWhatsAppSession,
-  connectPropertyWhatsApp,
-  disconnectPropertyWhatsApp,
-  sendWhatsAppMessageSafe,
-  executeSendHumanLike,
-  compileWhatsAppTemplate,
-  DEFAULT_WELCOME_AR,
-  DEFAULT_WELCOME_EN,
-  DEFAULT_RESERVATION_AR,
-  DEFAULT_RESERVATION_EN,
-  sendWhatsAppBroadcast,
-  BroadcastRecipient,
-  getPendingQueueCount,
-  processOutboxQueue,
-} from "../lib/whatsapp-engine.js";
+import { getWhatsAppSession, connectPropertyWhatsApp, disconnectPropertyWhatsApp, executeSendHumanLike, compileWhatsAppTemplate, DEFAULT_WELCOME_AR, DEFAULT_WELCOME_EN, DEFAULT_RESERVATION_AR, DEFAULT_RESERVATION_EN, sendWhatsAppBroadcast, BroadcastRecipient, getPendingQueueCount, processOutboxQueue } from "../lib/whatsapp-engine.js";
 
 const router = Router();
 

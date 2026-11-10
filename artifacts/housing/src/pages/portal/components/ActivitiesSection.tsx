@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -33,40 +32,8 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { useGetSettings, useUpdateSettings } from "@workspace/api-client-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import PortalDocuments from "@/components/PortalDocuments";
-import PortalAnalyticsDashboard from "@/components/PortalAnalyticsDashboard";
 
-import PortalReports from "@/components/PortalReports";
-import PortalCategoriesAndTags from "@/components/PortalCategoriesAndTags";
-import PortalFoodTransport from "@/components/PortalFoodTransport";
-import PortalChat from "@/components/PortalChat";
-import {
-  Star,
-  Plus,
-  Trash2,
-  Calendar,
-  MapPin,
-  Trophy,
-  MessageSquare,
-  Globe,
-  Mail,
-  Phone,
-  BarChart3,
-  Bell,
-  Users,
-  Shield,
-  RefreshCw,
-  CheckCircle,
-  XCircle,
-  Palette,
-  UtensilsCrossed,
-  MessageCircle,
-} from "lucide-react";
+import { Plus, Trash2, Calendar, MapPin, Globe, BarChart3, Users, RefreshCw, CheckCircle } from "lucide-react";
 
 export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void } = {}) {
   const { activePropertyId } = useProperty();

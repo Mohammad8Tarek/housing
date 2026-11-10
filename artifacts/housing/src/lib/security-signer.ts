@@ -36,56 +36,6 @@ export function encodeSecureToken(
 
   return `sec_${resourceType}_${checksum}_${hexId}`;
 }
-
-/**
- * Decodes a secure token back into its original integer ID, validating cryptographic integrity.
- * If the token has been tampered with or guessed, returns null (IDOR / Anti-Tampering defense).
- * If the input is already a valid positive integer, returns it directly (for backwards compatibility).
- */
-export function decodeSecureToken(
-  token: string | number | undefined,
-  expectedType?: string,
-): number | null {
-  if (token === undefined || token === null) return null;
-
-  // If already numeric
-  if (typeof token === "number" && !isNaN(token) && token > 0) {
-    return token;
-  }
-
-  const str = String(token).trim();
-  if (!str) return null;
-
-  // Plain numeric string fallback for legacy/direct callers
-  if (/^\d+$/.test(str)) {
-    const parsed = parseInt(str, 10);
-    return parsed > 0 ? parsed : null;
-  }
-
-  if (!str.startsWith("sec_")) {
-    return null;
-  }
-
-  const parts = str.split("_");
-  // Expected parts: ["sec", type, checksum, hexId]
-  if (parts.length !== 4) return null;
-
-  const [, type, checksum, hexId] = parts;
-  if (expectedType && type !== expectedType) return null;
-
-  const numericId = parseInt(hexId, 16);
-  if (isNaN(numericId) || numericId <= 0) return null;
-
-  const expectedData = `${type}:${numericId}`;
-  const expectedChecksum = computeSecurityChecksum(expectedData, SECURITY_SECRET);
-
-  if (checksum !== expectedChecksum) {
-    return null;
-  }
-
-  return numericId;
-}
-
 /**
  * Generates an HMAC signature for outgoing API requests
  */

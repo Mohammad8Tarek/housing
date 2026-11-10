@@ -22,23 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Camera,
-  X,
-  FileText,
-  Building,
-  Users,
-  UserPlus,
-  ShieldCheck,
-  Calendar,
-  Lock,
-  Eye,
-  AlertCircle,
-  Sparkles,
-  Languages,
-  Loader2,
-  Search,
-} from "lucide-react";
+import { Camera, X, FileText, Building, Users, UserPlus, ShieldCheck, Calendar, Lock, Eye, AlertCircle, Sparkles, Languages, Loader2 } from "lucide-react";
 import { useProperty } from "@/context/PropertyContext";
 import { transliterateToken, splitCompoundName } from "@/lib/bilingual-name-engine";
 import { translateDepartment, translateJobTitle } from "@/lib/bilingual-hospitality-dict";

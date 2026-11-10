@@ -1,20 +1,4 @@
-import {
-  db,
-  withTenant,
-  profilesTable,
-  profileDocumentsTable,
-  profileVacationsTable,
-  assignmentsTable,
-  roomsTable,
-  propertiesTable,
-  maintenanceTable,
-  roomLocksTable,
-  hostingsTable,
-  reservationsTable,
-  profilePortalAccountsTable,
-  activityRegistrationsTable,
-  evaluationsTable,
-} from "@workspace/db";
+import { db, withTenant, profilesTable, profileDocumentsTable, assignmentsTable, roomsTable, propertiesTable, hostingsTable, reservationsTable } from "@workspace/db";
 import { eq, and, or, sql, not, count } from "drizzle-orm";
 import { broadcastToProperty } from "./websocket.js";
 import { logActivity } from "./activity-logger.js";

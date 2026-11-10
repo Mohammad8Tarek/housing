@@ -1,28 +1,7 @@
 import { Router } from "express";
-import {
-  db,
-  pool,
-  withTenant,
-  roomsTable,
-  assignmentsTable,
-  profilesTable,
-  buildingsTable,
-  floorsTable,
-  hostingsTable,
-  reservationsTable,
-} from "@workspace/db";
+import { pool, withTenant, roomsTable, assignmentsTable, profilesTable, buildingsTable, floorsTable, hostingsTable, reservationsTable } from "@workspace/db";
 import { eq, and, or, desc, SQL, sql, ilike } from "drizzle-orm";
-import {
-  CreateRoomBody,
-  UpdateRoomBody,
-  GetRoomParams,
-  UpdateRoomParams,
-  DeleteRoomParams,
-  ListRoomsQueryParams,
-  ListRoomsResponse,
-  GetRoomResponse,
-  UpdateRoomResponse,
-} from "@workspace/api-zod";
+import { CreateRoomBody, UpdateRoomBody, GetRoomParams, UpdateRoomParams, ListRoomsQueryParams } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";

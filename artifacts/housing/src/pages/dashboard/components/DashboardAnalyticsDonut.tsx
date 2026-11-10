@@ -2,7 +2,7 @@ import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useLanguage } from "@/context/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BedDouble, CheckCircle2, Sparkles, Wrench, AlertCircle } from "lucide-react";
+import { BedDouble, CheckCircle2, Sparkles, Wrench } from "lucide-react";
 
 interface DonutDataProps {
   roomStatusBreakdown?: {

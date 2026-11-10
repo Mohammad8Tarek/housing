@@ -13,7 +13,6 @@ import { usePushNotifications } from "../hooks/usePushNotifications";
 import { toast } from "sonner";
 import { apiFetch, clearSessionCache } from "../lib/api";
 import { useLocation } from "wouter";
-import { Preferences } from "@capacitor/preferences";
 import { Capacitor } from "@capacitor/core";
 import MaterialIcon from "./MaterialIcon";
 import { useBiometric } from "../hooks/useBiometric";

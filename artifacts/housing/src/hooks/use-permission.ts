@@ -1,10 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
-import {
-  permKey,
-  ROLE_DEFAULT_PERMISSIONS,
-  type Module,
-  type Action,
-} from "@/lib/permissions";
+import { type Module, type Action } from "@/lib/permissions";
 
 const normalize = (value: unknown): string => {
   let val = String(value ?? "")

@@ -44,28 +44,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
-import { formatDate, getExportFileName } from "@/lib/date-utils";
+import { formatDate } from "@/lib/date-utils";
 import { DataPagination } from "@/components/DataPagination";
-import {
-  Search,
-  Building2,
-  BedDouble,
-  History,
-  FileText,
-  FileSpreadsheet,
-  Trash2,
-  Printer,
-} from "lucide-react";
+import { Search, Building2, BedDouble, History, FileSpreadsheet, Trash2, Printer } from "lucide-react";
 import {
   ColumnChooser,
   useColumnVisibility,
 } from "@/components/ui/column-chooser";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
-import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
 import { ReportPrintStudioModal } from "@/pages/reports/components/ReportPrintStudioModal";
 import type { ReportColumnConfig, ReportKpiItem } from "@/pages/reports/components/PrintableReportDocument";
-import * as XLSX from "xlsx";
 import { exportExcel as exportExcelUtil } from "@/pages/reports/utils/export";
 
 const statusBadge = (status: string) => {

@@ -1,4 +1,4 @@
-﻿import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PermissionGate } from "@/components/ui/permission-gate";
-import { Eye, Key, Pencil, Trash2, ArrowRightLeft, MoreVertical } from "lucide-react";
+import { Eye, Key, Pencil, Trash2, MoreVertical } from "lucide-react";
 import { Link } from "wouter";
 import { ProfileAvatar } from "./ProfileAvatar";
 import { StatusBadge } from "./StatusBadge";

@@ -1,13 +1,13 @@
 import { Router } from "express";
-import { db, withTenant, lookupValuesTable } from "@workspace/db";
+import { withTenant, lookupValuesTable } from "@workspace/db";
 import { eq, and, inArray } from "drizzle-orm";
 import { getTenantId } from "../lib/request-utils.js";
-import { requireAuth, requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import { requireAuth, requireAnyPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams } from "../validation/common.js";
 import { BulkLookupBody, CreateLookupBody, ListLookupQuery, UpdateLookupBody } from "../validation/schemas.js";
 import { broadcastToProperty } from "../lib/websocket.js";
-import { translateDepartment, translateJobTitle, translateLookup, hasArabic } from "../lib/bilingual-translator.js";
+import { translateLookup, hasArabic } from "../lib/bilingual-translator.js";
 
 const router: Router = Router();
 

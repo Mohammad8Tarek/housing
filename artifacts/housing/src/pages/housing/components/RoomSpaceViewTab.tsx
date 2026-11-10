@@ -1,20 +1,7 @@
 import { useState, useMemo } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLocation } from "wouter";
-import {
-  Building2,
-  Layers,
-  Search,
-  Palmtree,
-  UserPlus,
-  Sparkles,
-  Wrench,
-  AlertCircle,
-  Clock,
-  Sparkle,
-  Eye,
-  CalendarDays,
-} from "lucide-react";
+import { Building2, Search, Palmtree, UserPlus, Wrench, Eye, CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

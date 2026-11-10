@@ -8,7 +8,7 @@ import {
   roomImportTemplatesTable,
   roomBedsTable,
 } from "@workspace/db";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId } from "../lib/request-utils.js";
 import { requirePermission } from "../middlewares/permissions.js";

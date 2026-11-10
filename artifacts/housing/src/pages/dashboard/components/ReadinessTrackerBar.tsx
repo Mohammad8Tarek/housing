@@ -1,7 +1,7 @@
 import React from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { motion } from "framer-motion";
-import { CheckCircle2, BedDouble, Sparkles, Wrench, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 interface ReadinessTrackerProps {
   totalRooms: number;

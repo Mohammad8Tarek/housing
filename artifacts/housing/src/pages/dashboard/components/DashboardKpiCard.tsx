@@ -1,8 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
-import { ArrowUpRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { motion } from "framer-motion";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 interface DashboardKpiCardProps {
   title: string;

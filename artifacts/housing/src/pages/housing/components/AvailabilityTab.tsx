@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { roomStatusBadge, statusNorm, getRoomStatusLabel } from "../utils";
+import { roomStatusBadge, getRoomStatusLabel } from "../utils";
 
 import { useListRooms } from "@workspace/api-client-react";
 

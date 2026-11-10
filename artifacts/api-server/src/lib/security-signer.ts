@@ -89,20 +89,6 @@ export function decodeSecureToken(
 
   return numericId;
 }
-
-/**
- * Generates an HMAC signature for outgoing API requests
- */
-export function generateRequestSignature(
-  method: string,
-  path: string,
-  timestamp: number = Date.now(),
-): string {
-  const payload = `${method.toUpperCase()}:${path}:${timestamp}`;
-  const signature = computeSecurityChecksum(payload, SECURITY_SECRET);
-  return `t=${timestamp},v1=${signature}`;
-}
-
 /**
  * Verifies request signature from HTTP headers
  */

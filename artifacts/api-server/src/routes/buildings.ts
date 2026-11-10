@@ -1,15 +1,7 @@
 import { Router } from "express";
-import { db, withTenant, buildingsTable } from "@workspace/db";
+import { withTenant, buildingsTable } from "@workspace/db";
 import { eq, and, ilike, sql, SQL, asc } from "drizzle-orm";
-import {
-  CreateBuildingBody,
-  UpdateBuildingBody,
-  UpdateBuildingParams,
-  DeleteBuildingParams,
-  ListBuildingsQueryParams,
-  ListBuildingsResponse,
-  UpdateBuildingResponse,
-} from "@workspace/api-zod";
+import { CreateBuildingBody, UpdateBuildingBody, UpdateBuildingParams, DeleteBuildingParams, UpdateBuildingResponse } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";

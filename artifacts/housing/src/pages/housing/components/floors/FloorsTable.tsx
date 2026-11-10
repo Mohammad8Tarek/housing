@@ -1,4 +1,4 @@
-import { Plus, ChevronRight, Layers, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, Layers, Pencil, Trash2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";

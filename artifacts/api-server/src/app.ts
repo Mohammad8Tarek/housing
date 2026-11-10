@@ -8,12 +8,7 @@
  */
 
 import "./env.js";
-import express, {
-  type Express,
-  type Request,
-  type Response,
-  type NextFunction,
-} from "express";
+import express, { type Express, type Request } from "express";
 import cors from "cors";
 import compression from "compression";
 import session from "express-session";
@@ -36,6 +31,7 @@ import {
   type WsAction,
 } from "./lib/websocket.js";
 import { setupSwagger } from "./lib/swagger.js";
+import { errorHandler, notFoundHandler } from "./middlewares/error-handler.js";
 
 // 1. تعريف الـ Express instance أولاً ✅
 const app: Express = express();
@@ -395,29 +391,11 @@ setupSwagger(app);
 
 app.use("/api", router);
 
-// 8. معالجة المسارات غير الموجودة (404)
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({ success: false, message: "Route not found" });
-});
-
-// Sentry Error Handler removed to prevent any crash
+// 8. معالجة المسارات غير الموجودة (404) — bilingual
+app.use(notFoundHandler);
 
 // 9. الـ Global Error Handler (يجب أن يكون في النهاية)
-app.use(
-  (err: Error, req: Request, res: Response, _next: NextFunction): void => {
-    console.error("❌ Global Server Error:", err);
-    logger.error({ err, url: req.url, method: req.method }, "Unhandled error");
-
-    const status = (err as any).status ?? (err as any).statusCode ?? 500;
-
-    res.status(status).json({
-      success: false,
-      message:
-        process.env["NODE_ENV"] === "production" && status === 500
-          ? "Internal Server Error"
-          : err.message || "Internal Server Error",
-    });
-  },
-);
+// ZodError from validate() → bilingual HTTP 400; other errors → status or 500.
+app.use(errorHandler);
 
 export default app;

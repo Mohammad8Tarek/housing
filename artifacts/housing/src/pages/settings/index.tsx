@@ -2,35 +2,12 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { FormProvider } from "react-hook-form";
 import { applyBrandColors } from "@/lib/brand-colors";
 import { useLanguage } from "@/context/LanguageContext";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Building2,
-  Briefcase,
-  BedDouble,
-  Bed,
-  Compass,
-  Shield,
-  RefreshCw,
-  KeyRound,
-  Image,
-  Pen,
-  Sparkles,
-  MessageSquare,
-  HardHat,
-  Mail,
-  Scale,
-  ShieldAlert,
-} from "lucide-react";
+import { Building2, Briefcase, BedDouble, Bed, Compass, Shield, RefreshCw, KeyRound, Image, Sparkles, MessageSquare, HardHat, Mail, Scale, ShieldAlert } from "lucide-react";
 import { LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { useProperty } from "@/context/PropertyContext";
 import { useAuth } from "@/context/AuthContext";

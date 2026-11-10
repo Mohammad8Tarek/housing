@@ -1,16 +1,5 @@
-import {
-  pgTable,
-  serial,
-  integer,
-  varchar,
-  text,
-  date,
-  timestamp,
-  unique,
-  index,
-} from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, varchar, text, date, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
 import { propertiesTable } from "./properties";
 import { usersTable } from "./users";
 

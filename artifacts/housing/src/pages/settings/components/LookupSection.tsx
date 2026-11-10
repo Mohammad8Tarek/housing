@@ -41,7 +41,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
 import { DataPagination } from "@/components/DataPagination";
-import { downloadLookupTemplate, downloadJobTitlesTemplate } from "@/lib/job-title-importer-engine";
+import { downloadLookupTemplate } from "@/lib/job-title-importer-engine";
 import { JobTitlesImportDialog } from "./JobTitlesImportDialog";
 import {
   useLookupValues,

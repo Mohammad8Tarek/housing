@@ -1853,12 +1853,3 @@ export function formatNationality(
   const name = isArabic ? country.demonymAr : country.demonymEn;
   return withFlag ? `${country.flag} ${name}` : name;
 }
-
-/**
- * Get country flag emoji by nationality/country value
- */
-export function getCountryFlag(val?: string | null): string {
-  if (!val) return '🌐';
-  const country = findCountry(val);
-  return country ? country.flag : '🌐';
-}

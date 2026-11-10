@@ -60,7 +60,7 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/assignments.ts (GET /, PATCH /:id/checkout, POST /:id/transfer, POST /:id/cancel-checkout)",
+        "artifacts/api-server/src/routes/assignments/queries.ts (GET /in-house, GET /), checkout.ts (POST /:id/checkout), transfer.ts (POST /:id/transfer), manage.ts (PATCH/DELETE /:id, POST /bulk-delete)",
         "artifacts/api-server/src/routes/rooms.ts (GET /:id/occupants)",
       ],
     },
@@ -86,7 +86,7 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/assignments.ts (POST / create assignment)",
+        "artifacts/api-server/src/routes/assignments/create.ts (POST / create assignment, cross-property check-in)",
         "artifacts/api-server/src/routes/rooms.ts (GET / with capacity & vacancy filters)",
       ],
     },
@@ -110,7 +110,7 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/assignments.ts (GET /history)",
+        "artifacts/api-server/src/routes/assignments/queries.ts (GET /history)",
       ],
     },
     database: {
@@ -128,7 +128,6 @@ const REGISTRY = [
       page: "artifacts/housing/src/pages/accommodation/guest-hosting/GuestHostingPage.tsx",
       components: [
         "GuestHostingPage.tsx",
-        "EditHostingDialog.tsx",
         "HostingRequestsList.tsx: artifacts/housing/src/pages/hosting-requests/HostingRequestsList.tsx",
         "CreateHostingRequest.tsx, EditHostingRequest.tsx, HostingRequestDetail.tsx",
       ],
@@ -136,7 +135,7 @@ const REGISTRY = [
     backend: {
       routes: [
         "artifacts/api-server/src/routes/hostings.ts (GET /, POST /, PATCH /:id)",
-        "artifacts/api-server/src/routes/hosting-requests.ts (Approvals, workflows, companions)",
+        "artifacts/api-server/src/routes/hosting-requests/ — create.ts, queries.ts, workflow.ts (sign/reject/reback approvals), manage.ts, shared.ts (signature policy, step roles)",
       ],
     },
     database: {
@@ -156,7 +155,6 @@ const REGISTRY = [
       page: "artifacts/housing/src/pages/housing/HousingPage.tsx",
       components: [
         "BuildingsTab: artifacts/housing/src/pages/housing/components/buildings/BuildingsTab.tsx",
-        "BuildingModals: artifacts/housing/src/pages/housing/components/buildings/BuildingModals.tsx",
         "FloorsTab: artifacts/housing/src/pages/housing/components/floors/FloorsTab.tsx",
         "FloorModals: artifacts/housing/src/pages/housing/components/floors/FloorModals.tsx",
         "RoomsTab: artifacts/housing/src/pages/housing/components/rooms/RoomsTab.tsx",
@@ -218,12 +216,11 @@ const REGISTRY = [
         "ProfileDialog (Create): artifacts/housing/src/pages/profiles/components/ProfileDialog.tsx",
         "EditProfileDialog: artifacts/housing/src/pages/profiles/components/EditProfileDialog.tsx",
         "ExcelImportDialog: artifacts/housing/src/pages/profiles/components/ExcelImportDialog.tsx",
-        "PhotoUploadBtn: artifacts/housing/src/pages/profiles/components/PhotoUploadBtn.tsx",
       ],
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/profiles.ts (GET /, POST /, GET /:id, PATCH /:id, DELETE /:id, POST /bulk-import, POST /:id/photo)",
+        "artifacts/api-server/src/routes/profiles/ — queries.ts (GET list/search/:id/photo), create.ts, bulk-import.ts (POST /bulk), manage.ts (PATCH/DELETE /:id, photo, id-image), vacation.ts",
         "artifacts/api-server/src/routes/hr-sync.ts (Sync with external HR databases)",
       ],
     },
@@ -266,11 +263,9 @@ const REGISTRY = [
       page: "artifacts/housing/src/pages/users/index.tsx & detail.tsx",
       components: [
         "PermissionMatrixCenter.tsx: artifacts/housing/src/pages/users/components/PermissionMatrixCenter.tsx",
-        "PermissionMatrixDialog.tsx: artifacts/housing/src/pages/users/components/PermissionMatrixDialog.tsx",
-        "CreateUserDialog.tsx & EditUserDialog.tsx: artifacts/housing/src/pages/users/components/",
-        "EditPropertiesDialog.tsx (Hotel property multi-assignment)",
-        "PermissionGate.tsx: artifacts/housing/src/components/auth/PermissionGate.tsx",
-        "usePermission hook: artifacts/housing/src/hooks/use-permission.tsx",
+        "CreateUserDialog.tsx & DeleteUserDialog.tsx: artifacts/housing/src/pages/users/components/",
+        "PermissionGate.tsx: artifacts/housing/src/components/ui/permission-gate.tsx",
+        "usePermission hook: artifacts/housing/src/hooks/use-permission.ts",
         "Permissions Definition: artifacts/housing/src/lib/permissions.ts",
       ],
     },
@@ -278,7 +273,7 @@ const REGISTRY = [
       routes: [
         "artifacts/api-server/src/routes/users.ts (GET /, POST /, GET /:id, PATCH /:id, DELETE /:id, PATCH /:id/permissions)",
         "artifacts/api-server/src/routes/auth.ts (POST /login, POST /logout, GET /me)",
-        "artifacts/api-server/src/middlewares/permissions.js (requirePermission middleware)",
+        "artifacts/api-server/src/middlewares/permissions.ts (requirePermission middleware)",
       ],
     },
     database: {
@@ -336,8 +331,8 @@ const REGISTRY = [
     backend: {
       routes: [
         "artifacts/api-server/src/routes/properties.ts (GET /, POST /, PATCH /:id)",
-        "artifacts/api-server/src/lib/db.ts (withTenant helper setting search_path)",
-        "artifacts/api-server/src/lib/migrations.ts (auto-runs migrations on all tenant schemas)",
+        "lib/db/src/index.ts (withTenant helper setting search_path)",
+        "artifacts/api-server/src/lib/migrations/index.ts (auto-runs migrations on all tenant schemas)",
       ],
     },
     database: {
@@ -362,7 +357,7 @@ const REGISTRY = [
         "Overview Tab: artifacts/employee-portal/src/components/TabOverview.tsx",
         "Requests Tab: artifacts/employee-portal/src/components/TabRequests.tsx",
         "Documents Tab: artifacts/employee-portal/src/components/TabDocuments.tsx",
-        "Chat Tab: artifacts/employee-portal/src/components/chat/ChatContainer.tsx",
+        "Chat Tab: artifacts/employee-portal/src/components/chat/TabChat.tsx",
         "Activities Tab: artifacts/employee-portal/src/components/TabActivities.tsx",
         "Food & Transport: artifacts/employee-portal/src/components/TabFood.tsx, TabTransport.tsx",
         "Settings & PWA: artifacts/employee-portal/src/components/TabPortalSettings.tsx, PWAInstallBanner.tsx",
@@ -370,8 +365,8 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/portal-auth.ts (Login, reset password, verify national ID & room)",
-        "artifacts/api-server/src/routes/portal-data.ts (Requests, overview, roommates)",
+        "artifacts/api-server/src/routes/portal-auth/ (Login, reset password, verify national ID & room)",
+        "artifacts/api-server/src/routes/portal-data/ (Requests, overview, roommates)",
         "artifacts/api-server/src/routes/portal-chat.ts (Direct messaging & WebSocket push)",
         "artifacts/api-server/src/routes/activities.ts (Events & registrations)",
         "artifacts/api-server/src/routes/push-notifications.ts (Web push & FCM)",
@@ -387,6 +382,57 @@ const REGISTRY = [
     },
   },
   {
+    id: "reports_center",
+    name: "Reports Center & Print Studio / مركز التقارير والطباعة",
+    keywords: ["report", "reports", "print", "pdf", "excel", "export", "manager flash", "تقرير", "تقارير", "طباعة", "تصدير", "كشف"],
+    frontend: {
+      route: "/:property/reports & /:property/reports/configuration",
+      page: "artifacts/housing/src/pages/reports/ReportsPage.tsx",
+      components: [
+        "Report catalog (6 groups / 26 reports): artifacts/housing/src/pages/reports/constants.tsx (TABS, REPORT_GROUPS) + components/TabsNav.tsx",
+        "Row builders per report: artifacts/housing/src/pages/reports/hooks/processors/*.ts (registry: processors/index.ts)",
+        "Table columns per report: artifacts/housing/src/pages/reports/components/report-table/*.tsx (registry: report-table/index.ts)",
+        "Print Studio + printed document: components/ReportPrintStudioModal.tsx, components/PrintableReportDocument.tsx",
+        "Excel export styling: artifacts/housing/src/lib/xlsx-brand.ts; brand tokens: artifacts/housing/src/lib/sunrise-brand.ts",
+        "Self-contained tabs: components/ManagerFlashTab, OccupancyForecastTab, HousingMapReportTab, ServiceRatingsTab, HousingRatingsTab, RoomMovesTab, AnalyticsTab",
+        "Custom report builder: artifacts/housing/src/pages/reports/ReportConfigurationPage.tsx",
+      ],
+    },
+    backend: {
+      routes: [
+        "artifacts/api-server/src/routes/reports/ — ratings.ts, operations.ts (room-moves, vacations, /), custom.ts (templates + custom query)",
+      ],
+    },
+    database: {
+      schemas: [
+        "Reads rooms, assignments, profiles, reservations, maintenance_tickets, hostings, gate logs, room_inventory",
+      ],
+    },
+  },
+  {
+    id: "whatsapp",
+    name: "WhatsApp Messaging & Templates / رسائل وقوالب الواتساب",
+    keywords: ["whatsapp", "واتساب", "واتس", "baileys", "meta cloud", "broadcast", "template", "قالب", "رسالة ترحيب"],
+    frontend: {
+      route: "/:property/settings (WhatsApp tab)",
+      page: "artifacts/housing/src/pages/settings/components/WhatsAppSettingsSection.tsx",
+      components: [
+        "Provider cards, gateway/Meta/QR config, outbox, auto-dispatch, template editor, test send, logs: artifacts/housing/src/pages/settings/components/whatsapp/*",
+      ],
+    },
+    backend: {
+      routes: [
+        "artifacts/api-server/src/routes/whatsapp.ts (status, connect/disconnect, config, test, logs, queue, broadcast)",
+        "artifacts/api-server/src/lib/whatsapp-engine.ts (barrel) -> lib/whatsapp/: templates.ts, quota.ts (anti-ban limits, quiet hours), session.ts (Baileys sessions, heartbeat), send.ts (send, outbox, delivery log), notifications.ts (check-in, welcome, reservation, broadcast)",
+      ],
+    },
+    database: {
+      schemas: [
+        "property_whatsapp_configs, whatsapp_delivery_logs, whatsapp_outbox_queue (tenant schemas)",
+      ],
+    },
+  },
+  {
     id: "room_inventory",
     name: "Room Amenities & Equipment Inventory / جرد محتويات ومعدات الغرف",
     keywords: ["inventory", "equipment", "amenities", "asset", "assets", "جرد", "معدات", "محتويات الغرف", "عهد"],
@@ -394,7 +440,8 @@ const REGISTRY = [
       route: "Housing -> Room Details Dialog & Reports -> Amenities Tab",
       page: "artifacts/housing/src/pages/housing/components/RoomDetailsDialog.tsx",
       components: [
-        "artifacts/housing/src/pages/reports/components/AmenitiesInventoryTab.tsx",
+        "Report rows: artifacts/housing/src/pages/reports/hooks/processors/services.ts (processEquipmentInventory)",
+        "Report columns: artifacts/housing/src/pages/reports/components/report-table/services.tsx + EquipmentRoomsDialog.tsx",
         "RoomDetailsDialog.tsx (Equipment inventory card, barcode, condition dropdown, add asset)",
       ],
     },
@@ -426,7 +473,7 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/dashboard.ts (GET /stats, GET /occupancy-trends, GET /building-stats)",
+        "artifacts/api-server/src/routes/dashboard/ (GET /stats, GET /occupancy-trends, GET /building-stats)",
       ],
     },
     database: {

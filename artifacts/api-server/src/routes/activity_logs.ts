@@ -1,10 +1,6 @@
 import { Router } from "express";
 import { db, withTenant, activityLogsTable, propertiesTable } from "@workspace/db";
-import { eq, desc, ilike, or, and, SQL, sql } from "drizzle-orm";
-import {
-  ListActivityLogsQueryParams,
-  ListActivityLogsResponse,
-} from "@workspace/api-zod";
+import { eq, desc, or, and, SQL, sql } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions.js";
 import { getTenantId } from "../lib/request-utils.js";
 

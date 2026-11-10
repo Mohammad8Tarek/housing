@@ -11,20 +11,11 @@ import {
   withTenant,
 } from "@workspace/db";
 import { eq, ne, and, or, ilike, sql, SQL, desc, inArray, aliasedTable } from "drizzle-orm";
-import {
-  CreateMaintenanceBody,
-  GetMaintenanceParams,
-  UpdateMaintenanceParams,
-  DeleteMaintenanceParams,
-} from "@workspace/api-zod";
+import { CreateMaintenanceBody, UpdateMaintenanceParams, DeleteMaintenanceParams } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { broadcastToProperty } from "../lib/websocket.js";
-import {
-  requirePermission,
-  requireAnyPermission,
-  hasPermission,
-} from "../middlewares/permissions.js";
-import { getTenantId, su } from "../lib/request-utils.js";
+import { requireAnyPermission, hasPermission } from "../middlewares/permissions.js";
+import { getTenantId } from "../lib/request-utils.js";
 import { normalizeSearchString, sqlNormalizeArabic } from "../lib/search-helper.js";
 
 const router: Router = Router();

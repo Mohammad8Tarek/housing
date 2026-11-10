@@ -12,9 +12,9 @@ import {
 } from "@workspace/db";
 import { eq, and, desc, sql, isNull, isNotNull, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { requirePortalAuth, portalSession } from "./portal-auth.js";
+import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import { broadcastToProperty } from "../lib/websocket.js";
-import { stripHtml, sanitizeFields } from "../lib/sanitize.js";
+import { stripHtml } from "../lib/sanitize.js";
 
 const router: Router = Router();
 

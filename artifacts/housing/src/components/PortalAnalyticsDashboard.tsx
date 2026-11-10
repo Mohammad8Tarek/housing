@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import {
   BarChart,
   Bar,
@@ -26,15 +25,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import {
-  TrendingUp,
-  Users,
-  FileText,
-  Award,
-  Activity,
-  MessageSquare,
-  Calendar,
-} from "lucide-react";
+import { TrendingUp, Users, FileText, Award, Activity, MessageSquare } from "lucide-react";
 import { DashboardKpiCard } from "@/pages/dashboard/components/DashboardKpiCard";
 
 export default function PortalAnalyticsDashboard({ onViewReports }: { onViewReports?: () => void } = {}) {

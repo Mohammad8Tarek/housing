@@ -1,11 +1,5 @@
 import { pool } from "@workspace/db";
-import {
-  enrichProfileBilingual,
-  translateDepartment,
-  translateJobTitle,
-  hasArabic,
-  hasEnglish,
-} from "./bilingual-translator.js";
+import { enrichProfileBilingual, translateDepartment, translateJobTitle, hasEnglish } from "./bilingual-translator.js";
 
 /**
  * Runs a complete bilingual backfill across all profiles and lookups in all tenant schemas.

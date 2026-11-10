@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 import { useLocation, useParams } from "wouter";
 import { PageLoader } from "@/components/ui/loader";
-import { ArrowLeft, Loader2, Upload, Trash2, Paperclip } from "lucide-react";
+import { ArrowLeft, Loader2, Upload, Paperclip } from "lucide-react";
 import { useProperty } from "@/context/PropertyContext";
 
 type ProfileResult = {

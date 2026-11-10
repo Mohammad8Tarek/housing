@@ -21,19 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  ArrowLeft,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Loader2,
-  Home,
-  ExternalLink,
-  Users,
-  Edit,
-  Trash2,
-  Printer,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, Clock, Loader2, Home, ExternalLink, Users, Trash2, Printer } from "lucide-react";
 import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
 
 const stepRoles: Record<string, Record<string, string>> = {

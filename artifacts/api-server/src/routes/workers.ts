@@ -1,14 +1,9 @@
 import { Router, Request, Response } from "express";
-import {
-  db,
-  workersTable,
-  maintenanceTable,
-  withTenant,
-} from "@workspace/db";
-import { eq, ne, and, or, ilike, sql, desc, inArray } from "drizzle-orm";
+import { workersTable, maintenanceTable, withTenant } from "@workspace/db";
+import { eq, ne, and, or, ilike, sql, desc } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { broadcastToProperty } from "../lib/websocket.js";
-import { requirePermission, requireAnyPermission, hasPermission } from "../middlewares/permissions.js";
+import { requireAnyPermission, hasPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams } from "../validation/common.js";
 import { CreateWorkerBody, ListWorkersQuery, UpdateWorkerBody } from "../validation/schemas.js";

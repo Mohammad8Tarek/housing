@@ -1,5 +1,5 @@
 import { pool } from "@workspace/db";
-import { ensureProfileInTargetSchema } from "../src/routes/hosting-requests.js";
+import { ensureProfileInTargetSchema } from "../src/routes/hosting-requests/shared.js";
 
 async function run() {
   console.log("Starting DB fix...");

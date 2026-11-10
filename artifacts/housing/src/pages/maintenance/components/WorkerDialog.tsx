@@ -73,14 +73,6 @@ export const WORKER_SPECIALTIES = [
   { key: "housekeeping", labelAr: "هاوس كيبنج ونظافة", labelEn: "Housekeeping", icon: Sparkles },
   { key: "appliances", labelAr: "أجهزة كهربائية", labelEn: "Home Appliances", icon: Tv },
 ];
-
-export const WORKER_STATUSES = [
-  { key: "available", labelAr: "متاح للعمل", labelEn: "Available", color: "bg-emerald-500", textAr: "متاح", textEn: "Available" },
-  { key: "busy", labelAr: "مشغول في مهمة", labelEn: "Busy / On Task", color: "bg-amber-500", textAr: "مشغول", textEn: "Busy" },
-  { key: "on_leave", labelAr: "في إجازة", labelEn: "On Leave", color: "bg-blue-500", textAr: "إجازة", textEn: "On Leave" },
-  { key: "inactive", labelAr: "غير نشط / موقوف", labelEn: "Inactive", color: "bg-slate-400", textAr: "موقوف", textEn: "Inactive" },
-];
-
 export function WorkerDialog({
   open,
   onOpenChange,

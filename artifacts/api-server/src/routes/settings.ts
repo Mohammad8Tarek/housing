@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { db, withTenant, settingsTable } from "@workspace/db";
+import { withTenant, settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requireAuth, requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import { requireAuth, requireAnyPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { TestEmailBody, UpdateSettingsBody } from "../validation/schemas.js";
 import { sendTestEmail } from "../lib/email-service.js";

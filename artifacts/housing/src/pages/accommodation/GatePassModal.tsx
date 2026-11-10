@@ -9,18 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  QrCode,
-  Printer,
-  Download,
-  ShieldCheck,
-  Building,
-  Bed,
-  Calendar,
-  AlertCircle,
-  User,
-  CheckCircle2,
-} from "lucide-react";
+import { QrCode, Printer, Download, ShieldCheck, AlertCircle, User } from "lucide-react";
 import { useProperty } from "@/context/PropertyContext";
 
 interface GatePassModalProps {

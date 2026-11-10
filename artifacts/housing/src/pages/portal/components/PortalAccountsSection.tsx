@@ -25,19 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DataPagination } from "@/components/DataPagination";
-import {
-  Shield,
-  RefreshCw,
-  CheckCircle,
-  XCircle,
-  Search,
-  Filter,
-  X,
-  Users,
-  KeyRound,
-  UserCheck,
-  UserX,
-} from "lucide-react";
+import { Shield, CheckCircle, XCircle, Search, Filter, X, Users, KeyRound, UserCheck, UserX } from "lucide-react";
 
 export function PortalAccountsSection() {
   const { activePropertyId } = useProperty();

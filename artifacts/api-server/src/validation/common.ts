@@ -54,9 +54,3 @@ export const paginationQuery = (maxLimit = 500, defaultLimit = 20) =>
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(maxLimit).default(defaultLimit),
   });
-
-/** Allows unknown extra query keys so existing clients are not broken. */
-export const looseObject = <T extends z.ZodRawShape>(shape: T) => z.object(shape).passthrough();
-
-/** Postgres identifier (schema/table). Used to guard values interpolated into SQL. */
-export const zPgIdentifier = z.string().regex(/^[a-zA-Z_][a-zA-Z0-9_]{0,62}$/, "Invalid identifier");

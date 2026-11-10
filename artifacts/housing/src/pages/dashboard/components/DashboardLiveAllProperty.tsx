@@ -9,41 +9,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import {
-  Users,
-  Building2,
-  BedDouble,
-  Wrench,
-  CalendarCheck,
-  Sparkles,
-  ArrowRight,
-  TrendingUp,
-  ShieldCheck,
-  RefreshCw,
-  BarChart3,
-  CheckCircle2,
-  AlertTriangle,
-  DoorOpen,
-  FileSpreadsheet,
-  Layers,
-  Activity,
-  Compass,
-  ArrowUpRight,
-  Clock,
-  SlidersHorizontal,
-  ChevronRight,
-} from "lucide-react";
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  Legend,
-  Cell,
-} from "recharts";
+import { Users, Building2, BedDouble, Wrench, CalendarCheck, Sparkles, TrendingUp, ShieldCheck, RefreshCw, BarChart3, CheckCircle2, AlertTriangle, DoorOpen, FileSpreadsheet, Layers, Activity, Compass, ArrowUpRight, ChevronRight } from "lucide-react";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 import { DashboardKpiCard } from "./DashboardKpiCard";
 import { formatDate } from "@/lib/date-utils";
 import { Link, useLocation } from "wouter";

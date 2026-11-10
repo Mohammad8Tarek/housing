@@ -16,15 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  QrCode,
-  Printer,
-  Building,
-  Layers,
-  Sparkles,
-  LayoutGrid,
-  Check,
-} from "lucide-react";
+import { QrCode, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { getRoomQrImageUrl, generateRoomQrDataUrl } from "@/lib/qr-service";

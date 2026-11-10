@@ -4,7 +4,7 @@ const { Pool } = pg;
 
 async function check() {
   const pool = new Pool({
-    connectionString: "postgresql://postgres:XUHDbeHeQPxHggeMmxrIlRBQdIIDeTdE@sakura.proxy.rlwy.net:15247/railway"
+    connectionString: (process.env.DATABASE_URL ?? (() => { throw new Error("Set DATABASE_URL"); })())
   });
 
   const client = await pool.connect();

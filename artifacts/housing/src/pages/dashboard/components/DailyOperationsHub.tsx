@@ -3,17 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatDate } from "@/lib/date-utils";
-import {
-  CalendarCheck,
-  Clock,
-  Wrench,
-  FileWarning,
-  AlertTriangle,
-  ArrowUpRight,
-  CheckCircle2,
-  Building2,
-  Zap,
-} from "lucide-react";
+import { CalendarCheck, Clock, Wrench, FileWarning, AlertTriangle, CheckCircle2, Zap } from "lucide-react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import { QuickAssistTab, QUICK_PAGES } from "./QuickAssistTab";

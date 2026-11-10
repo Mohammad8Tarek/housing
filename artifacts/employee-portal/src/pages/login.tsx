@@ -1,26 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import {
-  Loader2,
-  Moon,
-  Sun,
-  Languages,
-  Fingerprint,
-  AlertCircle,
-  Check,
-  ArrowRight,
-  Eye,
-  EyeOff,
-  User,
-  Lock,
-  ShieldCheck,
-  Sparkles,
-  HelpCircle,
-  X,
-  Wrench,
-  Home,
-  MessageSquare,
-} from "lucide-react";
+import { Loader2, Moon, Sun, Languages, Fingerprint, AlertCircle, Check, ArrowRight, Eye, EyeOff, User, Lock, ShieldCheck, Sparkles, HelpCircle, X, Wrench, Home } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch, saveSessionId, setCachedSessionId, clearSessionCache } from "../lib/api";
 import { useBiometric } from "../hooks/useBiometric";

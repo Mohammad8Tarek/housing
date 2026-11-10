@@ -7,7 +7,6 @@ import "./env.js";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import * as net from "node:net";
 import v8 from "node:v8";
 
 const __filename = fileURLToPath(import.meta.url);
