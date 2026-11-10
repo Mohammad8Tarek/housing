@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/html-escape";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
@@ -427,19 +428,19 @@ export default function HostingRequestDetail() {
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
           <div>
             <div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">${ar ? "اسم الموظف المستضيف" : "Hosting Employee"}</div>
-            <div style="font-size: 14px; font-weight: bold; color: #0f172a;">${request.profileName || request.user_id || "-"}</div>
+            <div style="font-size: 14px; font-weight: bold; color: #0f172a;">${escapeHtml(request.profileName || request.user_id || "-")}</div>
           </div>
           <div>
             <div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">${ar ? "الوظيفة / القسم" : "Job Title / Department"}</div>
-            <div style="font-size: 13px; font-weight: 600; color: #334155;">${request.profileJobTitle || "-"} - ${request.profileDepartment || "-"}</div>
+            <div style="font-size: 13px; font-weight: 600; color: #334155;">${escapeHtml(request.profileJobTitle || "-")} - ${escapeHtml(request.profileDepartment || "-")}</div>
           </div>
           <div>
             <div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">${ar ? "فترة الاستضافة المطلوبة" : "Stay Period"}</div>
-            <div style="font-size: 13px; font-weight: 600; color: #0284c7;">${formatDate(request.fromDate)} ➔ ${formatDate(request.toDate)} (${request.daysCount || "-"} ${ar ? "أيام" : "days"})</div>
+            <div style="font-size: 13px; font-weight: 600; color: #0284c7;">${escapeHtml(formatDate(request.fromDate))} ➔ ${escapeHtml(formatDate(request.toDate))} (${escapeHtml(request.daysCount || "-")} ${ar ? "أيام" : "days"})</div>
           </div>
           <div>
             <div style="font-size: 11px; color: #64748b; margin-bottom: 2px;">${ar ? "حالة الطلب" : "Request Status"}</div>
-            <div style="font-size: 13px; font-weight: bold; color: ${request.status === "approved" ? "#16a34a" : request.status === "rejected" ? "#dc2626" : "#d97706"};">${reqStatusText}</div>
+            <div style="font-size: 13px; font-weight: bold; color: ${request.status === "approved" ? "#16a34a" : request.status === "rejected" ? "#dc2626" : "#d97706"};">${escapeHtml(reqStatusText)}</div>
           </div>
         </div>
 
@@ -461,9 +462,9 @@ export default function HostingRequestDetail() {
                 ${companions.map((c: any, i: number) => `
                   <tr style="border-bottom: 1px solid #f1f5f9;">
                     <td style="padding: 6px 10px; color: #64748b;">${i + 1}</td>
-                    <td style="padding: 6px 10px; font-weight: 600;">${c.name || c.companionName || "-"}</td>
-                    <td style="padding: 6px 10px;">${c.relation || c.relationship || "-"}</td>
-                    <td style="padding: 6px 10px; font-family: monospace;">${c.nationalId || c.national_id || "-"}</td>
+                    <td style="padding: 6px 10px; font-weight: 600;">${escapeHtml(c.name || c.companionName || "-")}</td>
+                    <td style="padding: 6px 10px;">${escapeHtml(c.relation || c.relationship || "-")}</td>
+                    <td style="padding: 6px 10px; font-family: monospace;">${escapeHtml(c.nationalId || c.national_id || "-")}</td>
                   </tr>
                 `).join("")}
               </tbody>
@@ -484,11 +485,11 @@ export default function HostingRequestDetail() {
               return `
                 <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: ${isSigned ? "#f0fdf4" : "#ffffff"}; text-align: center;">
                   <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">${ar ? `الخطوة ${s.stepOrder}` : `Step ${s.stepOrder}`}</div>
-                  <div style="font-size: 12px; font-weight: bold; color: #0F2A44; margin: 4px 0;">${roleTitle}</div>
-                  <div style="font-size: 11px; color: #334155; min-height: 18px;">${s.signerName || (isSigned ? s.signed_by_user_id : (ar ? "قيد الانتظار" : "Pending"))}</div>
+                  <div style="font-size: 12px; font-weight: bold; color: #0F2A44; margin: 4px 0;">${escapeHtml(roleTitle)}</div>
+                  <div style="font-size: 11px; color: #334155; min-height: 18px;">${escapeHtml(s.signerName || (isSigned ? s.signed_by_user_id : (ar ? "قيد الانتظار" : "Pending")))}</div>
                   <div style="height: 60px; margin: 8px 0; display: flex; align-items: center; justify-content: center;">
                     ${s.signatureImageUrlSnapshot ? `
-                      <img src="${s.signatureImageUrlSnapshot}" style="max-height: 55px; max-width: 120px; object-fit: contain;" alt="signature" />
+                      <img src="${escapeHtml(s.signatureImageUrlSnapshot)}" style="max-height: 55px; max-width: 120px; object-fit: contain;" alt="signature" />
                     ` : `
                       <span style="font-size: 10px; color: #94a3b8; border: 1px dashed #cbd5e1; padding: 8px 12px; border-radius: 4px;">${ar ? "بانتظار الاعتماد" : "Awaiting Signature"}</span>
                     `}
@@ -505,8 +506,8 @@ export default function HostingRequestDetail() {
     printLuxuryReport({
       title: ar ? "استمارة واعتمادات طلب الاستضافة" : "Family Hosting Request & Approval Voucher",
       titleAr: "استمارة واعتمادات طلب الاستضافة",
-      subtitle: `${ar ? "رقم الطلب:" : "Request #"} ${request.requestNumber || requestId}`,
-      subtitleAr: `رقم الطلب: ${request.requestNumber || requestId}`,
+      subtitle: `${ar ? "رقم الطلب:" : "Request #"} ${escapeHtml(request.requestNumber || requestId)}`,
+      subtitleAr: `رقم الطلب: ${escapeHtml(request.requestNumber || requestId)}`,
       language: ar ? "ar" : "en",
       orientation: "portrait",
       showKpis: false,

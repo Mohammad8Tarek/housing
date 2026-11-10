@@ -3,6 +3,7 @@
 // Main entry: printLuxuryReport. Helpers live in report-*.ts and are re-exported here for backward compatibility.
 // ============================================================================
 
+import { escapeHtml } from "@/lib/html-escape";
 import { loadImgDataUrl } from "./export";
 import type { LuxuryReportOptions, ReportKpiCard } from "./report-types";
 import { REPORT_OPERA_CODES, REPORT_TAB_CONFIG, REPORT_TAB_TITLES, formatStatusBadgeHtml, translateReportHeader } from "./report-i18n";
@@ -457,9 +458,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
             const colorClass = kpi.color || "gold";
             return `
               <div class="kpi-card ${colorClass}">
-                <div class="kpi-val">${kpi.value}</div>
-                <div class="kpi-label">${label}</div>
-                ${kpi.subtext ? `<div class="kpi-subtext">${kpi.subtext}</div>` : ""}
+                <div class="kpi-val">${escapeHtml(kpi.value)}</div>
+                <div class="kpi-label">${escapeHtml(label)}</div>
+                ${kpi.subtext ? `<div class="kpi-subtext">${escapeHtml(kpi.subtext)}</div>` : ""}
               </div>
             `;
           })
@@ -487,7 +488,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
             const align = getOperaColumnAlign(raw, isArabic);
             const colStyle = getOperaColumnStyle(raw, isArabic);
             const thStyle = `${colStyle.replace(/white-space:\s*nowrap;?/gi, "").trim()} white-space: normal; line-height: 1.15;`;
-            return `<th style="width: ${colWidthsPct[i]}%; text-align: ${align}; ${thStyle}">${h}</th>`;
+            return `<th style="width: ${colWidthsPct[i]}%; text-align: ${align}; ${thStyle}">${escapeHtml(h)}</th>`;
           })
           .join("")}
       </tr>
@@ -674,7 +675,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           <!-- Left: System Logo (SUNRISE) - strictly left in all languages -->
           <div class="opera-header-left">
             ${sysLogo
-              ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
+              ? `<img src="${escapeHtml(sysLogo.dataUrl)}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
               : `<div class="opera-fallback-brand">
                   <span style="font-weight: 900; font-size: 9.5pt; letter-spacing: 0.5px; color: #0F2A44;">SUNRISE</span>
                  </div>`
@@ -683,8 +684,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
           <!-- Center: Hotel Name & Report Title -->
           <div class="opera-header-center">
-            ${propName ? `<div class="opera-hotel-name">${propName}</div>` : ""}
-            <div class="opera-report-title">${reportTitle}</div>
+            ${propName ? `<div class="opera-hotel-name">${escapeHtml(propName)}</div>` : ""}
+            <div class="opera-report-title">${escapeHtml(reportTitle)}</div>
             ${dateFrom || dateTo ? `
             <div class="opera-report-submeta">
               ${dateFrom ? `${isArabic ? "من" : "From"}: ${dateFrom} ` : ""}
@@ -695,9 +696,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           <!-- Right: Property Logo & Opera Date/Time - strictly right in all languages -->
           <div class="opera-header-right">
             ${propLogo
-              ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
+              ? `<img src="${escapeHtml(propLogo.dataUrl)}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
               : propName ? `<div class="opera-fallback-brand right-brand">
-                  <span style="font-weight: 800; font-size: 8.5pt; color: #0F2A44;">${propName}</span>
+                  <span style="font-weight: 800; font-size: 8.5pt; color: #0F2A44;">${escapeHtml(propName)}</span>
                  </div>` : ""
             }
             <div class="opera-meta-datetime">
@@ -712,9 +713,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       : `
         <div class="opera-sub-header">
           <div class="opera-sub-header-left">
-            <span class="sub-prop-title">${propName}</span>
+            <span class="sub-prop-title">${escapeHtml(propName)}</span>
             <span class="sub-sep">—</span>
-            <span class="sub-rep-title">${reportTitle}</span>
+            <span class="sub-rep-title">${escapeHtml(reportTitle)}</span>
           </div>
           <div class="opera-sub-header-right">
             <span class="opera-meta-date">${operaDateStr}</span>
@@ -777,17 +778,17 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       <div class="sig-section" id="sigSection" style="margin-top: 8px; padding-top: 6px; page-break-inside: avoid; break-inside: avoid;">
         <div class="sig-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
           <div class="sig-card" style="text-align: center; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 6px 8px; background: #fdfdfd;">
-            <div class="sig-role" style="font-size: 7.2pt; font-weight: 800; color: #0f2a44; margin-bottom: 22px;">${sig1}</div>
+            <div class="sig-role" style="font-size: 7.2pt; font-weight: 800; color: #0f2a44; margin-bottom: 22px;">${escapeHtml(sig1)}</div>
             <div class="sig-line" style="border-top: 1px solid #94a3b8; width: 80%; margin: 0 auto 3px auto;"></div>
             <div class="sig-date" style="font-size: 6.5pt; color: #64748b;">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
           </div>
           <div class="sig-card" style="text-align: center; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 6px 8px; background: #fdfdfd;">
-            <div class="sig-role" style="font-size: 7.2pt; font-weight: 800; color: #0f2a44; margin-bottom: 22px;">${sig2}</div>
+            <div class="sig-role" style="font-size: 7.2pt; font-weight: 800; color: #0f2a44; margin-bottom: 22px;">${escapeHtml(sig2)}</div>
             <div class="sig-line" style="border-top: 1px solid #94a3b8; width: 80%; margin: 0 auto 3px auto;"></div>
             <div class="sig-date" style="font-size: 6.5pt; color: #64748b;">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
           </div>
           <div class="sig-card" style="text-align: center; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 6px 8px; background: #fdfdfd;">
-            <div class="sig-role" style="font-size: 7.2pt; font-weight: 800; color: #0f2a44; margin-bottom: 22px;">${sig3}</div>
+            <div class="sig-role" style="font-size: 7.2pt; font-weight: 800; color: #0f2a44; margin-bottom: 22px;">${escapeHtml(sig3)}</div>
             <div class="sig-line" style="border-top: 1px solid #94a3b8; width: 80%; margin: 0 auto 3px auto;"></div>
             <div class="sig-date" style="font-size: 6.5pt; color: #64748b;">${isArabic ? "التوقيع / التاريخ: ___ / ___ / 202__" : "Sign / Date: ___ / ___ / 202__"}</div>
           </div>
@@ -801,11 +802,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         <div class="opera-footer-left" style="display: flex; align-items: center; gap: 4px; font-size: 6.8pt; max-width: 65%; overflow: hidden; white-space: nowrap;">
           <span class="opera-filter-tag" style="font-weight: 700; color: #0f2a44;">${isArabic ? "عوامل التصفية:" : "Filter:"}</span>
           <span class="opera-filter-desc-inline">
-            <span>${propName}</span>
+            <span>${escapeHtml(propName)}</span>
             <span class="opera-meta-sep">·</span>
             <span>${dateFrom || dateTo ? `${dateFrom || "All"} — ${dateTo || "All"}` : operaDateStr}</span>
             <span class="opera-meta-sep">·</span>
-            <span>${search ? `"${search}"` : (isArabic ? "الحالة: الكل" : "Status: All")}</span>
+            <span>${search ? `"${escapeHtml(search)}"` : (isArabic ? "الحالة: الكل" : "Status: All")}</span>
           </span>
         </div>
         <div class="opera-footer-right" style="direction: ${dir}; font-weight: 600;">
@@ -834,7 +835,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
                 .map((h, i) => {
                   const raw = rawHeaders[i] || h;
                   const align = getOperaColumnAlign(raw, isArabic);
-                  return `<th style="width: ${colWidthsPct[i]}%; text-align: ${align}; background: #0f2a44 !important; color: #ffffff !important; padding: ${printPadding}; font-size: ${Math.max(6.5, printFontSizePt - 0.2)}pt; font-weight: 800; border: 1px solid #1e3a5a; white-space: normal; line-height: 1.15;">${h}</th>`;
+                  return `<th style="width: ${colWidthsPct[i]}%; text-align: ${align}; background: #0f2a44 !important; color: #ffffff !important; padding: ${printPadding}; font-size: ${Math.max(6.5, printFontSizePt - 0.2)}pt; font-weight: 800; border: 1px solid #1e3a5a; white-space: normal; line-height: 1.15;">${escapeHtml(h)}</th>`;
                 })
                 .join("")}
             </tr>

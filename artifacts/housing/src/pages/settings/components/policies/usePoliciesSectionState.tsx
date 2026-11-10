@@ -1,4 +1,5 @@
 // State, effects and handlers of PoliciesSection (moved verbatim).
+import { escapeHtml } from "@/lib/html-escape";
 import { useState } from "react";
 import * as XLSX from "xlsx";
 import { useFormContext } from "react-hook-form";
@@ -593,7 +594,7 @@ export function usePoliciesSectionState({
             </div>
           </div>
           <div style="display: flex; gap: 6px; flex-shrink: 0;">
-            <span style="font-size: 10.5px; background: #e2e8f0; color: #0F2A44; padding: 4px 10px; border-radius: 4px; font-weight: 800;">${propName}</span>
+            <span style="font-size: 10.5px; background: #e2e8f0; color: #0F2A44; padding: 4px 10px; border-radius: 4px; font-weight: 800;">${escapeHtml(propName)}</span>
             <span style="font-size: 10.5px; background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 4px; font-weight: 800; border: 1px solid #bbf7d0;">${ar ? "سارية ومعتمدة" : "Enforced"}</span>
           </div>
         </div>
@@ -624,10 +625,10 @@ export function usePoliciesSectionState({
               ).map((lvl: any, idx: number) => `
                 <tr style="background-color: ${lvl.levelKey === "0" ? "#fffbeb" : (idx % 2 === 1 ? "#f8fafc" : "#ffffff")};">
                   <td style="padding: 6px 10px; border: 1px solid #cbd5e1;">
-                    <strong style="color: ${lvl.levelKey === "0" ? "#b45309" : "#0F2A44"}; font-size: 11px;">${ar ? (lvl.nameAr || lvl.name) : (lvl.name || lvl.nameAr)}</strong>
+                    <strong style="color: ${lvl.levelKey === "0" ? "#b45309" : "#0F2A44"}; font-size: 11px;">${escapeHtml(ar ? (lvl.nameAr || lvl.name) : (lvl.name || lvl.nameAr))}</strong>
                     <span style="font-size: 9.5px; color:#64748b; margin-${ar ? "right" : "left"}: 4px;">(${lvl.levelKey ? `Level ${lvl.levelKey}` : ""})</span>
                   </td>
-                  <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: 700; text-align: center; color: #1e293b;">${(lvl.allowedCapacities || [1]).join(" ، ")} ${ar ? "سرير بالغرفة" : "beds in room"}</td>
+                  <td style="padding: 6px 10px; border: 1px solid #cbd5e1; font-weight: 700; text-align: center; color: #1e293b;">${escapeHtml((lvl.allowedCapacities || [1]).join(" ، "))} ${ar ? "سرير بالغرفة" : "beds in room"}</td>
                   <td style="padding: 6px 10px; border: 1px solid #cbd5e1; text-align: center;">
                     ${lvl.allowEntire 
                       ? `<span style="background: #dcfce7; color: #166534; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 10px; border: 1px solid #bbf7d0;">${ar ? "مسموح (غرفة كاملة Single)" : "Allowed (Entire Room)"}</span>` 
@@ -662,7 +663,7 @@ export function usePoliciesSectionState({
                 <div>• ${ar ? "فترة التهدئة بين الزيارات:" : "Cooldown:"} <strong>${values.visitCooldownDays ?? 60} ${ar ? "يوماً" : "days"}</strong></div>
                 <div style="grid-column: span 2;">• ${ar ? "إثبات هوية المرافقين:" : "Companions ID:"} <strong>${values.visitRequireNationalId ? `<span style="color:#0284c7; font-weight:700;">${ar ? "إلزامي لكافة الأفراد والمرافقين" : "Mandatory for all"}</span>` : (ar ? "اختياري" : "Optional")}</strong></div>
               </div>
-              ${values.familyVisitPolicyText ? `<div style="background:#f8fafc; padding:6px 9px; border-inline-start:3px solid #C9A24D; font-size:9.5px; margin-top:6px; border-radius:4px; line-height:1.45; color:#334155;">${values.familyVisitPolicyText}</div>` : ""}
+              ${values.familyVisitPolicyText ? `<div style="background:#f8fafc; padding:6px 9px; border-inline-start:3px solid #C9A24D; font-size:9.5px; margin-top:6px; border-radius:4px; line-height:1.45; color:#334155;">${escapeHtml(values.familyVisitPolicyText)}</div>` : ""}
             </div>
 
             <!-- 4. سياسة فصل الجنسين وسكن العائلات الصارمة -->
@@ -688,10 +689,10 @@ export function usePoliciesSectionState({
               </h4>
               <div style="font-size: 10px; color: #334155; margin-bottom: 4px; line-height: 1.55;">
                 • ${ar ? "إغلاق البوابات وحظر الدخول (Curfew):" : "Curfew Policy:"}
-                ${values.curfewEnabled ? `<strong style="color:#b91c1c; font-weight:800;">${ar ? `مفعل — يغلق تمام الساعة ${values.curfewTime || "23:00"}` : `Enabled at ${values.curfewTime || "23:00"}`}</strong>` : `<strong>${ar ? "مفتوح على مدار الساعة (24/7)" : "Open 24/7"}</strong>`}
+                ${values.curfewEnabled ? `<strong style="color:#b91c1c; font-weight:800;">${ar ? `مفعل — يغلق تمام الساعة ${escapeHtml(values.curfewTime || "23:00")}` : `Enabled at ${escapeHtml(values.curfewTime || "23:00")}`}</strong>` : `<strong>${ar ? "مفتوح على مدار الساعة (24/7)" : "Open 24/7"}</strong>`}
               </div>
-              ${values.housingRulesText ? `<div style="background:#f8fafc; padding:6px 9px; border-inline-start:3px solid #0F2A44; font-size:9.5px; border-radius:4px; line-height:1.45; margin-top:5px; color:#334155;">${values.housingRulesText}</div>` : ""}
-              ${values.housingPolicyText ? `<div style="background:#fffbeb; padding:6px 9px; border-inline-start:3px solid #f59e0b; font-size:9.5px; border-radius:4px; line-height:1.45; margin-top:5px; color:#334155;">${values.housingPolicyText}</div>` : ""}
+              ${values.housingRulesText ? `<div style="background:#f8fafc; padding:6px 9px; border-inline-start:3px solid #0F2A44; font-size:9.5px; border-radius:4px; line-height:1.45; margin-top:5px; color:#334155;">${escapeHtml(values.housingRulesText)}</div>` : ""}
+              ${values.housingPolicyText ? `<div style="background:#fffbeb; padding:6px 9px; border-inline-start:3px solid #f59e0b; font-size:9.5px; border-radius:4px; line-height:1.45; margin-top:5px; color:#334155;">${escapeHtml(values.housingPolicyText)}</div>` : ""}
             </div>
 
             <!-- 5. الحوكمة واعتماد الاستثناءات الإدارية والتعلم الذكي -->
@@ -715,10 +716,10 @@ export function usePoliciesSectionState({
             <span>${ar ? "مسؤولو التواصل والإبلاغ عن المخالفات والطوارئ بالسكن" : "Emergency & Housing Operations Key Contacts"}</span>
           </div>
           <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; font-size: 10px;">
-            ${values.hrContact1Name ? `<div style="background:#ffffff; padding:6px 9px; border-radius:5px; border:1px solid #cbd5e1; line-height:1.45; box-shadow:0 1px 2px rgba(0,0,0,0.02);"><strong style="color:#0F2A44; font-size:10px;">${values.hrContact1Title || (ar ? "مدير الموارد البشرية" : "HR Director")}:</strong><br/><span style="font-weight:700; color:#1e293b;">${values.hrContact1Name}</span><br/><span style="color:#0284c7; font-weight:800; font-family:monospace; direction:ltr; display:inline-block; margin-top:2px;">📞 ${values.hrContact1Phone || ""}</span></div>` : ""}
-            ${values.hrContact2Name ? `<div style="background:#ffffff; padding:6px 9px; border-radius:5px; border:1px solid #cbd5e1; line-height:1.45; box-shadow:0 1px 2px rgba(0,0,0,0.02);"><strong style="color:#0F2A44; font-size:10px;">${values.hrContact2Title || (ar ? "منسق الموارد البشرية" : "HR Coordinator")}:</strong><br/><span style="font-weight:700; color:#1e293b;">${values.hrContact2Name}</span><br/><span style="color:#0284c7; font-weight:800; font-family:monospace; direction:ltr; display:inline-block; margin-top:2px;">📞 ${values.hrContact2Phone || ""}</span></div>` : ""}
-            ${values.housingManager1Name ? `<div style="background:#ffffff; padding:6px 9px; border-radius:5px; border:1px solid #cbd5e1; line-height:1.45; box-shadow:0 1px 2px rgba(0,0,0,0.02);"><strong style="color:#0F2A44; font-size:10px;">${values.housingManager1Title || (ar ? "مدير السكن" : "Housing Manager")}:</strong><br/><span style="font-weight:700; color:#1e293b;">${values.housingManager1Name}</span><br/><span style="color:#0284c7; font-weight:800; font-family:monospace; direction:ltr; display:inline-block; margin-top:2px;">📞 ${values.housingManager1Phone || ""}</span></div>` : ""}
-            ${values.housingManager2Name ? `<div style="background:#ffffff; padding:6px 9px; border-radius:5px; border:1px solid #cbd5e1; line-height:1.45; box-shadow:0 1px 2px rgba(0,0,0,0.02);"><strong style="color:#0F2A44; font-size:10px;">${values.housingManager2Title || (ar ? "مساعد مدير السكن" : "Asst Housing Mgr")}:</strong><br/><span style="font-weight:700; color:#1e293b;">${values.housingManager2Name}</span><br/><span style="color:#0284c7; font-weight:800; font-family:monospace; direction:ltr; display:inline-block; margin-top:2px;">📞 ${values.housingManager2Phone || ""}</span></div>` : ""}
+            ${values.hrContact1Name ? `<div style="background:#ffffff; padding:6px 9px; border-radius:5px; border:1px solid #cbd5e1; line-height:1.45; box-shadow:0 1px 2px rgba(0,0,0,0.02);"><strong style="color:#0F2A44; font-size:10px;">${escapeHtml(values.hrContact1Title || (ar ? "مدير الموارد البشرية" : "HR Director"))}:</strong><br/><span style="font-weight:700; color:#1e293b;">${escapeHtml(values.hrContact1Name)}</span><br/><span style="color:#0284c7; font-weight:800; font-family:monospace; direction:ltr; display:inline-block; margin-top:2px;">📞 ${escapeHtml(values.hrContact1Phone || "")}</span></div>` : ""}
+            ${values.hrContact2Name ? `<div style="background:#ffffff; padding:6px 9px; border-radius:5px; border:1px solid #cbd5e1; line-height:1.45; box-shadow:0 1px 2px rgba(0,0,0,0.02);"><strong style="color:#0F2A44; font-size:10px;">${escapeHtml(values.hrContact2Title || (ar ? "منسق الموارد البشرية" : "HR Coordinator"))}:</strong><br/><span style="font-weight:700; color:#1e293b;">${escapeHtml(values.hrContact2Name)}</span><br/><span style="color:#0284c7; font-weight:800; font-family:monospace; direction:ltr; display:inline-block; margin-top:2px;">📞 ${escapeHtml(values.hrContact2Phone || "")}</span></div>` : ""}
+            ${values.housingManager1Name ? `<div style="background:#ffffff; padding:6px 9px; border-radius:5px; border:1px solid #cbd5e1; line-height:1.45; box-shadow:0 1px 2px rgba(0,0,0,0.02);"><strong style="color:#0F2A44; font-size:10px;">${escapeHtml(values.housingManager1Title || (ar ? "مدير السكن" : "Housing Manager"))}:</strong><br/><span style="font-weight:700; color:#1e293b;">${escapeHtml(values.housingManager1Name)}</span><br/><span style="color:#0284c7; font-weight:800; font-family:monospace; direction:ltr; display:inline-block; margin-top:2px;">📞 ${escapeHtml(values.housingManager1Phone || "")}</span></div>` : ""}
+            ${values.housingManager2Name ? `<div style="background:#ffffff; padding:6px 9px; border-radius:5px; border:1px solid #cbd5e1; line-height:1.45; box-shadow:0 1px 2px rgba(0,0,0,0.02);"><strong style="color:#0F2A44; font-size:10px;">${escapeHtml(values.housingManager2Title || (ar ? "مساعد مدير السكن" : "Asst Housing Mgr"))}:</strong><br/><span style="font-weight:700; color:#1e293b;">${escapeHtml(values.housingManager2Name)}</span><br/><span style="color:#0284c7; font-weight:800; font-family:monospace; direction:ltr; display:inline-block; margin-top:2px;">📞 ${escapeHtml(values.housingManager2Phone || "")}</span></div>` : ""}
           </div>
         </div>
       </div>

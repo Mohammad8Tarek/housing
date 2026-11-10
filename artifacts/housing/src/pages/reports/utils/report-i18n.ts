@@ -3,6 +3,7 @@
 // Report tab configuration, Opera codes, bilingual header map and value translators.
 // ============================================================================
 
+import { escapeHtml, TrustedHtml } from "@/lib/html-escape";
 import { formatNationality } from "@/lib/countries";
 import { translateDepartment, translateJobTitle } from "@/lib/bilingual-hospitality-dict";
 
@@ -748,6 +749,8 @@ export function translateHostingRelation(val: string, ar: boolean): string {
 // 2. Helper: Status Badge Formatter (Clean, minimal executive presentation)
 // ----------------------------------------------------------------------------
 export function formatStatusBadgeHtml(val: any, isArabic: boolean): string {
+  // Cell values are user data unless explicitly marked as markup we built ourselves.
+  if (val instanceof TrustedHtml) return val.html;
   if (val === null || val === undefined || val === "") return "—";
   // Safety net: never render raw objects/arrays as "[object Object]".
   if (Array.isArray(val)) {
@@ -759,13 +762,14 @@ export function formatStatusBadgeHtml(val: any, isArabic: boolean): string {
         }
         return v;
       })
+      .map((v: any) => escapeHtml(v))
       .join(" | ");
   }
   if (typeof val === "object") {
     const o = val as Record<string, any>;
     const picked = o.name ?? o.label ?? o.value ?? o.title ?? o.text;
     return picked !== undefined && picked !== null && typeof picked !== "object"
-      ? String(picked)
+      ? escapeHtml(picked)
       : "—";
   }
   if (typeof val === "boolean") {
@@ -785,7 +789,7 @@ export function formatStatusBadgeHtml(val: any, isArabic: boolean): string {
 
   // Star rating badge styling
   if (str.includes("★")) {
-    return `<span style="display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; background:#fffbeb; border:1px solid #fde68a; color:#d97706; white-space:nowrap;">${str}</span>`;
+    return `<span style="display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; background:#fffbeb; border:1px solid #fde68a; color:#d97706; white-space:nowrap;">${escapeHtml(str)}</span>`;
   }
 
   // Universal Arabic translation fallback for unlocalized cells
@@ -844,16 +848,16 @@ export function formatStatusBadgeHtml(val: any, isArabic: boolean): string {
 
     // 11. Known Nationalities
     const nat = formatNationality(str, true, false);
-    if (nat !== str) return nat;
+    if (nat !== str) return escapeHtml(nat);
 
     // 12. Department Translation
     const dept = translateDepartment(str, "ar");
-    if (dept && dept !== str) return dept;
+    if (dept && dept !== str) return escapeHtml(dept);
 
     // 13. Job Title Translation
     const job = translateJobTitle(str, "ar");
-    if (job && job !== str) return job;
+    if (job && job !== str) return escapeHtml(job);
   }
 
-  return str;
+  return escapeHtml(str);
 }

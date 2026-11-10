@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/html-escape";
 import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { toast } from "sonner";
 import { getExportFileName } from "@/lib/date-utils";
@@ -186,7 +187,7 @@ export const printArabicAnalyticsReport = async (opts: {
     const bColor = rate >= 90 ? "#ef4444" : rate >= 75 ? "#f59e0b" : "#10b981";
     const availBeds = b.availableBeds ?? Math.max(0, (b.capacity || 0) - (b.currentOccupancy || 0));
     return `<tr>
-      <td style="font-weight:700;">${b.name || (isAr ? "مبنى" : "Building")} <span style="font-size:6pt; color:#64748b; font-weight:normal;">(${b.code || ""})</span></td>
+      <td style="font-weight:700;">${escapeHtml(b.name || (isAr ? "مبنى" : "Building"))} <span style="font-size:6pt; color:#64748b; font-weight:normal;">(${escapeHtml(b.code || "")})</span></td>
       <td style="text-align:center;">${b.totalRooms ?? 0}</td>
       <td style="text-align:center; font-weight:600;">${b.capacity ?? 0}</td>
       <td style="text-align:center; font-weight:700; color:#1d4ed8;">${b.currentOccupancy ?? 0}</td>
@@ -209,8 +210,8 @@ export const printArabicAnalyticsReport = async (opts: {
     const rate = f.rate ?? 0;
     const fColor = rate >= 90 ? "#ef4444" : rate >= 75 ? "#f59e0b" : "#10b981";
     return `<tr>
-      <td style="font-weight:600;">${f.name}</td>
-      <td style="font-size:6.5pt; color:#475569;">${f.buildingName}</td>
+      <td style="font-weight:600;">${escapeHtml(f.name)}</td>
+      <td style="font-size:6.5pt; color:#475569;">${escapeHtml(f.buildingName)}</td>
       <td style="text-align:center;">${f.totalRooms}</td>
       <td style="text-align:center; font-weight:600;">${f.capacity}</td>
       <td style="text-align:center; font-weight:700; color:#1d4ed8;">${f.occupied}</td>
@@ -224,7 +225,7 @@ export const printArabicAnalyticsReport = async (opts: {
     const rate = t.rate ?? 0;
     const tColor = rate >= 90 ? "#ef4444" : rate >= 75 ? "#f59e0b" : "#10b981";
     return `<tr>
-      <td style="font-weight:600;">${t.type || (isAr ? "قياسية" : "Standard")}</td>
+      <td style="font-weight:600;">${escapeHtml(t.type || (isAr ? "قياسية" : "Standard"))}</td>
       <td style="text-align:center;">${t.rooms ?? 0}</td>
       <td style="text-align:center;">${t.capacity ?? 0}</td>
       <td style="text-align:center; font-weight:700; color:#1d4ed8;">${t.occupied ?? 0}</td>
@@ -245,8 +246,8 @@ export const printArabicAnalyticsReport = async (opts: {
   const deptRowsFull = depts.map((d: any) => {
     return `<tr>
       <td style="font-weight:600;">
-        ${d.dept || (isAr ? "عام" : "General")}
-        ${d.roomsSummary ? `<div style="font-size:5.5pt; color:#64748b; font-weight:normal;">${isAr ? "غرف:" : "Rooms:"} ${d.roomsSummary}</div>` : ""}
+        ${escapeHtml(d.dept || (isAr ? "عام" : "General"))}
+        ${d.roomsSummary ? `<div style="font-size:5.5pt; color:#64748b; font-weight:normal;">${isAr ? "غرف:" : "Rooms:"} ${escapeHtml(d.roomsSummary)}</div>` : ""}
       </td>
       <td style="text-align:center; font-weight:700; color:#1d4ed8;">${d.residentCount ?? d.count ?? 0}</td>
       <td style="text-align:center;">
@@ -259,14 +260,14 @@ export const printArabicAnalyticsReport = async (opts: {
       <td style="text-align:center; font-size:6.2pt; white-space:nowrap;">
         <span style="color:#1d4ed8; font-weight:bold;">${d.maleCount ?? 0} ♂</span> / <span style="color:#7c3aed; font-weight:bold;">${d.femaleCount ?? 0} ♀</span>
       </td>
-      <td style="font-size:6pt; color:#475569;">${d.buildingsList || "—"}</td>
+      <td style="font-size:6pt; color:#475569;">${escapeHtml(d.buildingsList || "—")}</td>
     </tr>`;
   }).join("");
 
   // ── 5. Nationalities Rows ──
   const natRows = (analytics?.byNationality || []).slice(0, 5).map((n: any) => {
     return `<tr>
-      <td style="font-weight:600;">${n.nationality || (isAr ? "غير محدد" : "Unspecified")}</td>
+      <td style="font-weight:600;">${escapeHtml(n.nationality || (isAr ? "غير محدد" : "Unspecified"))}</td>
       <td style="text-align:center; font-weight:700; color:#0f2a44;">${n.count ?? 0}</td>
       <td style="text-align:center; font-size:6.5pt; color:#64748b;">${n.percentage ?? 0}%</td>
     </tr>`;
@@ -307,7 +308,7 @@ export const printArabicAnalyticsReport = async (opts: {
       <path d="${pathD}" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       ${pts.map((p: any) => `
         <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="#ffffff" stroke="#2563eb" stroke-width="1.6"/>
-        <text x="${p.x.toFixed(1)}" y="${padT + plotH + 13}" font-size="6.5pt" font-family="Cairo, sans-serif" text-anchor="middle" fill="#64748b">${p.month}</text>
+        <text x="${p.x.toFixed(1)}" y="${padT + plotH + 13}" font-size="6.5pt" font-family="Cairo, sans-serif" text-anchor="middle" fill="#64748b">${escapeHtml(p.month)}</text>
         <text x="${p.x.toFixed(1)}" y="${(p.y - 4).toFixed(1)}" font-size="6.5pt" font-weight="bold" font-family="Cairo, sans-serif" text-anchor="middle" fill="#1e40af">${p.occupancy}</text>
       `).join("")}
     </svg>
@@ -317,7 +318,7 @@ export const printArabicAnalyticsReport = async (opts: {
 <html lang="${isAr ? "ar" : "en"}" dir="${isAr ? "rtl" : "ltr"}">
 <head>
   <meta charset="UTF-8" />
-  <title>${isAr ? "تقرير التحليلات والإحصائيات الشاملة" : "Housing Analytics Report"} - ${propName || (isAr ? "سكن العاملين" : "Staff Housing")}</title>
+  <title>${isAr ? "تقرير التحليلات والإحصائيات الشاملة" : "Housing Analytics Report"} - ${escapeHtml(propName || (isAr ? "سكن العاملين" : "Staff Housing"))}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -529,7 +530,7 @@ export const printArabicAnalyticsReport = async (opts: {
 <body>
   <div class="print-actions-bar">
     <div style="font-weight:800; font-size:9.5pt;">
-      ${isAr ? "تقرير التحليلات والإحصائيات الشاملة لسكن العاملين" : "Executive Housing Analytics Report"} · ${propName || (isAr ? "سكن العاملين" : "Staff Housing")}
+      ${isAr ? "تقرير التحليلات والإحصائيات الشاملة لسكن العاملين" : "Executive Housing Analytics Report"} · ${escapeHtml(propName || (isAr ? "سكن العاملين" : "Staff Housing"))}
     </div>
     <div style="display:flex; gap:8px;">
       <button class="btn btn-primary" onclick="window.print()">🖨️ ${isAr ? "طباعة / حفظ كـ PDF (تقرير تنفيذي شامل)" : "Print / Save PDF (Executive Report)"}</button>
@@ -543,13 +544,13 @@ export const printArabicAnalyticsReport = async (opts: {
   <div class="page-sheet">
     <div>
       <div class="header">
-        ${propLogo ? `<img src="${propLogo.dataUrl}" alt="Logo" />` : "<div></div>"}
-        ${sysLogo ? `<img src="${sysLogo.dataUrl}" alt="Sunrise Logo" />` : `<div style="font-weight:800; color:#0f2a44; font-size:10pt;">Sunrise Resorts & Cruises</div>`}
+        ${propLogo ? `<img src="${escapeHtml(propLogo.dataUrl)}" alt="Logo" />` : "<div></div>"}
+        ${sysLogo ? `<img src="${escapeHtml(sysLogo.dataUrl)}" alt="Sunrise Logo" />` : `<div style="font-weight:800; color:#0f2a44; font-size:10pt;">Sunrise Resorts & Cruises</div>`}
       </div>
       <hr class="gold-line" />
       <h1 class="rep-title">${isAr ? "تقرير التحليلات والإحصائيات الشاملة لسكن العاملين" : "Executive Housing Analytics & Performance Insights"}</h1>
       <div class="rep-sub">
-        ${isAr ? "الفرع:" : "Property:"} <strong>${propName || (isAr ? "كافة الفروع" : "All Properties")}</strong> ${propAddress ? `(${propAddress})` : ""} · ${isAr ? "تاريخ الإصدار:" : "Date:"} ${today} · ${isAr ? "صفحة 1 من 2" : "Page 1 of 2"}
+        ${isAr ? "الفرع:" : "Property:"} <strong>${escapeHtml(propName || (isAr ? "كافة الفروع" : "All Properties"))}</strong> ${propAddress ? `(${propAddress})` : ""} · ${isAr ? "تاريخ الإصدار:" : "Date:"} ${escapeHtml(today)} · ${isAr ? "صفحة 1 من 2" : "Page 1 of 2"}
       </div>
 
       <!-- 8 KPI CARDS -->
@@ -727,7 +728,7 @@ export const printArabicAnalyticsReport = async (opts: {
     </div>
 
     <div class="foot">
-      <span>${isAr ? "تاريخ الطباعة:" : "Print Date:"} ${today}</span>
+      <span>${isAr ? "تاريخ الطباعة:" : "Print Date:"} ${escapeHtml(today)}</span>
       <span>${isAr ? "صفحة 1 من 2 · البنية الإنشائية والمباني والأدوار وحركة الإشغال" : "Page 1 of 2 · Infrastructure, Buildings, Floors & Operations"}</span>
       <span>Sunrise Staff Housing Management System</span>
     </div>
@@ -743,7 +744,7 @@ export const printArabicAnalyticsReport = async (opts: {
           ${isAr ? "تقرير التحليلات الشاملة · حصص الأقسام، القوى العاملة، الصيانة والاعتماد الرسمي" : "Comprehensive Analytics · Department Quotas, Demographics, Maintenance & Approvals"}
         </div>
         <div style="font-size:6.8pt; color:#64748b;">
-          ${propName || (isAr ? "سكن العاملين" : "Staff Housing")} · ${isAr ? "صفحة 2 من 2" : "Page 2 of 2"}
+          ${escapeHtml(propName || (isAr ? "سكن العاملين" : "Staff Housing"))} · ${isAr ? "صفحة 2 من 2" : "Page 2 of 2"}
         </div>
       </div>
       <hr class="gold-line" />
@@ -937,7 +938,7 @@ export const printArabicAnalyticsReport = async (opts: {
     </div>
 
     <div class="foot">
-      <span>${isAr ? "تاريخ الطباعة:" : "Print Date:"} ${today}</span>
+      <span>${isAr ? "تاريخ الطباعة:" : "Print Date:"} ${escapeHtml(today)}</span>
       <span>${isAr ? "صفحة 2 من 2 · حصص الأقسام، القوى العاملة، الصيانة والاعتماد الرسمي" : "Page 2 of 2 · Department Quotas, Demographics, Maintenance & Approvals"}</span>
       <span>Sunrise Staff Housing Management System</span>
     </div>
