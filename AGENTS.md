@@ -41,6 +41,7 @@ description: >-
 - **Layer 2 (Backend API):** Protect all Express routes with `requirePermission('module_name', 'action_name')` from `../middlewares/permissions.js`.
 - **Layer 3 (Input validation):** Every route that reads `req.body`, `req.query` or `req.params` must declare a Zod schema in `artifacts/api-server/src/validation/schemas.ts` and apply it with `validate({ body, query, params })` from `../middlewares/validate.js`. A failed parse is turned into a bilingual HTTP 400 by the global error handler. Never interpolate a schema/table name into SQL without `safeSchemaName()` from `lib/pg-ident.ts`.
 - Sensitive global endpoints (`/api/properties`) are strictly restricted to `super_admin`.
+- `super_admin` / `system_admin` always have every permission (server `effectivePermissions` and client `use-permission` return `*`); stored permission lists on these roles are ignored. Restrict an account by giving it a non-super role.
 
 ### Rule 3: Server-Side Pagination & Debounced Search
 - Any view or table that can grow beyond 10 items (Profiles, In-House, Reservations, Maintenance, Activity Logs, Settings Lookups) must implement:

@@ -67,25 +67,8 @@ export function usePermission() {
 
     const explicit = (user as any).permissions as string[] | undefined;
 
-    // 1. Super admin / system admin root access (emergency self-lockout prevention)
+    // 1. Super admin / system admin: always full access (mirrors the API's effectivePermissions).
     if (isSuperAdmin || isSystemAdmin) {
-      if (Array.isArray(explicit) && explicit.length > 0) {
-        const combined = new Set<string>();
-        for (const permission of explicit) {
-          if (permission === "none") continue;
-          const normalized = normalize(permission);
-          if (normalized) {
-            combined.add(normalized);
-            if (normalized.includes(".")) combined.add(normalized.replace(".", ":"));
-            if (normalized.includes(":")) combined.add(normalized.replace(":", "."));
-          }
-        }
-        combined.add("users.view");
-        combined.add("users:view");
-        combined.add("users.manage_permissions");
-        combined.add("users:manage_permissions");
-        return combined;
-      }
       return new Set(["*"]);
     }
 

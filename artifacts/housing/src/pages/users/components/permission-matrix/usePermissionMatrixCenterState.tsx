@@ -23,6 +23,13 @@ import {
 import { usePermission } from "@/hooks/use-permission";
 import { PermissionMatrixCenterProps, SYSTEM_ROLE_PRESETS } from "./PermissionMatrixCenter.constants";
 
+/** super_admin / system_admin (by role or flag) always have every permission. */
+function isSuperAdminUser(userObj: any): boolean {
+  if (!userObj) return false;
+  if (userObj.isSystemAdmin) return true;
+  return (userObj.roles || []).some((r: string) => ["super_admin", "system_admin"].includes(String(r).toLowerCase()));
+}
+
 export function usePermissionMatrixCenterState({
   users,
   selectedUserId,
@@ -66,6 +73,8 @@ export function usePermissionMatrixCenterState({
 
   const getInitialPerms = (userObj: any): Set<string> => {
     if (!userObj) return new Set();
+    // Super/system admins always have full access (server and client ignore stored lists).
+    if (isSuperAdminUser(userObj)) return new Set(ROLE_DEFAULT_PERMISSIONS["super_admin"] || []);
     const explicit = (userObj.permissions as string[] | undefined) ?? [];
     if (explicit.length > 0) {
       if (explicit.length === 1 && explicit[0] === "none") return new Set();
@@ -77,17 +86,19 @@ export function usePermissionMatrixCenterState({
       });
       return new Set(normalized);
     }
-    const isSuper = (userObj.roles || []).some((r: string) => String(r).toLowerCase() === "super_admin");
-    if (isSuper) {
-      return new Set(ROLE_DEFAULT_PERMISSIONS["super_admin"] || []);
-    }
     return new Set();
   };
 
-  const [perms, setPerms] = useState<Set<string>>(() => getInitialPerms(activeUser));
+  const [perms, setPermsRaw] = useState<Set<string>>(() => getInitialPerms(activeUser));
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
-  const [hasChanges, setHasChanges] = useState(false);
+  const [hasChanges, setHasChangesRaw] = useState(false);
+  // A super admin's permissions cannot be narrowed, so edits to them are ignored.
+  const targetIsSuper = isSuperAdminUser(activeUser);
+  const setPerms: typeof setPermsRaw = (value) => {
+    if (!targetIsSuper) setPermsRaw(value);
+  };
+  const setHasChanges = (value: boolean) => setHasChangesRaw(targetIsSuper ? false : value);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [userPickerOpen, setUserPickerOpen] = useState(false);
   const [userSearchText, setUserSearchText] = useState("");
@@ -96,8 +107,8 @@ export function usePermissionMatrixCenterState({
   // When active user changes, reload permissions
   useEffect(() => {
     if (activeUser) {
-      setPerms(getInitialPerms(activeUser));
-      setHasChanges(false);
+      setPermsRaw(getInitialPerms(activeUser));
+      setHasChangesRaw(false);
     }
   }, [activeUser?.id]);
 
@@ -323,8 +334,8 @@ export function usePermissionMatrixCenterState({
 
   const resetToStored = () => {
     if (activeUser) {
-      setPerms(getInitialPerms(activeUser));
-      setHasChanges(false);
+      setPermsRaw(getInitialPerms(activeUser));
+      setHasChangesRaw(false);
       toast.info(ar ? "تمت استعادة الصلاحيات الأصلية المحفوظة" : "Reset to stored permissions");
     }
   };
