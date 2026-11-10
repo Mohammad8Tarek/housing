@@ -13,7 +13,7 @@ import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, IdParams } from "../validation/schemas.js";
+import { CommonListQuery, IdParams, FoodOrderBody, TransportBookingBody } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -106,7 +106,8 @@ router.get("/my-orders", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /portal-food/order — طلب وجبة
-router.post("/order", requirePortalAuth, async (req, res, next): Promise<any> => {
+router.post("/order", requirePortalAuth, validate({ body: FoodOrderBody }),
+  async (req, res, next): Promise<any> => {
   try {
     const sess = portalSession(req)!;
     const { menuItemId, quantity, orderDate, notes } = req.body;
@@ -206,7 +207,8 @@ router.get("/my-bookings", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /portal-transport/book — حجز مواصلات
-router.post("/book", requirePortalAuth, async (req, res, next): Promise<any> => {
+router.post("/book", requirePortalAuth, validate({ body: TransportBookingBody }),
+  async (req, res, next): Promise<any> => {
   try {
     const sess = portalSession(req)!;
     const { scheduleId, bookingDate } = req.body;

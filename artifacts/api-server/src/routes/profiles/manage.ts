@@ -10,7 +10,7 @@ import { broadcastToProperty } from "../../lib/websocket.js";
 import { enrichProfileBilingual } from "../../lib/bilingual-translator.js";
 import { resolveProfileTenant, normalizePhotoData } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
-import { IdParams } from "../../validation/schemas.js";
+import { IdParams, ProfilePhotoBody, ProfileIdImageBody } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -470,6 +470,7 @@ router.patch(
   "/profiles/:id/photo",
   requirePermission("profiles", "edit"),
   validate({ params: IdParams }),
+  validate({ body: ProfilePhotoBody }),
   async (req, res): Promise<void> => {
     const id = Number(req.params.id);
     if (!id) {
@@ -577,6 +578,7 @@ router.patch(
   "/profiles/:id/id-image",
   requirePermission("profiles", "edit"),
   validate({ params: IdParams }),
+  validate({ body: ProfileIdImageBody }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const id = Number(req.params.id);

@@ -10,7 +10,7 @@ import { syncRoomFeaturesToInventory } from "./room-inventory.js";
 import { findProfileAcrossAllProperties, findRoomAcrossAllProperties } from "../lib/cross-property-service.js";
 import { buildRoomSearchConditions } from "../lib/search-helper.js";
 import { validate } from "../middlewares/validate.js";
-import { IdParams, CommonListQuery } from "../validation/schemas.js";
+import { IdParams, CommonListQuery, RoomFeaturesBody, RoomStatusBody, BulkIdsBody } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -908,6 +908,7 @@ router.patch(
   "/rooms/:id/features",
   requirePermission("housing", "edit"),
   validate({ params: IdParams }),
+  validate({ body: RoomFeaturesBody }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -995,6 +996,7 @@ router.patch(
     }
   },
   validate({ params: IdParams }),
+  validate({ body: RoomStatusBody }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -1095,6 +1097,7 @@ async function findPropertyByRoomId(roomId: number): Promise<number | null> {
 router.post(
   "/rooms/bulk-delete",
   requirePermission("housing", "delete"),
+  validate({ body: BulkIdsBody }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);

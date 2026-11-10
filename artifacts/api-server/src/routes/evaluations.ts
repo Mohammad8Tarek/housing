@@ -18,7 +18,7 @@ import { requirePermission } from "../middlewares/permissions.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
 import { getTenantId } from "../lib/request-utils.js";
 import { validate } from "../middlewares/validate.js";
-import { IdParams } from "../validation/schemas.js";
+import { IdParams, HousingPulseConfigBody } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -659,6 +659,7 @@ router.get(
 router.put(
   "/evaluations/housing-pulse",
   requirePermission("evaluations", "edit"),
+  validate({ body: HousingPulseConfigBody }),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);

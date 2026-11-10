@@ -64,7 +64,7 @@ import { syncEmployeeAccommodationLifecycle } from "../lib/hr-sync/lifecycle.js"
 import { processReceive } from "../lib/hr-sync/process-receive.js";
 import { buildMockHrFeed } from "../lib/hr-sync/mock-feed.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, ProfileCodeParams } from "../validation/schemas.js";
+import { CommonListQuery, ProfileCodeParams, HrReceiveBody, HrSyncRunBody, HrTestConnectionBody, HrNotifyVacationBody, HrNotifyDepartureBody, EsignTestBody, EsignRangeSyncBody, EsignRefreshBody } from "../validation/schemas.js";
 
 // ============================================================================
 // GET /api/hr-sync/config — Get HR sync config for current property
@@ -314,6 +314,7 @@ router.put(
 // Body: { propertyId, profiles: [...], mapping?: {...}, ...options }
 // ============================================================================
 router.post("/receive", validate({ query: CommonListQuery }),
+  validate({ body: HrReceiveBody }),
   async (req, res): Promise<void> => {
   const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
   const providedKey = String(req.headers["x-api-key"] || "").trim();
@@ -389,6 +390,7 @@ router.post("/receive", validate({ query: CommonListQuery }),
 router.post(
   "/sync",
   requireAnyPermission(["hr_sync", "edit"], ["settings", "edit"]),
+  validate({ body: HrSyncRunBody }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -606,6 +608,7 @@ router.post(
 router.post(
   "/test-connection",
   requireAnyPermission(["hr_sync", "view"], ["settings", "view"]),
+  validate({ body: HrTestConnectionBody }),
   async (req, res): Promise<void> => {
     const { apiUrl, apiKey } = req.body || {};
     if (!apiUrl) {
@@ -696,6 +699,7 @@ router.get("/mock-feed", validate({ query: CommonListQuery }),
 // Body: { propertyId, profileId, type: "START"|"RETURN", startDate?, endDate?, notes? }
 // ============================================================================
 router.post("/notify-vacation", validate({ query: CommonListQuery }),
+  validate({ body: HrNotifyVacationBody }),
   async (req, res): Promise<void> => {
   const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
   const providedKey = String(req.headers["x-api-key"] || "").trim();
@@ -836,6 +840,7 @@ router.post("/notify-vacation", validate({ query: CommonListQuery }),
 // Body: { propertyId, profileId, departureDate?, reason? }
 // ============================================================================
 router.post("/notify-departure", validate({ query: CommonListQuery }),
+  validate({ body: HrNotifyDepartureBody }),
   async (req, res): Promise<void> => {
   try {
     const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
@@ -1070,6 +1075,7 @@ router.get("/profiles/:profileId", validate({ params: ProfileCodeParams }),
 router.post(
   "/esign/test",
   requireAnyPermission(["hr_sync", "view"], ["hr_sync", "edit"], ["settings", "edit"]),
+  validate({ body: EsignTestBody }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -1180,6 +1186,7 @@ router.get(
 router.post(
   "/esign/range-sync",
   requireAnyPermission(["hr_sync", "edit"], ["settings", "edit"]),
+  validate({ body: EsignRangeSyncBody }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -1292,6 +1299,7 @@ router.post(
 router.post(
   "/esign/refresh-existing",
   requireAnyPermission(["hr_sync", "edit"], ["settings", "edit"]),
+  validate({ body: EsignRefreshBody }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);

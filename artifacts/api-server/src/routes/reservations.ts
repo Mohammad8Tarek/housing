@@ -10,7 +10,7 @@ import { sendCheckInWhatsAppNotification, sendReservationConfirmationWhatsApp } 
 import { findReservationAcrossAllProperties } from "../lib/cross-property-service.js";
 import { buildReservationSearchConditions } from "../lib/search-helper.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, IdParams } from "../validation/schemas.js";
+import { CommonListQuery, IdParams, ReservationCheckoutBody, SendWhatsAppBody } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -969,6 +969,7 @@ router.patch(
     ["accommodation", "edit"]
   ),
   validate({ params: IdParams }),
+  validate({ body: ReservationCheckoutBody }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const id = parseInt(req.params.id as string);
@@ -1181,6 +1182,7 @@ router.post(
   "/reservations/:id/send-whatsapp",
   requirePermission("reservations", "view"),
   validate({ params: IdParams }),
+  validate({ body: SendWhatsAppBody }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);

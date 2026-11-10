@@ -4,7 +4,7 @@ import { getTenantId } from "../lib/request-utils.js";
 import { requireAnyPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { safeSchemaName } from "../lib/pg-ident.js";
-import { BroadcastPreviewBody, BroadcastSendBody, WhatsAppConfigBody, WhatsAppLogsQuery, WhatsAppTestBody } from "../validation/schemas.js";
+import { BroadcastPreviewBody, BroadcastSendBody, WhatsAppConfigBody, WhatsAppLogsQuery, WhatsAppTestBody, WhatsAppConnectBody } from "../validation/schemas.js";
 import { getWhatsAppSession, connectPropertyWhatsApp, disconnectPropertyWhatsApp, executeSendHumanLike, compileWhatsAppTemplate, DEFAULT_WELCOME_AR, DEFAULT_WELCOME_EN, DEFAULT_RESERVATION_AR, DEFAULT_RESERVATION_EN, sendWhatsAppBroadcast, BroadcastRecipient, getPendingQueueCount, processOutboxQueue } from "../lib/whatsapp-engine.js";
 
 const router = Router();
@@ -89,7 +89,8 @@ router.post("/queue/process", requireAnyPermission(["whatsapp", "edit"], ["setti
 });
 
 // POST /api/whatsapp/connect - بدء عملية الربط وتوليد رمز QR أو كود الاقتران
-router.post("/connect", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), async (req, res) => {
+router.post("/connect", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), validate({ body: WhatsAppConnectBody }),
+  async (req, res) => {
   try {
     const propertyId = getTenantId(req) || 1;
     const rawPhone = req.body?.phoneNumber;

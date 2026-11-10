@@ -16,7 +16,7 @@ import { requireAuth, requirePermission, hasPermission, loadAuthUser, effectiveP
 import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
 import { getPasswordPolicy, validatePassword } from "../lib/password-policy.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, IdParams } from "../validation/schemas.js";
+import { CommonListQuery, IdParams, UsersBulkBody, LastPropertyBody } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -877,6 +877,7 @@ router.delete(
 router.post(
   "/users/bulk",
   requirePermission("users", "edit"),
+  validate({ body: UsersBulkBody }),
   async (req, res): Promise<void> => {
     try {
       const { ids, action, role, propertyIds, status } = req.body as {
@@ -1002,6 +1003,7 @@ router.post(
 router.patch(
   "/users/me/last-property",
   requireAuth,
+  validate({ body: LastPropertyBody }),
   async (req, res): Promise<void> => {
     const userId = (req.session as any)?.userId;
     if (!userId) {

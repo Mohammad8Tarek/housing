@@ -18,7 +18,7 @@ import { requireAnyPermission, hasPermission } from "../middlewares/permissions.
 import { getTenantId } from "../lib/request-utils.js";
 import { normalizeSearchString, sqlNormalizeArabic } from "../lib/search-helper.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, IdParams } from "../validation/schemas.js";
+import { CommonListQuery, IdParams, PropertyIdOnlyBody, SubTicketBody } from "../validation/schemas.js";
 
 const router: Router = Router();
 const assignedProfile = aliasedTable(profilesTable, "assigned_profile");
@@ -592,6 +592,7 @@ router.get(
     ["housekeeping", "edit"]
   ),
   validate({ params: IdParams, query: CommonListQuery }),
+  validate({ body: PropertyIdOnlyBody }),
   async (req, res, next) => {
     try {
       const user = (req as any).authUser;
@@ -1396,6 +1397,7 @@ router.post(
     ["housekeeping", "edit"]
   ),
   validate({ params: IdParams, query: CommonListQuery }),
+  validate({ body: SubTicketBody }),
   async (req, res, next) => {
     try {
       const user = (req as any).authUser;

@@ -467,3 +467,105 @@ export const CommonListQuery = z
     search: z.string().max(200).optional(),
   })
   .passthrough();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Request-body guards for routes that previously read req.body unchecked.
+// Every field is optional and nothing is coerced: handlers keep their own
+// "required" checks and messages. These schemas only reject malformed input —
+// objects/arrays where scalars are expected, oversized text, huge lists.
+// Unknown keys pass through untouched.
+// ─────────────────────────────────────────────────────────────────────────────
+const bId = z.union([z.number().int().nonnegative(), z.string().regex(/^\d{1,10}$/)]);
+const bIds = (max = 1000) => z.array(bId).max(max);
+const bText = (max = 500) => z.string().max(max);
+const bScalar = (max = 500) => z.union([z.string().max(max), z.number(), z.boolean()]);
+const bDate = z.string().max(40);
+const bBool = z.union([z.boolean(), z.enum(["true", "false"]), z.literal(0), z.literal(1)]);
+const bNum = z.union([z.number(), z.string().regex(/^-?\d{1,9}(\.\d+)?$/)]);
+const bDataUrl = z.string().max(20 * 1024 * 1024); // base64 images / attachments
+const o = <T extends z.ZodTypeAny>(s: T) => s.nullable().optional();
+const body = (shape: z.ZodRawShape) => z.object(shape).passthrough();
+
+// assignments / reservations
+export const SendWhatsAppBody = body({ phone: o(bScalar(30)) });
+export const BulkIdsBody = body({ ids: o(bIds()) });
+export const ReservationCheckoutBody = body({ checkOutDate: o(bDate), notes: o(bText(2000)), reason: o(bText(500)) });
+// auth
+export const SwitchPropertyBody = body({ propertyId: o(bId) });
+export const ForgotOtpRequestBody = body({ identifier: o(bText(200)) });
+export const ForgotOtpVerifyBody = body({ identifier: o(bText(200)), otp: o(bScalar(12)) });
+export const ForgotResetBody = body({ identifier: o(bText(200)), resetToken: o(bText(500)), newPassword: o(bText(200)) });
+export const LastPropertyBody = body({ propertyId: o(bId) });
+// evaluations
+export const HousingPulseConfigBody = body({
+  enabled: o(bBool), ratingType: o(bText(40)), allowComment: o(bBool), commentRequired: o(bBool),
+  cooldownDays: o(bNum), titleAr: o(bText(300)), titleEn: o(bText(300)), questionAr: o(bText(1000)), questionEn: o(bText(1000)),
+});
+// hostings
+export const CompanionBody = body({
+  name: o(bText(200)), relation: o(bText(100)), idNumber: o(bScalar(60)), age: o(bNum), isChild: o(bBool),
+  documentType: o(bText(60)), documentFileName: o(bText(300)), documentImage: o(bDataUrl),
+});
+// hotek / smart locks
+export const PropertyScopedBody = body({ propertyId: o(bId) });
+export const LockUpdateBody = body({ propertyId: o(bId), protocol: o(bText(60)), status: o(bText(40)) });
+export const KeyRevokeBody = body({ propertyId: o(bId), type: o(bText(40)) });
+export const KeyExtendBody = body({ propertyId: o(bId), expiresAt: o(bDate) });
+// HR sync / eSign (external integrations — record payloads stay flexible)
+const hrRecords = z.array(z.record(z.any())).max(20000);
+export const HrReceiveBody = body({
+  propertyId: o(bId), profiles: o(hrRecords), employees: o(hrRecords), data: o(z.union([hrRecords, z.record(z.any())])),
+  mapping: o(z.record(z.any())), syncProfiles: o(bBool), allowedLevels: o(z.array(bScalar(100)).max(500)),
+  allowedDepartments: o(z.array(bScalar(200)).max(500)), housingEligibleOnly: o(bBool), scope: o(bText(40)),
+});
+export const HrSyncRunBody = body({ sourceId: o(bId), scope: o(bText(40)) });
+export const HrTestConnectionBody = body({ apiUrl: o(bText(2000)), apiKey: o(bText(2000)) });
+export const HrNotifyVacationBody = body({
+  propertyId: o(bId), profileId: o(bScalar(100)), employeeId: o(bScalar(100)), type: o(bText(60)),
+  startDate: o(bDate), endDate: o(bDate), notes: o(bText(2000)),
+});
+export const HrNotifyDepartureBody = body({
+  propertyId: o(bId), profileId: o(bScalar(100)), employeeId: o(bScalar(100)), departureDate: o(bDate), reason: o(bText(2000)),
+});
+export const EsignTestBody = body({ baseUrl: o(bText(2000)), hotelCode: o(bScalar(60)), username: o(bText(200)), password: o(bText(500)) });
+export const EsignRangeSyncBody = body({
+  fromClockNo: o(bScalar(60)), from: o(bScalar(60)), toClockNo: o(bScalar(60)), to: o(bScalar(60)), hotelCode: o(bScalar(60)), sourceId: o(bId),
+});
+export const EsignRefreshBody = body({ sourceId: o(bId) });
+// maintenance
+export const PropertyIdOnlyBody = body({ propertyId: o(bId) });
+export const SubTicketBody = body({
+  propertyId: o(bId), problemType: o(bText(200)), description: o(bText(5000)), priority: o(bText(40)), roomId: o(bId), category: o(bText(100)),
+});
+// portal chat
+export const CreateConversationBody = body({ participantIds: o(bIds(200)), subject: o(bText(300)) });
+export const ChatMessageBody = body({ content: o(z.string().max(20 * 1024 * 1024)), contentType: o(bText(40)) });
+export const AdminChatMessageBody = body({ content: o(z.string().max(20 * 1024 * 1024)) });
+// portal data
+export const ActivityRegistrationBody = body({ activityId: o(bId), status: o(bText(40)), badgeNumber: o(bScalar(60)) });
+export const ActivityCancelBody = body({ activityId: o(bId) });
+export const ActivityAttendanceBody = body({ registrationId: o(bId), attended: o(bBool) });
+export const EvaluationRespondBody = body({
+  profileRating: o(bNum), employeeRating: o(bNum), profileResponse: o(bText(5000)), employeeResponse: o(bText(5000)),
+  itemResponses: o(z.union([z.array(z.record(z.any())).max(500), z.record(z.any())])),
+});
+export const HousingRatingBody = body({ rating: o(bScalar(40)), score: o(bNum), comment: o(bText(5000)) });
+export const MyProfileBody = body({
+  phone: o(bScalar(30)), address: o(bText(1000)), photo: o(bDataUrl), email: o(bText(320)), emergencyContact: o(bText(500)),
+});
+// portal food / transport
+export const FoodOrderBody = body({ menuItemId: o(bId), quantity: o(bNum), orderDate: o(bDate), notes: o(bText(1000)) });
+export const TransportBookingBody = body({ scheduleId: o(bId), bookingDate: o(bDate) });
+// profiles
+export const ProfilesBulkBody = body({ profiles: o(z.array(z.record(z.any())).max(20000)) });
+export const ProfilePhotoBody = body({ photoUrl: o(bDataUrl) });
+export const ProfileIdImageBody = body({ idImage: o(bDataUrl) });
+export const VacationStartBody = body({ startDate: o(bDate), endDate: o(bDate), notes: o(bText(2000)) });
+export const VacationReturnBody = body({ returnDate: o(bDate) });
+// rooms
+export const RoomFeaturesBody = body({ features: o(bText(5000)), featuresList: o(z.array(bText(200)).max(200)) });
+export const RoomStatusBody = body({ status: o(bText(40)) });
+// users
+export const UsersBulkBody = body({ ids: o(bIds()), action: o(bText(60)), role: o(bText(60)), propertyIds: o(bIds(500)), status: o(bText(40)) });
+// whatsapp
+export const WhatsAppConnectBody = body({ phoneNumber: o(bScalar(30)), resetSession: o(bBool) });

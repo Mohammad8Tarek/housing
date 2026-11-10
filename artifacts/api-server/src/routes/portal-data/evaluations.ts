@@ -5,7 +5,7 @@ import { eq, and, desc, sql, inArray, or, isNull, gte, isNotNull } from "drizzle
 import { portalSession } from "../portal-auth/shared.js";
 import { logActivity } from "../../lib/activity-logger.js";
 import { validate } from "../../middlewares/validate.js";
-import { IdParams } from "../../validation/schemas.js";
+import { IdParams, EvaluationRespondBody, HousingRatingBody } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -143,6 +143,7 @@ router.get("/my-evaluations", async (req, res): Promise<void> => {
 
 // Profile submits multi-item responses to an evaluation
 router.post("/my-evaluations/:id/respond", validate({ params: IdParams }),
+  validate({ body: EvaluationRespondBody }),
   async (req, res): Promise<void> => {
   try {
     const sess = portalSession(req)!;
@@ -425,7 +426,8 @@ router.get("/housing-rating-status", async (req, res): Promise<void> => {
 });
 
 // ─── POST /api/portal-data/housing-rating (Submit anonymous pulse rating) ────
-router.post("/housing-rating", async (req, res): Promise<void> => {
+router.post("/housing-rating", validate({ body: HousingRatingBody }),
+  async (req, res): Promise<void> => {
   const sess = portalSession(req);
   if (!sess) {
     res.status(401).json({ success: false, message: "Not authenticated" });

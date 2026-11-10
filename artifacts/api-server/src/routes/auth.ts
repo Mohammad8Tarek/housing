@@ -12,7 +12,7 @@ import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
 import { formatZodError } from "../utils/error-response.js";
 import { createWsAuthToken } from "../lib/ws-auth-token.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery } from "../validation/schemas.js";
+import { CommonListQuery, SwitchPropertyBody, ForgotOtpRequestBody, ForgotOtpVerifyBody, ForgotResetBody } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -466,7 +466,8 @@ router.post(
 );
 
 // ─── POST /auth/switch-property ───────────────────────────────────────────
-router.post("/auth/switch-property", async (req, res): Promise<void> => {
+router.post("/auth/switch-property", validate({ body: SwitchPropertyBody }),
+  async (req, res): Promise<void> => {
   const session = req.session as any;
   const userId = session?.userId;
   if (!userId) {
@@ -563,7 +564,8 @@ function maskEmail(email: string): string {
 }
 
 // ─── POST /auth/forgot-password/request-otp ──────────────────────────────
-router.post("/auth/forgot-password/request-otp", async (req, res): Promise<void> => {
+router.post("/auth/forgot-password/request-otp", validate({ body: ForgotOtpRequestBody }),
+  async (req, res): Promise<void> => {
   const identifier = String(req.body?.identifier || "").trim();
   if (!identifier) {
     res.status(400).json({
@@ -730,7 +732,8 @@ router.post("/auth/forgot-password/request-otp", async (req, res): Promise<void>
 });
 
 // ─── POST /auth/forgot-password/verify-otp ───────────────────────────────
-router.post("/auth/forgot-password/verify-otp", async (req, res): Promise<void> => {
+router.post("/auth/forgot-password/verify-otp", validate({ body: ForgotOtpVerifyBody }),
+  async (req, res): Promise<void> => {
   const identifier = String(req.body?.identifier || "").trim();
   const otp = String(req.body?.otp || "").trim();
 
@@ -839,7 +842,8 @@ router.post("/auth/forgot-password/verify-otp", async (req, res): Promise<void> 
 });
 
 // ─── POST /auth/forgot-password/reset-password ───────────────────────────
-router.post("/auth/forgot-password/reset-password", async (req, res): Promise<void> => {
+router.post("/auth/forgot-password/reset-password", validate({ body: ForgotResetBody }),
+  async (req, res): Promise<void> => {
   const identifier = String(req.body?.identifier || "").trim();
   const resetToken = String(req.body?.resetToken || "").trim();
   const newPassword = String(req.body?.newPassword || "").trim();

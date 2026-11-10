@@ -8,7 +8,7 @@ import { broadcastToProperty } from "../../lib/websocket.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
 import { fmtAssignment, findPropertyByAssignmentId } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
-import { IdParams } from "../../validation/schemas.js";
+import { IdParams, BulkIdsBody } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -181,6 +181,7 @@ router.delete(
 router.post(
   "/assignments/bulk-delete",
   requirePermission("accommodation", "delete"),
+  validate({ body: BulkIdsBody }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const { ids } = req.body || {};

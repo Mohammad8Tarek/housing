@@ -18,7 +18,7 @@ import {
 import { getTenantId } from "../lib/request-utils.js";
 import { sendPushToProfiles } from "./push-notifications.js";
 import { validate } from "../middlewares/validate.js";
-import { IdParams, CommonListQuery } from "../validation/schemas.js";
+import { IdParams, CommonListQuery, CreateConversationBody, ChatMessageBody, AdminChatMessageBody } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -168,7 +168,8 @@ router.get("/conversations", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /portal-chat/conversations — إنشاء محادثة جديدة
-router.post("/conversations", requirePortalAuth, async (req, res, next): Promise<any> => {
+router.post("/conversations", requirePortalAuth, validate({ body: CreateConversationBody }),
+  async (req, res, next): Promise<any> => {
   try {
     const sess = portalSession(req)!;
     const { participantIds, subject } = req.body;
@@ -346,6 +347,7 @@ router.post(
   "/conversations/:id/messages",
   requirePortalAuth,
   validate({ params: IdParams }),
+  validate({ body: ChatMessageBody }),
   async (req, res, next) => {
     try {
       const sess = portalSession(req)!;
@@ -618,6 +620,7 @@ router.post(
   "/admin/conversations/:id/messages",
   requirePermission("portal_content", "create"),
   validate({ params: IdParams }),
+  validate({ body: AdminChatMessageBody }),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);

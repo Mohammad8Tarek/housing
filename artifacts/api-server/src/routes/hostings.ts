@@ -7,7 +7,7 @@ import { requirePermission, requireAnyPermission } from "../middlewares/permissi
 import { getTenantId, su } from "../lib/request-utils.js";
 import { findHostingAcrossAllProperties } from "../lib/cross-property-service.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, IdParams, IdCompanionIdParams } from "../validation/schemas.js";
+import { CommonListQuery, IdParams, IdCompanionIdParams, CompanionBody } from "../validation/schemas.js";
 
 const router: Router = Router();
 const MAX_DOCUMENT_IMAGE_LENGTH = 7 * 1024 * 1024;
@@ -1077,6 +1077,7 @@ router.post(
   "/hostings/:id/companions",
   requirePermission("guest_hosting", "create"),
   validate({ params: IdParams }),
+  validate({ body: CompanionBody }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

@@ -6,7 +6,7 @@ import { requirePermission } from "../../middlewares/permissions.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
 import { resolveProfileTenant } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
-import { IdParams } from "../../validation/schemas.js";
+import { IdParams, VacationStartBody, VacationReturnBody } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -14,6 +14,7 @@ router.post(
   "/profiles/:id/vacation",
   requirePermission("profiles", "edit"),
   validate({ params: IdParams }),
+  validate({ body: VacationStartBody }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const id = Number(req.params.id);
@@ -111,6 +112,7 @@ router.post(
   "/profiles/:id/return-vacation",
   requirePermission("profiles", "edit"),
   validate({ params: IdParams }),
+  validate({ body: VacationReturnBody }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const id = Number(req.params.id);

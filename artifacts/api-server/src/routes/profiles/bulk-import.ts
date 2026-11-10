@@ -7,12 +7,15 @@ import { ensureProfilePortalAccount } from "../../lib/portal-accounts.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { enrichProfileBilingual } from "../../lib/bilingual-translator.js";
+import { validate } from "../../middlewares/validate.js";
+import { ProfilesBulkBody } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
 router.post(
   "/profiles/bulk",
   requirePermission("profiles", "create"),
+  validate({ body: ProfilesBulkBody }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
