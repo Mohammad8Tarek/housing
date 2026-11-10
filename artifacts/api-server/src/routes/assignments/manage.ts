@@ -219,16 +219,22 @@ router.post(
         const activeIds = new Set<number>((activeRows.rows || []).map((r: any) => Number(r.id)));
         const deletableIds = numIds.filter((id) => !activeIds.has(id));
 
+        // Count what was actually removed: requested IDs may not exist (or
+        // belong to another property), and those must not be reported/logged.
+        let deletedCount = 0;
         if (deletableIds.length > 0) {
           const deletableSql = sql.join(deletableIds.map((id) => sql`${id}`), sql`, `);
-          await tenantDb
+          const deleted = await tenantDb
             .delete(assignmentsTable)
-            .where(sql`${assignmentsTable.id} IN (${deletableSql})`);
+            .where(sql`${assignmentsTable.id} IN (${deletableSql})`)
+            .returning({ id: assignmentsTable.id });
+          deletedCount = deleted.length;
         }
 
         return {
-          deletedCount: deletableIds.length,
+          deletedCount,
           skippedCount: activeIds.size,
+          notFoundCount: deletableIds.length - deletedCount,
         };
       });
 

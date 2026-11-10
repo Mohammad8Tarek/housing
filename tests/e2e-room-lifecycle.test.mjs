@@ -380,6 +380,9 @@ test("reservation check-in creates the assignment and occupies the room", async 
 
   const ci = await api("POST", `/reservations/${reservation.id}/checkin`, { roomId: r.id, actualCheckInDate: today });
   assert.ok([200, 201].includes(ci.status), JSON.stringify(ci.json).slice(0, 300));
+  // Check-in creates its own stay and resident profile; track them for cleanup.
+  if (ci.json?.assignment?.id) created.assignments.push(ci.json.assignment);
+  if (ci.json?.profile?.id) created.profiles.push({ ...ci.json.profile, _property: PROPERTY_ID });
 
   const after = await room(r.id);
   assert.equal(after.status, "occupied");
@@ -415,6 +418,8 @@ test("cross-property check-in brings the profile into the target property (Rule 
   assert.equal(res.status, 201, JSON.stringify(res.json).slice(0, 400));
   const a = res.json.data ?? res.json;
   created.assignments.push(a);
+  // The profile is copied into the target property under a new id.
+  if (a.profileId) created.profiles.push({ id: a.profileId, _property: PROPERTY_ID });
   assert.equal(a.status, "ACTIVE");
   assert.equal((await room(r.id)).status, "occupied");
 
@@ -427,6 +432,9 @@ test("cross-property check-in brings the profile into the target property (Rule 
 after(async () => {
   if (!apiUp) return;
   const ids = created.assignments.map((a) => a.id).filter(Boolean);
+  // bulk-delete skips ACTIVE stays, which would then block deleting the
+  // rooms/profiles below — check every test stay out first.
+  for (const id of ids) await checkOut(id).catch(() => {});
   if (ids.length) await api("POST", "/assignments/bulk-delete", { ids }).catch(() => {});
   for (const p of created.profiles) await api("DELETE", `/profiles/${p.id}`, undefined, { property: p._property }).catch(() => {});
   for (const r of created.reservations) await api("DELETE", `/reservations/${r.id}`).catch(() => {});
