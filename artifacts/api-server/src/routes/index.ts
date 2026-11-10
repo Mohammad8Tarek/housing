@@ -37,8 +37,8 @@ import workersRouter from "./workers.js";
 import gateRouter from "./gate.js";
 
 // ✅ Portal Imports
-import portalAuthRouter from "./portal-auth.js";
-import portalDataRouter from "./portal-data.js";
+import portalAuthRouter from "./portal-auth/index.js";
+import portalDataRouter from "./portal-data/index.js";
 import portalAnalyticsRouter from "./portal-analytics.js";
 import portalNotificationsRouter from "./portal-notifications.js";
 import portalCategoriesRouter from "./portal-categories.js";
@@ -62,7 +62,7 @@ router.use(authRouter);
 router.use(roomServicePublicRouter);
 
 // Profile portal routes use their own portal session. Admin-only portal
-// maintenance actions add permission checks inside portal-auth.ts.
+// maintenance actions add permission checks inside portal-auth/.
 router.use("/portal-auth", portalAuthRouter);
 router.use("/portal-data", portalRateLimit, portalDataRouter);
 

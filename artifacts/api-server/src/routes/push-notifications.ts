@@ -11,7 +11,7 @@ import { Router } from "express";
 import webPush from "web-push";
 import { withTenant, pushSubscriptionsTable, deviceTokensTable } from "@workspace/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
-import { requirePortalAuth, portalSession } from "./portal-auth.js";
+import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import { validate } from "../middlewares/validate.js";
 import {
   PushSubscribeBody,

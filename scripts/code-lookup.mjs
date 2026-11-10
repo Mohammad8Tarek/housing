@@ -365,8 +365,8 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/portal-auth.ts (Login, reset password, verify national ID & room)",
-        "artifacts/api-server/src/routes/portal-data.ts (Requests, overview, roommates)",
+        "artifacts/api-server/src/routes/portal-auth/ (Login, reset password, verify national ID & room)",
+        "artifacts/api-server/src/routes/portal-data/ (Requests, overview, roommates)",
         "artifacts/api-server/src/routes/portal-chat.ts (Direct messaging & WebSocket push)",
         "artifacts/api-server/src/routes/activities.ts (Events & registrations)",
         "artifacts/api-server/src/routes/push-notifications.ts (Web push & FCM)",
@@ -450,7 +450,7 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/dashboard.ts (GET /stats, GET /occupancy-trends, GET /building-stats)",
+        "artifacts/api-server/src/routes/dashboard/ (GET /stats, GET /occupancy-trends, GET /building-stats)",
       ],
     },
     database: {

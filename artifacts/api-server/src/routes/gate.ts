@@ -16,7 +16,7 @@ import { getTenantId } from "../lib/request-utils.js";
 import { loadAuthUser, requirePermission, hasPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { GateLogBody, GateLogsQuery, GateStatsQuery, GateVerifyBody } from "../validation/schemas.js";
-import { portalSession } from "./portal-auth.js";
+import { portalSession } from "./portal-auth/shared.js";
 import { logActivity } from "../lib/activity-logger.js";
 
 const router: Router = Router();

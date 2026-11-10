@@ -6,7 +6,7 @@
 import { Router } from "express";
 import { withTenant, activitiesTable, evaluationsTable } from "@workspace/db";
 import { desc, gte, lte, and } from "drizzle-orm";
-import { requirePortalAuth, portalSession } from "./portal-auth.js";
+import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import { requirePermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams } from "../validation/common.js";

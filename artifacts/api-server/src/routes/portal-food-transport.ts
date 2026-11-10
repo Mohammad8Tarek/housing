@@ -9,7 +9,7 @@ import {
 import { eq, and, desc, sql, or, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { requirePermission } from "../middlewares/permissions.js";
-import { requirePortalAuth, portalSession } from "./portal-auth.js";
+import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 

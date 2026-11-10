@@ -9,7 +9,7 @@ import {
 } from "@workspace/db";
 import { eq, and, desc, asc, inArray, sql, not, or, ilike } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions.js";
-import { requirePortalAuth, portalSession } from "./portal-auth.js";
+import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import {
   broadcastToProperty,
   getOnlineEmployeeIds,
