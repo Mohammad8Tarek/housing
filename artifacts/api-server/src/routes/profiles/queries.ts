@@ -105,6 +105,8 @@ router.get(
           .offset(offset) as any;
         if (conditions.length > 0)
           baseQuery = baseQuery.where(and(...conditions));
+        // Every ordering ends with id so LIMIT/OFFSET pages are stable (no repeated or
+        // skipped rows between pages); without a requested sort, id order is the default.
         if (sortByRaw === "fullName") {
           baseQuery = baseQuery.orderBy(
             sortDir === "desc"
@@ -113,11 +115,15 @@ router.get(
             sortDir === "desc"
               ? desc(profilesTable.lastName)
               : asc(profilesTable.lastName),
+            asc(profilesTable.id),
           );
         } else if (sortCol) {
           baseQuery = baseQuery.orderBy(
             sortDir === "desc" ? desc(sortCol) : asc(sortCol),
+            asc(profilesTable.id),
           );
+        } else {
+          baseQuery = baseQuery.orderBy(asc(profilesTable.id));
         }
 
         const rows = await baseQuery;
@@ -370,7 +376,8 @@ router.get(
             address: profilesTable.address,
             status: profilesTable.status,
           })
-          .from(profilesTable);
+          .from(profilesTable)
+          .orderBy(asc(profilesTable.id)); // deterministic order for the Excel import duplicate check
       });
 
       res.json({

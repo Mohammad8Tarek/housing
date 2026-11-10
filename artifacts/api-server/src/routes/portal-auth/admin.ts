@@ -347,7 +347,7 @@ router.get(
         dataQuery = dataQuery.where(and(...conditions)) as any;
       }
 
-      dataQuery = dataQuery.orderBy(profilesTable.firstName, profilesTable.lastName) as any;
+      dataQuery = dataQuery.orderBy(profilesTable.firstName, profilesTable.lastName, profilesTable.id) as any; // id: stable pages for equal names
 
       if (isPaginated) {
         dataQuery = dataQuery.limit(limit).offset((page - 1) * limit) as any;

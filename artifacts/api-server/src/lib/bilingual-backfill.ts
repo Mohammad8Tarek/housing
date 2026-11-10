@@ -1,3 +1,4 @@
+import { safeSchemaName } from "./pg-ident.js";
 import { pool } from "@workspace/db";
 import { enrichProfileBilingual, translateDepartment, translateJobTitle, hasEnglish } from "./bilingual-translator.js";
 
@@ -22,7 +23,14 @@ export async function backfillBilingualProfiles(): Promise<{
       ORDER BY schema_name;
     `);
 
-    for (const { schema_name } of schemas) {
+    for (const { schema_name: rawSchemaName } of schemas) {
+      // Identifiers are interpolated into SQL below, so they must pass safeSchemaName() (AGENTS.md Rule 2).
+      let schema_name: string;
+      try {
+        schema_name = safeSchemaName(rawSchemaName);
+      } catch {
+        continue;
+      }
       // Check if this schema has a profiles table
       const { rows: tableCheck } = await client.query(`
         SELECT table_name 
@@ -78,6 +86,17 @@ export async function backfillBilingualProfiles(): Promise<{
             department: p.department,
             departmentAr: p.department_ar,
           });
+
+          // Only write when the translation actually changes something; otherwise profiles
+          // whose names cannot be transliterated were rewritten on every server start.
+          const unchanged =
+            (enriched.firstNameAr ?? null) === (p.first_name_ar ?? null) &&
+            (enriched.lastNameAr ?? null) === (p.last_name_ar ?? null) &&
+            (enriched.thirdNameAr ?? null) === (p.third_name_ar ?? null) &&
+            (enriched.fourthNameAr ?? null) === (p.fourth_name_ar ?? null) &&
+            (enriched.jobTitleAr ?? null) === (p.job_title_ar ?? null) &&
+            (enriched.departmentAr ?? null) === (p.department_ar ?? null);
+          if (unchanged) continue;
 
           await client.query(`
             UPDATE "${schema_name}".profiles 
