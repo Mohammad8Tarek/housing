@@ -410,6 +410,29 @@ const REGISTRY = [
     },
   },
   {
+    id: "whatsapp",
+    name: "WhatsApp Messaging & Templates / رسائل وقوالب الواتساب",
+    keywords: ["whatsapp", "واتساب", "واتس", "baileys", "meta cloud", "broadcast", "template", "قالب", "رسالة ترحيب"],
+    frontend: {
+      route: "/:property/settings (WhatsApp tab)",
+      page: "artifacts/housing/src/pages/settings/components/WhatsAppSettingsSection.tsx",
+      components: [
+        "Provider cards, gateway/Meta/QR config, outbox, auto-dispatch, template editor, test send, logs: artifacts/housing/src/pages/settings/components/whatsapp/*",
+      ],
+    },
+    backend: {
+      routes: [
+        "artifacts/api-server/src/routes/whatsapp.ts (status, connect/disconnect, config, test, logs, queue, broadcast)",
+        "artifacts/api-server/src/lib/whatsapp-engine.ts (barrel) -> lib/whatsapp/: templates.ts, quota.ts (anti-ban limits, quiet hours), session.ts (Baileys sessions, heartbeat), send.ts (send, outbox, delivery log), notifications.ts (check-in, welcome, reservation, broadcast)",
+      ],
+    },
+    database: {
+      schemas: [
+        "property_whatsapp_configs, whatsapp_delivery_logs, whatsapp_outbox_queue (tenant schemas)",
+      ],
+    },
+  },
+  {
     id: "room_inventory",
     name: "Room Amenities & Equipment Inventory / جرد محتويات ومعدات الغرف",
     keywords: ["inventory", "equipment", "amenities", "asset", "assets", "جرد", "معدات", "محتويات الغرف", "عهد"],
