@@ -82,7 +82,7 @@ router.get(
           baseQuery = baseQuery.where(and(...conditions));
         }
 
-        const rows = await baseQuery.orderBy(asc(buildingsTable.name)).limit(limit).offset(offset);
+        const rows = await baseQuery.orderBy(asc(buildingsTable.name), asc(buildingsTable.id)).limit(limit).offset(offset);
         return { data: rows, total: totalCount };
       });
 

@@ -645,7 +645,7 @@ router.get("/gate/logs", requirePermission("gate", "view"), validate({ query: Ga
       .from(gateLogsTable)
       .leftJoin(propertiesTable, eq(gateLogsTable.propertyId, propertiesTable.id))
       .where(whereClause)
-      .orderBy(desc(gateLogsTable.scannedAt))
+      .orderBy(desc(gateLogsTable.scannedAt), desc(gateLogsTable.id))
       .limit(limit)
       .offset(offset);
 

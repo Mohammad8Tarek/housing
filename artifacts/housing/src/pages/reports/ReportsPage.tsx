@@ -3,6 +3,7 @@ import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
 import { DataPagination } from "@/components/DataPagination";
+import { useDebounce } from "@/hooks/use-debounce";
 import { AnalyticsTab } from "./components/AnalyticsTab";
 
 import { useReportData } from "./hooks/useReportData";
@@ -94,9 +95,13 @@ export default function Reports() {
     hostings: data.hostings,
   });
 
+  // Rows are rebuilt from the full datasets, so wait until typing pauses.
+  const debouncedSearch = useDebounce(filters.search, 300);
+
   const processor = useReportDataProcessor({
     ar,
     ...filters,
+    search: debouncedSearch,
     buildings: data.buildings,
     floors: data.floors,
     rooms: data.rooms,
@@ -115,7 +120,20 @@ export default function Reports() {
     settings: data.settings,
   });
 
-  const allData = processor.currentData();
+  // Rebuild rows only when a report input changes, not on every render.
+  const allData = useMemo(
+    () => processor.currentData(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      ar, filters.activeTab, filters.filterBuilding, filters.filterFloor, filters.filterStatus,
+      filters.filterCategory, filters.inventoryViewMode, filters.filterDepartment, filters.filterGender,
+      filters.filterNationality, filters.filterRoomType, filters.filterEmploymentType, filters.waterSortMode,
+      debouncedSearch, filters.dateFrom, filters.dateTo,
+      data.buildings, data.floors, data.rooms, data.profiles, data.assignments, data.reservations,
+      data.maintenance, data.hostings, data.equipmentInventory, data.gateLogs, data.vacations,
+      data.buildingMap, data.floorMap, data.roomMap, data.empMap, data.settings,
+    ],
+  );
   const { sort, toggle } = useReportSort(filters.activeTab);
   const sortedData = useMemo(
     () => sortReportRows(allData, sort),

@@ -132,7 +132,7 @@ router.get(
             and(ne(reservationsTable.guestIdCardNumber, ""), eq(reservationsTable.guestIdCardNumber, profilesTable.nationalId))
           )
         )
-        .orderBy(desc(reservationsTable.createdAt))
+        .orderBy(desc(reservationsTable.createdAt), desc(reservationsTable.id))
         .limit(limit)
         .offset(offset) as any;
       if (conditions.length > 0)

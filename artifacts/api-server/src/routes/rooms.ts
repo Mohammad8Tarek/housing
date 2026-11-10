@@ -317,7 +317,7 @@ router.get(
         let baseQuery = tenantDb
           .select()
           .from(roomsTable)
-          .orderBy(sql`LENGTH(${roomsTable.roomNumber}), ${roomsTable.roomNumber}`)
+          .orderBy(sql`LENGTH(${roomsTable.roomNumber}), ${roomsTable.roomNumber}, ${roomsTable.id}`)
           .limit(limit)
           .offset(offset) as any;
         if (conditions.length > 0)

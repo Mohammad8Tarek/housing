@@ -1,18 +1,8 @@
 import { useMemo, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  useListRooms,
-  useListBuildings,
-  useListFloors,
-  useListProfiles,
-  useListAssignments,
-  useListReservations,
-  useListMaintenance,
-  useListHostings,
-  useListProperties,
-  useGetSettings,
-} from "@workspace/api-client-react";
+import { useListProperties, useGetSettings } from "@workspace/api-client-react";
+import { fetchAllPages } from "@/lib/fetch-all-pages";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
 export function useReportData(
@@ -37,84 +27,32 @@ export function useReportData(
     { query: { queryKey: ["settings", propId], enabled: !!propId } },
   );
 
-  const { data: _bData } = useListBuildings({ propertyId: propId, limit: 5000 } as any, {
-    query: { queryKey: ["buildings", propId, 5000], enabled: !!propId },
-  });
-  const buildings: any[] = (_bData as any)?.data || _bData || [];
+  // Every list is loaded completely (all pages), so reports never drop rows
+  // once a property grows past the server's per-request limit.
+  const useAll = (key: string, path: string, pageSize: number, extra: Record<string, string> = {}) =>
+    useQuery({
+      queryKey: [key, propId, "report-all", extra],
+      queryFn: () => fetchAllPages<any>(path, { propertyId: propId, ...extra }, pageSize),
+      enabled: !!propId,
+    });
+  // Endpoints that used plain fetch before and treat failures as "no rows".
+  const useAllOrEmpty = (key: string, path: string, pageSize: number) =>
+    useQuery({
+      queryKey: [key, propId, "report-all"],
+      queryFn: () => fetchAllPages<any>(path, { propertyId: propId }, pageSize).catch(() => []),
+      enabled: !!propId,
+    });
 
-  const { data: _fData } = useListFloors(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["floors", propId, 5000], enabled: !!propId } },
-  );
-  const floors: any[] = (_fData as any)?.data || _fData || [];
-
-  const { data: _rData, isLoading: roomLoad } = useListRooms(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["rooms", propId, 5000], enabled: !!propId } },
-  );
-  const rooms: any[] = (_rData as any)?.data || _rData || [];
-
-  const { data: _eData, isLoading: empLoad } = useListProfiles(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["profiles", propId, 5000], enabled: !!propId } },
-  );
-  const profiles: any[] = (_eData as any)?.data || _eData || [];
-
-  const { data: _aData, isLoading: assLoad } = useListAssignments(
-    { propertyId: propId, limit: 5000, status: "ALL" } as any,
-    { query: { queryKey: ["assignments", propId, 5000, "ALL"], enabled: !!propId } },
-  );
-  const assignments: any[] = Array.isArray(_aData)
-    ? _aData
-    : ((_aData as any)?.data || []);
-
-  const { data: _resData, isLoading: resLoad } = useListReservations(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["reservations", propId, 5000], enabled: !!propId } },
-  );
-  const reservations: any[] = (_resData as any)?.data || _resData || [];
-
-  const { data: _mntData, isLoading: mntLoad } = useListMaintenance(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["maintenance", propId, 5000], enabled: !!propId } },
-  );
-  const maintenance: any[] = (_mntData as any)?.data || _mntData || [];
-
-  const { data: _hData, isLoading: hostLoad } = useListHostings(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["hostings", propId, 5000], enabled: !!propId } },
-  );
-  const hostings: any[] = (_hData as any)?.data || _hData || [];
-
-  const { data: _invData, isLoading: invLoad } = useQuery({
-    queryKey: ["room-inventory", propId],
-    queryFn: async () => {
-      if (!propId) return [];
-      const res = await fetch(`/api/room-inventory?propertyId=${propId}&limit=5000`, {
-        credentials: "include",
-      });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return json.data || [];
-    },
-    enabled: !!propId,
-  });
-  const equipmentInventory: any[] = _invData || [];
-
-  const { data: _gateData, isLoading: gateLoad } = useQuery({
-    queryKey: ["gate-logs", propId],
-    queryFn: async () => {
-      if (!propId) return [];
-      const res = await fetch(`/api/gate/logs?propertyId=${propId}&limit=1000`, {
-        credentials: "include",
-      });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return json.data || json.logs || [];
-    },
-    enabled: !!propId,
-  });
-  const gateLogs: any[] = _gateData || [];
+  const { data: buildings = [] } = useAll("buildings", "/api/buildings", 1000);
+  const { data: floors = [] } = useAll("floors", "/api/floors", 5000);
+  const { data: rooms = [], isLoading: roomLoad } = useAll("rooms", "/api/rooms", 5000);
+  const { data: profiles = [], isLoading: empLoad } = useAll("profiles", "/api/profiles", 5000);
+  const { data: assignments = [], isLoading: assLoad } = useAll("assignments", "/api/assignments", 5000, { status: "ALL" });
+  const { data: reservations = [], isLoading: resLoad } = useAll("reservations", "/api/reservations", 5000);
+  const { data: maintenance = [], isLoading: mntLoad } = useAll("maintenance", "/api/maintenance", 5000);
+  const { data: hostings = [], isLoading: hostLoad } = useAll("hostings", "/api/hostings", 5000);
+  const { data: equipmentInventory = [], isLoading: invLoad } = useAllOrEmpty("room-inventory", "/api/room-inventory", 5000);
+  const { data: gateLogs = [], isLoading: gateLoad } = useAllOrEmpty("gate-logs", "/api/gate/logs", 2000);
 
   const { data: _vacData, isLoading: vacLoad } = useQuery({
     queryKey: ["report-vacations", propId],
