@@ -18,6 +18,7 @@ reservations, guest hosting, housekeeping, maintenance, reports, and a resident 
 | `lib/db/` | Drizzle schema, DB pool, `withTenant`; `lib/db/scripts/` = one-off DB scripts |
 | `lib/api-spec`, `lib/api-zod`, `lib/api-client-react` | OpenAPI spec and generated client/validators |
 | `lib/dates`, `lib/queue` | Shared date formatting (DD/MM/YYYY) and BullMQ queues |
+| `lib/report-rows` | Report row builders shared by the admin app and the API (server-side report pages) |
 | `interfaces/hr-sync/` | Standalone HR → housing sync daemon |
 | `interfaces/hotek-bridge/` | On-site bridge: Hotek PMS lock server (TCP) → cloud API |
 | `tests/` | End-to-end and integration test scripts |

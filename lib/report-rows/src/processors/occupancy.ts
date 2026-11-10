@@ -1,12 +1,12 @@
 // Report row builders — occupancy. Split out of useReportDataProcessor; logic unchanged.
-import { formatDate } from "@/lib/date-utils";
+import { formatDate } from "../date-utils";
 import {
   getProfileDisplayName,
   getProfileDisplayJobTitle,
   getProfileDisplayDepartment,
-} from "@/lib/profile-display-utils";
-import { formatNationality } from "@/lib/countries";
-import { translateRoomType } from "../../utils/luxury-report-engine";
+} from "../profile-display-utils";
+import { formatNationality } from "../countries";
+import { translateRoomType } from "../value-translators";
 import type { ReportProcessorContext } from "./context";
 import { matchesRoomType, matchesGender } from "./context";
 

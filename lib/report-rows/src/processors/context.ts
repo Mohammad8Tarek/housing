@@ -1,6 +1,6 @@
 // Shared inputs and helpers for report row builders.
-import { parseDMY } from "@/lib/date-utils";
-import { normalizeSearchText } from "@/lib/search-utils";
+import { parseDMY } from "../date-utils";
+import { normalizeSearchText } from "../search-utils";
 
 export interface ReportProcessorContext {
   ar: any;

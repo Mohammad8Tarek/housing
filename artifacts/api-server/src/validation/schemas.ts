@@ -569,3 +569,31 @@ export const RoomStatusBody = body({ status: o(bText(40)) });
 export const UsersBulkBody = body({ ids: o(bIds()), action: o(bText(60)), role: o(bText(60)), propertyIds: o(bIds(500)), status: o(bText(40)) });
 // whatsapp
 export const WhatsAppConnectBody = body({ phoneNumber: o(bScalar(30)), resetSession: o(bBool) });
+
+// ─── GET /api/reports/rows/:report (server-side report pages) ───────────────
+const qText = (max: number) => z.string().max(max).optional();
+export const ReportRowsParams = z.object({ report: z.enum(["assignments", "profiles"]) });
+export const ReportRowsQuery = z
+  .object({
+    propertyId: z.string().regex(/^\d{1,10}$/),
+    page: z.string().regex(/^\d{1,6}$/).optional(),
+    limit: z.string().regex(/^\d{1,4}$/).optional(),
+    all: z.enum(["0", "1"]).optional(),
+    lang: z.enum(["ar", "en"]).optional(),
+    search: qText(200),
+    sortKey: z.string().regex(/^[A-Za-z0-9_]{1,64}$/).optional(),
+    sortDir: z.enum(["asc", "desc"]).optional(),
+    groupBy: z.enum(["room"]).optional(),
+    filterBuilding: qText(20),
+    filterFloor: qText(20),
+    filterStatus: qText(40),
+    filterCategory: qText(100),
+    filterDepartment: qText(200),
+    filterGender: qText(20),
+    filterNationality: qText(100),
+    filterRoomType: qText(100),
+    filterEmploymentType: qText(40),
+    dateFrom: qText(40),
+    dateTo: qText(40),
+  })
+  .passthrough();

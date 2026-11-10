@@ -1,5 +1,5 @@
 // Report row builders — room inventory & housing map. Split out of useReportDataProcessor; logic unchanged.
-import { translateRoomType } from "../../utils/luxury-report-engine";
+import { translateRoomType } from "../value-translators";
 import type { ReportProcessorContext } from "./context";
 import { matchesRoomType } from "./context";
 

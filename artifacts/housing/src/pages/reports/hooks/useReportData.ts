@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useListProperties, useGetSettings } from "@workspace/api-client-react";
 import { fetchAllPages } from "@/lib/fetch-all-pages";
+import { buildReportMaps } from "@workspace/report-rows";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
 export function useReportData(
@@ -93,26 +94,10 @@ export function useReportData(
   const isLoading =
     roomLoad || empLoad || assLoad || resLoad || mntLoad || hostLoad || invLoad || gateLoad || vacLoad;
 
-  const buildingMap = useMemo(() => {
-    const m: Record<number, string> = {};
-    buildings.forEach((b: any) => (m[b.id] = b.name));
-    return m;
-  }, [buildings]);
-
-  const floorMap = useMemo(() => {
-    const m: Record<number, string> = {};
-    floors.forEach(
-      (f: any) =>
-        (m[f.id] = f.floorNumber ? `Floor ${f.floorNumber}` : `Floor ${f.id}`),
-    );
-    return m;
-  }, [floors]);
-
-  const roomMap = useMemo(() => {
-    const m: Record<number, any> = {};
-    rooms.forEach((r: any) => (m[r.id] = r));
-    return m;
-  }, [rooms]);
+  const { buildingMap, floorMap, roomMap, empMap } = useMemo(
+    () => buildReportMaps({ buildings, floors, rooms, profiles }),
+    [buildings, floors, rooms, profiles],
+  );
 
   const departments = useMemo(() => {
     const set = new Set<string>();
@@ -131,12 +116,6 @@ export function useReportData(
       if (e.nationality) set.add(e.nationality.trim());
     });
     return Array.from(set).sort();
-  }, [profiles]);
-
-  const empMap = useMemo(() => {
-    const m: Record<number, any> = {};
-    profiles.forEach((e: any) => (m[e.id] = e));
-    return m;
   }, [profiles]);
 
   const { data: lookupRoomTypes = [] } = useLookupValues(

@@ -1,9 +1,9 @@
 // Report row builders — policy exceptions. Split out of useReportDataProcessor; logic unchanged.
-import { formatDate } from "@/lib/date-utils";
+import { formatDate } from "../date-utils";
 import {
   getProfileDisplayName,
   getProfileDisplayDepartment,
-} from "@/lib/profile-display-utils";
+} from "../profile-display-utils";
 import type { ReportProcessorContext } from "./context";
 import { comparableDate } from "./context";
 
