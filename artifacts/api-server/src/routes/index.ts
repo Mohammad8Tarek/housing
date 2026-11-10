@@ -25,11 +25,11 @@ import activitiesRouter from "./activities.js";
 import portalContactsAdminRouter from "./portal-contacts.js";
 import smartLockRouter from "./smart-lock.js";
 import userSignatureRouter from "./user-signature.js";
-import hostingRequestsRouter from "./hosting-requests.js";
+import hostingRequestsRouter from "./hosting-requests/index.js";
 import hotekConfigRouter from "./hotek-config.js";
 import jobsRouter from "./jobs.js";
 
-import reportsRouter from "./reports.js";
+import reportsRouter from "./reports/index.js";
 import roomImportRouter from "./room-import.js";
 import roomInventoryRouter from "./room-inventory.js";
 import whatsappRouter from "./whatsapp.js";

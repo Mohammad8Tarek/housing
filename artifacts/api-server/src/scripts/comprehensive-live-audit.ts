@@ -1,7 +1,7 @@
 import { db, withTenant, propertiesTable, roomsTable, assignmentsTable, profilesTable, reservationsTable, hostingsTable, maintenanceTable, profileVacationsTable, portalConversationsTable, portalMessagesTable, buildingsTable, floorsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { findAssignmentAcrossAllProperties, findRoomAcrossAllProperties, findReservationAcrossAllProperties, findHostingAcrossAllProperties } from "../lib/cross-property-service.js";
-import { resolveProfileTenant } from "../routes/profiles.js";
+import { resolveProfileTenant } from "../routes/profiles/shared.js";
 
 interface AuditResult {
   suite: string;

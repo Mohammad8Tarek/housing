@@ -135,7 +135,7 @@ const REGISTRY = [
     backend: {
       routes: [
         "artifacts/api-server/src/routes/hostings.ts (GET /, POST /, PATCH /:id)",
-        "artifacts/api-server/src/routes/hosting-requests.ts (Approvals, workflows, companions)",
+        "artifacts/api-server/src/routes/hosting-requests/ — create.ts, queries.ts, workflow.ts (sign/reject/reback approvals), manage.ts, shared.ts (signature policy, step roles)",
       ],
     },
     database: {
@@ -220,7 +220,7 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/profiles.ts (GET /, POST /, GET /:id, PATCH /:id, DELETE /:id, POST /bulk-import, POST /:id/photo)",
+        "artifacts/api-server/src/routes/profiles/ — queries.ts (GET list/search/:id/photo), create.ts, bulk-import.ts (POST /bulk), manage.ts (PATCH/DELETE /:id, photo, id-image), vacation.ts",
         "artifacts/api-server/src/routes/hr-sync.ts (Sync with external HR databases)",
       ],
     },
@@ -400,7 +400,7 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/reports.ts",
+        "artifacts/api-server/src/routes/reports/ — ratings.ts, operations.ts (room-moves, vacations, /), custom.ts (templates + custom query)",
       ],
     },
     database: {
