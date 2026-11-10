@@ -60,7 +60,7 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/assignments.ts (GET /, PATCH /:id/checkout, POST /:id/transfer, POST /:id/cancel-checkout)",
+        "artifacts/api-server/src/routes/assignments/queries.ts (GET /in-house, GET /), checkout.ts (POST /:id/checkout), transfer.ts (POST /:id/transfer), manage.ts (PATCH/DELETE /:id, POST /bulk-delete)",
         "artifacts/api-server/src/routes/rooms.ts (GET /:id/occupants)",
       ],
     },
@@ -86,7 +86,7 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/assignments.ts (POST / create assignment)",
+        "artifacts/api-server/src/routes/assignments/create.ts (POST / create assignment, cross-property check-in)",
         "artifacts/api-server/src/routes/rooms.ts (GET / with capacity & vacancy filters)",
       ],
     },
@@ -110,7 +110,7 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/assignments.ts (GET /history)",
+        "artifacts/api-server/src/routes/assignments/queries.ts (GET /history)",
       ],
     },
     database: {
