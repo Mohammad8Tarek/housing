@@ -1,18 +1,16 @@
 import {
-  useListRooms,
   useListBuildings,
   useListFloors,
   useListAssignments,
-  useListProfiles,
   useGetSettings,
 } from "@workspace/api-client-react";
-import type { ListRoomsParams } from "@workspace/api-client-react";
 import type {
   Room,
   Building,
   Floor,
   Assignment,
 } from "@workspace/api-client-react";
+import { useAllRows } from "@/lib/use-all-rows";
 
 /**
  * Tenant-scoped reference data for the smart room assignment wizard:
@@ -33,31 +31,20 @@ export function useRoomAssignmentQueries({
     },
   });
 
-  const { data: allProfilesData } = useListProfiles(
-    { propertyId: effectiveTargetPropId, limit: 1000 } as any,
-    {
-      query: {
-        queryKey: ["/api/profiles", effectiveTargetPropId],
-        enabled: !!effectiveTargetPropId,
-      } as any,
-    },
+  const { data: allProfilesData } = useAllRows(
+    "/api/profiles",
+    { propertyId: effectiveTargetPropId },
+    { enabled: !!effectiveTargetPropId },
   );
   const profilesList =
     (allProfilesData as any)?.profiles || (allProfilesData as any)?.data || [];
 
-  // NOTE: backend reads `limit` from the query string even though the
-  // generated ListRoomsParams type omits it — keep it via cast (no runtime change).
-  const roomsQuery = {
-    propertyId: effectiveTargetPropId,
-    limit: 1000,
-  } as ListRoomsParams;
-  const { data: _rData } = useListRooms(roomsQuery, {
-    query: {
-      queryKey: ["/api/rooms", roomsQuery],
-      enabled: !!effectiveTargetPropId,
-      staleTime: 30000,
-    },
-  });
+  // Every room of the property (all pages), not the first 1000.
+  const { data: _rData } = useAllRows(
+    "/api/rooms",
+    { propertyId: effectiveTargetPropId },
+    { enabled: !!effectiveTargetPropId, staleTime: 30000 },
+  );
   // NOTE: /api/rooms returns a { data, pagination } envelope (not a bare
   // array), so unwrap .data first. Runtime shape verified in routes/rooms.ts.
   const rooms: Room[] = Array.isArray(_rData)
@@ -112,7 +99,6 @@ export function useRoomAssignmentQueries({
   return {
     settings,
     profilesList,
-    roomsQuery,
     rooms,
     buildings,
     floors,

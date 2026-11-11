@@ -23,17 +23,12 @@ import { useLanguage } from "@/context/LanguageContext";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { usePermission } from "@/hooks/use-permission";
+import { useAllRows } from "@/lib/use-all-rows";
 import {
   useListBuildings,
   useListFloors,
-  useListRooms,
-  useListAssignments,
-  useListProfiles,
   getListBuildingsQueryKey,
   getListFloorsQueryKey,
-  getListRoomsQueryKey,
-  getListAssignmentsQueryKey,
-  getListProfilesQueryKey,
 } from "@workspace/api-client-react";
 
 import { RoomSpaceViewTab } from "./components/RoomSpaceViewTab";
@@ -99,38 +94,24 @@ export function HousingPage() {
       enabled: !!activePropertyId,
     },
   });
-  const rParams = {
-    propertyId: activePropertyId as number,
-    limit: 1000,
-  } as any;
-  const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(rParams, {
-    query: {
-      queryKey: getListRoomsQueryKey(rParams),
-      enabled: !!activePropertyId,
-    },
-  });
+  // Complete lists (every page), not the first 1000 rows.
+  const { data: _rDataWrapper, isLoading: rLoading } = useAllRows(
+    "/api/rooms",
+    { propertyId: activePropertyId as number },
+    { enabled: !!activePropertyId },
+  );
   const rData = (_rDataWrapper as any)?.data || _rDataWrapper || [];
-  const aParams = {
-    propertyId: activePropertyId as number,
-    limit: 1000,
-  } as any;
-  const { data: aData } = useListAssignments(aParams, {
-    query: {
-      queryKey: getListAssignmentsQueryKey(aParams),
-      enabled: !!activePropertyId && hasAccommodation,
-    },
-  });
+  const { data: aData } = useAllRows(
+    "/api/assignments",
+    { propertyId: activePropertyId as number },
+    { enabled: !!activePropertyId && hasAccommodation },
+  );
 
-  const eParams = {
-    propertyId: activePropertyId as number,
-    limit: 1000,
-  } as any;
-  const { data: eDataWrapper } = useListProfiles(eParams, {
-    query: {
-      queryKey: getListProfilesQueryKey(eParams),
-      enabled: !!activePropertyId && hasProfiles,
-    },
-  });
+  const { data: eDataWrapper } = useAllRows(
+    "/api/profiles",
+    { propertyId: activePropertyId as number },
+    { enabled: !!activePropertyId && hasProfiles },
+  );
   const eData = (eDataWrapper as any)?.data || eDataWrapper || [];
   if (!activePropertyId) {
     return (

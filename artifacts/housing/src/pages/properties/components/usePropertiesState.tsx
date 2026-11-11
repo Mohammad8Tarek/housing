@@ -12,7 +12,6 @@ import {
   useCreateProperty,
   useUpdateProperty,
   useDeleteProperty,
-  useListUsers,
   getListPropertiesQueryKey,
 } from "@workspace/api-client-react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -20,6 +19,7 @@ import { toast } from "sonner";
 import { useRef } from "react";
 import { useColumnVisibility } from "@/components/ui/column-chooser";
 import { PropertyForm, EMPTY_FORM } from "./index.constants";
+import { useAllRows } from "@/lib/use-all-rows";
 
 export function usePropertiesState() {
   const { language } = useLanguage();
@@ -65,7 +65,7 @@ export function usePropertiesState() {
   const [userSearchQuery, setUserSearchQuery] = useState("");
 
   const { data: properties, isLoading } = useListProperties();
-  const { data: allUsersRes } = useListUsers({ limit: 1000 } as any);
+  const { data: allUsersRes } = useAllRows("/api/users", {});
   const allUsers: any[] = Array.isArray(allUsersRes)
     ? allUsersRes
     : (allUsersRes as any)?.data || [];

@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   useListMaintenance,
   useUpdateMaintenance,
-  useListProfiles,
 } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -36,6 +35,7 @@ import { usePermission } from "@/hooks/use-permission";
 import { differenceInMinutes, differenceInHours } from "date-fns";
 import { formatDateTime } from "@/lib/date-utils";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
+import { useAllRows } from "@/lib/use-all-rows";
 
 const PROBLEM_TYPES_AR = {
   Plumbing: "سباكة",
@@ -162,9 +162,10 @@ export default function MaintenanceDetails() {
     ? _allTicketsWrapper
     : ((_allTicketsWrapper as any)?.data as any[]) || [];
 
-  const { data: _eDataWrapper } = useListProfiles(
-    { propertyId: numericPropertyId, limit: 1000 } as any,
-    { query: { enabled: !!numericPropertyId } as any },
+  const { data: _eDataWrapper } = useAllRows(
+    "/api/profiles",
+    { propertyId: numericPropertyId },
+    { enabled: !!numericPropertyId },
   );
   const profiles: any[] = Array.isArray(_eDataWrapper)
     ? _eDataWrapper

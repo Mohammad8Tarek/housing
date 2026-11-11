@@ -42,6 +42,8 @@ interface TicketsKanbanBoardProps {
   problemTypesMap: Record<string, { labelEn: string; labelAr: string }>;
   priorityAr: Record<string, string>;
   statusAr: Record<string, string>;
+  /** Server totals per status; a column showing fewer cards says "shown / total". */
+  columnTotals?: Partial<Record<string, number>>;
   formatDuration: (startedAt: any, resolvedAt: any, reportedAt: any) => string;
   getDurationColor: (
     startedAt: any,
@@ -133,6 +135,7 @@ export function TicketsKanbanBoard({
   categoryAr,
   problemTypesMap,
   priorityAr,
+  columnTotals,
   formatDuration,
   getDurationColor,
 }: TicketsKanbanBoardProps) {
@@ -217,8 +220,17 @@ export function TicketsKanbanBoard({
               <Badge
                 variant="outline"
                 className={`text-xs font-bold px-2 py-0.5 rounded-full ${col.badgeColor}`}
+                title={
+                  (columnTotals?.[col.id] ?? 0) > colTickets.length
+                    ? ar
+                      ? `يعرض أحدث ${colTickets.length} من ${columnTotals?.[col.id]}`
+                      : `Showing the latest ${colTickets.length} of ${columnTotals?.[col.id]}`
+                    : undefined
+                }
               >
-                {colTickets.length}
+                {(columnTotals?.[col.id] ?? 0) > colTickets.length
+                  ? `${colTickets.length} / ${columnTotals?.[col.id]}`
+                  : colTickets.length}
               </Badge>
             </div>
 

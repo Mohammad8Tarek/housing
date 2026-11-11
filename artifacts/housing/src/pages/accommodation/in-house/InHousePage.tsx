@@ -1,8 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   useListInHouseAssignments,
-  useListProfiles,
-  useListRooms,
   useListBuildings,
   useListFloors,
   useCheckoutAssignment,
@@ -31,6 +29,7 @@ import {
   PrintLanguageDialog,
 } from "@/lib/PrintLanguageDialog";
 import { usePermission } from "@/hooks/use-permission";
+import { useAllRows } from "@/lib/use-all-rows";
 
 import { CHECKOUT_REASONS, IH_COLS } from "./utils/constants";
 import {
@@ -321,29 +320,20 @@ export default function InHouse() {
       .filter((id): id is number => id !== null);
   }, [selectedRows, assignments]);
 
-  const { data: _eDataWrapper } = useListProfiles(
-    { propertyId: numericPropertyId ?? undefined, limit: 1000 } as any,
-    {
-      query: {
-        queryKey: ["listProfiles", numericPropertyId],
-        enabled: !!numericPropertyId,
-      } as any,
-    },
+  const { data: _eDataWrapper } = useAllRows(
+    "/api/profiles",
+    { propertyId: numericPropertyId ?? undefined },
+    { enabled: !!numericPropertyId },
   );
   const profiles: any[] = Array.isArray(_eDataWrapper)
     ? _eDataWrapper
     : ((_eDataWrapper as any)?.profiles as any[]) ||
       ((_eDataWrapper as any)?.data as any[]) ||
       [];
-  const { data: _rData } = useListRooms(
-    { propertyId: numericPropertyId, limit: 1000 } as any,
-    {
-      query: {
-        queryKey: ["listRooms", numericPropertyId],
-        enabled: !!numericPropertyId,
-        staleTime: 60000,
-      } as any,
-    },
+  const { data: _rData } = useAllRows(
+    "/api/rooms",
+    { propertyId: numericPropertyId },
+    { enabled: !!numericPropertyId, staleTime: 60000 },
   );
   const rooms: any[] = Array.isArray(_rData)
     ? _rData

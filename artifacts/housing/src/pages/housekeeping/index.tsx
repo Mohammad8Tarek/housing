@@ -3,12 +3,9 @@ import { useProperty } from "@/context/PropertyContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Brush } from "lucide-react";
 import { PageLoader } from "@/components/ui/loader";
-import {
-  useListBuildings,
-  useListFloors,
-  useListRooms,
-} from "@workspace/api-client-react";
+import { useListBuildings, useListFloors } from "@workspace/api-client-react";
 import { HousekeepingTab } from "../housing/components/HousekeepingTab";
+import { useAllRows } from "@/lib/use-all-rows";
 
 export default function HousekeepingPage() {
   const { activePropertyId, properties } = useProperty();
@@ -44,15 +41,10 @@ export default function HousekeepingPage() {
     },
   );
 
-  const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(
-    { propertyId: effectivePropId as number, limit: 1000 } as any,
-    {
-      query: {
-        queryKey: ["/api/rooms", effectivePropId, 1000],
-        enabled: !!effectivePropId,
-        staleTime: 0,
-      },
-    },
+  const { data: _rDataWrapper, isLoading: rLoading } = useAllRows(
+    "/api/rooms",
+    { propertyId: effectivePropId as number },
+    { enabled: !!effectivePropId, staleTime: 0 },
   );
 
   if (!activePropertyId) {

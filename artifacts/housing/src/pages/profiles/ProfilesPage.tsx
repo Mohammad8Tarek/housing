@@ -81,6 +81,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { exportExcel } from "@/pages/reports/utils/export";
 import { DataPagination } from "@/components/DataPagination";
+import { fetchAllPages } from "@/lib/fetch-all-pages";
 
 const MAX_PROFILE_IMPORT_FILE_SIZE = 1024 * 1024;
 const PROFILE_IMPORT_EXTENSIONS = [".xlsx", ".xls"];
@@ -567,12 +568,11 @@ export function ProfilesPage() {
         targetList = profiles.filter((e: any) => selectedRows.has(e.id));
       } else {
         // Fetch all profiles from server without pagination limitation
-        const res = await fetch(
-          `/api/profiles?propertyId=${activePropertyId}&limit=5000`,
+        targetList = await fetchAllPages(
+          "/api/profiles",
+          { propertyId: activePropertyId },
+          5000,
         );
-        if (!res.ok) throw new Error("Failed to fetch profiles");
-        const json = await res.json();
-        targetList = json.data || [];
       }
 
       if (targetList.length === 0) {
@@ -586,16 +586,14 @@ export function ProfilesPage() {
       // Fetch active assignments to include housing info (building, room, bed)
       let asgnMap: Record<number, any> = {};
       try {
-        const asgnRes = await fetch(
-          `/api/assignments/in-house?propertyId=${activePropertyId}&limit=5000`,
+        const asgnList = await fetchAllPages(
+          "/api/assignments/in-house",
+          { propertyId: activePropertyId },
+          5000,
         );
-        if (asgnRes.ok) {
-          const asgnJson = await asgnRes.json();
-          const asgnList = asgnJson.data || [];
-          for (const a of asgnList) {
-            const pid = a.assignment?.profileId || a.profileId;
-            if (pid) asgnMap[pid] = a;
-          }
+        for (const a of asgnList) {
+          const pid = a.assignment?.profileId || a.profileId;
+          if (pid) asgnMap[pid] = a;
         }
       } catch {}
 

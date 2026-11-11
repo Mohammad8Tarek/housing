@@ -36,11 +36,8 @@ import {
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  useListBuildings,
-  useListFloors,
-  useListRooms,
-} from "@workspace/api-client-react";
+import { useListBuildings, useListFloors } from "@workspace/api-client-react";
+import { useAllRows } from "@/lib/use-all-rows";
 
 interface BroadcastWhatsAppDialogProps {
   open: boolean;
@@ -145,10 +142,9 @@ export function BroadcastWhatsAppDialog({
     ? floorsData
     : (floorsData as any)?.data || [];
 
-  const { data: roomsData } = useListRooms({
+  const { data: roomsData } = useAllRows("/api/rooms", {
     propertyId: numPropId || undefined,
-    limit: 1000,
-  } as any);
+  });
   const rooms = Array.isArray(roomsData)
     ? roomsData
     : (roomsData as any)?.data || [];

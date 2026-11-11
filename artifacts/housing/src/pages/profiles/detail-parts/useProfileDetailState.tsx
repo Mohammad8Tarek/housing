@@ -4,7 +4,6 @@ import { useParams } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useListAssignments,
-  useListRooms,
   useListBuildings,
   useListFloors,
   useGetSettings,
@@ -31,6 +30,7 @@ import {
   getProfileDisplayJobTitle,
   getProfileDisplayDepartment,
 } from "@/lib/profile-display-utils";
+import { useAllRows } from "@/lib/use-all-rows";
 
 export function useProfileDetailState() {
   const { id } = useParams();
@@ -352,9 +352,10 @@ export function useProfileDetailState() {
       { query: { enabled: !!profileId && !!effectivePropId } as any },
     );
 
-  const { data: _rData } = useListRooms(
-    { propertyId: effectivePropId, limit: 1000 } as any,
-    { query: { enabled: !!effectivePropId } as any },
+  const { data: _rData } = useAllRows(
+    "/api/rooms",
+    { propertyId: effectivePropId },
+    { enabled: !!effectivePropId },
   );
   const rooms: any[] = Array.isArray(_rData)
     ? _rData

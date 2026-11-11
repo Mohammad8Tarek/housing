@@ -20,7 +20,7 @@ import { usePermission } from "@/hooks/use-permission";
 import type { Module, Action } from "@/lib/permissions";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
-import Dashboard from "@/pages/dashboard";
+const Dashboard = lazy(() => import("@/pages/dashboard"));
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const Properties = lazy(() => import("@/pages/properties"));

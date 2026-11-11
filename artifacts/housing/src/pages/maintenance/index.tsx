@@ -4,10 +4,9 @@ import {
   useCreateMaintenance,
   useUpdateMaintenance,
   useDeleteMaintenance,
-  useListRooms,
-  useListProfiles,
   useListAssignments,
   getListMaintenanceQueryKey,
+  listMaintenance,
 } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -46,6 +45,20 @@ import {
   exportTicketsExcel,
   exportSelectedTicketsExcel as exportSelectedTicketsExcelUtil,
 } from "./utils/ticket-export";
+import { useAllRows } from "@/lib/use-all-rows";
+
+// Newest report first, then highest id (same order as the API).
+function newestTicketFirst(a: any, b: any) {
+  const time = (t: any) =>
+    t.reportedAt
+      ? new Date(t.reportedAt).getTime()
+      : t.createdAt
+        ? new Date(t.createdAt).getTime()
+        : 0;
+  const diff = time(b) - time(a);
+  if (diff !== 0) return diff;
+  return (Number(b.id) || 0) - (Number(a.id) || 0);
+}
 
 export default function Tickets() {
   const { user } = useAuth();
@@ -303,19 +316,15 @@ export default function Tickets() {
   }, [propertyWorkers, form.category]);
 
   // Pre-load profiles for employee mapping and current user match
-  const { data: _eDataWrapper } = useListProfiles(
+  const { data: _eDataWrapper } = useAllRows(
+    "/api/profiles",
     {
       propertyId:
         activePropertyId && activePropertyId !== "all"
           ? activePropertyId
           : undefined,
-      limit: 1000,
-    } as any,
-    {
-      query: {
-        enabled: !!activePropertyId && activePropertyId !== "all",
-      } as any,
     },
+    { enabled: !!activePropertyId && activePropertyId !== "all" },
   );
   const profiles: any[] = Array.isArray(_eDataWrapper)
     ? _eDataWrapper
@@ -351,76 +360,118 @@ export default function Tickets() {
         ? "unassigned"
         : undefined;
 
-  const { data: allTicketsWrapper, isLoading } = useListMaintenance(
-    {
-      propertyId: effectivePropertyId,
-      page: currentPage,
-      limit: viewMode === "kanban" ? 200 : pageSize,
-      search: debouncedSearch || undefined,
-      status: statusFilter === "all" ? undefined : statusFilter,
-      priority: priorityFilter || undefined,
-      category: categoryFilter === "all" ? undefined : categoryFilter,
-      assignedTo: effectiveAssignedTo,
-      assignedToProfileId: currentUserProfile?.id,
-      fromDate: fromDate || undefined,
-      toDate: toDate || undefined,
-    } as any,
+  // Filters shared by the list, the kanban and the Excel export.
+  const ticketFilters = {
+    propertyId: effectivePropertyId,
+    search: debouncedSearch || undefined,
+    priority: priorityFilter || undefined,
+    category: categoryFilter === "all" ? undefined : categoryFilter,
+    assignedTo: effectiveAssignedTo,
+    assignedToProfileId: currentUserProfile?.id,
+    fromDate: fromDate || undefined,
+    toDate: toDate || undefined,
+  };
+  const liveQueryOptions = {
+    refetchOnMount: true,
+    staleTime: 0,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+  } as const;
+
+  // Kanban: every active ticket (open / in progress / pending), however old,
+  // plus the most recent finished ones. The list view pages normally.
+  const isKanban = viewMode === "kanban";
+  const pickStatuses = (statuses: string[]) =>
+    statusFilter === "all"
+      ? statuses
+      : statuses.filter((s) => s === statusFilter);
+  const kanbanActiveStatuses = pickStatuses(["open", "in_progress", "pending"]);
+  const kanbanDoneStatuses = pickStatuses(["resolved", "closed"]);
+  const KANBAN_ACTIVE_LIMIT = 5000;
+  const KANBAN_DONE_LIMIT = 200;
+
+  const mainListParams = isKanban
+    ? {
+        ...ticketFilters,
+        page: 1,
+        limit: KANBAN_ACTIVE_LIMIT,
+        status: kanbanActiveStatuses.join(",") || undefined,
+      }
+    : {
+        ...ticketFilters,
+        page: currentPage,
+        limit: pageSize,
+        status: statusFilter === "all" ? undefined : statusFilter,
+      };
+  const { data: mainTicketsWrapper, isLoading } = useListMaintenance(
+    mainListParams as any,
     {
       query: {
-        queryKey: getListMaintenanceQueryKey({
-          propertyId: effectivePropertyId,
-          page: currentPage,
-          limit: viewMode === "kanban" ? 200 : pageSize,
-          search: debouncedSearch || undefined,
-          status: statusFilter === "all" ? undefined : statusFilter,
-          priority: priorityFilter || undefined,
-          category: categoryFilter === "all" ? undefined : categoryFilter,
-          assignedTo: effectiveAssignedTo,
-          assignedToProfileId: currentUserProfile?.id,
-          fromDate: fromDate || undefined,
-          toDate: toDate || undefined,
-        } as any),
-        refetchOnMount: true,
-        staleTime: 0,
-        refetchInterval: 5000,
-        refetchIntervalInBackground: true,
-        refetchOnWindowFocus: true,
+        queryKey: getListMaintenanceQueryKey(mainListParams as any),
+        enabled: !isKanban || kanbanActiveStatuses.length > 0,
+        ...liveQueryOptions,
       },
     },
   );
-  const allTickets = Array.isArray(allTicketsWrapper)
-    ? allTicketsWrapper
-    : ((allTicketsWrapper as any)?.data as any[]) || [];
+
+  const doneListParams = {
+    ...ticketFilters,
+    page: 1,
+    limit: KANBAN_DONE_LIMIT,
+    status: kanbanDoneStatuses.join(","),
+  };
+  const { data: doneTicketsWrapper } = useListMaintenance(
+    doneListParams as any,
+    {
+      query: {
+        queryKey: getListMaintenanceQueryKey(doneListParams as any),
+        enabled: isKanban && kanbanDoneStatuses.length > 0,
+        ...liveQueryOptions,
+      },
+    },
+  );
+
+  const unwrapTickets = (w: any): any[] =>
+    Array.isArray(w) ? w : (w?.data as any[]) || [];
+  // In kanban mode the main query may be disabled (only finished statuses
+  // picked); the status counts then come from the finished-tickets query.
+  const allTicketsWrapper =
+    isKanban && kanbanActiveStatuses.length === 0
+      ? doneTicketsWrapper
+      : mainTicketsWrapper;
+  const kanbanDoneTickets =
+    isKanban && kanbanDoneStatuses.length > 0
+      ? unwrapTickets(doneTicketsWrapper)
+      : [];
+  const allTickets = useMemo(
+    () =>
+      isKanban
+        ? [
+            ...(kanbanActiveStatuses.length > 0
+              ? unwrapTickets(mainTicketsWrapper)
+              : []),
+            ...kanbanDoneTickets,
+          ]
+        : unwrapTickets(mainTicketsWrapper),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isKanban, mainTicketsWrapper, doneTicketsWrapper, statusFilter],
+  );
   const paginationData = (allTicketsWrapper as any)?.pagination || {
     total: allTickets?.length || 0,
     page: currentPage,
     limit: pageSize,
   };
 
-  const myTicketsCount = useMemo(() => {
-    if (!currentUserProfile || !allTickets || !Array.isArray(allTickets))
-      return 0;
-    return allTickets.filter(
-      (t: any) =>
-        t.assignedTo === currentUserProfile.id &&
-        t.status !== "closed" &&
-        t.status !== "resolved",
-    ).length;
-  }, [allTickets, currentUserProfile]);
-
-  const { data: _roomsWrapper } = useListRooms(
+  const { data: _roomsWrapper } = useAllRows(
+    "/api/rooms",
     {
       propertyId:
         activePropertyId && activePropertyId !== "all"
           ? activePropertyId
           : undefined,
-      limit: 1000,
-    } as any,
-    {
-      query: {
-        enabled: !!activePropertyId && activePropertyId !== "all",
-      } as any,
     },
+    { enabled: !!activePropertyId && activePropertyId !== "all" },
   );
   const rooms: any[] = Array.isArray(_roomsWrapper)
     ? _roomsWrapper
@@ -430,9 +481,10 @@ export default function Tickets() {
   const selectedModalPropId =
     parseInt(formPropertyId, 10) ||
     (activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
-  const { data: _modalRoomsWrapper } = useListRooms(
-    { propertyId: selectedModalPropId, limit: 1000 } as any,
-    { query: { enabled: !!selectedModalPropId } as any },
+  const { data: _modalRoomsWrapper } = useAllRows(
+    "/api/rooms",
+    { propertyId: selectedModalPropId },
+    { enabled: !!selectedModalPropId },
   );
   const modalRooms: any[] = Array.isArray(_modalRoomsWrapper)
     ? _modalRoomsWrapper
@@ -460,7 +512,11 @@ export default function Tickets() {
     const map: Record<number, string> = {};
     (assignments || []).forEach((a: any) => {
       if (a.status === "ACTIVE" && a.roomId) {
-        const name = empLookup[a.profileId];
+        // Assignments carry the resident's name; the profile list (capped)
+        // is only a fallback for older APIs.
+        const own =
+          `${a.profileFirstName || ""} ${a.profileLastName || ""}`.trim();
+        const name = own || empLookup[a.profileId];
         if (name) {
           if (map[a.roomId]) {
             if (!map[a.roomId].includes(name)) {
@@ -704,53 +760,66 @@ export default function Tickets() {
 
   const empOptions = profiles.filter((e: any) => e.status === "active");
 
-  const filtered = useMemo(() => {
-    if (!Array.isArray(allTickets)) return [];
-    return [...allTickets].sort((a, b) => {
-      const dateA = a.reportedAt
-        ? new Date(a.reportedAt).getTime()
-        : a.createdAt
-          ? new Date(a.createdAt).getTime()
-          : 0;
-      const dateB = b.reportedAt
-        ? new Date(b.reportedAt).getTime()
-        : b.createdAt
-          ? new Date(b.createdAt).getTime()
-          : 0;
-      if (dateB !== dateA) return dateB - dateA;
-      return (Number(b.id) || 0) - (Number(a.id) || 0);
-    });
-  }, [allTickets]);
+  const filtered = useMemo(
+    () =>
+      Array.isArray(allTickets) ? [...allTickets].sort(newestTicketFirst) : [],
+    [allTickets],
+  );
   const paged = filtered;
 
-  // Counts
-  const totalCount = paginationData.total || 0;
-  const openCount =
-    allTickets?.filter((t: any) => t.status === "open").length || 0;
-  const inProgressCount =
-    allTickets?.filter((t: any) => t.status === "in_progress").length || 0;
-  const resolvedCount =
-    allTickets?.filter((t: any) => t.status === "resolved").length || 0;
-  const closedCount =
-    allTickets?.filter((t: any) => t.status === "closed").length || 0;
+  // Status tab totals come from the API: every ticket matching the other
+  // filters, per status (not just the rows on this page). Older APIs without
+  // statusCounts fall back to counting this page.
+  const serverCounts = (allTicketsWrapper as any)?.statusCounts as
+    | {
+        all: number;
+        open: number;
+        in_progress: number;
+        resolved: number;
+        closed: number;
+      }
+    | undefined;
+  const countPage = (status: string) =>
+    allTickets?.filter((t: any) => t.status === status).length || 0;
+  const totalCount = serverCounts?.all ?? (paginationData.total || 0);
+  const openCount = serverCounts?.open ?? countPage("open");
+  const inProgressCount = serverCounts?.in_progress ?? countPage("in_progress");
+  const resolvedCount = serverCounts?.resolved ?? countPage("resolved");
+  const closedCount = serverCounts?.closed ?? countPage("closed");
 
-  const maintenanceCount = useMemo(
-    () =>
-      allTickets?.filter((t: any) => t.category === "maintenance").length || 0,
-    [allTickets],
-  );
-  const housekeepingCount = useMemo(
-    () =>
-      allTickets?.filter((t: any) => t.category === "housekeeping").length || 0,
-    [allTickets],
-  );
-  const generalCount = useMemo(
-    () => allTickets?.filter((t: any) => t.category === "general").length || 0,
-    [allTickets],
-  );
-
-  const exportExcel = () => {
-    exportTicketsExcel(filtered, { ar, properties, roomMap, roomOccupantMap });
+  // Exports every ticket matching the filters, not just the rows on screen.
+  const [isExporting, setIsExporting] = useState(false);
+  const exportExcel = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const EXPORT_PAGE = 5000;
+      const rows: any[] = [];
+      for (let page = 1; ; page++) {
+        const res: any = await listMaintenance({
+          ...ticketFilters,
+          status: statusFilter === "all" ? undefined : statusFilter,
+          page,
+          limit: EXPORT_PAGE,
+        } as any);
+        const batch = unwrapTickets(res);
+        rows.push(...batch);
+        const total = Number(res?.pagination?.total ?? rows.length);
+        if (batch.length < EXPORT_PAGE || rows.length >= total) break;
+      }
+      exportTicketsExcel(rows.sort(newestTicketFirst), {
+        ar,
+        properties,
+        roomMap,
+        roomOccupantMap,
+      });
+    } catch (err: any) {
+      toast.error(ar ? "تعذّر تصدير البلاغات" : "Could not export tickets", {
+        description: err?.message,
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const exportSelectedTicketsExcel = () => {
@@ -919,6 +988,7 @@ export default function Tickets() {
         viewMode={viewMode}
         onSetViewMode={handleSetViewMode}
         onExportExcel={exportExcel}
+        isExporting={isExporting}
         cols={COLS}
         visible={visible}
         toggle={toggle}
@@ -983,6 +1053,14 @@ export default function Tickets() {
             problemTypesMap={PROBLEM_TYPES_MAP}
             priorityAr={PRIORITY_AR}
             statusAr={STATUS_AR}
+            columnTotals={
+              serverCounts
+                ? {
+                    resolved: serverCounts.resolved,
+                    closed: serverCounts.closed,
+                  }
+                : undefined
+            }
             formatDuration={(st, res, rep) => formatDuration(st, res, rep, ar)}
             getDurationColor={getDurationColor}
           />

@@ -47,6 +47,7 @@ import {
   downloadRoomImportTemplate,
   type SystemFieldKey,
 } from "@/lib/room-importer-engine";
+import { fetchAllPages } from "@/lib/fetch-all-pages";
 
 type Props = {
   open: boolean;
@@ -132,16 +133,17 @@ export function RoomImportWizard({
     if (!open || !selectedPropertyId) return;
     const fetchFullPropertyData = async () => {
       try {
-        const [rRes, bRes] = await Promise.all([
-          fetch(`/api/rooms?propertyId=${selectedPropertyId}&limit=1000`).then(
-            (r) => (r.ok ? r.json() : null),
+        // Every page: duplicate detection must see all existing rooms.
+        const [allRooms, allBuildings] = await Promise.all([
+          fetchAllPages("/api/rooms", { propertyId: selectedPropertyId }, 1000),
+          fetchAllPages(
+            "/api/buildings",
+            { propertyId: selectedPropertyId },
+            1000,
           ),
-          fetch(
-            `/api/buildings?propertyId=${selectedPropertyId}&limit=100`,
-          ).then((r) => (r.ok ? r.json() : null)),
         ]);
-        if (rRes?.data) setFetchedExistingRooms(rRes.data);
-        if (bRes?.data) setFetchedBuildings(bRes.data);
+        setFetchedExistingRooms(allRooms);
+        setFetchedBuildings(allBuildings);
       } catch (err) {
         console.error(
           "Failed to prefetch existing property rooms/buildings:",

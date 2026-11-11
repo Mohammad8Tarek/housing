@@ -135,7 +135,7 @@ jobs:
         run: |
           cd artifacts/api-server
           if [ -f vitest.config.ts ] || [ -f vitest.config.js ]; then
-            pnpm run test || echo "api-server tests had failures"
+            pnpm run test
           else
             echo "No vitest config found — skipping"
           fi
@@ -143,7 +143,7 @@ jobs:
         run: |
           cd artifacts/housing
           if [ -f vitest.config.ts ] || [ -f vitest.config.js ]; then
-            pnpm run test -- --reporter=verbose || echo "housing tests had failures"
+            pnpm run test -- --reporter=verbose
           else
             echo "No vitest config found — skipping"
           fi
