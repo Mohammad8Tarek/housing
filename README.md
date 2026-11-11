@@ -41,6 +41,8 @@ pnpm run typecheck      # builds lib/* then type-checks every package
 pnpm run deadcode       # fails on unused files or dependencies
 ```
 
+Deploying (API + PostgreSQL on Railway, web apps on Vercel): see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
 On Windows, double-click `scripts\windows\start-all-fast.bat` (see [docs/STARTUP.md](docs/STARTUP.md)).
 
 | Service         | URL                       |
