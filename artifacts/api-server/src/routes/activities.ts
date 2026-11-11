@@ -13,6 +13,8 @@ import { requirePermission } from "../middlewares/permissions.js";
 import { sanitizeFields } from "../lib/sanitize.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
 import { getTenantId } from "../lib/request-utils.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -207,6 +209,7 @@ const UpdateActivitySchema = z.object({
 router.put(
   "/activities/:id",
   requirePermission("activities", "edit"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -282,6 +285,7 @@ router.put(
 router.get(
   "/activities/:id/registrations",
   requirePermission("activities", "view"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);
@@ -344,6 +348,7 @@ router.get(
 router.delete(
   "/activities/:id",
   requirePermission("activities", "delete"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
     try {
       const propertyId = getTenantId(req);

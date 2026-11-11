@@ -10,6 +10,8 @@ import {
   checkoutViaHotek,
   getHotekStatus,
 } from "../lib/pms-server.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery, IdParams, LockUpdateBody, KeyRevokeBody, KeyExtendBody } from "../validation/schemas.js";
 
 const router = Router();
 
@@ -338,6 +340,7 @@ const CreateLockBody = z.object({
 router.get(
   "/locks",
   requirePermission("smart_locks", "view"),
+  validate({ query: CommonListQuery }),
   async (req: Request, res: Response) => {
     try {
       const propertyId = Number(
@@ -400,6 +403,8 @@ router.post(
 router.patch(
   "/locks/:id",
   requirePermission("smart_locks", "edit"),
+  validate({ params: IdParams }),
+  validate({ body: LockUpdateBody }),
   async (req: Request, res: Response) => {
     try {
       const propertyId = Number(
@@ -469,6 +474,7 @@ const IssueKeyBody = z.object({
 router.get(
   "/keys",
   requirePermission("smart_locks", "view"),
+  validate({ query: CommonListQuery }),
   async (req: Request, res: Response) => {
     try {
       const propertyId = Number(
@@ -743,6 +749,8 @@ router.post(
 router.post(
   "/keys/:id/revoke",
   requirePermission("smart_locks", "edit"),
+  validate({ params: IdParams }),
+  validate({ body: KeyRevokeBody }),
   async (req: Request, res: Response) => {
     try {
       const propertyId = Number(
@@ -846,6 +854,8 @@ router.post(
 router.post(
   "/keys/:id/extend",
   requirePermission("smart_locks", "edit"),
+  validate({ params: IdParams }),
+  validate({ body: KeyExtendBody }),
   async (req: Request, res: Response) => {
     try {
       const propertyId = Number(
@@ -900,6 +910,7 @@ router.post(
 router.get(
   "/keys/audit",
   requirePermission("smart_locks", "view"),
+  validate({ query: CommonListQuery }),
   async (req: Request, res: Response) => {
     try {
       const propertyId = Number(

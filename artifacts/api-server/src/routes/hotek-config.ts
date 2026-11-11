@@ -5,6 +5,8 @@ import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { requireAnyPermission } from "../middlewares/permissions.js";
 import { getHotekStatus } from "../lib/pms-server.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams, CommonListQuery, PropertyScopedBody } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -150,6 +152,7 @@ router.post(
 router.patch(
   "/servers/:id",
   requireAnyPermission(["smart_locks", "edit"], ["settings", "edit"]),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const parsed = HotekServerPatchBody.safeParse(req.body);
     if (!parsed.success) {
@@ -229,6 +232,7 @@ router.patch(
 router.post(
   "/servers/:id/test",
   requireAnyPermission(["smart_locks", "view"], ["settings", "view"]),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -281,6 +285,8 @@ router.post(
 router.delete(
   "/servers/:id",
   requireAnyPermission(["smart_locks", "delete"], ["smart_locks", "edit"], ["settings", "edit"]),
+  validate({ params: IdParams, query: CommonListQuery }),
+  validate({ body: PropertyScopedBody }),
   async (req, res): Promise<void> => {
     const id = Number(req.params.id);
     const propertyId = Number(req.body?.propertyId ?? req.query.propertyId);

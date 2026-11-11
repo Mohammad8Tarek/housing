@@ -1,23 +1,23 @@
 // Report row builders — security. Split out of useReportDataProcessor; logic unchanged.
-import { formatDate } from "@/lib/date-utils";
+import { formatDate } from "../date-utils";
 import {
   getProfileDisplayName,
   getProfileDisplayJobTitle,
   getProfileDisplayDepartment,
-} from "@/lib/profile-display-utils";
-import { formatNationality } from "@/lib/countries";
+} from "../profile-display-utils";
+import { formatNationality } from "../countries";
 import {
   transliterateFullName,
   hasArabicCharacters,
-} from "@/lib/bilingual-name-engine";
+} from "../bilingual-name-engine";
 import {
   translateDepartment,
   translateJobTitle,
-} from "@/lib/bilingual-hospitality-dict";
+} from "../bilingual-hospitality-dict";
 import {
   translateRoomType,
   translateProfileStatus,
-} from "../../utils/luxury-report-engine";
+} from "../value-translators";
 import type { ReportProcessorContext } from "./context";
 import { matchesRoomType, matchesGender } from "./context";
 
@@ -42,6 +42,7 @@ export function processGateLogs(ctx: ReportProcessorContext): any[] {
         id: g.id,
         scannedAt: g.scannedAt
           ? new Date(g.scannedAt).toLocaleString(ar ? "ar-EG" : "en-US", {
+              timeZone: ctx.timeZone,
               hour12: true,
               month: "short",
               day: "numeric",

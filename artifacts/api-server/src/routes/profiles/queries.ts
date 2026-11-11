@@ -9,6 +9,8 @@ import {
 import { getTenantId } from "../../lib/request-utils.js";
 import { buildProfileSearchConditions, buildAssignmentSearchConditions } from "../../lib/search-helper.js";
 import { resolveProfileTenant, filterSensitive } from "./shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { CommonListQuery, IdParams } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -18,6 +20,7 @@ const router: Router = Router();
 router.get(
   "/profiles",
   requirePermission("profiles", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res) => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -102,6 +105,8 @@ router.get(
           .offset(offset) as any;
         if (conditions.length > 0)
           baseQuery = baseQuery.where(and(...conditions));
+        // Every ordering ends with id so LIMIT/OFFSET pages are stable (no repeated or
+        // skipped rows between pages); without a requested sort, id order is the default.
         if (sortByRaw === "fullName") {
           baseQuery = baseQuery.orderBy(
             sortDir === "desc"
@@ -110,11 +115,15 @@ router.get(
             sortDir === "desc"
               ? desc(profilesTable.lastName)
               : asc(profilesTable.lastName),
+            asc(profilesTable.id),
           );
         } else if (sortCol) {
           baseQuery = baseQuery.orderBy(
             sortDir === "desc" ? desc(sortCol) : asc(sortCol),
+            asc(profilesTable.id),
           );
+        } else {
+          baseQuery = baseQuery.orderBy(asc(profilesTable.id));
         }
 
         const rows = await baseQuery;
@@ -143,6 +152,7 @@ router.get(
 router.get(
   "/profiles/search",
   requirePermission("profiles", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const { q = "", propertyId } = req.query as Record<string, string>;
     const conditions: SQL[] = [];
@@ -251,6 +261,7 @@ router.get(
 router.get(
   "/profiles/check-duplicate",
   requirePermission("profiles", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -365,7 +376,8 @@ router.get(
             address: profilesTable.address,
             status: profilesTable.status,
           })
-          .from(profilesTable);
+          .from(profilesTable)
+          .orderBy(asc(profilesTable.id)); // deterministic order for the Excel import duplicate check
       });
 
       res.json({
@@ -404,6 +416,7 @@ router.get(
 router.get(
   "/profiles/:id",
   requirePermission("profiles", "view"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const params = GetProfileParams.safeParse(req.params);
     if (!params.success) {
@@ -521,6 +534,7 @@ router.get(
 router.get(
   "/profiles/:id/photo",
   requirePermission("profiles", "view"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const id = Number(req.params.id);

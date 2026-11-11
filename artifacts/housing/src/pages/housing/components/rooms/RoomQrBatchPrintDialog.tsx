@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/html-escape";
 import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
@@ -141,22 +142,22 @@ export function RoomQrBatchPrintDialog({
         return `
           <div class="placard-card">
             <div class="card-brand">
-              <span class="prop-title">${propertyName}</span>
+              <span class="prop-title">${escapeHtml(propertyName)}</span>
               <span class="sub-title">STAFF HOUSING SERVICE</span>
             </div>
 
             <div class="room-hero">
               <span class="r-label">${ar ? "غرفة" : "ROOM"}</span>
-              <span class="r-number">${r.roomNumber}</span>
+              <span class="r-number">${escapeHtml(r.roomNumber)}</span>
             </div>
 
             <div class="meta-row">
-              <span class="meta-tag">${bName}</span>
+              <span class="meta-tag">${escapeHtml(bName)}</span>
               <span class="meta-tag">${ar ? `الدور ${fNum}` : `Floor ${fNum}`}</span>
             </div>
 
             <div class="qr-container">
-              <img src="${qrUrl}" alt="QR ${r.roomNumber}" class="qr-img" />
+              <img src="${escapeHtml(qrUrl)}" alt="QR ${escapeHtml(r.roomNumber)}" class="qr-img" />
             </div>
 
             <div class="card-footer">
@@ -173,7 +174,7 @@ export function RoomQrBatchPrintDialog({
       <html dir="${ar ? "rtl" : "ltr"}">
         <head>
           <meta charset="utf-8" />
-          <title>${propertyName} - Room QR Placards</title>
+          <title>${escapeHtml(propertyName)} - Room QR Placards</title>
           <style>
             @page {
               size: A4 portrait;

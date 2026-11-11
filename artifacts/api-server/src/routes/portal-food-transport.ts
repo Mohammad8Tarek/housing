@@ -12,6 +12,8 @@ import { requirePermission } from "../middlewares/permissions.js";
 import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery, IdParams, FoodOrderBody, TransportBookingBody } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -49,7 +51,8 @@ const TransportScheduleSchema = z.object({
 // ─── FOOD: Profile-facing ─────────────────────────────────────
 
 // GET /portal-food/menu — قائمة الطعام
-router.get("/menu", requirePortalAuth, async (req, res, next) => {
+router.get("/menu", requirePortalAuth, validate({ query: CommonListQuery }),
+  async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
     const type = (req.query.type as string) || "daily";
@@ -103,7 +106,8 @@ router.get("/my-orders", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /portal-food/order — طلب وجبة
-router.post("/order", requirePortalAuth, async (req, res, next): Promise<any> => {
+router.post("/order", requirePortalAuth, validate({ body: FoodOrderBody }),
+  async (req, res, next): Promise<any> => {
   try {
     const sess = portalSession(req)!;
     const { menuItemId, quantity, orderDate, notes } = req.body;
@@ -134,7 +138,8 @@ router.post("/order", requirePortalAuth, async (req, res, next): Promise<any> =>
 });
 
 // PUT /portal-food/order/:id/cancel — إلغاء طلب
-router.put("/order/:id/cancel", requirePortalAuth, async (req, res, next) => {
+router.put("/order/:id/cancel", requirePortalAuth, validate({ params: IdParams }),
+  async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
     const id = Number(req.params.id);
@@ -202,7 +207,8 @@ router.get("/my-bookings", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /portal-transport/book — حجز مواصلات
-router.post("/book", requirePortalAuth, async (req, res, next): Promise<any> => {
+router.post("/book", requirePortalAuth, validate({ body: TransportBookingBody }),
+  async (req, res, next): Promise<any> => {
   try {
     const sess = portalSession(req)!;
     const { scheduleId, bookingDate } = req.body;
@@ -232,7 +238,8 @@ router.post("/book", requirePortalAuth, async (req, res, next): Promise<any> => 
 });
 
 // PUT /portal-transport/booking/:id/cancel — إلغاء حجز
-router.put("/booking/:id/cancel", requirePortalAuth, async (req, res, next) => {
+router.put("/booking/:id/cancel", requirePortalAuth, validate({ params: IdParams }),
+  async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
     const id = Number(req.params.id);
@@ -307,7 +314,8 @@ router.post("/admin/menu", requirePermission("portal_content", "create"), async 
   }
 });
 
-router.delete("/admin/menu/:id", requirePermission("portal_content", "delete"), async (req, res, next) => {
+router.delete("/admin/menu/:id", requirePermission("portal_content", "delete"), validate({ params: IdParams }),
+  async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const id = Number(req.params.id);
@@ -327,7 +335,8 @@ router.delete("/admin/menu/:id", requirePermission("portal_content", "delete"), 
   }
 });
 
-router.put("/admin/menu/:id", requirePermission("portal_content", "edit"), async (req, res, next) => {
+router.put("/admin/menu/:id", requirePermission("portal_content", "edit"), validate({ params: IdParams }),
+  async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const id = Number(req.params.id);
@@ -403,7 +412,8 @@ router.post("/admin/schedules", requirePermission("portal_content", "create"), a
   }
 });
 
-router.delete("/admin/schedules/:id", requirePermission("portal_content", "delete"), async (req, res, next) => {
+router.delete("/admin/schedules/:id", requirePermission("portal_content", "delete"), validate({ params: IdParams }),
+  async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const id = Number(req.params.id);
@@ -423,7 +433,8 @@ router.delete("/admin/schedules/:id", requirePermission("portal_content", "delet
   }
 });
 
-router.put("/admin/schedules/:id", requirePermission("portal_content", "edit"), async (req, res, next) => {
+router.put("/admin/schedules/:id", requirePermission("portal_content", "edit"), validate({ params: IdParams }),
+  async (req, res, next) => {
   try {
     const propertyId = getTenantId(req);
     const id = Number(req.params.id);

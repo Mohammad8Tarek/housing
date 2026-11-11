@@ -9,6 +9,8 @@ import { broadcastToProperty } from "../lib/websocket.js";
 import { syncRoomFeaturesToInventory } from "./room-inventory.js";
 import { findProfileAcrossAllProperties, findRoomAcrossAllProperties } from "../lib/cross-property-service.js";
 import { buildRoomSearchConditions } from "../lib/search-helper.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams, CommonListQuery, RoomFeaturesBody, RoomStatusBody, BulkIdsBody } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -23,6 +25,7 @@ router.get(
     ["maintenance", "view"],
     ["reports", "view"],
   ),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -135,6 +138,7 @@ router.get(
     ["maintenance", "view"],
     ["reports", "view"],
   ),
+  validate({ query: CommonListQuery }),
   async (req, res) => {
   try {
     const propertyId = getTenantId(req);
@@ -237,6 +241,7 @@ router.get(
     ["maintenance", "view"],
     ["reports", "view"],
   ),
+  validate({ query: CommonListQuery }),
   async (req, res) => {
     try {
       const propertyId = getTenantId(req);
@@ -312,7 +317,7 @@ router.get(
         let baseQuery = tenantDb
           .select()
           .from(roomsTable)
-          .orderBy(sql`LENGTH(${roomsTable.roomNumber}), ${roomsTable.roomNumber}`)
+          .orderBy(sql`LENGTH(${roomsTable.roomNumber}), ${roomsTable.roomNumber}, ${roomsTable.id}`)
           .limit(limit)
           .offset(offset) as any;
         if (conditions.length > 0)
@@ -350,6 +355,7 @@ router.get(
 router.get(
   "/rooms/:id/history",
   requirePermission("housing", "view"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       const id = parseInt(req.params.id as string);
@@ -613,6 +619,7 @@ router.get(
     ["maintenance", "view"],
     ["reports", "view"],
   ),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -656,6 +663,7 @@ router.get(
 router.patch(
   "/rooms/:id",
   requireAnyPermission(["housing", "edit"], ["housekeeping", "edit"]),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -899,6 +907,8 @@ router.patch(
 router.patch(
   "/rooms/:id/features",
   requirePermission("housing", "edit"),
+  validate({ params: IdParams }),
+  validate({ body: RoomFeaturesBody }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -985,6 +995,8 @@ router.patch(
       next(err);
     }
   },
+  validate({ params: IdParams }),
+  validate({ body: RoomStatusBody }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -1085,6 +1097,7 @@ async function findPropertyByRoomId(roomId: number): Promise<number | null> {
 router.post(
   "/rooms/bulk-delete",
   requirePermission("housing", "delete"),
+  validate({ body: BulkIdsBody }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);
@@ -1190,6 +1203,7 @@ router.post(
 router.delete(
   "/rooms/:id",
   requirePermission("housing", "delete"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     try {
       let propertyId = getTenantId(req);

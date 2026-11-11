@@ -15,7 +15,7 @@ import { eq, and, desc, sql, or, ilike } from "drizzle-orm";
 import { getTenantId } from "../lib/request-utils.js";
 import { loadAuthUser, requirePermission, hasPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
-import { GateLogBody, GateLogsQuery, GateStatsQuery, GateVerifyBody } from "../validation/schemas.js";
+import { GateLogBody, GateLogsQuery, GateStatsQuery, GateVerifyBody, ProfileCodeParams, CommonListQuery } from "../validation/schemas.js";
 import { portalSession } from "./portal-auth/shared.js";
 import { logActivity } from "../lib/activity-logger.js";
 
@@ -70,7 +70,8 @@ const allowAdminOrPortalAuth = async (req: any, res: any, next: any) => {
 
 // ─── 1. GET /gate/pass/:profileId ──────────────────────────────────────────
 // Generates official scannable Gate Pass with real QR Code
-router.get("/gate/pass/:profileId", allowAdminOrPortalAuth, async (req, res): Promise<void> => {
+router.get("/gate/pass/:profileId", allowAdminOrPortalAuth, validate({ params: ProfileCodeParams, query: CommonListQuery }),
+  async (req, res): Promise<void> => {
   try {
     const pSess = portalSession(req) || (req as any).portalUser;
     const rawPropertyId = req.query.propertyId ? Number(req.query.propertyId) : (pSess?.propertyId || getTenantId(req));
@@ -644,7 +645,7 @@ router.get("/gate/logs", requirePermission("gate", "view"), validate({ query: Ga
       .from(gateLogsTable)
       .leftJoin(propertiesTable, eq(gateLogsTable.propertyId, propertiesTable.id))
       .where(whereClause)
-      .orderBy(desc(gateLogsTable.scannedAt))
+      .orderBy(desc(gateLogsTable.scannedAt), desc(gateLogsTable.id))
       .limit(limit)
       .offset(offset);
 

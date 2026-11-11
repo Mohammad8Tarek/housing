@@ -12,7 +12,7 @@ import { getTenantId, su } from "../lib/request-utils.js";
 import { requireAnyPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams } from "../validation/common.js";
-import { CreateInventoryItemBody, CreateInventoryTicketBody, ListInventoryQuery, SyncInventoryBody, UpdateInventoryItemBody } from "../validation/schemas.js";
+import { CreateInventoryItemBody, CreateInventoryTicketBody, ListInventoryQuery, SyncInventoryBody, UpdateInventoryItemBody, CommonListQuery, RoomIdParams } from "../validation/schemas.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
@@ -487,6 +487,7 @@ router.get(
 router.get(
   "/summary",
   requireAnyPermission(["inventory", "view"], ["housing", "view"], ["reports", "view"]),
+  validate({ query: CommonListQuery }),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
@@ -616,6 +617,7 @@ router.get(
 router.get(
   "/room/:roomId",
   requireAnyPermission(["inventory", "view"], ["housing", "view"], ["reports", "view"]),
+  validate({ params: RoomIdParams }),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const propertyId = getTenantId(req);

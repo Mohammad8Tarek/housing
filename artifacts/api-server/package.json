@@ -22,6 +22,7 @@
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "@workspace/queue": "workspace:*",
+    "@workspace/report-rows": "workspace:*",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.52.0",
     "compression": "^1.8.1",

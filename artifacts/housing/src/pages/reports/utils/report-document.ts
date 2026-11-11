@@ -1,5 +1,6 @@
 // Full HTML document (styles, print controls, page markup) for printLuxuryReport.
 // Moved verbatim from luxury-report-engine.ts; the engine computes the values and passes them in.
+import { escapeHtml } from "@/lib/html-escape";
 import type { ReportKpiCard } from "./report-types";
 
 export interface ReportDocumentParams {
@@ -35,7 +36,7 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${reportTitle} — ${propName}</title>
+  <title>${escapeHtml(reportTitle)} — ${escapeHtml(propName)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -808,9 +809,9 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
     <div class="bar-left">
       <div class="bar-title">
         <span>🏨</span>
-        <span>${reportTitle}</span>
+        <span>${escapeHtml(reportTitle)}</span>
       </div>
-      <div class="bar-meta">${propName} · ${tableRows.length} ${isArabic ? "سجل" : "records"} · ${totalPages} ${isArabic ? (totalPages === 1 ? "صفحة" : "صفحات") : (totalPages === 1 ? "page" : "pages")} · <span id="metaOrient">${orientation === "landscape" ? (isArabic ? "أفقي (Landscape)" : "Landscape") : (isArabic ? "رأسي (Portrait)" : "Portrait")}</span> · <span style="font-family: monospace;">[${operaCode}]</span></div>
+      <div class="bar-meta">${escapeHtml(propName)} · ${tableRows.length} ${isArabic ? "سجل" : "records"} · ${totalPages} ${isArabic ? (totalPages === 1 ? "صفحة" : "صفحات") : (totalPages === 1 ? "page" : "pages")} · <span id="metaOrient">${orientation === "landscape" ? (isArabic ? "أفقي (Landscape)" : "Landscape") : (isArabic ? "رأسي (Portrait)" : "Portrait")}</span> · <span style="font-family: monospace;">[${operaCode}]</span></div>
     </div>
     <div class="bar-actions">
       <button class="btn btn-primary" onclick="window.print()">🖨️ ${isArabic ? "طباعة / حفظ كـ PDF" : "Print / Save as PDF"}</button>

@@ -10,7 +10,7 @@ import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import { requirePermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams } from "../validation/common.js";
-import { CreateCalendarEventBody, SnoozeReminderBody } from "../validation/schemas.js";
+import { CreateCalendarEventBody, SnoozeReminderBody, CommonListQuery } from "../validation/schemas.js";
 import { getTenantId } from "../lib/request-utils.js";
 
 const router: Router = Router();
@@ -36,7 +36,8 @@ const EVAL_COLORS: Record<string, string> = {
 };
 
 // GET / — تقويم الفعاليات والاستبيانات (Admin)
-router.get("/", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
+router.get("/", requirePermission("portal_content", "view"), validate({ query: CommonListQuery }),
+  async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     const { month, year } = req.query;
@@ -184,7 +185,8 @@ router.get("/", requirePermission("portal_content", "view"), async (req, res, ne
 });
 
 // GET /calendar — تقويم البوابة للموظف (Portal)
-router.get("/calendar", requirePortalAuth, async (req, res, next) => {
+router.get("/calendar", requirePortalAuth, validate({ query: CommonListQuery }),
+  async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
     const { from, to } = req.query;

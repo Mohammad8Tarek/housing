@@ -1,4 +1,5 @@
 // State, effects and handlers of GuestHosting (moved verbatim).
+import { escapeHtml } from "@/lib/html-escape";
 import { useState, useEffect, useRef } from "react";
 import {
   useListHostings,
@@ -836,32 +837,32 @@ export function useGuestHostingState() {
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px;">
         <div>
           <div style="font-size: 7.5pt; color: #64748b; font-weight: 700;">${ar ? "الموظف المستضيف" : "Host Employee"}</div>
-          <div style="font-size: 9pt; font-weight: 800; color: #0f2a44;">${empName} (${hostProfile?.profileId || "—"})</div>
+          <div style="font-size: 9pt; font-weight: 800; color: #0f2a44;">${escapeHtml(empName)} (${escapeHtml(hostProfile?.profileId || "—")})</div>
         </div>
         <div>
           <div style="font-size: 7.5pt; color: #64748b; font-weight: 700;">${ar ? "القسم / الوظيفة" : "Department / Job"}</div>
-          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${hostDept} / ${hostJob}</div>
+          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${escapeHtml(hostDept)} / ${escapeHtml(hostJob)}</div>
         </div>
         <div>
           <div style="font-size: 7.5pt; color: #64748b; font-weight: 700;">${ar ? "الغرفة المخصصة" : "Assigned Room"}</div>
-          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${room?.roomNumber || "—"} (${roomText || "—"})</div>
+          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${escapeHtml(room?.roomNumber || "—")} (${escapeHtml(roomText || "—")})</div>
         </div>
         <div>
           <div style="font-size: 7.5pt; color: #64748b; font-weight: 700;">${ar ? "نوع الاستضافة" : "Hosting Type"}</div>
-          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${hosting.hostingType || (ar ? "زيارة عائلية" : "Family Visit")}</div>
+          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${escapeHtml(hosting.hostingType || (ar ? "زيارة عائلية" : "Family Visit"))}</div>
         </div>
         <div>
           <div style="font-size: 7.5pt; color: #64748b; font-weight: 700;">${ar ? "تاريخ الدخول" : "Check-In"}</div>
-          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${formatDate(hosting.expectedFrom)}</div>
+          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${escapeHtml(formatDate(hosting.expectedFrom))}</div>
         </div>
         <div>
           <div style="font-size: 7.5pt; color: #64748b; font-weight: 700;">${ar ? "تاريخ المغادرة" : "Check-Out"}</div>
-          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${formatDate(hosting.expectedTo)}</div>
+          <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${escapeHtml(formatDate(hosting.expectedTo))}</div>
         </div>
       </div>
       ${hosting.notes ? `
         <div style="margin-bottom: 14px; padding: 10px 14px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; font-size: 8pt;">
-          <strong style="color: #b45309;">${ar ? "ملاحظات الاستضافة:" : "Hosting Notes:"}</strong> ${hosting.notes}
+          <strong style="color: #b45309;">${ar ? "ملاحظات الاستضافة:" : "Hosting Notes:"}</strong> ${escapeHtml(hosting.notes)}
         </div>
       ` : ""}
     `;

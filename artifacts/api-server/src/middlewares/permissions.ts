@@ -427,29 +427,14 @@ export function normalizePermission(value: unknown): string {
 }
 
 export function effectivePermissions(user: AuthUser): Set<string> {
-  // 1. Super admin / system admin root access (emergency self-lockout prevention)
+  // 1. Super admin / system admin: always full access. A stored permission list on these
+  //    roles is ignored — it could not restrict them anyway (they can always grant themselves
+  //    via users.manage_permissions), and stale lists hid modules added after they were saved.
   if (
     user.isSystemAdmin ||
     user.roles.includes("super_admin") ||
     user.roles.includes("system_admin")
   ) {
-    if (Array.isArray(user.permissions) && user.permissions.length > 0) {
-      const permissions = new Set<string>();
-      for (const permission of user.permissions) {
-        if (permission === "none") continue;
-        const norm = normalize(permission);
-        if (norm) {
-          permissions.add(norm);
-          if (norm.includes(".")) permissions.add(norm.replace(".", ":"));
-          if (norm.includes(":")) permissions.add(norm.replace(":", "."));
-        }
-      }
-      permissions.add("users.view");
-      permissions.add("users:view");
-      permissions.add("users.manage_permissions");
-      permissions.add("users:manage_permissions");
-      return permissions;
-    }
     return new Set(["*"]);
   }
 

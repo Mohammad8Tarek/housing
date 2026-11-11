@@ -32,6 +32,7 @@ import {
 } from "./lib/websocket.js";
 import { setupSwagger } from "./lib/swagger.js";
 import { errorHandler, notFoundHandler } from "./middlewares/error-handler.js";
+import { clearReportDatasetCache } from "./lib/report-datasets.js";
 
 // 1. تعريف الـ Express instance أولاً ✅
 const app: Express = express();
@@ -389,6 +390,15 @@ app.use("/api", auditLogMiddleware);
 // Setup Swagger UI at /api/docs
 setupSwagger(app);
 
+// Any write may change report data: drop the cached report lists once it succeeds.
+app.use("/api", (req, res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
+    res.on("finish", () => {
+      if (res.statusCode < 400) clearReportDatasetCache();
+    });
+  }
+  next();
+});
 app.use("/api", router);
 
 // 8. معالجة المسارات غير الموجودة (404) — bilingual

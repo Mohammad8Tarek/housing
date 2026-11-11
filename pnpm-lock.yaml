@@ -61,6 +61,9 @@ importers:
       '@workspace/queue':
         specifier: workspace:*
         version: link:../../lib/queue
+      '@workspace/report-rows':
+        specifier: workspace:*
+        version: link:../../lib/report-rows
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
@@ -439,6 +442,9 @@ importers:
       '@workspace/dates':
         specifier: workspace:*
         version: link:../../lib/dates
+      '@workspace/report-rows':
+        specifier: workspace:*
+        version: link:../../lib/report-rows
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -569,6 +575,12 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.6.0
+
+  lib/report-rows:
+    dependencies:
+      '@workspace/dates':
+        specifier: workspace:*
+        version: link:../dates
 
   scripts:
     devDependencies:

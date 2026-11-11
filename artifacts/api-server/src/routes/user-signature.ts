@@ -3,6 +3,8 @@ import { pool } from "@workspace/db";
 import { logActivity } from "../lib/activity-logger.js";
 import { z } from "zod/v4";
 import { loadAuthUser, hasPermission } from "../middlewares/permissions.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -121,7 +123,8 @@ router.post("/users/me/signature", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/users/:id/signature", async (req, res): Promise<void> => {
+router.get("/users/:id/signature", validate({ params: IdParams }),
+  async (req, res): Promise<void> => {
   const admin = su(req);
   const targetUserId = parseInt(String(req.params.id));
   if (!Number.isFinite(targetUserId)) {
@@ -157,7 +160,8 @@ router.get("/users/:id/signature", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/users/:id/signature", async (req, res): Promise<void> => {
+router.post("/users/:id/signature", validate({ params: IdParams }),
+  async (req, res): Promise<void> => {
   const admin = su(req);
   const targetUserId = parseInt(String(req.params.id));
   if (!Number.isFinite(targetUserId)) {
@@ -250,7 +254,8 @@ router.delete("/users/me/signature", async (req, res): Promise<void> => {
   }
 });
 
-router.delete("/users/:id/signature", async (req, res): Promise<void> => {
+router.delete("/users/:id/signature", validate({ params: IdParams }),
+  async (req, res): Promise<void> => {
   const admin = su(req);
   const targetUserId = parseInt(String(req.params.id));
   if (!Number.isFinite(targetUserId)) {

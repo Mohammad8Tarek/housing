@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/html-escape";
 import { formatDate } from "./date-utils";
 import { printLuxuryReport, REPORT_TAB_TITLES } from "@/pages/reports/utils/luxury-report-engine";
 import { translateDepartment, translateJobTitle } from "./bilingual-hospitality-dict";
@@ -674,30 +675,30 @@ async function generateArabicHousingLetterPdf(
 <body>
   <div class="page">
     <div class="header">
-      ${propLogo ? `<img src="${propLogo.dataUrl}" alt="شعار الفرع" />` : "<div></div>"}
-      ${sysLogo ? `<img src="${sysLogo.dataUrl}" alt="شعار النظام" />` : "<div></div>"}
+      ${propLogo ? `<img src="${escapeHtml(propLogo.dataUrl)}" alt="شعار الفرع" />` : "<div></div>"}
+      ${sysLogo ? `<img src="${escapeHtml(sysLogo.dataUrl)}" alt="شعار النظام" />` : "<div></div>"}
     </div>
     <hr class="gold" />
     <h1>خطاب تسكين</h1>
-    ${resolvedPropAr ? `<div class="sub">الفرع: ${resolvedPropAr}${propAddress ? ` — ${propAddress}` : ""}</div>` : ""}
+    ${resolvedPropAr ? `<div class="sub">الفرع: ${escapeHtml(resolvedPropAr)}${propAddress ? ` — ${propAddress}` : ""}</div>` : ""}
     <hr class="gray" />
 
     <table>
       <tr><th style="width:160px">البيان</th><th>القيمة</th></tr>
-      <tr><td>اسم الموظف</td><td><strong>${resolvedNameAr}</strong></td></tr>
-      <tr><td>كود الموظف</td><td>${emp.profileId || emp.profileCode || (emp.id ? String(emp.id) : "—")}</td></tr>
-      <tr><td>رقم الهوية</td><td>${emp.nationalId || emp.national_id || "—"}</td></tr>
-      <tr><td>الجنسية</td><td>${resolvedNatAr}</td></tr>
-      <tr><td>القسم</td><td>${resolvedDeptAr}</td></tr>
-      <tr><td>المسمى الوظيفي</td><td>${resolvedJobTitleAr}</td></tr>
-      <tr><td>الدرجة</td><td>${resolvedLevelAr}</td></tr>
-      <tr><td>الهاتف</td><td>${emp.phone || emp.mobile || "—"}</td></tr>
-      <tr><td>المبنى</td><td>${resolvedBuildingAr}</td></tr>
-      <tr><td>الدور</td><td>${resolvedFloorAr}</td></tr>
-      <tr><td>الغرفة</td><td>${roomDisplay}</td></tr>
-      <tr><td>السرير</td><td>${bedDisplay}</td></tr>
-      <tr><td>تاريخ الدخول</td><td>${fmtDate(assignment.checkInDate)}</td></tr>
-      <tr><td>تاريخ المغادرة المتوقع</td><td>${fmtDate(assignment.expectedCheckOutDate)}</td></tr>
+      <tr><td>اسم الموظف</td><td><strong>${escapeHtml(resolvedNameAr)}</strong></td></tr>
+      <tr><td>كود الموظف</td><td>${escapeHtml(emp.profileId || emp.profileCode || (emp.id ? String(emp.id) : "—"))}</td></tr>
+      <tr><td>رقم الهوية</td><td>${escapeHtml(emp.nationalId || emp.national_id || "—")}</td></tr>
+      <tr><td>الجنسية</td><td>${escapeHtml(resolvedNatAr)}</td></tr>
+      <tr><td>القسم</td><td>${escapeHtml(resolvedDeptAr)}</td></tr>
+      <tr><td>المسمى الوظيفي</td><td>${escapeHtml(resolvedJobTitleAr)}</td></tr>
+      <tr><td>الدرجة</td><td>${escapeHtml(resolvedLevelAr)}</td></tr>
+      <tr><td>الهاتف</td><td>${escapeHtml(emp.phone || emp.mobile || "—")}</td></tr>
+      <tr><td>المبنى</td><td>${escapeHtml(resolvedBuildingAr)}</td></tr>
+      <tr><td>الدور</td><td>${escapeHtml(resolvedFloorAr)}</td></tr>
+      <tr><td>الغرفة</td><td>${escapeHtml(roomDisplay)}</td></tr>
+      <tr><td>السرير</td><td>${escapeHtml(bedDisplay)}</td></tr>
+      <tr><td>تاريخ الدخول</td><td>${escapeHtml(fmtDate(assignment.checkInDate))}</td></tr>
+      <tr><td>تاريخ المغادرة المتوقع</td><td>${escapeHtml(fmtDate(assignment.expectedCheckOutDate))}</td></tr>
     </table>
 
     <hr class="gold" />
@@ -749,7 +750,7 @@ async function generateArabicHousingLetterPdf(
     </div>
 
     <div class="foot">
-      <span>تاريخ الطباعة: ${today}</span>
+      <span>تاريخ الطباعة: ${escapeHtml(today)}</span>
       <span>Sunrise Staff Housing Management — Confidential</span>
     </div>
   </div>

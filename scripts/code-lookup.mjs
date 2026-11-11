@@ -390,7 +390,7 @@ const REGISTRY = [
       page: "artifacts/housing/src/pages/reports/ReportsPage.tsx",
       components: [
         "Report catalog (6 groups / 26 reports): artifacts/housing/src/pages/reports/constants.tsx (TABS, REPORT_GROUPS) + components/TabsNav.tsx",
-        "Row builders per report: artifacts/housing/src/pages/reports/hooks/processors/*.ts (registry: processors/index.ts)",
+        "Row builders per report (shared web + API): lib/report-rows/src/processors/*.ts (registry: processors/index.ts, entry: lib/report-rows/src/build.ts); server-paged tabs: pages/reports/hooks/useServerReportRows.ts (SERVER_ROW_TABS)",
         "Table columns per report: artifacts/housing/src/pages/reports/components/report-table/*.tsx (registry: report-table/index.ts)",
         "Print Studio + printed document: components/ReportPrintStudioModal.tsx, components/PrintableReportDocument.tsx",
         "Excel export styling: artifacts/housing/src/lib/xlsx-brand.ts; brand tokens: artifacts/housing/src/lib/sunrise-brand.ts",
@@ -400,7 +400,7 @@ const REGISTRY = [
     },
     backend: {
       routes: [
-        "artifacts/api-server/src/routes/reports/ — ratings.ts, operations.ts (room-moves, vacations, /), custom.ts (templates + custom query)",
+        "artifacts/api-server/src/routes/reports/ — ratings.ts, operations.ts (room-moves, vacations, /), custom.ts (templates + custom query), rows.ts (GET /reports/rows/:report, server-paged rows; data via lib/report-datasets.ts)",
       ],
     },
     database: {
@@ -440,7 +440,7 @@ const REGISTRY = [
       route: "Housing -> Room Details Dialog & Reports -> Amenities Tab",
       page: "artifacts/housing/src/pages/housing/components/RoomDetailsDialog.tsx",
       components: [
-        "Report rows: artifacts/housing/src/pages/reports/hooks/processors/services.ts (processEquipmentInventory)",
+        "Report rows: lib/report-rows/src/processors/services.ts (processEquipmentInventory)",
         "Report columns: artifacts/housing/src/pages/reports/components/report-table/services.tsx + EquipmentRoomsDialog.tsx",
         "RoomDetailsDialog.tsx (Equipment inventory card, barcode, condition dropdown, add asset)",
       ],

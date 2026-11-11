@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/html-escape";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -116,7 +117,7 @@ export function RoomQrModal({
       <html dir="${ar ? "rtl" : "ltr"}">
         <head>
           <meta charset="utf-8" />
-          <title>Room ${room.roomNumber} - Door QR Placard</title>
+          <title>Room ${escapeHtml(room.roomNumber)} - Door QR Placard</title>
           <style>
             @page {
               size: A5 portrait;
@@ -239,22 +240,22 @@ export function RoomQrModal({
         <body>
           <div class="placard">
             <div class="brand-header">
-              <div class="brand-name">${propertyName}</div>
+              <div class="brand-name">${escapeHtml(propertyName)}</div>
               <div class="brand-sub">SUNRISE STAFF HOUSING MANAGEMENT</div>
             </div>
 
             <div class="room-number-wrap">
               <div class="room-label">${ar ? "غرفة رقم" : "ROOM"}</div>
-              <div class="room-number">${room.roomNumber}</div>
+              <div class="room-number">${escapeHtml(room.roomNumber)}</div>
             </div>
 
             <div class="location-badges">
-              <span class="badge">${bName}</span>
+              <span class="badge">${escapeHtml(bName)}</span>
               <span class="badge">${ar ? `الدور ${fNum}` : `Floor ${fNum}`}</span>
             </div>
 
             <div class="qr-frame">
-              <img src="${qrDataUrl}" alt="Room QR Code" class="qr-image" />
+              <img src="${escapeHtml(qrDataUrl)}" alt="Room QR Code" class="qr-image" />
             </div>
 
             <div class="instructions">

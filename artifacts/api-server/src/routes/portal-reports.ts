@@ -14,6 +14,8 @@ import { requireAuth, requirePermission } from "../middlewares/permissions.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { withTableFallback } from "../lib/with-table-fallback.js";
 import { getTenantId, su } from "../lib/request-utils.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -228,7 +230,8 @@ router.post("/generate", requireAuth, async (req, res, next): Promise<any> => {
 // ═══════════════════════════════════════════════════════════════
 // ENHANCED EVALUATION REPORT
 // ═══════════════════════════════════════════════════════════════
-router.get("/evaluations-report", requireAuth, async (req, res, next): Promise<any> => {
+router.get("/evaluations-report", requireAuth, validate({ query: CommonListQuery }),
+  async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -272,7 +275,8 @@ router.get("/evaluations-report", requireAuth, async (req, res, next): Promise<a
 // ═══════════════════════════════════════════════════════════════
 // ENHANCED ACTIVITY REGISTRATION REPORT
 // ═══════════════════════════════════════════════════════════════
-router.get("/activities-report", requireAuth, async (req, res, next): Promise<any> => {
+router.get("/activities-report", requireAuth, validate({ query: CommonListQuery }),
+  async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -313,7 +317,8 @@ router.get("/activities-report", requireAuth, async (req, res, next): Promise<an
 // ═══════════════════════════════════════════════════════════════
 // ENGAGEMENT REPORT
 // ═══════════════════════════════════════════════════════════════
-router.get("/engagement-report", requireAuth, async (req, res, next): Promise<any> => {
+router.get("/engagement-report", requireAuth, validate({ query: CommonListQuery }),
+  async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -360,7 +365,8 @@ router.get("/engagement-report", requireAuth, async (req, res, next): Promise<an
 // ═══════════════════════════════════════════════════════════════
 // CUSTOM REPORT
 // ═══════════════════════════════════════════════════════════════
-router.get("/custom-report", requireAuth, async (req, res, next): Promise<any> => {
+router.get("/custom-report", requireAuth, validate({ query: CommonListQuery }),
+  async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)

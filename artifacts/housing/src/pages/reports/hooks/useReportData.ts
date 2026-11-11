@@ -1,24 +1,36 @@
 import { useMemo, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  useListRooms,
-  useListBuildings,
-  useListFloors,
-  useListProfiles,
-  useListAssignments,
-  useListReservations,
-  useListMaintenance,
-  useListHostings,
-  useListProperties,
-  useGetSettings,
-} from "@workspace/api-client-react";
+import { customFetch, useListProperties, useGetSettings } from "@workspace/api-client-react";
+import { fetchAllPages } from "@/lib/fetch-all-pages";
+import { buildReportMaps } from "@workspace/report-rows";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
+
+// Large lists the page itself still needs, per tab. Every other report table
+// is built and paged by the API (SERVER_ROW_TABS), so these load on demand.
+// "currentAssignments" = stays in progress only (bounded by bed capacity);
+// "assignments" = full history, which grows forever.
+type HeavyList =
+  | "profiles" | "assignments" | "currentAssignments" | "reservations" | "maintenance"
+  | "hostings" | "equipmentInventory" | "gateLogs" | "vacations";
+const TAB_LISTS: Record<string, HeavyList[]> = {
+  analytics: ["profiles", "currentAssignments", "maintenance", "reservations", "hostings"],
+  manager_flash: ["profiles", "assignments", "maintenance", "reservations"],
+  occupancy_forecast: ["currentAssignments", "reservations"],
+  housing_map: ["profiles", "currentAssignments"],
+  vacant_rooms: ["currentAssignments"], // occupancy matrix above the table
+  maintenance: ["maintenance"], // dual-track ribbon above the table
+};
+const CURRENT_STATUSES = ["ACTIVE", "VACATION", "OCCUPIED_VACATION"];
+
+const EMPTY: string[] = [];
+const EMPTY_ROWS: any[] = [];
 
 export function useReportData(
   filterProperty: string,
   activePropertyId?: number,
-  filterBuilding: string = "all",
+  _filterBuilding: string = "all",
+  activeTab: string = "analytics",
 ) {
   const { data: properties = [] } = useListProperties({
     query: { queryKey: ["properties"], enabled: true },
@@ -37,84 +49,46 @@ export function useReportData(
     { query: { queryKey: ["settings", propId], enabled: !!propId } },
   );
 
-  const { data: _bData } = useListBuildings({ propertyId: propId, limit: 5000 } as any, {
-    query: { queryKey: ["buildings", propId, 5000], enabled: !!propId },
-  });
-  const buildings: any[] = (_bData as any)?.data || _bData || [];
+  // Every list is loaded completely (all pages), so reports never drop rows
+  // once a property grows past the server's per-request limit.
+  const needs = new Set<string>(TAB_LISTS[activeTab] ?? []);
+  const useAll = (key: string, path: string, pageSize: number, extra: Record<string, string> = {}, need?: HeavyList) =>
+    useQuery({
+      queryKey: [key, propId, "report-all", extra],
+      queryFn: () => fetchAllPages<any>(path, { propertyId: propId, ...extra }, pageSize),
+      enabled: !!propId && (!need || needs.has(need)),
+    });
+  // Endpoints that used plain fetch before and treat failures as "no rows".
+  const useAllOrEmpty = (key: string, path: string, pageSize: number, need: HeavyList) =>
+    useQuery({
+      queryKey: [key, propId, "report-all"],
+      queryFn: () => fetchAllPages<any>(path, { propertyId: propId }, pageSize).catch(() => []),
+      enabled: !!propId && needs.has(need),
+    });
 
-  const { data: _fData } = useListFloors(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["floors", propId, 5000], enabled: !!propId } },
-  );
-  const floors: any[] = (_fData as any)?.data || _fData || [];
-
-  const { data: _rData, isLoading: roomLoad } = useListRooms(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["rooms", propId, 5000], enabled: !!propId } },
-  );
-  const rooms: any[] = (_rData as any)?.data || _rData || [];
-
-  const { data: _eData, isLoading: empLoad } = useListProfiles(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["profiles", propId, 5000], enabled: !!propId } },
-  );
-  const profiles: any[] = (_eData as any)?.data || _eData || [];
-
-  const { data: _aData, isLoading: assLoad } = useListAssignments(
-    { propertyId: propId, limit: 5000, status: "ALL" } as any,
-    { query: { queryKey: ["assignments", propId, 5000, "ALL"], enabled: !!propId } },
-  );
-  const assignments: any[] = Array.isArray(_aData)
-    ? _aData
-    : ((_aData as any)?.data || []);
-
-  const { data: _resData, isLoading: resLoad } = useListReservations(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["reservations", propId, 5000], enabled: !!propId } },
-  );
-  const reservations: any[] = (_resData as any)?.data || _resData || [];
-
-  const { data: _mntData, isLoading: mntLoad } = useListMaintenance(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["maintenance", propId, 5000], enabled: !!propId } },
-  );
-  const maintenance: any[] = (_mntData as any)?.data || _mntData || [];
-
-  const { data: _hData, isLoading: hostLoad } = useListHostings(
-    { propertyId: propId, limit: 5000 } as any,
-    { query: { queryKey: ["hostings", propId, 5000], enabled: !!propId } },
-  );
-  const hostings: any[] = (_hData as any)?.data || _hData || [];
-
-  const { data: _invData, isLoading: invLoad } = useQuery({
-    queryKey: ["room-inventory", propId],
+  const { data: buildings = [] } = useAll("buildings", "/api/buildings", 1000);
+  const { data: floors = [] } = useAll("floors", "/api/floors", 5000);
+  const { data: rooms = [], isLoading: roomLoad } = useAll("rooms", "/api/rooms", 5000);
+  const { data: profiles = [], isLoading: empLoad } = useAll("profiles", "/api/profiles", 5000, {}, "profiles");
+  const { data: history, isLoading: histLoad } = useAll("assignments", "/api/assignments", 5000, { status: "ALL" }, "assignments");
+  // Same rows and order (id desc) as filtering the full history.
+  const { data: current, isLoading: curLoad } = useQuery({
+    queryKey: ["assignments", propId, "report-current"],
     queryFn: async () => {
-      if (!propId) return [];
-      const res = await fetch(`/api/room-inventory?propertyId=${propId}&limit=5000`, {
-        credentials: "include",
-      });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return json.data || [];
+      const lists = await Promise.all(
+        CURRENT_STATUSES.map((status) => fetchAllPages<any>("/api/assignments", { propertyId: propId, status }, 5000)),
+      );
+      return lists.flat().sort((a: any, b: any) => Number(b.id) - Number(a.id));
     },
-    enabled: !!propId,
+    enabled: !!propId && needs.has("currentAssignments") && !needs.has("assignments"),
   });
-  const equipmentInventory: any[] = _invData || [];
-
-  const { data: _gateData, isLoading: gateLoad } = useQuery({
-    queryKey: ["gate-logs", propId],
-    queryFn: async () => {
-      if (!propId) return [];
-      const res = await fetch(`/api/gate/logs?propertyId=${propId}&limit=1000`, {
-        credentials: "include",
-      });
-      if (!res.ok) return [];
-      const json = await res.json();
-      return json.data || json.logs || [];
-    },
-    enabled: !!propId,
-  });
-  const gateLogs: any[] = _gateData || [];
+  const assignments: any[] = (needs.has("assignments") ? history : current) ?? EMPTY_ROWS;
+  const assLoad = histLoad || curLoad;
+  const { data: reservations = [], isLoading: resLoad } = useAll("reservations", "/api/reservations", 5000, {}, "reservations");
+  const { data: maintenance = [], isLoading: mntLoad } = useAll("maintenance", "/api/maintenance", 5000, {}, "maintenance");
+  const { data: hostings = [], isLoading: hostLoad } = useAll("hostings", "/api/hostings", 5000, {}, "hostings");
+  const { data: equipmentInventory = [], isLoading: invLoad } = useAllOrEmpty("room-inventory", "/api/room-inventory", 5000, "equipmentInventory");
+  const { data: gateLogs = [], isLoading: gateLoad } = useAllOrEmpty("gate-logs", "/api/gate/logs", 2000, "gateLogs");
 
   const { data: _vacData, isLoading: vacLoad } = useQuery({
     queryKey: ["report-vacations", propId],
@@ -127,7 +101,7 @@ export function useReportData(
       const json = await res.json();
       return json.data || [];
     },
-    enabled: !!propId,
+    enabled: !!propId && needs.has("vacations"),
   });
   const vacations: any[] = _vacData || [];
 
@@ -155,51 +129,22 @@ export function useReportData(
   const isLoading =
     roomLoad || empLoad || assLoad || resLoad || mntLoad || hostLoad || invLoad || gateLoad || vacLoad;
 
-  const buildingMap = useMemo(() => {
-    const m: Record<number, string> = {};
-    buildings.forEach((b: any) => (m[b.id] = b.name));
-    return m;
-  }, [buildings]);
+  const { buildingMap, floorMap, roomMap, empMap } = useMemo(
+    () => buildReportMaps({ buildings, floors, rooms, profiles }),
+    [buildings, floors, rooms, profiles],
+  );
 
-  const floorMap = useMemo(() => {
-    const m: Record<number, string> = {};
-    floors.forEach(
-      (f: any) =>
-        (m[f.id] = f.floorNumber ? `Floor ${f.floorNumber}` : `Floor ${f.id}`),
-    );
-    return m;
-  }, [floors]);
-
-  const roomMap = useMemo(() => {
-    const m: Record<number, any> = {};
-    rooms.forEach((r: any) => (m[r.id] = r));
-    return m;
-  }, [rooms]);
-
-  const departments = useMemo(() => {
-    const set = new Set<string>();
-    profiles.forEach((e: any) => {
-      if (e.department) set.add(e.department.trim());
-    });
-    reservations.forEach((r: any) => {
-      if (r.department) set.add(r.department.trim());
-    });
-    return Array.from(set).sort();
-  }, [profiles, reservations]);
-
-  const nationalities = useMemo(() => {
-    const set = new Set<string>();
-    profiles.forEach((e: any) => {
-      if (e.nationality) set.add(e.nationality.trim());
-    });
-    return Array.from(set).sort();
-  }, [profiles]);
-
-  const empMap = useMemo(() => {
-    const m: Record<number, any> = {};
-    profiles.forEach((e: any) => (m[e.id] = e));
-    return m;
-  }, [profiles]);
+  // Filter choices come from the API so table tabs need no profile list.
+  const { data: filterOptions } = useQuery({
+    queryKey: ["report-filter-options", propId],
+    queryFn: () =>
+      customFetch<{ departments: string[]; nationalities: string[] }>(
+        `/api/reports/filter-options?propertyId=${propId}`,
+      ),
+    enabled: !!propId,
+  });
+  const departments = filterOptions?.departments ?? EMPTY;
+  const nationalities = filterOptions?.nationalities ?? EMPTY;
 
   const { data: lookupRoomTypes = [] } = useLookupValues(
     propId,

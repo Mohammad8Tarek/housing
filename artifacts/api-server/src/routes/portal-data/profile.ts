@@ -4,6 +4,8 @@ import { profilesTable, assignmentsTable, roomsTable, buildingsTable, floorsTabl
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { portalSession } from "../portal-auth/shared.js";
 import { logActivity } from "../../lib/activity-logger.js";
+import { validate } from "../../middlewares/validate.js";
+import { MyProfileBody } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -130,7 +132,8 @@ router.get("/my-profile", async (req, res): Promise<void> => {
   });
 });
 
-router.patch("/my-profile", async (req, res): Promise<void> => {
+router.patch("/my-profile", validate({ body: MyProfileBody }),
+  async (req, res): Promise<void> => {
   const sess = portalSession(req)!;
   const { phone, address, photo, email, emergencyContact } = req.body;
 

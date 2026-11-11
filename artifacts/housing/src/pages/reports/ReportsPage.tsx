@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { toast } from "sonner";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
 import { DataPagination } from "@/components/DataPagination";
+import { useDebounce } from "@/hooks/use-debounce";
 import { AnalyticsTab } from "./components/AnalyticsTab";
 
 import { useReportData } from "./hooks/useReportData";
@@ -11,6 +13,7 @@ import { useReportDataProcessor } from "./hooks/useReportDataProcessor";
 import { useReportAnalytics } from "./hooks/useReportAnalytics";
 import { useReportExport } from "./hooks/useReportExport";
 import { sortReportRows, useReportSort } from "./hooks/useReportSort";
+import { SERVER_ROW_TABS, useServerReportRows } from "./hooks/useServerReportRows";
 import { useReportColumns } from "./hooks/useReportColumns";
 import { useSmartReportExport } from "@/hooks/useSmartReportExport";
 import { SMART_REPORT_TABS } from "@/config/reportDefinitions";
@@ -53,6 +56,7 @@ export default function Reports() {
     filters.filterProperty,
     numericPropertyId,
     filters.filterBuilding,
+    filters.activeTab,
   );
 
   const floorOptions =
@@ -94,9 +98,13 @@ export default function Reports() {
     hostings: data.hostings,
   });
 
+  // Rows are rebuilt from the full datasets, so wait until typing pauses.
+  const debouncedSearch = useDebounce(filters.search, 300);
+
   const processor = useReportDataProcessor({
     ar,
     ...filters,
+    search: debouncedSearch,
     buildings: data.buildings,
     floors: data.floors,
     rooms: data.rooms,
@@ -115,7 +123,23 @@ export default function Reports() {
     settings: data.settings,
   });
 
-  const allData = processor.currentData();
+  // Reports in SERVER_ROW_TABS are built and paged by the API instead.
+  const isServerTab = SERVER_ROW_TABS.has(filters.activeTab);
+
+  // Rebuild rows only when a report input changes, not on every render.
+  const allData = useMemo(
+    () => (isServerTab ? [] : processor.currentData()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      isServerTab, ar, filters.activeTab, filters.filterBuilding, filters.filterFloor, filters.filterStatus,
+      filters.filterCategory, filters.inventoryViewMode, filters.filterDepartment, filters.filterGender,
+      filters.filterNationality, filters.filterRoomType, filters.filterEmploymentType, filters.waterSortMode,
+      debouncedSearch, filters.dateFrom, filters.dateTo,
+      data.buildings, data.floors, data.rooms, data.profiles, data.assignments, data.reservations,
+      data.maintenance, data.hostings, data.equipmentInventory, data.gateLogs, data.vacations,
+      data.buildingMap, data.floorMap, data.roomMap, data.empMap, data.settings,
+    ],
+  );
   const { sort, toggle } = useReportSort(filters.activeTab);
   const sortedData = useMemo(
     () => sortReportRows(allData, sort),
@@ -135,7 +159,25 @@ export default function Reports() {
   }, [filters.activeTab, sortedData]);
 
   const isInHouseGrouped = filters.activeTab === "assignments" && filters.inHouseViewMode === "grouped";
-  const totalCount = isInHouseGrouped ? groupedInHouseRooms.length : sortedData.length;
+
+  const server = useServerReportRows({
+    enabled: isServerTab,
+    report: filters.activeTab,
+    propId: data.propId,
+    ar,
+    filters,
+    search: debouncedSearch,
+    sort,
+    page: filters.currentPage,
+    pageSize: filters.pageSize,
+    groupByRoom: isInHouseGrouped,
+  });
+
+  const totalCount = isServerTab
+    ? server.total
+    : isInHouseGrouped
+      ? groupedInHouseRooms.length
+      : sortedData.length;
 
   const handleSortToggle = (key: string) => {
     toggle(key);
@@ -143,21 +185,23 @@ export default function Reports() {
   };
 
   useEffect(() => {
+    if (isServerTab && server.isLoading) return;
     const maxPage = Math.max(1, Math.ceil(totalCount / filters.pageSize));
     if (filters.currentPage > maxPage) {
       filters.setCurrentPage(1);
     }
-  }, [totalCount, filters.currentPage, filters.pageSize, filters]);
+  }, [totalCount, filters.currentPage, filters.pageSize, filters, isServerTab, server.isLoading]);
 
   // Real-time responsive pagination based on filtered data
   const startIndex = (filters.currentPage - 1) * filters.pageSize;
   const paginatedData = useMemo(() => {
+    if (isServerTab) return server.pageRows;
     if (isInHouseGrouped) {
       const pageRooms = groupedInHouseRooms.slice(startIndex, startIndex + filters.pageSize);
       return pageRooms.flatMap(([_, list]) => list);
     }
     return sortedData.slice(startIndex, startIndex + filters.pageSize);
-  }, [isInHouseGrouped, groupedInHouseRooms, sortedData, startIndex, filters.pageSize]);
+  }, [isServerTab, server.pageRows, isInHouseGrouped, groupedInHouseRooms, sortedData, startIndex, filters.pageSize]);
 
   // Real-time Water Distribution check state for ribbon & table synchronicity
   const [waterCheckState, setWaterCheckState] = useState<Record<string, boolean>>(() => {
@@ -185,7 +229,7 @@ export default function Reports() {
       ar,
       activeTab: filters.activeTab,
       canExportReports,
-      currentData: () => sortedData,
+      currentData: isServerTab ? server.allRows : () => sortedData,
       currentPageData: () => paginatedData,
       properties: data.properties,
       propId: data.propId,
@@ -212,8 +256,24 @@ export default function Reports() {
       filterRow: reportCols.filterRow,
     });
 
-  const { handleExportExcel, handleExportPDF, handleExportAnalyticsPDF } =
-    exportActions;
+  const { handleExportAnalyticsPDF } = exportActions;
+
+  // Server-paged reports only hold one page; load every row before exporting.
+  const withAllRows =
+    <A extends unknown[]>(fn: (...args: A) => unknown) =>
+    async (...args: A) => {
+      if (isServerTab) {
+        try {
+          await server.loadAllRows();
+        } catch {
+          toast.error(ar ? "تعذر تحميل بيانات التقرير للتصدير" : "Could not load report data for export");
+          return;
+        }
+      }
+      return fn(...args);
+    };
+  const handleExportExcel = withAllRows(exportActions.handleExportExcel);
+  const handleExportPDF = withAllRows(exportActions.handleExportPDF);
 
   // ── Smart Report Export (jsPDF + AutoTable column system) ──
   const smartDef = SMART_REPORT_TABS[filters.activeTab];
@@ -222,7 +282,8 @@ export default function Reports() {
 
   const smartExport = useSmartReportExport({
     columns: smartDef?.columns ?? [],
-    getData: () => sortedData as Record<string, unknown>[],
+    getData: async () =>
+      (isServerTab ? await server.loadAllRows() : sortedData) as Record<string, unknown>[],
     meta: {
       title: smartDef ? (ar ? smartDef.titleAr : smartDef.title) : '',
       subtitle: propertyLabel,
@@ -604,7 +665,7 @@ export default function Reports() {
           ) : (
             <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
               <ReportTable
-                isLoading={data.isLoading}
+                isLoading={isServerTab ? data.isLoading || server.isLoading : data.isLoading}
                 allData={sortedData}
                 paginatedData={paginatedData}
                 selectedRows={filters.selectedRows}

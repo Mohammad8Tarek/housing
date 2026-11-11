@@ -1,5 +1,4 @@
 // Tab → row builder registry for the Reports page.
-import type { Tab } from "../../types";
 import type { ReportProcessorContext } from "./context";
 import {
   processManagerFlash,
@@ -36,7 +35,7 @@ export type { ReportProcessorContext } from "./context";
 export { matchesRoomType, matchesGender } from "./context";
 
 export const REPORT_PROCESSORS: Partial<
-  Record<Tab, (ctx: ReportProcessorContext) => any[]>
+  Record<string, (ctx: ReportProcessorContext) => any[]>
 > = {
   manager_flash: processManagerFlash,
   arrivals_manifest: processArrivalsManifest,

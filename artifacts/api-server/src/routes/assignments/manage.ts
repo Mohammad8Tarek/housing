@@ -7,6 +7,8 @@ import { requirePermission, requireAnyPermission } from "../../middlewares/permi
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
 import { fmtAssignment, findPropertyByAssignmentId } from "./shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { IdParams, BulkIdsBody } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -14,6 +16,7 @@ const router: Router = Router();
 router.patch(
   "/assignments/:id",
   requireAnyPermission(["accommodation", "edit"], ["accommodation", "create"]),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
 
@@ -94,6 +97,7 @@ router.patch(
 router.delete(
   "/assignments/:id",
   requirePermission("accommodation", "delete"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const assignmentId = parseInt(String(req.params.id), 10);
@@ -177,6 +181,7 @@ router.delete(
 router.post(
   "/assignments/bulk-delete",
   requirePermission("accommodation", "delete"),
+  validate({ body: BulkIdsBody }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
     const { ids } = req.body || {};
@@ -214,16 +219,22 @@ router.post(
         const activeIds = new Set<number>((activeRows.rows || []).map((r: any) => Number(r.id)));
         const deletableIds = numIds.filter((id) => !activeIds.has(id));
 
+        // Count what was actually removed: requested IDs may not exist (or
+        // belong to another property), and those must not be reported/logged.
+        let deletedCount = 0;
         if (deletableIds.length > 0) {
           const deletableSql = sql.join(deletableIds.map((id) => sql`${id}`), sql`, `);
-          await tenantDb
+          const deleted = await tenantDb
             .delete(assignmentsTable)
-            .where(sql`${assignmentsTable.id} IN (${deletableSql})`);
+            .where(sql`${assignmentsTable.id} IN (${deletableSql})`)
+            .returning({ id: assignmentsTable.id });
+          deletedCount = deleted.length;
         }
 
         return {
-          deletedCount: deletableIds.length,
+          deletedCount,
           skippedCount: activeIds.size,
+          notFoundCount: deletableIds.length - deletedCount,
         };
       });
 

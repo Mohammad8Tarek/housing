@@ -5,6 +5,8 @@ import { broadcastToProperty } from "../../lib/websocket.js";
 import { logger } from "../../lib/logger.js";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { STEP_ROLES, SignBody, RejectBody, RebackBody, su, ensureProfileInTargetSchema, resolveRequestId, canAccessProperty, userMatchesApprovalRole, hasAlreadyActedOnRequest, getRequestWithSteps } from "./shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { RequestRefParams } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -12,6 +14,7 @@ const router: Router = Router();
 router.post(
   "/hosting-requests/:id/sign",
   requirePermission("hosting_requests", "approve"),
+  validate({ params: RequestRefParams }),
   async (req, res): Promise<void> => {
     const user = su(req);
     try {
@@ -379,6 +382,7 @@ router.post(
 router.post(
   "/hosting-requests/:id/reject",
   requirePermission("hosting_requests", "approve"),
+  validate({ params: RequestRefParams }),
   async (req, res): Promise<void> => {
     const user = su(req);
     try {
@@ -527,6 +531,7 @@ router.post(
 router.post(
   "/hosting-requests/:id/reback",
   requirePermission("hosting_requests", "edit"),
+  validate({ params: RequestRefParams }),
   async (req, res): Promise<void> => {
     const user = su(req);
     try {

@@ -16,6 +16,8 @@ import { logActivity } from "../lib/activity-logger.js";
 import { requirePermission, requireAuth, hasPermission } from "../middlewares/permissions.js";
 import { su } from "../lib/request-utils.js";
 import { provisionTenantSchema } from "../lib/migrations/index.js";
+import { validate } from "../middlewares/validate.js";
+import { IdParams } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -343,7 +345,8 @@ router.post(
   },
 );
 
-router.get("/properties/:id", requireAuth, async (req, res): Promise<void> => {
+router.get("/properties/:id", requireAuth, validate({ params: IdParams }),
+  async (req, res): Promise<void> => {
   const params = GetPropertyParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -381,6 +384,7 @@ router.get("/properties/:id", requireAuth, async (req, res): Promise<void> => {
 router.patch(
   "/properties/:id",
   requirePermission("properties", "edit"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const params = UpdatePropertyParams.safeParse(req.params);
     if (!params.success) {
@@ -544,6 +548,7 @@ router.patch(
 router.delete(
   "/properties/:id",
   requirePermission("properties", "delete"),
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     const params = DeletePropertyParams.safeParse(req.params);
     if (!params.success) {

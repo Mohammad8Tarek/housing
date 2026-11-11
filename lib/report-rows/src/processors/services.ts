@@ -1,21 +1,21 @@
 // Report row builders — services. Split out of useReportDataProcessor; logic unchanged.
-import { formatDate } from "@/lib/date-utils";
+import { formatDate } from "../date-utils";
 import {
   getProfileDisplayName,
   getProfileDisplayJobTitle,
   getProfileDisplayDepartment,
-} from "@/lib/profile-display-utils";
+} from "../profile-display-utils";
 import {
   transliterateFullName,
   hasArabicCharacters,
-} from "@/lib/bilingual-name-engine";
+} from "../bilingual-name-engine";
 import {
   translateRoomType,
   translateGenderPolicy,
   translateMaintenanceCategory,
   translateMaintenancePriority,
   translateMaintenanceStatus,
-} from "../../utils/luxury-report-engine";
+} from "../value-translators";
 import type { ReportProcessorContext } from "./context";
 import { normalizeItemName, matchesRoomType, matchesGender } from "./context";
 

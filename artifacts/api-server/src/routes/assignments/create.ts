@@ -9,6 +9,8 @@ import { getTenantId, su } from "../../lib/request-utils.js";
 import { syncProfileAcrossProperties, closeSourceAssignmentOnTransfer, findProfileAcrossAllProperties, deleteSourceProfileOnTransfer } from "../../lib/cross-property-service.js";
 import { sendCheckInWhatsAppNotification, sendWelcomeWhatsAppForAssignment } from "../../lib/whatsapp-engine.js";
 import { fmtAssignment } from "./shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { IdParams, SendWhatsAppBody } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -466,6 +468,8 @@ router.post(
 router.post(
   "/assignments/:id/send-whatsapp",
   requirePermission("accommodation", "view"),
+  validate({ params: IdParams }),
+  validate({ body: SendWhatsAppBody }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {

@@ -6,10 +6,13 @@ import { portalSession } from "../portal-auth/shared.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { logActivity } from "../../lib/activity-logger.js";
 import { CreateMaintenanceSchema, RateMaintenanceSchema } from "./shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { CommonListQuery } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
-router.get("/my-maintenance", async (req, res): Promise<void> => {
+router.get("/my-maintenance", validate({ query: CommonListQuery }),
+  async (req, res): Promise<void> => {
   const sess = portalSession(req)!;
   const targetId = req.query.id ? parseInt(String(req.query.id)) : null;
 

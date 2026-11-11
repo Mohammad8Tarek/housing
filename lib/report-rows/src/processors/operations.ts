@@ -1,16 +1,16 @@
 // Report row builders — operations. Split out of useReportDataProcessor; logic unchanged.
-import { formatDate } from "@/lib/date-utils";
+import { formatDate } from "../date-utils";
 import {
   getProfileDisplayName,
   getProfileDisplayJobTitle,
   getProfileDisplayDepartment,
-} from "@/lib/profile-display-utils";
+} from "../profile-display-utils";
 import {
   transliterateFullName,
   hasArabicCharacters,
-} from "@/lib/bilingual-name-engine";
-import { translateDepartment } from "@/lib/bilingual-hospitality-dict";
-import { translateReservationStatus } from "../../utils/luxury-report-engine";
+} from "../bilingual-name-engine";
+import { translateDepartment } from "../bilingual-hospitality-dict";
+import { translateReservationStatus } from "../value-translators";
 import type { ReportProcessorContext } from "./context";
 import { comparableDate, matchesRoomType, matchesGender } from "./context";
 

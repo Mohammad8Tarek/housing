@@ -4,6 +4,8 @@ import { logActivity } from "../../lib/activity-logger.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { CreateFamilyVisitBody, su, resolveRequestId } from "./shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { RequestRefParams } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -11,6 +13,7 @@ const router: Router = Router();
 router.put(
   "/hosting-requests/:id",
   requirePermission("hosting_requests", "edit"),
+  validate({ params: RequestRefParams }),
   async (req, res): Promise<void> => {
     const user = su(req);
     try {
@@ -131,6 +134,7 @@ router.put(
 router.delete(
   "/hosting-requests/:id",
   requirePermission("hosting_requests", "delete"),
+  validate({ params: RequestRefParams }),
   async (req, res): Promise<void> => {
     const user = su(req);
     try {

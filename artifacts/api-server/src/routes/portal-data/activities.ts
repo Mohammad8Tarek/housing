@@ -3,6 +3,8 @@ import { withTenant, activityRegistrationsTable } from "@workspace/db";
 import { profilesTable, activitiesTable } from "@workspace/db";
 import { eq, ne, and, desc, sql } from "drizzle-orm";
 import { portalSession } from "../portal-auth/shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { ActivityRegistrationBody, ActivityCancelBody, ActivityAttendanceBody } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -102,7 +104,8 @@ router.get("/my-activities", async (req, res): Promise<void> => {
 });
 
 // ─── POST /portal-data/activity-registration ──────────────────
-router.post("/activity-registration", async (req, res): Promise<void> => {
+router.post("/activity-registration", validate({ body: ActivityRegistrationBody }),
+  async (req, res): Promise<void> => {
   const sess = portalSession(req)!;
   if (!sess) {
     res.status(401).json({ success: false, message: "Not authenticated" });
@@ -154,7 +157,8 @@ router.post("/activity-registration", async (req, res): Promise<void> => {
 
 // ─── DELETE /portal-data/activity-registration ──────────────────
 // Profile cancels their own registration
-router.delete("/activity-registration", async (req, res): Promise<void> => {
+router.delete("/activity-registration", validate({ body: ActivityCancelBody }),
+  async (req, res): Promise<void> => {
   const sess = portalSession(req)!;
   if (!sess) {
     res.status(401).json({ success: false, message: "Not authenticated" });
@@ -186,7 +190,8 @@ router.delete("/activity-registration", async (req, res): Promise<void> => {
 
 // ─── POST /portal-data/activity-attendance ──────────────────
 // Admin marks attendance for a registration
-router.post("/activity-attendance", async (req, res): Promise<void> => {
+router.post("/activity-attendance", validate({ body: ActivityAttendanceBody }),
+  async (req, res): Promise<void> => {
   const sess = portalSession(req)!;
   if (!sess) {
     res.status(401).json({ success: false, message: "Not authenticated" });

@@ -36,6 +36,13 @@ export function renderMatrixHeader(s: PermissionMatrixCenterState, v: Permission
                       {ar ? "تغييرات غير محفوظة" : "Unsaved Changes"}
                     </Badge>
                   )}
+                  {isSuper && (
+                    <Badge className="bg-emerald-500/20 text-emerald-200 border border-emerald-400/40 font-bold text-xs">
+                      {ar
+                        ? "مدير النظام: صلاحيات كاملة دائماً (لا يمكن تقييدها)"
+                        : "Super admin: always full access (cannot be restricted)"}
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Searchable User Selector Combobox */}

@@ -8,11 +8,14 @@ import { logActivity } from "../../lib/activity-logger.js";
 import { ensureProfilePortalAccount } from "../../lib/portal-accounts.js";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { portalSession, requirePortalAuth } from "./shared.js";
+import { validate } from "../../middlewares/validate.js";
+import { CommonListQuery } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
 // GET /profiles — دليل الموظفين (للمحادثة)
-router.get("/profiles", requirePortalAuth, async (req, res, next): Promise<any> => {
+router.get("/profiles", requirePortalAuth, validate({ query: CommonListQuery }),
+  async (req, res, next): Promise<any> => {
   try {
     const sess = portalSession(req)!;
     const search = ((req.query.search as string) || "").trim().toLowerCase();
@@ -229,6 +232,7 @@ router.post(
 router.get(
   "/accounts",
   requirePermission("profiles", "view"),
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const adminUserId = (req.session as any)?.userId;
     if (!adminUserId) {
@@ -343,7 +347,7 @@ router.get(
         dataQuery = dataQuery.where(and(...conditions)) as any;
       }
 
-      dataQuery = dataQuery.orderBy(profilesTable.firstName, profilesTable.lastName) as any;
+      dataQuery = dataQuery.orderBy(profilesTable.firstName, profilesTable.lastName, profilesTable.id) as any; // id: stable pages for equal names
 
       if (isPaginated) {
         dataQuery = dataQuery.limit(limit).offset((page - 1) * limit) as any;
@@ -454,7 +458,8 @@ router.post(
  * GET /portal-auth/employees
  * Search colleagues for chat & employee directory
  */
-router.get("/employees", requirePortalAuth, async (req, res, next) => {
+router.get("/employees", requirePortalAuth, validate({ query: CommonListQuery }),
+  async (req, res, next) => {
   try {
     const sess = portalSession(req)!;
     const search = ((req.query.search as string) || "").trim();

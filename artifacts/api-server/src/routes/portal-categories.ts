@@ -9,6 +9,8 @@ import {
   getPortalCategories,
 } from "../lib/portal-catalog.js";
 import { getTenantId } from "../lib/request-utils.js";
+import { validate } from "../middlewares/validate.js";
+import { CommonListQuery } from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -47,7 +49,8 @@ const DEFAULT_TAGS = [
 ];
 
 // GET / — portal categories (optional ?type=activities|evaluations)
-router.get("/", requireAuth, async (req, res, next): Promise<any> => {
+router.get("/", requireAuth, validate({ query: CommonListQuery }),
+  async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     if (!propertyId)
@@ -165,7 +168,8 @@ router.post("/tags", requirePermission("portal_content", "create"), async (req, 
 });
 
 // GET /search — placeholder
-router.get("/search", requireAuth, async (req, res, next): Promise<any> => {
+router.get("/search", requireAuth, validate({ query: CommonListQuery }),
+  async (req, res, next): Promise<any> => {
   try {
     const propertyId = getTenantId(req);
     const { q } = req.query;
