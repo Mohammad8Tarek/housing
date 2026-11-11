@@ -573,7 +573,7 @@ export const WhatsAppConnectBody = body({ phoneNumber: o(bScalar(30)), resetSess
 // ─── GET /api/reports/rows/:report (server-side report pages) ───────────────
 const qText = (max: number) => z.string().max(max).optional();
 export const SERVER_REPORTS = [
-  "manager_flash", "arrivals_manifest", "departures_manifest", "housekeeping_sheet", "room_discrepancy",
+  "manager_flash", "occupancy_forecast", "housing_map", "arrivals_manifest", "departures_manifest", "housekeeping_sheet", "room_discrepancy",
   "daily_movement", "assignments", "vacant_rooms", "housing", "department_occupancy",
   "profiles", "expiring_contracts", "hostings", "vacations", "maintenance",
   "equipment_inventory", "water_distribution", "gate_logs", "police_report", "policy_exceptions",
@@ -625,5 +625,16 @@ export const ManagerFlashQuery = z
     propertyId: z.string().regex(/^\d{1,10}$/),
     lang: z.enum(["ar", "en"]).optional(),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  })
+  .passthrough();
+
+// ─── GET /api/reports/occupancy-forecast ────────────────────────────────────
+export const OccupancyForecastQuery = z
+  .object({
+    propertyId: z.string().regex(/^\d{1,10}$/),
+    lang: z.enum(["ar", "en"]).optional(),
+    horizon: z.enum(["7", "14", "30"]),
+    buildingId: z.string().regex(/^(all|\d{1,10})$/).optional(),
+    tz: z.string().regex(/^[A-Za-z0-9_+\-/]{1,64}$/).optional(),
   })
   .passthrough();

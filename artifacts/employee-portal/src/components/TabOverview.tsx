@@ -68,11 +68,12 @@ export default function TabOverview({
   const [loadingPass, setLoadingPass] = useState(false);
   const hasFetchedPassRef = useRef(false);
 
+  const passCode = employee?.id || employee?.profileId;
   const fetchPass = useCallback(async () => {
     if (loadingPass) return;
     setLoadingPass(true);
     try {
-      const empCode = employee?.id || employee?.profileId;
+      const empCode = passCode;
       const url = empCode ? `/api/gate/pass/${empCode}` : "/api/gate/pass/me";
       const res = await apiFetch(url, { credentials: "include" });
       if (res.ok) {
@@ -86,7 +87,7 @@ export default function TabOverview({
     } finally {
       setLoadingPass(false);
     }
-  }, [employee?.id, employee?.profileId, loadingPass]);
+  }, [passCode, loadingPass]);
 
   useEffect(() => {
     if (!hasFetchedPassRef.current) {

@@ -212,7 +212,7 @@ export default function Dashboard() {
   const markFetched = useCallback((tab: string) => {
     fetched.current.add(tab);
     setFetchedTabs((prev) => new Set(prev).add(tab));
-  }, []);
+  }, [setFetchedTabs]);
 
   const redirectToLogin = useCallback(() => {
     clearSessionCache();
@@ -345,7 +345,7 @@ export default function Dashboard() {
       window.history.replaceState({}, "", url.toString());
       scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     },
-    [activeTab, haptic],
+    [activeTab, haptic, setFetchedTabs],
   );
 
   // Lazy tab fetching via effects
@@ -366,7 +366,7 @@ export default function Dashboard() {
     });
     if (activeTab === "documents") await fetchDocuments();
     if (activeTab === "evaluations") await fetchEvaluations();
-  }, [activeTab, fetchDocuments, fetchEvaluations]);
+  }, [activeTab, fetchDocuments, fetchEvaluations, setFetchedTabs]);
 
   const { pullDistance, isRefreshing, progress } = usePullToRefresh({
     onRefresh: handleRefresh,

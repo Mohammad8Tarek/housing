@@ -1,5 +1,6 @@
 // Report row builders — occupancy. Split out of useReportDataProcessor; logic unchanged.
-import { formatDate, toISODate } from "../date-utils";
+import { formatDate } from "../date-utils";
+import { calendarDay } from "../calendar";
 import {
   getProfileDisplayName,
   getProfileDisplayJobTitle,
@@ -19,10 +20,9 @@ export function processOccupancyForecast(ctx: ReportProcessorContext): any[] {
     assignments,
     reservations,
     applySearchAndDate,
+    timeZone,
   } = ctx;
   const horizon = 14;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
 
   const fRooms =
     filterBuilding === "all" || !filterBuilding
@@ -45,31 +45,9 @@ export function processOccupancyForecast(ctx: ReportProcessorContext): any[] {
   const dailyRows = [];
 
   for (let i = 0; i < horizon; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    // Local calendar day, same as dateDisplay (toISOString() is UTC and was a
-    // day behind for UTC+ zones such as Egypt, since d is local midnight).
-    const dIso = toISODate(d);
-
-    const dayNameAr = [
-      "الأحد",
-      "الاثنين",
-      "الثلاثاء",
-      "الأربعاء",
-      "الخميس",
-      "الجمعة",
-      "السبت",
-    ][d.getDay()];
-    const dayNameEn = [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-    ][d.getDay()];
-    const dayName = ar ? dayNameAr : dayNameEn;
+    // Calendar day i after today in the user's zone (the browser's own zone
+    // when timeZone is omitted), matching the label shown for the row.
+    const { iso: dIso, display: dateDisplay, dayName } = calendarDay(i, ar, timeZone);
 
     const dayArrivals = reservations.filter((r: any) => {
       if (r.status?.toUpperCase() === "CANCELLED") return false;
@@ -97,7 +75,7 @@ export function processOccupancyForecast(ctx: ReportProcessorContext): any[] {
     dailyRows.push({
       id: i + 1,
       dateIso: dIso,
-      dateDisplay: `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}`,
+      dateDisplay,
       dayName,
       dayArrivals,
       dayDepartures,
