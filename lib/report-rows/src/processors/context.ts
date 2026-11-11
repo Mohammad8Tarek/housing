@@ -19,6 +19,7 @@ export interface ReportProcessorContext {
   search: any;
   dateFrom: any;
   dateTo: any;
+  timeZone?: string;
   buildings: any;
   floors: any;
   rooms: any;

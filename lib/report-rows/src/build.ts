@@ -46,6 +46,8 @@ export interface ReportFilters {
   search: string;
   dateFrom: string;
   dateTo: string;
+  /** IANA zone for times shown in rows; the browser's own zone when omitted. */
+  timeZone?: string;
 }
 
 export function buildReportMaps(

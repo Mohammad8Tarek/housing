@@ -7,7 +7,20 @@ import { customFetch } from "@workspace/api-client-react";
 import type { ReportSort } from "./useReportSort";
 
 /** Reports served page-by-page from the API (biggest, ever-growing lists first). */
-export const SERVER_ROW_TABS = new Set(["assignments", "profiles"]);
+export const SERVER_ROW_TABS = new Set([
+  "arrivals_manifest", "departures_manifest", "housekeeping_sheet", "room_discrepancy",
+  "daily_movement", "assignments", "vacant_rooms", "housing", "department_occupancy",
+  "profiles", "expiring_contracts", "hostings", "vacations", "maintenance",
+  "equipment_inventory", "water_distribution", "gate_logs", "police_report", "policy_exceptions",
+]);
+
+const BROWSER_TIME_ZONE = (() => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  } catch {
+    return "";
+  }
+})();
 
 type RowsPage = {
   data: any[];
@@ -18,7 +31,7 @@ type RowsPage = {
 const FILTER_KEYS = [
   "filterBuilding", "filterFloor", "filterStatus", "filterCategory", "filterDepartment",
   "filterGender", "filterNationality", "filterRoomType", "filterEmploymentType",
-  "dateFrom", "dateTo",
+  "dateFrom", "dateTo", "inventoryViewMode", "waterSortMode",
 ] as const;
 
 export function useServerReportRows({
@@ -57,6 +70,7 @@ export function useServerReportRows({
       qs.set("sortDir", sort.dir);
     }
     if (groupByRoom) qs.set("groupBy", "room");
+    if (BROWSER_TIME_ZONE) qs.set("tz", BROWSER_TIME_ZONE);
     return qs.toString();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propId, ar, search, sort, groupByRoom, ...FILTER_KEYS.map((k) => filters[k])]);

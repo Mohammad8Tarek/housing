@@ -56,6 +56,7 @@ export default function Reports() {
     filters.filterProperty,
     numericPropertyId,
     filters.filterBuilding,
+    filters.activeTab,
   );
 
   const floorOptions =

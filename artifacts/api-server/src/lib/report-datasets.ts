@@ -26,7 +26,7 @@ const SOURCES: Record<DatasetKey, { path: string; pageSize: number; extra?: Reco
 const FORWARD_HEADERS = ["cookie", "authorization", "x-session-id", "x-property-id", "accept-language", "user-agent"];
 const TTL_MS = 15_000;
 const MAX_PAGES = 200;
-const cache = new Map<string, { at: number; rows: Promise<any[]> }>();
+const cache = new Map<string, { at: number; rows: Promise<any> }>();
 
 /** Drop cached lists; called after every successful write so reports never lag behind. */
 export function clearReportDatasetCache(): void {
@@ -77,10 +77,22 @@ async function fetchAll(req: Request, key: DatasetKey, propertyId: number): Prom
   });
 }
 
+async function fetchSettings(req: Request, propertyId: number): Promise<any> {
+  const headers: Record<string, string> = { accept: "application/json" };
+  for (const name of FORWARD_HEADERS) {
+    const v = req.headers[name];
+    if (typeof v === "string") headers[name] = v;
+  }
+  const r = await fetch(`http://127.0.0.1:${process.env.PORT || 4000}/api/settings?propertyId=${propertyId}`, { headers });
+  return r.ok ? r.json() : {};
+}
+
+export type ReportDatasetKey = DatasetKey | "settings";
+
 export async function loadReportDatasets(
   req: Request,
   propertyId: number,
-  keys: DatasetKey[],
+  keys: readonly ReportDatasetKey[],
 ): Promise<ReportDatasets> {
   const now = Date.now();
   for (const [k, v] of cache) if (now - v.at > TTL_MS) cache.delete(k);
@@ -93,7 +105,7 @@ export async function loadReportDatasets(
       const ck = `${who}|${propertyId}|${k}`;
       let entry = cache.get(ck);
       if (!entry) {
-        entry = { at: now, rows: fetchAll(req, k, propertyId) };
+        entry = { at: now, rows: k === "settings" ? fetchSettings(req, propertyId) : fetchAll(req, k, propertyId) };
         cache.set(ck, entry);
         entry.rows.catch(() => cache.delete(ck));
       }

@@ -42,6 +42,7 @@ export function processGateLogs(ctx: ReportProcessorContext): any[] {
         id: g.id,
         scannedAt: g.scannedAt
           ? new Date(g.scannedAt).toLocaleString(ar ? "ar-EG" : "en-US", {
+              timeZone: ctx.timeZone,
               hour12: true,
               month: "short",
               day: "numeric",

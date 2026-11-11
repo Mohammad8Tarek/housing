@@ -572,7 +572,14 @@ export const WhatsAppConnectBody = body({ phoneNumber: o(bScalar(30)), resetSess
 
 // ─── GET /api/reports/rows/:report (server-side report pages) ───────────────
 const qText = (max: number) => z.string().max(max).optional();
-export const ReportRowsParams = z.object({ report: z.enum(["assignments", "profiles"]) });
+export const SERVER_REPORTS = [
+  "arrivals_manifest", "departures_manifest", "housekeeping_sheet", "room_discrepancy",
+  "daily_movement", "assignments", "vacant_rooms", "housing", "department_occupancy",
+  "profiles", "expiring_contracts", "hostings", "vacations", "maintenance",
+  "equipment_inventory", "water_distribution", "gate_logs", "police_report", "policy_exceptions",
+] as const;
+export const ReportRowsParams = z.object({ report: z.enum(SERVER_REPORTS) });
+export const ReportFilterOptionsQuery = z.object({ propertyId: z.string().regex(/^\d{1,10}$/) }).passthrough();
 export const ReportRowsQuery = z
   .object({
     propertyId: z.string().regex(/^\d{1,10}$/),
@@ -595,5 +602,8 @@ export const ReportRowsQuery = z
     filterEmploymentType: qText(40),
     dateFrom: qText(40),
     dateTo: qText(40),
+    inventoryViewMode: z.enum(["summary", "detailed", "items"]).optional(),
+    waterSortMode: qText(20),
+    tz: z.string().regex(/^[A-Za-z0-9_+\-/]{1,64}$/).optional(),
   })
   .passthrough();
