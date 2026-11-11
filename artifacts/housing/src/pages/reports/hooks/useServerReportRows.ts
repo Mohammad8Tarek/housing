@@ -8,7 +8,7 @@ import type { ReportSort } from "./useReportSort";
 
 /** Reports served page-by-page from the API (biggest, ever-growing lists first). */
 export const SERVER_ROW_TABS = new Set([
-  "arrivals_manifest", "departures_manifest", "housekeeping_sheet", "room_discrepancy",
+  "manager_flash", "arrivals_manifest", "departures_manifest", "housekeeping_sheet", "room_discrepancy",
   "daily_movement", "assignments", "vacant_rooms", "housing", "department_occupancy",
   "profiles", "expiring_contracts", "hostings", "vacations", "maintenance",
   "equipment_inventory", "water_distribution", "gate_logs", "police_report", "policy_exceptions",

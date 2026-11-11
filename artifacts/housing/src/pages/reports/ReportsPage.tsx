@@ -141,7 +141,8 @@ export default function Reports() {
   const isInHouseGrouped = filters.activeTab === "assignments" && filters.inHouseViewMode === "grouped";
 
   const server = useServerReportRows({
-    enabled: isServerTab,
+    // The morning report shows its own view; its rows load only for export.
+    enabled: isServerTab && filters.activeTab !== "manager_flash",
     report: filters.activeTab,
     propId: data.propId,
     ar,
@@ -372,13 +373,7 @@ export default function Reports() {
           isLoading={data.isLoading}
           properties={data.properties}
           activePropertyId={activePropertyId}
-          rooms={data.rooms}
-          buildings={data.buildings}
-          floors={data.floors}
-          assignments={data.assignments}
-          reservations={data.reservations}
-          maintenance={data.maintenance}
-          profiles={data.profiles}
+          propId={data.propId}
           onExportPDF={handleExportPDF}
           onExportExcel={handleExportExcel}
           onRegisterExport={handleRegisterExport}

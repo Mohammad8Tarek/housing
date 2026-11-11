@@ -21,7 +21,7 @@ type HeavyList =
   | "hostings" | "equipmentInventory" | "gateLogs" | "vacations";
 const TAB_LISTS: Record<string, HeavyList[]> = {
   analytics: [], // computed by the API (useServerAnalytics)
-  manager_flash: ["profiles", "assignments", "maintenance", "reservations"],
+  manager_flash: [], // computed by the API (ManagerFlashTab)
   occupancy_forecast: ["currentAssignments", "reservations"],
   housing_map: ["profiles", "currentAssignments"],
   vacant_rooms: ["currentAssignments"], // occupancy matrix above the table

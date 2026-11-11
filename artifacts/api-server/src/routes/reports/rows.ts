@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   buildReportMaps,
+  computeManagerFlash,
   computeReportAnalytics,
   filterAnalyticsScope,
   buildReportRows,
@@ -10,7 +11,7 @@ import {
 } from "@workspace/report-rows";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { validate } from "../../middlewares/validate.js";
-import { ReportAnalyticsQuery, ReportFilterOptionsQuery, ReportRowsParams, ReportRowsQuery, SERVER_REPORTS } from "../../validation/schemas.js";
+import { ManagerFlashQuery, ReportAnalyticsQuery, ReportFilterOptionsQuery, ReportRowsParams, ReportRowsQuery, SERVER_REPORTS } from "../../validation/schemas.js";
 import { loadReportDatasets, type ReportDatasetKey } from "../../lib/report-datasets.js";
 
 const router: Router = Router();
@@ -19,6 +20,7 @@ const router: Router = Router();
 // small and feed the building/floor/room lookups every report uses).
 const BASE = ["buildings", "floors", "rooms"] as const;
 const REPORT_SOURCES: Record<(typeof SERVER_REPORTS)[number], readonly ReportDatasetKey[]> = {
+  manager_flash: [...BASE, "maintenance"],
   arrivals_manifest: [...BASE, "reservations"],
   departures_manifest: [...BASE, "assignments", "profiles"],
   housekeeping_sheet: [...BASE, "assignments", "maintenance", "profiles"],
@@ -171,6 +173,38 @@ router.get(
           reservations: d.reservations,
           hostings: d.hostings,
           timeZone: validTimeZone(q.tz),
+        }),
+      );
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ─── GET /api/reports/manager-flash ──────────────────────────────────────────
+// Morning Operations figures for one date (rooms, movements, buildings, top
+// departments and nationalities), so the tab needs no stay history or profiles.
+router.get(
+  "/manager-flash",
+  requirePermission("reports", "view"),
+  validate({ query: ManagerFlashQuery }),
+  async (req, res, next) => {
+    try {
+      const q = req.query as Record<string, string | undefined>;
+      const d = await loadReportDatasets(req, Number(q.propertyId), [
+        "buildings", "floors", "rooms", "assignments", "reservations", "maintenance", "profiles",
+      ]);
+      res.json(
+        computeManagerFlash({
+          ar: q.lang !== "en",
+          reportDate: q.date!,
+          rooms: d.rooms,
+          buildings: d.buildings,
+          floors: d.floors,
+          assignments: d.assignments,
+          reservations: d.reservations,
+          maintenance: d.maintenance,
+          profiles: d.profiles,
         }),
       );
     } catch (err) {

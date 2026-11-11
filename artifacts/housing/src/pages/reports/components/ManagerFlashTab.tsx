@@ -3,8 +3,9 @@ import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
 import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { getExportFileName } from "@/lib/date-utils";
-import { formatNationality } from "@/lib/countries";
-import { getProfileDisplayDepartment } from "@/lib/profile-display-utils";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { customFetch } from "@workspace/api-client-react";
+import { computeManagerFlash, type ManagerFlash } from "@workspace/report-rows";
 import { Building2, BedDouble, Users, Wrench, Sparkles, Calendar, ArrowDownRight, ArrowUpRight, Clock, CheckCircle2, Hotel, ShieldCheck, Building, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
@@ -20,18 +21,18 @@ import {
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 
+const emptyFlash = (ar: boolean) =>
+  computeManagerFlash({ ar, reportDate: "", rooms: [], buildings: [], floors: [], assignments: [], reservations: [], maintenance: [], profiles: [] });
+const EMPTY_FLASH_AR = emptyFlash(true);
+const EMPTY_FLASH_EN = emptyFlash(false);
+
 interface ManagerFlashTabProps {
   ar: boolean;
   isLoading: boolean;
   properties: any[];
   activePropertyId?: number | string;
-  rooms: any[];
-  buildings: any[];
-  floors: any[];
-  assignments: any[];
-  reservations: any[];
-  maintenance: any[];
-  profiles: any[];
+  /** Property whose figures the API computes (GET /api/reports/manager-flash). */
+  propId?: number;
   onExportPDF?: () => void;
   onExportExcel?: () => void;
   onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
@@ -42,13 +43,7 @@ export function ManagerFlashTab({
   isLoading,
   properties = [],
   activePropertyId,
-  rooms = [],
-  buildings = [],
-  floors = [],
-  assignments = [],
-  reservations = [],
-  maintenance = [],
-  profiles = [],
+  propId,
   onExportPDF,
   onExportExcel,
   onRegisterExport,
@@ -69,159 +64,19 @@ export function ManagerFlashTab({
     };
   }, [properties, selectedPropertyFilter]);
 
-  // Operational metrics calculated for flash report
-  const metrics = useMemo(() => {
-    const totalRooms = rooms.length;
-    const totalBeds = rooms.reduce((sum: number, r: any) => sum + (r.capacity || 1), 0);
-    const occupiedBeds = rooms.reduce((sum: number, r: any) => sum + (r.currentOccupancy || 0), 0);
-    const vacantBeds = Math.max(0, totalBeds - occupiedBeds);
-    const occupancyRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
-
-    // Room status categories
-    const vacantClean = rooms.filter((r: any) => r.status === "available").length;
-    const vacantDirty = rooms.filter((r: any) => r.status === "dirty").length;
-    const occupiedClean = rooms.filter((r: any) => r.status === "occupied").length;
-    const occupiedDirty = rooms.filter((r: any) => r.status === "occupied_dirty").length;
-    const occupiedVacation = rooms.filter((r: any) => r.status === "occupied_vacation").length;
-    const outOfOrder = rooms.filter((r: any) =>
-      ["out_of_order", "ooo", "maintenance"].includes(r.status?.toLowerCase())
-    ).length;
-    const outOfService = rooms.filter((r: any) =>
-      ["out_of_service", "oos"].includes(r.status?.toLowerCase())
-    ).length;
-
-    // Daily Movements (Based on reportDate)
-    const arrivalsExpected = reservations.filter((res: any) => {
-      if (res.status === "CANCELLED") return false;
-      const d = res.checkInDate ? String(res.checkInDate).slice(0, 10) : "";
-      return d === reportDate;
-    }).length;
-
-    const arrivalsCheckedIn = reservations.filter((res: any) => {
-      const d = res.checkInDate ? String(res.checkInDate).slice(0, 10) : "";
-      return d === reportDate && res.status === "CHECKED_IN";
-    }).length;
-
-    const departuresExpected = assignments.filter((a: any) => {
-      if (a.status !== "ACTIVE" && a.status !== "VACATION") return false;
-      const d = a.checkOutDate ? String(a.checkOutDate).slice(0, 10) : "";
-      return d === reportDate;
-    }).length;
-
-    const departuresCheckedOut = assignments.filter((a: any) => {
-      const d = a.checkOutDate ? String(a.checkOutDate).slice(0, 10) : "";
-      return d === reportDate && (a.status === "CHECKED_OUT" || a.status === "LEFT");
-    }).length;
-
-    const inHouseActive = assignments.filter(
-      (a: any) => a.status === "ACTIVE" || a.status === "VACATION"
-    ).length;
-
-    const vacationResidents = assignments.filter(
-      (a: any) => a.status === "VACATION"
-    ).length;
-
-    const roomTransfers = assignments.filter((a: any) => {
-      const d = a.updatedAt ? String(a.updatedAt).slice(0, 10) : "";
-      return d === reportDate && a.status === "TRANSFERRED";
-    }).length;
-
-    const openTickets = maintenance.filter(
-      (t: any) => t.status === "OPEN" || t.status === "IN_PROGRESS"
-    ).length;
-
-    return {
-      totalRooms,
-      totalBeds,
-      occupiedBeds,
-      vacantBeds,
-      occupancyRate,
-      vacantClean,
-      vacantDirty,
-      occupiedClean,
-      occupiedDirty,
-      occupiedVacation,
-      outOfOrder,
-      outOfService,
-      arrivalsExpected,
-      arrivalsCheckedIn,
-      departuresExpected,
-      departuresCheckedOut,
-      inHouseActive,
-      vacationResidents,
-      roomTransfers,
-      openTickets,
-    };
-  }, [rooms, assignments, reservations, maintenance, reportDate]);
-
-  // Building Capacity Breakdown
-  const buildingBreakdown = useMemo(() => {
-    return buildings.map((b: any) => {
-      const bRooms = rooms.filter((r: any) => r.buildingId === b.id);
-      const totalRooms = bRooms.length;
-      const totalBeds = bRooms.reduce((acc: number, r: any) => acc + (r.capacity || 1), 0);
-      const occupiedBeds = bRooms.reduce((acc: number, r: any) => acc + (r.currentOccupancy || 0), 0);
-      const vacantBeds = Math.max(0, totalBeds - occupiedBeds);
-      const dirtyCount = bRooms.filter((r: any) => r.status === "dirty" || r.status === "occupied_dirty").length;
-      const oooCount = bRooms.filter((r: any) =>
-        ["out_of_order", "out_of_service", "maintenance", "ooo", "oos"].includes(r.status?.toLowerCase())
-      ).length;
-      const occPercent = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
-
-      return {
-        id: b.id,
-        name: b.name || `مبنى #${b.id}`,
-        code: b.code || "—",
-        floorsCount: floors.filter((f: any) => f.buildingId === b.id).length,
-        totalRooms,
-        totalBeds,
-        occupiedBeds,
-        vacantBeds,
-        dirtyCount,
-        oooCount,
-        occPercent,
-      };
-    });
-  }, [buildings, rooms, floors]);
-
-  // Top Departments breakdown
-  const departmentBreakdown = useMemo(() => {
-    const deptCounts: Record<string, number> = {};
-    profiles.forEach((p: any) => {
-      const dept = ar ? getProfileDisplayDepartment(p, true) : (p.department?.trim() || "Unassigned");
-      deptCounts[dept] = (deptCounts[dept] || 0) + 1;
-    });
-
-    const total = profiles.length || 1;
-    return Object.entries(deptCounts)
-      .map(([name, count]) => ({
-        name,
-        count,
-        percent: Math.round((count / total) * 100),
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 6);
-  }, [profiles, ar]);
-
-  // Top Nationalities breakdown
-  const nationalityBreakdown = useMemo(() => {
-    const natCounts: Record<string, number> = {};
-    profiles.forEach((p: any) => {
-      const rawNat = p.nationality?.trim();
-      const nat = ar ? (formatNationality(rawNat, true, false) || "غير مسجل") : (rawNat || "Other");
-      natCounts[nat] = (natCounts[nat] || 0) + 1;
-    });
-
-    const total = profiles.length || 1;
-    return Object.entries(natCounts)
-      .map(([name, count]) => ({
-        name,
-        count,
-        percent: Math.round((count / total) * 100),
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-  }, [profiles, ar]);
+  // Figures are computed by the API for the selected date (same code as before,
+  // now in @workspace/report-rows), so this tab needs no stay/profile lists.
+  const flashQuery = useQuery({
+    queryKey: ["report-manager-flash", propId, reportDate, ar],
+    queryFn: () =>
+      customFetch<ManagerFlash>(
+        `/api/reports/manager-flash?propertyId=${propId}&lang=${ar ? "ar" : "en"}&date=${reportDate}`,
+      ),
+    enabled: !!propId && /^\d{4}-\d{2}-\d{2}$/.test(reportDate),
+    placeholderData: keepPreviousData,
+  });
+  const { metrics, buildingBreakdown, departmentBreakdown, nationalityBreakdown } =
+    flashQuery.data ?? (ar ? EMPTY_FLASH_AR : EMPTY_FLASH_EN);
 
   const nowFormatted = useMemo(() => {
     return new Date().toLocaleDateString(ar ? "ar-EG" : "en-US", {
@@ -602,7 +457,7 @@ export function ManagerFlashTab({
             </div>
             <div className="flex justify-between items-baseline">
               <span className="text-xs text-muted-foreground">{ar ? "إجمالي المباني النشطة:" : "Active Buildings:"}</span>
-              <span className="text-sm font-semibold text-purple-600">{buildings.length}</span>
+              <span className="text-sm font-semibold text-purple-600">{buildingBreakdown.length}</span>
             </div>
           </CardContent>
         </Card>
@@ -618,7 +473,7 @@ export function ManagerFlashTab({
             </h3>
           </div>
           <span className="text-xs text-muted-foreground">
-            {ar ? `إجمالي المباني: ${buildings.length} مبنى` : `Total Buildings: ${buildings.length}`}
+            {ar ? `إجمالي المباني: ${buildingBreakdown.length} مبنى` : `Total Buildings: ${buildingBreakdown.length}`}
           </span>
         </div>
 
@@ -715,7 +570,7 @@ export function ManagerFlashTab({
                 {ar ? "أعلى الإدارات إشغالاً بالسكن" : "Top Occupying Departments"}
               </span>
               <Badge variant="secondary" className="text-xs">
-                {profiles.length} {ar ? "موظف" : "Staff"}
+                {metrics.totalProfiles} {ar ? "موظف" : "Staff"}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -815,7 +670,7 @@ export function ManagerFlashTab({
         availableColumns={studioColumns}
         allRows={studioRows}
         kpis={[
-          { label: "Total Buildings", labelAr: "إجمالي المباني", value: buildings.length },
+          { label: "Total Buildings", labelAr: "إجمالي المباني", value: buildingBreakdown.length },
           { label: "Total Capacity", labelAr: "إجمالي الأسِرّة", value: metrics.totalBeds },
           { label: "Occupied Beds", labelAr: "الأسِرّة المشغولة", value: metrics.occupiedBeds },
           { label: "Vacant Beds", labelAr: "الأسِرّة الشاغرة", value: metrics.vacantBeds },
