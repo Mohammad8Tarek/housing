@@ -4,7 +4,13 @@ import * as React from "react";
 import { useTheme } from "next-themes";
 import { Toaster as Sonner } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
-import { CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+  Loader2,
+} from "lucide-react";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
@@ -56,8 +62,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
         classNames: {
           toast:
             "group toast group-[.toaster]:bg-card/95 group-[.toaster]:text-foreground group-[.toaster]:border-border/80 group-[.toaster]:shadow-2xl group-[.toaster]:rounded-2xl group-[.toaster]:backdrop-blur-xl group-[.toaster]:p-4",
-          description: "group-[.toast]:text-muted-foreground group-[.toast]:text-xs group-[.toast]:mt-1 group-[.toast]:leading-relaxed",
-          title: "group-[.toast]:text-sm group-[.toast]:font-bold group-[.toast]:text-foreground",
+          description:
+            "group-[.toast]:text-muted-foreground group-[.toast]:text-xs group-[.toast]:mt-1 group-[.toast]:leading-relaxed",
+          title:
+            "group-[.toast]:text-sm group-[.toast]:font-bold group-[.toast]:text-foreground",
           actionButton:
             "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground group-[.toast]:rounded-xl group-[.toast]:font-semibold group-[.toast]:text-xs",
           cancelButton:

@@ -1,6 +1,14 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod/v4";
-import { withTenant, roomLocksTable, roomKeysTable, keyAuditLogTable, roomsTable, assignmentsTable, profilesTable } from "@workspace/db";
+import {
+  withTenant,
+  roomLocksTable,
+  roomKeysTable,
+  keyAuditLogTable,
+  roomsTable,
+  assignmentsTable,
+  profilesTable,
+} from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions.js";
 import { getTenantId } from "../lib/request-utils.js";
@@ -11,7 +19,13 @@ import {
   getHotekStatus,
 } from "../lib/pms-server.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, IdParams, LockUpdateBody, KeyRevokeBody, KeyExtendBody } from "../validation/schemas.js";
+import {
+  CommonListQuery,
+  IdParams,
+  LockUpdateBody,
+  KeyRevokeBody,
+  KeyExtendBody,
+} from "../validation/schemas.js";
 
 const router = Router();
 
@@ -590,12 +604,18 @@ router.post(
           if (!checkOut && asgn.profileId) {
             const [prof] = await withTenant(propertyId, async (dbTx: any) => {
               return dbTx
-                .select({ contractEndDate: profilesTable.contractEndDate, employmentType: profilesTable.employmentType })
+                .select({
+                  contractEndDate: profilesTable.contractEndDate,
+                  employmentType: profilesTable.employmentType,
+                })
                 .from(profilesTable)
                 .where(eq(profilesTable.id, asgn.profileId))
                 .limit(1);
             });
-            if (prof?.contractEndDate && prof.employmentType !== "THIRD_PARTY") {
+            if (
+              prof?.contractEndDate &&
+              prof.employmentType !== "THIRD_PARTY"
+            ) {
               checkOut = prof.contractEndDate;
             }
           }
@@ -605,7 +625,10 @@ router.post(
       if (!checkOut && parsed.data.profileId) {
         const [prof] = await withTenant(propertyId, async (dbTx: any) => {
           return dbTx
-            .select({ contractEndDate: profilesTable.contractEndDate, employmentType: profilesTable.employmentType })
+            .select({
+              contractEndDate: profilesTable.contractEndDate,
+              employmentType: profilesTable.employmentType,
+            })
             .from(profilesTable)
             .where(eq(profilesTable.id, parsed.data.profileId!))
             .limit(1);

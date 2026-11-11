@@ -22,7 +22,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, CheckCircle, XCircle, Clock, Loader2, Home, ExternalLink, Users, Trash2, Printer } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader2,
+  Home,
+  ExternalLink,
+  Users,
+  Trash2,
+  Printer,
+} from "lucide-react";
 import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
 
 const stepRoles: Record<string, Record<string, string>> = {
@@ -56,9 +67,18 @@ export default function HostingRequestDetail() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 p-8 text-center">
         <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-          <svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-5V9m0 0V7m0 2h2M12 9H10M4.93 4.93l14.14 14.14" />
+          <svg
+            className="w-10 h-10 text-red-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-5V9m0 0V7m0 2h2M12 9H10M4.93 4.93l14.14 14.14"
+            />
           </svg>
         </div>
         <div>
@@ -71,7 +91,11 @@ export default function HostingRequestDetail() {
               : "You don't have permission to view this page. Contact your administrator if you believe this is an error."}
           </p>
         </div>
-        <Button variant="outline" onClick={() => setLocation("/")} className="rounded-full">
+        <Button
+          variant="outline"
+          onClick={() => setLocation("/")}
+          className="rounded-full"
+        >
           {ar ? "العودة للرئيسية" : "Back to Home"}
         </Button>
       </div>
@@ -256,14 +280,17 @@ export default function HostingRequestDetail() {
       if (!res.ok) return null;
       const arr = await res.json();
       if (!Array.isArray(arr) || arr.length === 0) return null;
-      const exact = arr.find((e: any) => String(e.profileId) === String(clockNumber));
+      const exact = arr.find(
+        (e: any) => String(e.profileId) === String(clockNumber),
+      );
       return exact || arr[0];
     },
     enabled: !!clockNumber && !!data?.propertyId,
     staleTime: 5 * 60 * 1000, // cache for 5 min
   });
 
-  const profilePhotoUrl = profileData?.photoUrl || profileData?.photo_url || null;
+  const profilePhotoUrl =
+    profileData?.photoUrl || profileData?.photo_url || null;
 
   if (isLoading) {
     return (
@@ -416,12 +443,20 @@ export default function HostingRequestDetail() {
     if (!request) return;
     const reqStatusText =
       request.status === "approved"
-        ? (ar ? "معتمد رسمياً" : "Officially Approved")
+        ? ar
+          ? "معتمد رسمياً"
+          : "Officially Approved"
         : request.status === "rejected"
-          ? (ar ? "مرفوض" : "Rejected")
-          : (ar ? "قيد التوقيع والاعتماد" : "Under Signature Workflow");
+          ? ar
+            ? "مرفوض"
+            : "Rejected"
+          : ar
+            ? "قيد التوقيع والاعتماد"
+            : "Under Signature Workflow";
 
-    const companions = Array.isArray(request.companions) ? request.companions : [];
+    const companions = Array.isArray(request.companions)
+      ? request.companions
+      : [];
 
     const voucherHtml = `
       <div style="font-family: inherit; color: #1e293b;">
@@ -444,7 +479,9 @@ export default function HostingRequestDetail() {
           </div>
         </div>
 
-        ${companions.length > 0 ? `
+        ${
+          companions.length > 0
+            ? `
           <div style="margin-bottom: 24px;">
             <h4 style="font-size: 13px; font-weight: bold; color: #0F2A44; margin-bottom: 8px; border-bottom: 1.5px solid #C9A24D; padding-bottom: 4px;">
               ${ar ? "بيانات المرافقين والضيوف" : "Registered Family Companions & Guests"}
@@ -459,52 +496,70 @@ export default function HostingRequestDetail() {
                 </tr>
               </thead>
               <tbody>
-                ${companions.map((c: any, i: number) => `
+                ${companions
+                  .map(
+                    (c: any, i: number) => `
                   <tr style="border-bottom: 1px solid #f1f5f9;">
                     <td style="padding: 6px 10px; color: #64748b;">${i + 1}</td>
                     <td style="padding: 6px 10px; font-weight: 600;">${escapeHtml(c.name || c.companionName || "-")}</td>
                     <td style="padding: 6px 10px;">${escapeHtml(c.relation || c.relationship || "-")}</td>
                     <td style="padding: 6px 10px; font-family: monospace;">${escapeHtml(c.nationalId || c.national_id || "-")}</td>
                   </tr>
-                `).join("")}
+                `,
+                  )
+                  .join("")}
               </tbody>
             </table>
           </div>
-        ` : ""}
+        `
+            : ""
+        }
 
         <div style="margin-top: 24px;">
           <h4 style="font-size: 13px; font-weight: bold; color: #0F2A44; margin-bottom: 12px; border-bottom: 1.5px solid #C9A24D; padding-bottom: 4px;">
             ${ar ? "سجل التوقيعات والاعتمادات الرسمية (Signature Policy Workflow)" : "Official Approval & Signature Chain"}
           </h4>
           <div style="display: grid; grid-template-columns: repeat(${Math.min(steps.length, 3)}, 1fr); gap: 12px;">
-            ${steps.map((s: any) => {
-              const roleTitle = ar
-                ? (s.labelAr || stepRoles[s.roleRequired]?.ar || s.roleRequired)
-                : (s.labelEn || stepRoles[s.roleRequired]?.en || s.roleRequired);
-              const isSigned = Boolean(s.signedAt || s.signatureImageUrlSnapshot);
-              return `
+            ${steps
+              .map((s: any) => {
+                const roleTitle = ar
+                  ? s.labelAr || stepRoles[s.roleRequired]?.ar || s.roleRequired
+                  : s.labelEn ||
+                    stepRoles[s.roleRequired]?.en ||
+                    s.roleRequired;
+                const isSigned = Boolean(
+                  s.signedAt || s.signatureImageUrlSnapshot,
+                );
+                return `
                 <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: ${isSigned ? "#f0fdf4" : "#ffffff"}; text-align: center;">
                   <div style="font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase;">${ar ? `الخطوة ${s.stepOrder}` : `Step ${s.stepOrder}`}</div>
                   <div style="font-size: 12px; font-weight: bold; color: #0F2A44; margin: 4px 0;">${escapeHtml(roleTitle)}</div>
-                  <div style="font-size: 11px; color: #334155; min-height: 18px;">${escapeHtml(s.signerName || (isSigned ? s.signed_by_user_id : (ar ? "قيد الانتظار" : "Pending")))}</div>
+                  <div style="font-size: 11px; color: #334155; min-height: 18px;">${escapeHtml(s.signerName || (isSigned ? s.signed_by_user_id : ar ? "قيد الانتظار" : "Pending"))}</div>
                   <div style="height: 60px; margin: 8px 0; display: flex; align-items: center; justify-content: center;">
-                    ${s.signatureImageUrlSnapshot ? `
+                    ${
+                      s.signatureImageUrlSnapshot
+                        ? `
                       <img src="${escapeHtml(s.signatureImageUrlSnapshot)}" style="max-height: 55px; max-width: 120px; object-fit: contain;" alt="signature" />
-                    ` : `
+                    `
+                        : `
                       <span style="font-size: 10px; color: #94a3b8; border: 1px dashed #cbd5e1; padding: 8px 12px; border-radius: 4px;">${ar ? "بانتظار الاعتماد" : "Awaiting Signature"}</span>
-                    `}
+                    `
+                    }
                   </div>
                   <div style="font-size: 9px; color: #64748b;">${s.signedAt ? new Date(s.signedAt).toLocaleDateString(ar ? "ar-EG" : "en-GB") : "-"}</div>
                 </div>
               `;
-            }).join("")}
+              })
+              .join("")}
           </div>
         </div>
       </div>
     `;
 
     printLuxuryReport({
-      title: ar ? "استمارة واعتمادات طلب الاستضافة" : "Family Hosting Request & Approval Voucher",
+      title: ar
+        ? "استمارة واعتمادات طلب الاستضافة"
+        : "Family Hosting Request & Approval Voucher",
       titleAr: "استمارة واعتمادات طلب الاستضافة",
       subtitle: `${ar ? "رقم الطلب:" : "Request #"} ${escapeHtml(request.requestNumber || requestId)}`,
       subtitleAr: `رقم الطلب: ${escapeHtml(request.requestNumber || requestId)}`,
@@ -619,7 +674,8 @@ export default function HostingRequestDetail() {
                         // Fall back to initials if image fails to load
                         const target = e.currentTarget;
                         target.style.display = "none";
-                        const fallback = target.nextElementSibling as HTMLElement;
+                        const fallback =
+                          target.nextElementSibling as HTMLElement;
                         if (fallback) fallback.style.display = "flex";
                       }}
                     />
@@ -643,13 +699,16 @@ export default function HostingRequestDetail() {
                     <p className="text-sm text-muted-foreground">
                       {request.position || request.department
                         ? `${request.position || ""}${request.position && request.department ? " • " : ""}${request.department || ""}`
-                        : ar ? "لا توجد بيانات وظيفية" : "No job data available"}
+                        : ar
+                          ? "لا توجد بيانات وظيفية"
+                          : "No job data available"}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
                       <Clock className="w-3 h-3" />
-                      {ar ? "رقم البصمة" : "Clock"}: {request.clockNumber || "N/A"}
+                      {ar ? "رقم البصمة" : "Clock"}:{" "}
+                      {request.clockNumber || "N/A"}
                     </span>
                     {request.requestNumber && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground border">
@@ -841,12 +900,8 @@ export default function HostingRequestDetail() {
                           <TableCell className="font-medium">
                             {h.requestNumber}
                           </TableCell>
-                          <TableCell>
-                            {formatDate(h.fromDate)}
-                          </TableCell>
-                          <TableCell>
-                            {formatDate(h.toDate)}
-                          </TableCell>
+                          <TableCell>{formatDate(h.fromDate)}</TableCell>
+                          <TableCell>{formatDate(h.toDate)}</TableCell>
                           <TableCell>{h.consumedDays}</TableCell>
                           <TableCell>
                             <Badge
@@ -897,7 +952,9 @@ export default function HostingRequestDetail() {
                       {hostingStatusLabel && (
                         <div className="mt-1">
                           <StatusBadge
-                            label={ar ? hostingStatusLabel.ar : hostingStatusLabel.en}
+                            label={
+                              ar ? hostingStatusLabel.ar : hostingStatusLabel.en
+                            }
                             variant={hostingStatusVariant}
                           />
                         </div>
@@ -909,7 +966,9 @@ export default function HostingRequestDetail() {
                       variant="outline"
                       size="sm"
                       className="rounded-full shadow-sm hover:shadow border-emerald-200 text-emerald-700"
-                      onClick={() => setLocation(`/accommodation/guest-hosting`)}
+                      onClick={() =>
+                        setLocation(`/accommodation/guest-hosting`)
+                      }
                     >
                       {ar ? "عرض السجل" : "View Record"}
                       <ExternalLink className="w-4 h-4 ml-2" />
@@ -972,10 +1031,13 @@ export default function HostingRequestDetail() {
                     </p>
                   ) : (
                     steps.map((step: any, idx: number) => {
-                      const roleName =
-                        ar
-                          ? (step.labelAr || stepRoles[step.roleRequired]?.ar || step.roleRequired)
-                          : (step.labelEn || stepRoles[step.roleRequired]?.en || step.roleRequired);
+                      const roleName = ar
+                        ? step.labelAr ||
+                          stepRoles[step.roleRequired]?.ar ||
+                          step.roleRequired
+                        : step.labelEn ||
+                          stepRoles[step.roleRequired]?.en ||
+                          step.roleRequired;
                       const { signed, rejected, returned, active } =
                         getStepState(step);
 

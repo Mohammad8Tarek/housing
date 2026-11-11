@@ -3,8 +3,16 @@ export const SYSTEM_ROLES = [
   { value: "admin", label: "System Admin", labelAr: "مدير النظام" },
   { value: "manager", label: "Property Manager", labelAr: "مدير المجمع" },
   { value: "receptionist", label: "Receptionist", labelAr: "موظف استقبال" },
-  { value: "maintenance_staff", label: "Maintenance Staff", labelAr: "موظف صيانة فنية" },
-  { value: "housekeeping_staff", label: "Housekeeping Staff", labelAr: "موظف خدمات ونظافة" },
+  {
+    value: "maintenance_staff",
+    label: "Maintenance Staff",
+    labelAr: "موظف صيانة فنية",
+  },
+  {
+    value: "housekeeping_staff",
+    label: "Housekeeping Staff",
+    labelAr: "موظف خدمات ونظافة",
+  },
   { value: "user", label: "Standard User", labelAr: "مستخدم عادي" },
 ];
 

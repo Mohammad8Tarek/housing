@@ -13,7 +13,10 @@ import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId } from "../lib/request-utils.js";
 import { requirePermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
-import { RoomImportExecuteBody, SaveImportTemplateBody } from "../validation/schemas.js";
+import {
+  RoomImportExecuteBody,
+  SaveImportTemplateBody,
+} from "../validation/schemas.js";
 import { syncRoomFeaturesToInventory } from "./room-inventory.js";
 
 const router = Router();
@@ -67,7 +70,9 @@ router.post(
             .trim();
 
         // 1. Resolve Target Building
-        let defaultBuildingId = reqBuildingId ? parseInt(String(reqBuildingId), 10) : null;
+        let defaultBuildingId = reqBuildingId
+          ? parseInt(String(reqBuildingId), 10)
+          : null;
         const allBuildings = await tenantDb.select().from(buildingsTable);
 
         if (!defaultBuildingId && allBuildings.length > 0) {
@@ -95,7 +100,10 @@ router.post(
           for (const b of allBuildings) {
             const bClean = normalizeStr(b.name);
             const bStripped = stripBuildingKeywords(b.name);
-            if (bClean === clean || (stripped && bStripped && stripped === bStripped)) {
+            if (
+              bClean === clean ||
+              (stripped && bStripped && stripped === bStripped)
+            ) {
               return b.id;
             }
           }
@@ -107,7 +115,10 @@ router.post(
         // Map: `${buildingId}_${floorNumber}` -> floorId
         const floorKeyMap = new Map<string, number>();
         allFloors.forEach((f) => {
-          floorKeyMap.set(`${f.buildingId}_${normalizeStr(f.floorNumber)}`, f.id);
+          floorKeyMap.set(
+            `${f.buildingId}_${normalizeStr(f.floorNumber)}`,
+            f.id,
+          );
         });
 
         // 3. Resolve Existing Rooms (both by building+roomNumber and by roomNumber alone)
@@ -212,7 +223,10 @@ router.post(
               existingRoom = batchProcessedRooms.get(roomKey);
             }
 
-            const capacity = Math.max(1, parseInt(String(r.capacity || 1), 10) || 1);
+            const capacity = Math.max(
+              1,
+              parseInt(String(r.capacity || 1), 10) || 1,
+            );
             const roomType = String(r.roomType || "Standard").trim();
 
             if (existingRoom) {
@@ -237,14 +251,26 @@ router.post(
                   floorId: roomFloorId,
                   buildingId: roomBuildingId,
                   view: r.view ? String(r.view).trim() : existingRoom.view,
-                  bedType: r.bedType ? String(r.bedType).trim() : existingRoom.bedType,
+                  bedType: r.bedType
+                    ? String(r.bedType).trim()
+                    : existingRoom.bedType,
                   classification: r.classification || roomType,
-                  separatorDoor: r.separatorDoor !== undefined ? !!r.separatorDoor : existingRoom.separatorDoor,
+                  separatorDoor:
+                    r.separatorDoor !== undefined
+                      ? !!r.separatorDoor
+                      : existingRoom.separatorDoor,
                   size: r.size ? String(r.size).trim() : existingRoom.size,
-                  sizeSqm: r.sizeSqm !== undefined ? r.sizeSqm : existingRoom.sizeSqm,
-                  features: r.features ? String(r.features).trim() : existingRoom.features,
-                  featuresList: Array.isArray(r.featuresList) ? r.featuresList : existingRoom.featuresList,
-                  gender: r.gender ? String(r.gender).trim() : existingRoom.gender,
+                  sizeSqm:
+                    r.sizeSqm !== undefined ? r.sizeSqm : existingRoom.sizeSqm,
+                  features: r.features
+                    ? String(r.features).trim()
+                    : existingRoom.features,
+                  featuresList: Array.isArray(r.featuresList)
+                    ? r.featuresList
+                    : existingRoom.featuresList,
+                  gender: r.gender
+                    ? String(r.gender).trim()
+                    : existingRoom.gender,
                   isActive: true,
                   updatedAt: new Date(),
                 })
@@ -271,9 +297,17 @@ router.post(
               processedRoomIds.push(existingRoom.id);
               batchProcessedRooms.set(roomKey, existingRoom);
 
-              const featuresToSync = Array.isArray(r.featuresList) ? r.featuresList : existingRoom.featuresList;
+              const featuresToSync = Array.isArray(r.featuresList)
+                ? r.featuresList
+                : existingRoom.featuresList;
               if (Array.isArray(featuresToSync) && featuresToSync.length > 0) {
-                try { await syncRoomFeaturesToInventory(propertyId, existingRoom.id, featuresToSync); } catch {}
+                try {
+                  await syncRoomFeaturesToInventory(
+                    propertyId,
+                    existingRoom.id,
+                    featuresToSync,
+                  );
+                } catch {}
               }
             } else {
               // New Room Handling
@@ -306,7 +340,9 @@ router.post(
                   size: r.size ? String(r.size).trim() : null,
                   sizeSqm: r.sizeSqm !== undefined ? r.sizeSqm : null,
                   features: r.features ? String(r.features).trim() : null,
-                  featuresList: Array.isArray(r.featuresList) ? r.featuresList : [],
+                  featuresList: Array.isArray(r.featuresList)
+                    ? r.featuresList
+                    : [],
                   isActive: true,
                 })
                 .returning();
@@ -328,7 +364,13 @@ router.post(
               batchProcessedRooms.set(roomKey, newRoom);
 
               if (Array.isArray(r.featuresList) && r.featuresList.length > 0) {
-                try { await syncRoomFeaturesToInventory(propertyId, newRoom.id, r.featuresList); } catch {}
+                try {
+                  await syncRoomFeaturesToInventory(
+                    propertyId,
+                    newRoom.id,
+                    r.featuresList,
+                  );
+                } catch {}
               }
             }
           } catch (rowErr: any) {
@@ -354,8 +396,8 @@ router.post(
             .where(
               and(
                 eq(roomsTable.buildingId, defaultBuildingId!),
-                sql`${roomsTable.id} NOT IN (${sql.raw(processedRoomIds.join(","))})`
-              )
+                sql`${roomsTable.id} NOT IN (${sql.raw(processedRoomIds.join(","))})`,
+              ),
             );
         }
 
@@ -407,9 +449,11 @@ router.post(
       res.json(result);
     } catch (err: any) {
       console.error("[Room Import] Error during execution:", err);
-      res.status(500).json({ error: err.message || "Failed to execute room import" });
+      res
+        .status(500)
+        .json({ error: err.message || "Failed to execute room import" });
     }
-  }
+  },
 );
 
 /**
@@ -420,26 +464,29 @@ router.get(
   "/rooms/import/history",
   requirePermission("housing", "view"),
   async (req: Request, res: Response) => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
+
+      const history = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select()
+          .from(roomImportHistoryTable)
+          .orderBy(desc(roomImportHistoryTable.createdAt))
+          .limit(50);
+      });
+
+      res.json(history);
+    } catch (err: any) {
+      res
+        .status(500)
+        .json({ error: err.message || "Failed to fetch import history" });
     }
-
-    const history = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .select()
-        .from(roomImportHistoryTable)
-        .orderBy(desc(roomImportHistoryTable.createdAt))
-        .limit(50);
-    });
-
-    res.json(history);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to fetch import history" });
-  }
-});
+  },
+);
 
 /**
  * GET /api/rooms/import/templates
@@ -449,21 +496,24 @@ router.get(
   "/rooms/import/templates",
   requirePermission("housing", "view"),
   async (req: Request, res: Response) => {
-  try {
-    const propertyId = getTenantId(req);
+    try {
+      const propertyId = getTenantId(req);
 
-    const templates = await withTenant(propertyId || 1, async (tenantDb) => {
-      return await tenantDb
-        .select()
-        .from(roomImportTemplatesTable)
-        .orderBy(desc(roomImportTemplatesTable.updatedAt));
-    });
+      const templates = await withTenant(propertyId || 1, async (tenantDb) => {
+        return await tenantDb
+          .select()
+          .from(roomImportTemplatesTable)
+          .orderBy(desc(roomImportTemplatesTable.updatedAt));
+      });
 
-    res.json(templates);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to fetch templates" });
-  }
-});
+      res.json(templates);
+    } catch (err: any) {
+      res
+        .status(500)
+        .json({ error: err.message || "Failed to fetch templates" });
+    }
+  },
+);
 
 /**
  * POST /api/rooms/import/templates
@@ -474,32 +524,33 @@ router.post(
   requirePermission("housing", "create"),
   validate({ body: SaveImportTemplateBody }),
   async (req: Request, res: Response) => {
-  try {
-    const propertyId = getTenantId(req) || req.body.propertyId;
-    const { name, description = "", columnMapping } = req.body;
+    try {
+      const propertyId = getTenantId(req) || req.body.propertyId;
+      const { name, description = "", columnMapping } = req.body;
 
-    if (!name || !columnMapping) {
-      res.status(400).json({ error: "name and columnMapping are required" });
-      return;
+      if (!name || !columnMapping) {
+        res.status(400).json({ error: "name and columnMapping are required" });
+        return;
+      }
+
+      const saved = await withTenant(propertyId || 1, async (tenantDb) => {
+        const [entry] = await tenantDb
+          .insert(roomImportTemplatesTable)
+          .values({
+            propertyId: propertyId || null,
+            name: String(name).trim(),
+            description: String(description).trim(),
+            columnMapping,
+          })
+          .returning();
+        return entry;
+      });
+
+      res.json(saved);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to save template" });
     }
-
-    const saved = await withTenant(propertyId || 1, async (tenantDb) => {
-      const [entry] = await tenantDb
-        .insert(roomImportTemplatesTable)
-        .values({
-          propertyId: propertyId || null,
-          name: String(name).trim(),
-          description: String(description).trim(),
-          columnMapping,
-        })
-        .returning();
-      return entry;
-    });
-
-    res.json(saved);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to save template" });
-  }
-});
+  },
+);
 
 export default router;

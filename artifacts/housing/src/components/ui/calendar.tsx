@@ -26,7 +26,10 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
 }) {
   const defaultClassNames = getDefaultClassNames();
-  const isRtl = typeof document !== "undefined" && (document.documentElement.dir === "rtl" || document.documentElement.lang === "ar");
+  const isRtl =
+    typeof document !== "undefined" &&
+    (document.documentElement.dir === "rtl" ||
+      document.documentElement.lang === "ar");
   const effectiveLocale = locale ?? (isRtl ? arEG : undefined);
 
   return (
@@ -111,12 +114,15 @@ function Calendar({
           "bg-primary/20 rounded-l-xl",
           defaultClassNames.range_start,
         ),
-        range_middle: cn("rounded-none bg-primary/10", defaultClassNames.range_middle),
-        range_end: cn("bg-primary/20 rounded-r-xl", defaultClassNames.range_end),
-        today: cn(
-          "font-bold",
-          defaultClassNames.today,
+        range_middle: cn(
+          "rounded-none bg-primary/10",
+          defaultClassNames.range_middle,
         ),
+        range_end: cn(
+          "bg-primary/20 rounded-r-xl",
+          defaultClassNames.range_end,
+        ),
+        today: cn("font-bold", defaultClassNames.today),
         outside: cn(
           "text-muted-foreground/35 opacity-35 aria-selected:text-muted-foreground",
           defaultClassNames.outside,
@@ -142,7 +148,10 @@ function Calendar({
         Chevron: ({ className, orientation, ...props }) => {
           if (orientation === "left") {
             return (
-              <ChevronLeftIcon className={cn("size-4", isRtl && "rotate-180", className)} {...props} />
+              <ChevronLeftIcon
+                className={cn("size-4", isRtl && "rotate-180", className)}
+                {...props}
+              />
             );
           }
 
@@ -211,9 +220,13 @@ function CalendarDayButton({
         "data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[range-start=true]:rounded-r-none",
         "data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-end=true]:rounded-l-none",
         "data-[range-middle=true]:bg-primary/15 data-[range-middle=true]:text-primary data-[range-middle=true]:rounded-none",
-        modifiers.today && !modifiers.selected && "border border-primary/50 font-bold text-primary bg-primary/5 shadow-xs",
-        modifiers.outside && "opacity-35 text-muted-foreground pointer-events-none",
-        modifiers.disabled && "opacity-25 text-muted-foreground cursor-not-allowed pointer-events-none",
+        modifiers.today &&
+          !modifiers.selected &&
+          "border border-primary/50 font-bold text-primary bg-primary/5 shadow-xs",
+        modifiers.outside &&
+          "opacity-35 text-muted-foreground pointer-events-none",
+        modifiers.disabled &&
+          "opacity-25 text-muted-foreground cursor-not-allowed pointer-events-none",
         defaultClassNames.day,
         className,
       )}

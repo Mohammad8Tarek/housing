@@ -49,22 +49,26 @@ const DEFAULT_TAGS = [
 ];
 
 // GET / — portal categories (optional ?type=activities|evaluations)
-router.get("/", requireAuth, validate({ query: CommonListQuery }),
+router.get(
+  "/",
+  requireAuth,
+  validate({ query: CommonListQuery }),
   async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
 
-    const type = req.query.type as string | undefined;
-    const categories = getPortalCategories(propertyId, type);
-    res.json(categories);
-  } catch (err) {
-    next(err);
-  }
-});
+      const type = req.query.type as string | undefined;
+      const categories = getPortalCategories(propertyId, type);
+      res.json(categories);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // GET /statuses — activity statuses shared with profile portal
 router.get("/statuses", requireAuth, async (req, res, next): Promise<any> => {
@@ -81,38 +85,42 @@ router.get("/statuses", requireAuth, async (req, res, next): Promise<any> => {
 });
 
 // POST / — create custom category (in-memory until DB table exists)
-router.post("/", requirePermission("portal_content", "create"), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
+router.post(
+  "/",
+  requirePermission("portal_content", "create"),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
 
-    const validated = CategorySchema.parse(req.body);
-    const category = addPortalCategory(propertyId, validated);
+      const validated = CategorySchema.parse(req.body);
+      const category = addPortalCategory(propertyId, validated);
 
-    await logActivity({
-      req,
-      propertyId,
-      username: (req.session as any)?.username ?? "system",
-      userId: (req.session as any)?.userId,
-      action: `Created portal category: ${validated.name}`,
-      actionType: "CREATE",
-      module: "portal_categories",
-    });
-    await broadcastToProperty(propertyId, {
-      type: "data_updated",
-      module: "notifications",
-      action: "created",
-      data: category,
-    });
+      await logActivity({
+        req,
+        propertyId,
+        username: (req.session as any)?.username ?? "system",
+        userId: (req.session as any)?.userId,
+        action: `Created portal category: ${validated.name}`,
+        actionType: "CREATE",
+        module: "portal_categories",
+      });
+      await broadcastToProperty(propertyId, {
+        type: "data_updated",
+        module: "notifications",
+        action: "created",
+        data: category,
+      });
 
-    res.json(category);
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json(category);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // GET /tags
 router.get("/tags", requireAuth, async (req, res, next): Promise<any> => {
@@ -129,58 +137,66 @@ router.get("/tags", requireAuth, async (req, res, next): Promise<any> => {
 });
 
 // POST /tags
-router.post("/tags", requirePermission("portal_content", "create"), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
+router.post(
+  "/tags",
+  requirePermission("portal_content", "create"),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
 
-    const validated = TagSchema.parse(req.body);
-    const tag = {
-      id: Date.now(),
-      ...validated,
-      propertyId,
-      createdAt: new Date(),
-    };
+      const validated = TagSchema.parse(req.body);
+      const tag = {
+        id: Date.now(),
+        ...validated,
+        propertyId,
+        createdAt: new Date(),
+      };
 
-    await logActivity({
-      req,
-      propertyId,
-      username: (req.session as any)?.username ?? "system",
-      userId: (req.session as any)?.userId,
-      action: `Created portal tag: ${validated.name}`,
-      actionType: "CREATE",
-      module: "portal_tags",
-    });
-    await broadcastToProperty(propertyId, {
-      type: "data_updated",
-      module: "notifications",
-      action: "created",
-      data: tag,
-    });
+      await logActivity({
+        req,
+        propertyId,
+        username: (req.session as any)?.username ?? "system",
+        userId: (req.session as any)?.userId,
+        action: `Created portal tag: ${validated.name}`,
+        actionType: "CREATE",
+        module: "portal_tags",
+      });
+      await broadcastToProperty(propertyId, {
+        type: "data_updated",
+        module: "notifications",
+        action: "created",
+        data: tag,
+      });
 
-    res.json(tag);
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json(tag);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // GET /search — placeholder
-router.get("/search", requireAuth, validate({ query: CommonListQuery }),
+router.get(
+  "/search",
+  requireAuth,
+  validate({ query: CommonListQuery }),
   async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    const { q } = req.query;
-    if (!propertyId || !q)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId and query required" });
-    res.json({ activities: [], evaluations: [], documents: [] });
-  } catch (err) {
-    next(err);
-  }
-});
+    try {
+      const propertyId = getTenantId(req);
+      const { q } = req.query;
+      if (!propertyId || !q)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId and query required" });
+      res.json({ activities: [], evaluations: [], documents: [] });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 export default router;

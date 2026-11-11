@@ -31,7 +31,9 @@ export default function TabRoommates({ roommates, room }: Props) {
               {isRtl ? "زملاء الغرفة" : "My Roommates"}
             </h2>
             <p className="text-muted-foreground text-xs mt-0.5">
-              {isRtl ? "التواصل والتعاون مع زملاء السكن" : "Connect with your room members"}
+              {isRtl
+                ? "التواصل والتعاون مع زملاء السكن"
+                : "Connect with your room members"}
             </p>
           </div>
         </div>
@@ -39,7 +41,9 @@ export default function TabRoommates({ roommates, room }: Props) {
           <Info className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
           <div>
             <h4 className="text-sm font-bold text-foreground">
-              {isRtl ? "أنت بمفردك في هذه الغرفة حالياً" : "Single Occupancy Room"}
+              {isRtl
+                ? "أنت بمفردك في هذه الغرفة حالياً"
+                : "Single Occupancy Room"}
             </h4>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               {isRtl
@@ -78,8 +82,12 @@ export default function TabRoommates({ roommates, room }: Props) {
       {/* Roommate Cards */}
       <div className="space-y-3">
         {roommates.map((roommate) => {
-          const cleanPhone = roommate.phone ? roommate.phone.replace(/[^0-9]/g, "") : "";
-          const waPhone = cleanPhone.startsWith("01") ? `20${cleanPhone.slice(1)}` : cleanPhone;
+          const cleanPhone = roommate.phone
+            ? roommate.phone.replace(/[^0-9]/g, "")
+            : "";
+          const waPhone = cleanPhone.startsWith("01")
+            ? `20${cleanPhone.slice(1)}`
+            : cleanPhone;
 
           return (
             <div

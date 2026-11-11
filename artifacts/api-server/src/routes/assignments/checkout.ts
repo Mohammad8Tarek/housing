@@ -1,7 +1,16 @@
 import { Router } from "express";
-import { withTenant, assignmentsTable, roomsTable, profilesTable } from "@workspace/db";
+import {
+  withTenant,
+  assignmentsTable,
+  roomsTable,
+  profilesTable,
+} from "@workspace/db";
 import { eq, and, sql, not, count } from "drizzle-orm";
-import { CheckoutAssignmentBody, CheckoutAssignmentParams, CheckoutAssignmentResponse } from "@workspace/api-zod";
+import {
+  CheckoutAssignmentBody,
+  CheckoutAssignmentParams,
+  CheckoutAssignmentResponse,
+} from "@workspace/api-zod";
 import { logActivity } from "../../lib/activity-logger.js";
 import { requireAnyPermission } from "../../middlewares/permissions.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
@@ -16,7 +25,10 @@ const router: Router = Router();
 // ─── POST /assignments/:id/checkout ──────────────────────────────────────
 router.post(
   "/assignments/:id/checkout",
-  requireAnyPermission(["accommodation", "checkout"], ["accommodation", "edit"]),
+  requireAnyPermission(
+    ["accommodation", "checkout"],
+    ["accommodation", "edit"],
+  ),
   validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
@@ -28,9 +40,14 @@ router.post(
       return;
     }
 
-    const rawReason = String((req.body as any)?.checkOutReason || (req.body as any)?.reason || "").trim();
+    const rawReason = String(
+      (req.body as any)?.checkOutReason || (req.body as any)?.reason || "",
+    ).trim();
     if (!rawReason) {
-      res.status(400).json({ error: "سبب تسجيل الخروج والمغادرة إلزامي (Check-out reason is mandatory)" });
+      res.status(400).json({
+        error:
+          "سبب تسجيل الخروج والمغادرة إلزامي (Check-out reason is mandatory)",
+      });
       return;
     }
 
@@ -52,7 +69,9 @@ router.post(
 
     // If not found in propertyId or propertyId wasn't passed, search all properties
     if (!assignment) {
-      const crossFound = await findAssignmentAcrossAllProperties(params.data.id);
+      const crossFound = await findAssignmentAcrossAllProperties(
+        params.data.id,
+      );
       if (crossFound) {
         propertyId = crossFound.propertyId;
         assignment = crossFound.assignment;
@@ -65,8 +84,16 @@ router.post(
     }
 
     const authUser = (req as any).authUser;
-    if (authUser && !authUser.isSystemAdmin && Array.isArray(authUser.propertyIds) && authUser.propertyIds.length > 0 && !authUser.propertyIds.includes(propertyId)) {
-      res.status(403).json({ error: "Access denied to the hotel where this resident is housed" });
+    if (
+      authUser &&
+      !authUser.isSystemAdmin &&
+      Array.isArray(authUser.propertyIds) &&
+      authUser.propertyIds.length > 0 &&
+      !authUser.propertyIds.includes(propertyId)
+    ) {
+      res.status(403).json({
+        error: "Access denied to the hotel where this resident is housed",
+      });
       return;
     }
 
@@ -83,7 +110,7 @@ router.post(
       const checkoutDateStr = parsed.data.checkOutDate || nowStr;
       const combinedNotes = parsed.data.notes
         ? `${assignment.notes ? `${assignment.notes} | ` : ""}${parsed.data.notes}`
-        : (assignment.notes || "");
+        : assignment.notes || "";
 
       const [updated] = await tenantDb
         .update(assignmentsTable)
@@ -124,15 +151,21 @@ router.post(
               status: profilesTable.status,
             })
             .from(assignmentsTable)
-            .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+            .leftJoin(
+              profilesTable,
+              eq(assignmentsTable.profileId, profilesTable.id),
+            )
             .where(
               and(
                 eq(assignmentsTable.roomId, room.id),
                 sql`upper(${assignmentsTable.status}) IN ('ACTIVE', 'VACATION', 'OCCUPIED_VACATION')`,
-                not(eq(assignmentsTable.id, params.data.id))
-              )
+                not(eq(assignmentsTable.id, params.data.id)),
+              ),
             );
-          if (remaining.length > 0 && remaining.every((r) => r.status?.toUpperCase() === "VACATION")) {
+          if (
+            remaining.length > 0 &&
+            remaining.every((r) => r.status?.toUpperCase() === "VACATION")
+          ) {
             nextRoomStatus = "occupied_vacation";
           }
         }

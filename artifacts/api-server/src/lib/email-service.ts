@@ -47,8 +47,10 @@ export function createTransporter(config?: SmtpConfig) {
     config?.smtpSecure !== undefined
       ? Boolean(config.smtpSecure)
       : process.env.SMTP_SECURE === "true" || port === 465;
-  const user = config?.smtpUser || process.env.SMTP_USER || process.env.SMTP_USERNAME;
-  const pass = config?.smtpPass || process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+  const user =
+    config?.smtpUser || process.env.SMTP_USER || process.env.SMTP_USERNAME;
+  const pass =
+    config?.smtpPass || process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
 
   return nodemailer.createTransport({
     host: host || undefined,
@@ -68,9 +70,18 @@ function getTransporter(config?: SmtpConfig) {
 /**
  * Generates the bilingual Sunrise branded HTML email template for password reset OTP.
  */
-function generateOtpEmailHtml(name: string, otp: string, expiresInSeconds: number): string {
+function generateOtpEmailHtml(
+  name: string,
+  otp: string,
+  expiresInSeconds: number,
+): string {
   const minutes = Math.ceil(expiresInSeconds / 60);
-  const minuteLabel = minutes === 1 ? "دقيقة واحدة" : minutes === 2 ? "دقيقتين" : `${minutes} دقائق`;
+  const minuteLabel =
+    minutes === 1
+      ? "دقيقة واحدة"
+      : minutes === 2
+        ? "دقيقتين"
+        : `${minutes} دقائق`;
 
   return `
 <!DOCTYPE html>
@@ -185,14 +196,23 @@ export async function sendOtpEmail({
 }: SendOtpEmailParams): Promise<SendEmailResult> {
   const isConfigured = isSmtpConfigured(config);
   const minutes = Math.ceil(expiresInSeconds / 60);
-  const minuteLabel = minutes === 1 ? "دقيقة واحدة" : minutes === 2 ? "دقيقتين" : `${minutes} دقائق`;
+  const minuteLabel =
+    minutes === 1
+      ? "دقيقة واحدة"
+      : minutes === 2
+        ? "دقيقتين"
+        : `${minutes} دقائق`;
 
   if (!isConfigured) {
     console.log("\n" + "=".repeat(65));
-    console.log("📨 [AUTH OTP SIMULATION] (SMTP not configured in environment or settings)");
+    console.log(
+      "📨 [AUTH OTP SIMULATION] (SMTP not configured in environment or settings)",
+    );
     console.log(`👤 Recipient : ${recipientName} <${toEmail}>`);
     console.log(`🔑 OTP Code  : >>> ${otpCode} <<<`);
-    console.log(`⏱️ Validity  : ${expiresInSeconds} seconds (${minutes} minutes)`);
+    console.log(
+      `⏱️ Validity  : ${expiresInSeconds} seconds (${minutes} minutes)`,
+    );
     console.log("=".repeat(65) + "\n");
     return { success: true, mode: "console" };
   }
@@ -213,12 +233,19 @@ export async function sendOtpEmail({
       text: `مرحباً ${recipientName}،\nرمز التحقق لاستعادة كلمة المرور الخاص بك في SUNRISE Resident هو: ${otpCode}\nهذا الرمز صالح لمدة ${minuteLabel} (${expiresInSeconds} ثانية) فقط.\nإذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.`,
     });
 
-    console.log(`[AUTH OTP] Email sent successfully to ${toEmail}. Message ID: ${info.messageId}`);
+    console.log(
+      `[AUTH OTP] Email sent successfully to ${toEmail}. Message ID: ${info.messageId}`,
+    );
     return { success: true, messageId: info.messageId, mode: "smtp" };
   } catch (err: any) {
-    console.error(`[AUTH OTP ERROR] Failed to send email via SMTP to ${toEmail}:`, err?.message || err);
+    console.error(
+      `[AUTH OTP ERROR] Failed to send email via SMTP to ${toEmail}:`,
+      err?.message || err,
+    );
     console.log("\n" + "=".repeat(65));
-    console.log("⚠️ [AUTH OTP FALLBACK] (Failed to send via SMTP, code logged for recovery)");
+    console.log(
+      "⚠️ [AUTH OTP FALLBACK] (Failed to send via SMTP, code logged for recovery)",
+    );
     console.log(`👤 Recipient : ${recipientName} <${toEmail}>`);
     console.log(`🔑 OTP Code  : >>> ${otpCode} <<<`);
     console.log("=".repeat(65) + "\n");
@@ -262,10 +289,10 @@ export async function sendTestEmail({
               تم إرسال هذه الرسالة التجريبية بنجاح لتأكيد صحة اتصال سيرفر البريد الإلكتروني (SMTP) بنظام SUNRISE Resident.
             </p>
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0; font-size: 13px; color: #334155;">
-              <div style="margin-bottom: 8px;"><strong>سيرفر البريد (Host):</strong> ${escapeHtml(config?.smtpHost || process.env.SMTP_HOST || 'Default')}</div>
-              <div style="margin-bottom: 8px;"><strong>المنفذ (Port):</strong> ${config?.smtpPort || process.env.SMTP_PORT || '587'}</div>
-              <div style="margin-bottom: 8px;"><strong>حساب الإرسال (User):</strong> ${escapeHtml(config?.smtpUser || process.env.SMTP_USER || 'Default')}</div>
-              <div><strong>تاريخ وتوقيت الاختبار:</strong> ${new Date().toLocaleString('ar-EG')}</div>
+              <div style="margin-bottom: 8px;"><strong>سيرفر البريد (Host):</strong> ${escapeHtml(config?.smtpHost || process.env.SMTP_HOST || "Default")}</div>
+              <div style="margin-bottom: 8px;"><strong>المنفذ (Port):</strong> ${config?.smtpPort || process.env.SMTP_PORT || "587"}</div>
+              <div style="margin-bottom: 8px;"><strong>حساب الإرسال (User):</strong> ${escapeHtml(config?.smtpUser || process.env.SMTP_USER || "Default")}</div>
+              <div><strong>تاريخ وتوقيت الاختبار:</strong> ${new Date().toLocaleString("ar-EG")}</div>
             </div>
             <p style="color: #64748b; font-size: 12px; line-height: 1.6;">
               الآن يمكن للنظام إرسال رموز التحقق (OTP) لاستعادة كلمات المرور والإشعارات التلقائية بأمان.
@@ -276,13 +303,18 @@ export async function sendTestEmail({
           </div>
         </div>
       `,
-      text: `تهانينا! إعدادات البريد الإلكتروني تعمل بنجاح في نظام SUNRISE Resident.\nالسيرفر: ${config?.smtpHost || process.env.SMTP_HOST || 'Default'}\nالمنفذ: ${config?.smtpPort || process.env.SMTP_PORT || '587'}\nتاريخ الاختبار: ${new Date().toLocaleString('ar-EG')}`,
+      text: `تهانينا! إعدادات البريد الإلكتروني تعمل بنجاح في نظام SUNRISE Resident.\nالسيرفر: ${config?.smtpHost || process.env.SMTP_HOST || "Default"}\nالمنفذ: ${config?.smtpPort || process.env.SMTP_PORT || "587"}\nتاريخ الاختبار: ${new Date().toLocaleString("ar-EG")}`,
     });
 
-    console.log(`[SMTP TEST] Test email sent successfully to ${toEmail}. Message ID: ${info.messageId}`);
+    console.log(
+      `[SMTP TEST] Test email sent successfully to ${toEmail}. Message ID: ${info.messageId}`,
+    );
     return { success: true, messageId: info.messageId };
   } catch (err: any) {
-    console.error(`[SMTP TEST ERROR] Failed to send test email to ${toEmail}:`, err?.message || err);
+    console.error(
+      `[SMTP TEST ERROR] Failed to send test email to ${toEmail}:`,
+      err?.message || err,
+    );
     return { success: false, error: err?.message || String(err) };
   }
 }

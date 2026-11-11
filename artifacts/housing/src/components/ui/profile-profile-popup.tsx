@@ -19,7 +19,21 @@ import { formatNationality } from "@/lib/countries";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Building2, BedDouble, Calendar, Phone, Shield, Globe2, User, Users, Home, History, ExternalLink, FileText, Image as ImageIcon } from "lucide-react";
+import {
+  Building2,
+  BedDouble,
+  Calendar,
+  Phone,
+  Shield,
+  Globe2,
+  User,
+  Users,
+  Home,
+  History,
+  ExternalLink,
+  FileText,
+  Image as ImageIcon,
+} from "lucide-react";
 import { differenceInDays } from "date-fns";
 import { formatDate } from "@/lib/date-utils";
 import { Link } from "wouter";
@@ -46,11 +60,16 @@ export function ProfileProfilePopup({
     undefined,
   );
 
-  const propId = propertyId && (propertyId as any) !== "all" ? Number(propertyId) : undefined;
+  const propId =
+    propertyId && (propertyId as any) !== "all"
+      ? Number(propertyId)
+      : undefined;
   const { data: profile, isLoading: empLoading } = useQuery({
     queryKey: ["popup-profile", profileId, propId],
     queryFn: async () => {
-      const url = propId ? `/api/profiles/${profileId}?propertyId=${propId}` : `/api/profiles/${profileId}`;
+      const url = propId
+        ? `/api/profiles/${profileId}?propertyId=${propId}`
+        : `/api/profiles/${profileId}`;
       const res = await fetch(url);
       if (!res.ok) return null;
       return res.json();
@@ -60,56 +79,82 @@ export function ProfileProfilePopup({
 
   const effectivePropId = (profile?.propertyId || propId) as number | undefined;
 
-  const { data: _aData } = useListAssignments({ propertyId: effectivePropId } as any, {
-    query: { enabled: !!effectivePropId } as any,
-  });
-  const assignments: any[] = Array.isArray(_aData) ? _aData : ((_aData as any)?.data || []);
+  const { data: _aData } = useListAssignments(
+    { propertyId: effectivePropId } as any,
+    {
+      query: { enabled: !!effectivePropId } as any,
+    },
+  );
+  const assignments: any[] = Array.isArray(_aData)
+    ? _aData
+    : (_aData as any)?.data || [];
 
-  const { data: _empAssignments } = useListAssignments({ propertyId: effectivePropId, profileId: Number(profileId) } as any, {
-    query: { enabled: !!profileId && !!effectivePropId } as any,
-  });
+  const { data: _empAssignments } = useListAssignments(
+    { propertyId: effectivePropId, profileId: Number(profileId) } as any,
+    {
+      query: { enabled: !!profileId && !!effectivePropId } as any,
+    },
+  );
 
   const { data: _rData } = useListRooms(
     { propertyId: effectivePropId, limit: 1000 } as any,
     { query: { enabled: !!effectivePropId } as any },
   );
-  const rooms: any[] = Array.isArray(_rData) ? _rData : ((_rData as any)?.data || []);
+  const rooms: any[] = Array.isArray(_rData)
+    ? _rData
+    : (_rData as any)?.data || [];
   const { data: _bData } = useListBuildings(
     { propertyId: effectivePropId } as any,
     { query: { enabled: !!effectivePropId } as any },
   );
-  const buildings: any[] = Array.isArray(_bData) ? _bData : ((_bData as any)?.data || []);
+  const buildings: any[] = Array.isArray(_bData)
+    ? _bData
+    : (_bData as any)?.data || [];
   const { data: _fData } = useListFloors(
     { propertyId: effectivePropId } as any,
     { query: { enabled: !!effectivePropId } as any },
   );
-  const floors: any[] = Array.isArray(_fData) ? _fData : ((_fData as any)?.data || []);
+  const floors: any[] = Array.isArray(_fData)
+    ? _fData
+    : (_fData as any)?.data || [];
   const { data: _eData, isLoading: profilesLoading } = useListProfiles(
     { propertyId: effectivePropId } as any,
     { query: { enabled: !!effectivePropId } as any },
   );
-  const profiles: any[] = Array.isArray(_eData) ? _eData : ((_eData as any)?.data || []);
+  const profiles: any[] = Array.isArray(_eData)
+    ? _eData
+    : (_eData as any)?.data || [];
   const { data: _hData } = useListHostings(
     { propertyId: effectivePropId } as any,
     { query: { enabled: !!effectivePropId } as any },
   );
-  const hostings: any[] = Array.isArray(_hData) ? _hData : ((_hData as any)?.data || []);
+  const hostings: any[] = Array.isArray(_hData)
+    ? _hData
+    : (_hData as any)?.data || [];
 
   const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));
-  const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
-  const floorMap = Object.fromEntries(floors.map((f: any) => [f.id, f.floorNumber]));
+  const buildingMap = Object.fromEntries(
+    buildings.map((b: any) => [b.id, b.name]),
+  );
+  const floorMap = Object.fromEntries(
+    floors.map((f: any) => [f.id, f.floorNumber]),
+  );
   const empMap = Object.fromEntries(profiles.map((e: any) => [e.id, e]));
 
   const rawEmpAss = Array.isArray(_empAssignments)
     ? _empAssignments
-    : ((_empAssignments as any)?.data || []);
-  const profileAssignments: any[] = rawEmpAss.length > 0
-    ? rawEmpAss
-    : assignments.filter((a: any) => Number(a.profileId) === Number(profileId));
+    : (_empAssignments as any)?.data || [];
+  const profileAssignments: any[] =
+    rawEmpAss.length > 0
+      ? rawEmpAss
+      : assignments.filter(
+          (a: any) => Number(a.profileId) === Number(profileId),
+        );
 
   const currentAssignment =
-    profileAssignments.find((a: any) => a.status === "ACTIVE" && !a.checkOutDate) ||
-    profileAssignments.find((a: any) => a.status === "ACTIVE");
+    profileAssignments.find(
+      (a: any) => a.status === "ACTIVE" && !a.checkOutDate,
+    ) || profileAssignments.find((a: any) => a.status === "ACTIVE");
 
   const pastAssignments = profileAssignments
     .filter((a: any) => a.id !== currentAssignment?.id)
@@ -163,7 +208,10 @@ export function ProfileProfilePopup({
           );
           if (!resp.ok) return [h.id, [] as any[]] as [number, any[]];
           const list = await resp.json();
-          return [h.id, (Array.isArray(list) ? list : []) as any[]] as [number, any[]];
+          return [h.id, (Array.isArray(list) ? list : []) as any[]] as [
+            number,
+            any[],
+          ];
         } catch {
           return [h.id, [] as any[]] as [number, any[]];
         }
@@ -270,17 +318,23 @@ export function ProfileProfilePopup({
                       emp.status === "ACTIVE"
                         ? "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300"
                         : emp.status === "VACATION"
-                        ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300"
-                        : "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300"
+                          ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300"
+                          : "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300"
                     }`}
                   >
                     {emp.status === "ACTIVE"
-                      ? (ar ? "مقيم بالسكن" : "In-House")
+                      ? ar
+                        ? "مقيم بالسكن"
+                        : "In-House"
                       : emp.status === "VACATION"
-                      ? (ar ? "في إجازة" : "Vacation")
-                      : emp.status === "LEFT"
-                      ? (ar ? "مغادر" : "Check-out")
-                      : emp.status}
+                        ? ar
+                          ? "في إجازة"
+                          : "Vacation"
+                        : emp.status === "LEFT"
+                          ? ar
+                            ? "مغادر"
+                            : "Check-out"
+                          : emp.status}
                   </Badge>
                 </div>
                 <Link href={`/profiles/${emp.id}`} onClick={onClose}>
@@ -323,7 +377,9 @@ export function ProfileProfilePopup({
                       <p className="text-[10px] font-semibold text-muted-foreground uppercase">
                         {ar ? "الجنسية" : "Nationality"}
                       </p>
-                      <p className="text-sm">{formatNationality(emp.nationality, ar)}</p>
+                      <p className="text-sm">
+                        {formatNationality(emp.nationality, ar)}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -358,7 +414,10 @@ export function ProfileProfilePopup({
                 </p>
                 {currentAssignment ? (
                   (() => {
-                    const roomNum = room?.roomNumber ?? currentAssignment.roomNumber ?? currentAssignment.roomId;
+                    const roomNum =
+                      room?.roomNumber ??
+                      currentAssignment.roomNumber ??
+                      currentAssignment.roomId;
                     const bldName = building ?? currentAssignment.buildingName;
                     const flr = floorNum ?? currentAssignment.floorNumber;
                     return (
@@ -381,7 +440,8 @@ export function ProfileProfilePopup({
                           {currentAssignment.bedNumber && (
                             <Badge variant="outline" className="text-xs">
                               <BedDouble className="w-3 h-3 mr-1" />
-                              {ar ? "سرير" : "Bed"} {currentAssignment.bedNumber}
+                              {ar ? "سرير" : "Bed"}{" "}
+                              {currentAssignment.bedNumber}
                             </Badge>
                           )}
                         </div>
@@ -419,30 +479,57 @@ export function ProfileProfilePopup({
                 <div className="rounded-xl border p-3 space-y-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                     <History className="w-3.5 h-3.5" />
-                    {ar ? "سجل الإقامة السابق" : "Housing History"} ({pastAssignments.length})
+                    {ar ? "سجل الإقامة السابق" : "Housing History"} (
+                    {pastAssignments.length})
                   </p>
                   <div className="space-y-1.5 max-h-36 overflow-y-auto">
                     {pastAssignments.map((pa: any) => {
                       const pRoom = roomMap[pa.roomId];
-                      const pRoomNum = pRoom?.roomNumber ?? pa.roomNumber ?? pa.roomId;
-                      const pBld = pRoom ? buildingMap[pRoom.buildingId] : (pa.buildingName ?? null);
+                      const pRoomNum =
+                        pRoom?.roomNumber ?? pa.roomNumber ?? pa.roomId;
+                      const pBld = pRoom
+                        ? buildingMap[pRoom.buildingId]
+                        : (pa.buildingName ?? null);
                       return (
-                        <div key={pa.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 text-xs">
+                        <div
+                          key={pa.id}
+                          className="flex items-center justify-between p-2 rounded-lg bg-muted/30 text-xs"
+                        >
                           <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-semibold text-primary">🚪 {pRoomNum}</span>
-                            {pBld && <span className="text-muted-foreground">• {pBld}</span>}
-                            {pa.bedNumber && <span className="text-muted-foreground/80">({ar ? "سرير" : "Bed"} {pa.bedNumber})</span>}
+                            <span className="font-mono font-semibold text-primary">
+                              🚪 {pRoomNum}
+                            </span>
+                            {pBld && (
+                              <span className="text-muted-foreground">
+                                • {pBld}
+                              </span>
+                            )}
+                            {pa.bedNumber && (
+                              <span className="text-muted-foreground/80">
+                                ({ar ? "سرير" : "Bed"} {pa.bedNumber})
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground font-mono text-[11px]">
-                              {formatDate(pa.checkInDate)} ➔ {formatDate(pa.checkOutDate || pa.actualCheckOutDate)}
+                              {formatDate(pa.checkInDate)} ➔{" "}
+                              {formatDate(
+                                pa.checkOutDate || pa.actualCheckOutDate,
+                              )}
                             </span>
-                            <Badge variant="outline" className="text-[10px] px-1 py-0">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1 py-0"
+                            >
                               {pa.status === "CHECKED_OUT"
-                                ? (ar ? "مغادرة" : "Out")
+                                ? ar
+                                  ? "مغادرة"
+                                  : "Out"
                                 : pa.status === "TRANSFERRED"
-                                ? (ar ? "نقل" : "Moved")
-                                : pa.status}
+                                  ? ar
+                                    ? "نقل"
+                                    : "Moved"
+                                  : pa.status}
                             </Badge>
                           </div>
                         </div>

@@ -1,6 +1,11 @@
 export * from "./generated/api";
 export * from "./generated/api.schemas";
-export { setBaseUrl, setAuthTokenGetter, setSessionIdGetter, customFetch } from "./custom-fetch";
+export {
+  setBaseUrl,
+  setAuthTokenGetter,
+  setSessionIdGetter,
+  customFetch,
+} from "./custom-fetch";
 export type { AuthTokenGetter, SessionIdGetter } from "./custom-fetch";
 export * from "./hooks/smart-lock";
 

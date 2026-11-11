@@ -80,7 +80,8 @@ export function extractProfileFields(
     ) {
       return raw[mapping[targetField]];
     }
-    if (raw && raw[targetField] !== undefined && raw[targetField] !== null) return raw[targetField];
+    if (raw && raw[targetField] !== undefined && raw[targetField] !== null)
+      return raw[targetField];
     for (const fb of fallbacks) {
       if (raw && raw[fb] !== undefined && raw[fb] !== null) return raw[fb];
     }
@@ -115,20 +116,87 @@ export function extractProfileFields(
   ]);
   const profileId = rawProfileId ? String(rawProfileId).trim() : "";
 
-  let firstName = getVal("firstName", ["first_name", "first", "firstNameEn", "first_name_en"]) ?? "";
-  let lastName = getVal("lastName", ["last_name", "last", "lastNameEn", "last_name_en", "second_name", "secondName", "second"]) ?? "";
+  let firstName =
+    getVal("firstName", [
+      "first_name",
+      "first",
+      "firstNameEn",
+      "first_name_en",
+    ]) ?? "";
+  let lastName =
+    getVal("lastName", [
+      "last_name",
+      "last",
+      "lastNameEn",
+      "last_name_en",
+      "second_name",
+      "secondName",
+      "second",
+    ]) ?? "";
   let thirdName =
-    getVal("thirdName", ["third_name", "father_name", "middle_name", "thirdNameEn", "third"]) ?? "";
+    getVal("thirdName", [
+      "third_name",
+      "father_name",
+      "middle_name",
+      "thirdNameEn",
+      "third",
+    ]) ?? "";
   let fourthName =
-    getVal("fourthName", ["fourth_name", "family_name", "grand_father", "fourthNameEn", "fourth"]) ?? "";
+    getVal("fourthName", [
+      "fourth_name",
+      "family_name",
+      "grand_father",
+      "fourthNameEn",
+      "fourth",
+    ]) ?? "";
 
-  let firstNameAr = getVal("firstNameAr", ["first_name_ar", "firstName_ar", "الاسم_الأول", "الاسم الاول", "الاسم"]) ?? "";
-  let lastNameAr = getVal("lastNameAr", ["last_name_ar", "lastName_ar", "الاسم_الثاني", "الاسم الثاني", "اسم_الأب", "اسم الاب"]) ?? "";
-  let thirdNameAr = getVal("thirdNameAr", ["third_name_ar", "thirdName_ar", "الاسم_الثالث", "الاسم الثالث", "اسم_الجد", "اسم الجد"]) ?? "";
-  let fourthNameAr = getVal("fourthNameAr", ["fourth_name_ar", "fourthName_ar", "الاسم_الرابع", "الاسم الرابع", "اسم_العائلة", "اسم العائلة", "اللقب"]) ?? "";
+  let firstNameAr =
+    getVal("firstNameAr", [
+      "first_name_ar",
+      "firstName_ar",
+      "الاسم_الأول",
+      "الاسم الاول",
+      "الاسم",
+    ]) ?? "";
+  let lastNameAr =
+    getVal("lastNameAr", [
+      "last_name_ar",
+      "lastName_ar",
+      "الاسم_الثاني",
+      "الاسم الثاني",
+      "اسم_الأب",
+      "اسم الاب",
+    ]) ?? "";
+  let thirdNameAr =
+    getVal("thirdNameAr", [
+      "third_name_ar",
+      "thirdName_ar",
+      "الاسم_الثالث",
+      "الاسم الثالث",
+      "اسم_الجد",
+      "اسم الجد",
+    ]) ?? "";
+  let fourthNameAr =
+    getVal("fourthNameAr", [
+      "fourth_name_ar",
+      "fourthName_ar",
+      "الاسم_الرابع",
+      "الاسم الرابع",
+      "اسم_العائلة",
+      "اسم العائلة",
+      "اللقب",
+    ]) ?? "";
 
   // If full Arabic name provided without separate parts
-  const rawFullNameAr = getVal("Arabic_Name", ["fullNameAr", "full_name_ar", "arabicName", "arabic_name", "الاسم_بالكامل", "الاسم بالكامل", "الاسم الرباعي"]);
+  const rawFullNameAr = getVal("Arabic_Name", [
+    "fullNameAr",
+    "full_name_ar",
+    "arabicName",
+    "arabic_name",
+    "الاسم_بالكامل",
+    "الاسم بالكامل",
+    "الاسم الرباعي",
+  ]);
   if (rawFullNameAr && (!firstNameAr || !lastNameAr)) {
     const arParts = splitCompoundName(String(rawFullNameAr), true);
     if (!firstNameAr) firstNameAr = arParts.first;
@@ -138,7 +206,14 @@ export function extractProfileFields(
   }
 
   // If full English name provided without separate parts
-  const rawFullNameEn = getVal("Name", ["fullName", "full_name", "fullNameEn", "name", "employeeName", "emp_name"]);
+  const rawFullNameEn = getVal("Name", [
+    "fullName",
+    "full_name",
+    "fullNameEn",
+    "name",
+    "employeeName",
+    "emp_name",
+  ]);
   if (rawFullNameEn && (!firstName || !lastName)) {
     const enParts = splitCompoundName(String(rawFullNameEn), false);
     if (!firstName) firstName = enParts.first;
@@ -236,8 +311,16 @@ export function extractProfileFields(
       "المستوى",
     ]) ?? "";
   const phone =
-    getVal("phone", ["mobile", "telephone", "phone_number", "phoneNumber", "Mobile", "الهاتف", "الجوال", "الموبايل"]) ??
-    "";
+    getVal("phone", [
+      "mobile",
+      "telephone",
+      "phone_number",
+      "phoneNumber",
+      "Mobile",
+      "الهاتف",
+      "الجوال",
+      "الموبايل",
+    ]) ?? "";
 
   const department =
     getVal("department", [
@@ -255,30 +338,40 @@ export function extractProfileFields(
       "DepartmentCode",
       "department_code",
     ]) ?? "";
-  const departmentAr = getVal("departmentAr", [
-    "ar_department_name",
-    "ArabicDepartmentName",
-    "ar_section_name",
-    "department_ar",
-    "departmentAr",
-    "DepartmentAr",
-    "dept_ar",
-    "deptAr",
-    "section_ar",
-    "sectionAr",
-    "section_name_ar",
-    "القسم",
-    "الإدارة",
-    "الادارة",
-    "القسم_بالعربية",
-    "الاداره",
-  ]) ?? "";
+  const departmentAr =
+    getVal("departmentAr", [
+      "ar_department_name",
+      "ArabicDepartmentName",
+      "ar_section_name",
+      "department_ar",
+      "departmentAr",
+      "DepartmentAr",
+      "dept_ar",
+      "deptAr",
+      "section_ar",
+      "sectionAr",
+      "section_name_ar",
+      "القسم",
+      "الإدارة",
+      "الادارة",
+      "القسم_بالعربية",
+      "الاداره",
+    ]) ?? "";
 
   const hireDate =
-    getVal("hireDate", ["hire_date", "joining_date", "hired_at", "تاريخ_التعيين"]) ??
-    new Date().toISOString().split("T")[0];
+    getVal("hireDate", [
+      "hire_date",
+      "joining_date",
+      "hired_at",
+      "تاريخ_التعيين",
+    ]) ?? new Date().toISOString().split("T")[0];
   const dateOfBirth =
-    getVal("dateOfBirth", ["date_of_birth", "birth_date", "dob", "تاريخ_الميلاد"]) ?? "";
+    getVal("dateOfBirth", [
+      "date_of_birth",
+      "birth_date",
+      "dob",
+      "تاريخ_الميلاد",
+    ]) ?? "";
   const email = getVal("email", ["mail", "email_address"]) ?? "";
   const emergencyContact =
     getVal("emergencyContact", [
@@ -310,13 +403,12 @@ export function extractProfileFields(
   const photoUrl =
     getVal("photoUrl", ["photo_url", "photo", "avatar", "image"]) ?? null;
   const idImage =
-    getVal("idImage", ["id_image", "national_id_image", "iqama_image"]) ??
-    null;
+    getVal("idImage", ["id_image", "national_id_image", "iqama_image"]) ?? null;
 
   // Gender normalization
-  const rawGender = String(
-    getVal("gender", ["sex"]) ?? "M",
-  ).trim().toUpperCase();
+  const rawGender = String(getVal("gender", ["sex"]) ?? "M")
+    .trim()
+    .toUpperCase();
   const gender =
     rawGender.startsWith("F") || rawGender === "أنثى" || rawGender === "FEMALE"
       ? "F"
@@ -340,7 +432,11 @@ export function extractProfileFields(
     "";
 
   // Status normalization
-  const rawStatus = getVal("status", ["employee_status", "emp_status", "state"]);
+  const rawStatus = getVal("status", [
+    "employee_status",
+    "emp_status",
+    "state",
+  ]);
   let normalizedStatus = normalizeHrStatus(rawStatus);
 
   // If vacation dates are provided and status is active, check if currently on vacation
@@ -352,8 +448,13 @@ export function extractProfileFields(
   }
 
   // Documents / Attachments from HR
-  const rawDocs = getVal("documents", ["idDocuments", "attachments", "files", "docs"]) || [];
-  const documents: Array<{ fileName: string; fileType: string; fileData: string }> = [];
+  const rawDocs =
+    getVal("documents", ["idDocuments", "attachments", "files", "docs"]) || [];
+  const documents: Array<{
+    fileName: string;
+    fileType: string;
+    fileData: string;
+  }> = [];
   if (Array.isArray(rawDocs)) {
     for (const d of rawDocs) {
       if (d && (d.fileName || d.name) && (d.fileData || d.data || d.url)) {
@@ -365,7 +466,11 @@ export function extractProfileFields(
       }
     }
   }
-  const passportDoc = getVal("passportImage", ["passport_image", "passport", "passportDoc"]);
+  const passportDoc = getVal("passportImage", [
+    "passport_image",
+    "passport",
+    "passportDoc",
+  ]);
   if (passportDoc && typeof passportDoc === "string" && passportDoc.trim()) {
     documents.push({
       fileName: "Passport Copy",
@@ -373,7 +478,12 @@ export function extractProfileFields(
       fileData: passportDoc.trim(),
     });
   }
-  const contractDoc = getVal("contractDocument", ["contract_doc", "contract_file", "contractFile", "contract_pdf"]);
+  const contractDoc = getVal("contractDocument", [
+    "contract_doc",
+    "contract_file",
+    "contractFile",
+    "contract_pdf",
+  ]);
   if (contractDoc && typeof contractDoc === "string" && contractDoc.trim()) {
     documents.push({
       fileName: "Employment Contract",

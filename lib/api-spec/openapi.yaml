@@ -1784,7 +1784,7 @@ components:
         idDocuments:
           type: array
           items:
-            $ref: '#/components/schemas/ProfileDocument'
+            $ref: "#/components/schemas/ProfileDocument"
       required:
         - id
         - propertyId
@@ -1838,7 +1838,7 @@ components:
         idDocuments:
           type: array
           items:
-            $ref: '#/components/schemas/ProfileDocument'
+            $ref: "#/components/schemas/ProfileDocument"
       required:
         - propertyId
         - employeeId
@@ -1886,7 +1886,7 @@ components:
         idDocuments:
           type: array
           items:
-            $ref: '#/components/schemas/ProfileDocument'
+            $ref: "#/components/schemas/ProfileDocument"
 
     Assignment:
       type: object

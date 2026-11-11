@@ -1,13 +1,49 @@
 import { Router } from "express";
-import { withTenant, hostingsTable, hostingCompanionsTable, profilesTable, roomsTable, buildingsTable, floorsTable } from "@workspace/db";
-import { eq, and, inArray, sql, or, ne, ilike, desc, count, getTableColumns } from "drizzle-orm";
-import { CreateHostingBody, UpdateHostingBody, UpdateHostingParams, DeleteHostingParams, ApproveHostingParams, CheckinHostingParams, CheckinHostingBody, CheckoutHostingParams } from "@workspace/api-zod";
+import {
+  withTenant,
+  hostingsTable,
+  hostingCompanionsTable,
+  profilesTable,
+  roomsTable,
+  buildingsTable,
+  floorsTable,
+} from "@workspace/db";
+import {
+  eq,
+  and,
+  inArray,
+  sql,
+  or,
+  ne,
+  ilike,
+  desc,
+  count,
+  getTableColumns,
+} from "drizzle-orm";
+import {
+  CreateHostingBody,
+  UpdateHostingBody,
+  UpdateHostingParams,
+  DeleteHostingParams,
+  ApproveHostingParams,
+  CheckinHostingParams,
+  CheckinHostingBody,
+  CheckoutHostingParams,
+} from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import {
+  requirePermission,
+  requireAnyPermission,
+} from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { findHostingAcrossAllProperties } from "../lib/cross-property-service.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, IdParams, IdCompanionIdParams, CompanionBody } from "../validation/schemas.js";
+import {
+  CommonListQuery,
+  IdParams,
+  IdCompanionIdParams,
+  CompanionBody,
+} from "../validation/schemas.js";
 
 const router: Router = Router();
 const MAX_DOCUMENT_IMAGE_LENGTH = 7 * 1024 * 1024;
@@ -133,7 +169,9 @@ function listCompanionColumns(propertyId: number) {
 }
 
 function fmtListCompanion(c: Record<string, any>) {
-  const linked = typeof c.documentImage === "string" && c.documentImage.startsWith("/api/hostings/");
+  const linked =
+    typeof c.documentImage === "string" &&
+    c.documentImage.startsWith("/api/hostings/");
   const out = fmtCompanion(c);
   if (linked) out.documentImage = c.documentImage;
   return out;
@@ -160,7 +198,10 @@ router.get(
 
     try {
       const page = Math.max(1, parseInt(req.query.page as string) || 1);
-      const limit = Math.max(1, Math.min(5000, parseInt(req.query.limit as string) || 50));
+      const limit = Math.max(
+        1,
+        Math.min(5000, parseInt(req.query.limit as string) || 50),
+      );
       const offset = (page - 1) * limit;
 
       const whereClauses: any[] = [];
@@ -170,8 +211,12 @@ router.get(
         whereClauses.push(eq(hostingsTable.status, req.query.status as any));
         countClauses.push(eq(hostingsTable.status, req.query.status as any));
       } else if (req.query.excludeStatus) {
-        whereClauses.push(ne(hostingsTable.status, req.query.excludeStatus as any));
-        countClauses.push(ne(hostingsTable.status, req.query.excludeStatus as any));
+        whereClauses.push(
+          ne(hostingsTable.status, req.query.excludeStatus as any),
+        );
+        countClauses.push(
+          ne(hostingsTable.status, req.query.excludeStatus as any),
+        );
       }
 
       const search = (req.query.search as string)?.trim();
@@ -180,7 +225,7 @@ router.get(
           ilike(profilesTable.firstName, `%${search}%`),
           ilike(profilesTable.lastName, `%${search}%`),
           ilike(profilesTable.profileId, `%${search}%`),
-          ilike(roomsTable.roomNumber, `%${search}%`)
+          ilike(roomsTable.roomNumber, `%${search}%`),
         );
         whereClauses.push(searchCondition);
         countClauses.push(searchCondition);
@@ -197,9 +242,15 @@ router.get(
             floor: floorsTable,
           })
           .from(hostingsTable)
-          .leftJoin(profilesTable, eq(hostingsTable.profileId, profilesTable.id))
+          .leftJoin(
+            profilesTable,
+            eq(hostingsTable.profileId, profilesTable.id),
+          )
           .leftJoin(roomsTable, eq(hostingsTable.roomId, roomsTable.id))
-          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+          .leftJoin(
+            buildingsTable,
+            eq(roomsTable.buildingId, buildingsTable.id),
+          )
           .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
           .where(whereClauses.length > 0 ? and(...whereClauses) : undefined)
           .orderBy(desc(hostingsTable.id))
@@ -210,11 +261,14 @@ router.get(
         const countQuery = tenantDb
           .select({ total: count() })
           .from(hostingsTable)
-          .leftJoin(profilesTable, eq(hostingsTable.profileId, profilesTable.id))
+          .leftJoin(
+            profilesTable,
+            eq(hostingsTable.profileId, profilesTable.id),
+          )
           .leftJoin(roomsTable, eq(hostingsTable.roomId, roomsTable.id));
 
-        const [{ total }] = await (countClauses.length > 0 
-          ? countQuery.where(and(...countClauses)) 
+        const [{ total }] = await (countClauses.length > 0
+          ? countQuery.where(and(...countClauses))
           : countQuery);
 
         const hostingIds = rows.map((r) => r.hosting.id);
@@ -260,7 +314,7 @@ router.get(
           page,
           limit,
           totalPages: Math.ceil(Number(result.total) / limit),
-        }
+        },
       });
     } catch (error: any) {
       console.error("[List Hostings API] Error:", error.message || error);
@@ -303,12 +357,15 @@ router.post(
     const fromDate = new Date(data.expectedFrom);
     const toDate = new Date(data.expectedTo);
     if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-      res.status(400).json({ error: "Invalid date format for expectedFrom or expectedTo" });
+      res
+        .status(400)
+        .json({ error: "Invalid date format for expectedFrom or expectedTo" });
       return;
     }
     if (toDate.getTime() < fromDate.getTime()) {
       res.status(400).json({
-        error: "تاريخ نهاية الاستضافة يجب أن يكون بعد تاريخ البداية / Expected end date must be on or after start date",
+        error:
+          "تاريخ نهاية الاستضافة يجب أن يكون بعد تاريخ البداية / Expected end date must be on or after start date",
       });
       return;
     }
@@ -321,9 +378,13 @@ router.post(
         .where(
           and(
             eq(hostingsTable.profileId, data.profileId),
-            or(eq(hostingsTable.status, "PENDING"), eq(hostingsTable.status, "APPROVED"), eq(hostingsTable.status, "CHECKED_IN")),
-            sql`${hostingsTable.expectedFrom} <= ${data.expectedTo} AND ${hostingsTable.expectedTo} >= ${data.expectedFrom}`
-          )
+            or(
+              eq(hostingsTable.status, "PENDING"),
+              eq(hostingsTable.status, "APPROVED"),
+              eq(hostingsTable.status, "CHECKED_IN"),
+            ),
+            sql`${hostingsTable.expectedFrom} <= ${data.expectedTo} AND ${hostingsTable.expectedTo} >= ${data.expectedFrom}`,
+          ),
         )
         .limit(1);
 
@@ -345,7 +406,10 @@ router.post(
           .where(eq(roomsTable.id, data.roomId))
           .limit(1);
         if (room) {
-          const guestsCount = Math.max(1, data.guestsCount || (companions ? companions.length : 1));
+          const guestsCount = Math.max(
+            1,
+            data.guestsCount || (companions ? companions.length : 1),
+          );
           if (guestsCount > room.capacity) {
             return {
               conflict: true,
@@ -353,7 +417,10 @@ router.post(
             } as const;
           }
           if (room.currentOccupancy >= room.capacity) {
-            return { conflict: true, customError: `الغرفة #${room.roomNumber} ممتلئة بالكامل.` } as const;
+            return {
+              conflict: true,
+              customError: `الغرفة #${room.roomNumber} ممتلئة بالكامل.`,
+            } as const;
           }
         }
       }
@@ -574,7 +641,10 @@ router.patch(
             .where(eq(roomsTable.id, parsed.data.roomId))
             .limit(1);
           if (room && room.currentOccupancy >= room.capacity) {
-            return { conflict: true, customError: "Cannot update hosting: Room is fully occupied." } as const;
+            return {
+              conflict: true,
+              customError: "Cannot update hosting: Room is fully occupied.",
+            } as const;
           }
         }
 
@@ -835,7 +905,10 @@ router.post(
 
       const result = await withTenant(propertyId, async (tenantDb) => {
         const current = await tenantDb
-          .select({ status: hostingsTable.status, roomId: hostingsTable.roomId })
+          .select({
+            status: hostingsTable.status,
+            roomId: hostingsTable.roomId,
+          })
           .from(hostingsTable)
           .where(eq(hostingsTable.id, params.data.id))
           .limit(1);
@@ -855,9 +928,12 @@ router.post(
             .from(roomsTable)
             .where(eq(roomsTable.id, roomIdToUse))
             .limit(1);
-          
+
           if (room && room.currentOccupancy >= room.capacity) {
-            return { conflict: true, customError: "Cannot check in: Room is fully occupied." } as const;
+            return {
+              conflict: true,
+              customError: "Cannot check in: Room is fully occupied.",
+            } as const;
           }
         }
 
@@ -913,7 +989,6 @@ router.post(
         return;
       }
 
-
       const updated = result.data;
 
       const s = su(req);
@@ -952,7 +1027,7 @@ router.post(
     ["guest_hosting", "checkout"],
     ["guest_hosting", "edit"],
     ["accommodation", "checkout"],
-    ["accommodation", "edit"]
+    ["accommodation", "edit"],
   ),
   validate({ params: IdParams }),
   async (req, res): Promise<void> => {
@@ -1090,12 +1165,20 @@ router.get(
         tenantDb
           .select({ documentImage: hostingCompanionsTable.documentImage })
           .from(hostingCompanionsTable)
-          .where(and(eq(hostingCompanionsTable.id, companionId), eq(hostingCompanionsTable.hostingId, hostingId)))
+          .where(
+            and(
+              eq(hostingCompanionsTable.id, companionId),
+              eq(hostingCompanionsTable.hostingId, hostingId),
+            ),
+          )
           .limit(1),
       );
       const image = safeDocumentImage(rows[0]?.documentImage);
       if (!image) {
-        res.status(404).json({ error: "Document not found", errorAr: "لا يوجد مستند لهذا المرافق" });
+        res.status(404).json({
+          error: "Document not found",
+          errorAr: "لا يوجد مستند لهذا المرافق",
+        });
         return;
       }
       if (DOCUMENT_WEB_URL_RE.test(image)) {
@@ -1103,11 +1186,22 @@ router.get(
         return;
       }
       const m = /^data:(image\/[a-z]+);base64,(.*)$/is.exec(image)!;
-      res.setHeader("Content-Type", m[1].toLowerCase().replace("image/jpg", "image/jpeg"));
+      res.setHeader(
+        "Content-Type",
+        m[1].toLowerCase().replace("image/jpg", "image/jpeg"),
+      );
       res.setHeader("X-Content-Type-Options", "nosniff");
-      res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+      res.setHeader(
+        "Content-Security-Policy",
+        "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+      );
       // List links carry a content hash (?v=…), so the URL changes with the image.
-      res.setHeader("Cache-Control", req.query.v ? "private, max-age=31536000, immutable" : "private, no-cache");
+      res.setHeader(
+        "Cache-Control",
+        req.query.v
+          ? "private, max-age=31536000, immutable"
+          : "private, no-cache",
+      );
       res.send(Buffer.from(m[2], "base64"));
     } catch (err) {
       next(err);

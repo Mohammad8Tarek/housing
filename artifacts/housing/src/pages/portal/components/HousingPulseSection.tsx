@@ -6,7 +6,26 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
-import { HeartHandshake, Star, Smile, Meh, Frown, Download, Printer, Lock, Search, TrendingUp, MessageSquare, RefreshCw, Sparkles, Send, Settings2, Bell, Clock, Users } from "lucide-react";
+import {
+  HeartHandshake,
+  Star,
+  Smile,
+  Meh,
+  Frown,
+  Download,
+  Printer,
+  Lock,
+  Search,
+  TrendingUp,
+  MessageSquare,
+  RefreshCw,
+  Sparkles,
+  Send,
+  Settings2,
+  Bell,
+  Clock,
+  Users,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,14 +87,17 @@ export function HousingPulseSection() {
     titleAr: "استطلاع جودة السكن الأسبوعي",
     titleEn: "Weekly Housing Quality Pulse",
     questionAr: "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟",
-    questionEn: "How satisfied are you with housing conditions, cleanliness & services this week?",
+    questionEn:
+      "How satisfied are you with housing conditions, cleanliness & services this week?",
   });
 
   // Fetch Housing Pulse Configuration
   const { data: configData, isLoading: isConfigLoading } = useQuery({
     queryKey: ["housing-pulse-config", activePropertyId],
     queryFn: async () => {
-      const res = await fetch(`/api/evaluations/housing-pulse?propertyId=${activePropertyId}`);
+      const res = await fetch(
+        `/api/evaluations/housing-pulse?propertyId=${activePropertyId}`,
+      );
       if (!res.ok) throw new Error("Failed to load pulse configuration");
       return res.json();
     },
@@ -94,8 +116,12 @@ export function HousingPulseSection() {
         cooldownDays: c.cooldownDays ?? 7,
         titleAr: c.titleAr || "استطلاع جودة السكن الأسبوعي",
         titleEn: c.titleEn || "Weekly Housing Quality Pulse",
-        questionAr: c.questionAr || "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟",
-        questionEn: c.questionEn || "How satisfied are you with housing conditions, cleanliness & services this week?",
+        questionAr:
+          c.questionAr ||
+          "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟",
+        questionEn:
+          c.questionEn ||
+          "How satisfied are you with housing conditions, cleanliness & services this week?",
       });
     }
   }, [configData]);
@@ -121,13 +147,16 @@ export function HousingPulseSection() {
       if (activePropertyId && activePropertyId !== "all") {
         params.append("propertyId", String(activePropertyId));
       }
-      if (ratingFilter && ratingFilter !== "all") params.append("rating", ratingFilter);
+      if (ratingFilter && ratingFilter !== "all")
+        params.append("rating", ratingFilter);
       if (fromDate) params.append("fromDate", fromDate);
       if (toDate) params.append("toDate", toDate);
       params.append("page", String(currentPage));
       params.append("limit", String(pageSize));
 
-      const res = await fetch(`/api/reports/housing-ratings?${params.toString()}`);
+      const res = await fetch(
+        `/api/reports/housing-ratings?${params.toString()}`,
+      );
       if (!res.ok) throw new Error("Failed to fetch housing ratings report");
       return res.json();
     },
@@ -150,13 +179,20 @@ export function HousingPulseSection() {
     },
     onSuccess: () => {
       toast.success(
-        ar ? "تم حفظ إعدادات استطلاع السكن بنجاح" : "Housing pulse configuration saved successfully"
+        ar
+          ? "تم حفظ إعدادات استطلاع السكن بنجاح"
+          : "Housing pulse configuration saved successfully",
       );
-      queryClient.invalidateQueries({ queryKey: ["housing-pulse-config", activePropertyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["housing-pulse-config", activePropertyId],
+      });
       setIsConfigOpen(false);
     },
     onError: (err: any) => {
-      toast.error(err.message || (ar ? "فشل حفظ الإعدادات" : "Failed to save configuration"));
+      toast.error(
+        err.message ||
+          (ar ? "فشل حفظ الإعدادات" : "Failed to save configuration"),
+      );
     },
   });
 
@@ -175,13 +211,17 @@ export function HousingPulseSection() {
       toast.success(
         ar
           ? `تم إرسال الاستطلاع فوراً إلى ${data.activeResidentsCount || 0} موظف مقيم بالسكن!`
-          : `Survey pushed immediately to ${data.activeResidentsCount || 0} active in-house residents!`
+          : `Survey pushed immediately to ${data.activeResidentsCount || 0} active in-house residents!`,
       );
-      queryClient.invalidateQueries({ queryKey: ["housing-pulse-config", activePropertyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["housing-pulse-config", activePropertyId],
+      });
       setIsPushConfirmOpen(false);
     },
     onError: (err: any) => {
-      toast.error(err.message || (ar ? "فشل إرسال الاستطلاع" : "Failed to push survey"));
+      toast.error(
+        err.message || (ar ? "فشل إرسال الاستطلاع" : "Failed to push survey"),
+      );
     },
   });
 
@@ -213,24 +253,33 @@ export function HousingPulseSection() {
     return commentsList.filter(
       (c) =>
         (c.comment && c.comment.toLowerCase().includes(s)) ||
-        (c.propertyName && c.propertyName.toLowerCase().includes(s))
+        (c.propertyName && c.propertyName.toLowerCase().includes(s)),
     );
   }, [commentsList, searchComment]);
 
   // Export to Excel
   const handleExportExcel = () => {
-    const rowsToExport = allCommentsList.length > 0 ? allCommentsList : commentsList;
+    const rowsToExport =
+      allCommentsList.length > 0 ? allCommentsList : commentsList;
     const excelRows = rowsToExport.map((r: any, idx: number) => ({
       "#": idx + 1,
       [ar ? "السكن / الفندق" : "Property"]: r.propertyName || "-",
       [ar ? "التقييم" : "Rating"]:
         r.rating === "satisfied"
-          ? ar ? "راضي" : "Satisfied"
+          ? ar
+            ? "راضي"
+            : "Satisfied"
           : r.rating === "neutral"
-          ? ar ? "متوسط" : "Neutral"
-          : ar ? "غير راضي" : "Dissatisfied",
+            ? ar
+              ? "متوسط"
+              : "Neutral"
+            : ar
+              ? "غير راضي"
+              : "Dissatisfied",
       [ar ? "الدرجة (من 5)" : "Score (out of 5)"]: r.score || "-",
-      [ar ? "الملاحظة / المقترح (سري ومجهول)" : "Feedback / Comment (Anonymous)"]: r.comment || "-",
+      [ar
+        ? "الملاحظة / المقترح (سري ومجهول)"
+        : "Feedback / Comment (Anonymous)"]: r.comment || "-",
       [ar ? "تاريخ التقييم" : "Date"]: formatDate(r.createdAt),
     }));
 
@@ -239,20 +288,26 @@ export function HousingPulseSection() {
     XLSX.utils.book_append_sheet(wb, ws, "Housing Pulse");
 
     const currentPropName =
-      properties?.find((p) => String(p.id) === String(activePropertyId))?.name || "Property";
+      properties?.find((p) => String(p.id) === String(activePropertyId))
+        ?.name || "Property";
     const dateStr = new Date().toISOString().split("T")[0];
     XLSX.writeFile(wb, `Housing_Pulse_${currentPropName}_${dateStr}.xlsx`);
-    toast.success(ar ? "تم تصدير ملف الإكسل بنجاح" : "Excel file exported successfully");
+    toast.success(
+      ar ? "تم تصدير ملف الإكسل بنجاح" : "Excel file exported successfully",
+    );
   };
 
   // Print Luxury PDF Report
   const handlePrintReport = () => {
     const currentPropName =
-      properties?.find((p) => String(p.id) === String(activePropertyId))?.name || `Property #${activePropertyId}`;
+      properties?.find((p) => String(p.id) === String(activePropertyId))
+        ?.name || `Property #${activePropertyId}`;
 
     printLuxuryReport({
       activeTab: "housing_ratings",
-      title: ar ? "تقرير استطلاع جودة السكن الدوري (سري تماماً)" : "Housing Quality Pulse Report (Anonymous)",
+      title: ar
+        ? "تقرير استطلاع جودة السكن الدوري (سري تماماً)"
+        : "Housing Quality Pulse Report (Anonymous)",
       subtitle: ar
         ? `نتائج قياس رضا الموظفين الدوري عن جودة السكن والخدمات - ${currentPropName}`
         : `Periodic staff housing satisfaction metrics & anonymous feedback - ${currentPropName}`,
@@ -260,10 +315,26 @@ export function HousingPulseSection() {
       properties,
       activePropertyId,
       kpiCards: [
-        { label: ar ? "إجمالي التقييمات" : "Total Ratings", value: stats.totalRatings, color: "blue" },
-        { label: ar ? "نسبة الرضا العامة" : "Satisfaction Rate", value: `${stats.satisfactionRate}%`, color: "green" },
-        { label: ar ? "متوسط التقييم" : "Average Score", value: `${stats.averageScore} / 5`, color: "gold" },
-        { label: ar ? "عدد الملاحظات المكتوبة" : "Written Comments", value: stats.commentsCount, color: "purple" },
+        {
+          label: ar ? "إجمالي التقييمات" : "Total Ratings",
+          value: stats.totalRatings,
+          color: "blue",
+        },
+        {
+          label: ar ? "نسبة الرضا العامة" : "Satisfaction Rate",
+          value: `${stats.satisfactionRate}%`,
+          color: "green",
+        },
+        {
+          label: ar ? "متوسط التقييم" : "Average Score",
+          value: `${stats.averageScore} / 5`,
+          color: "gold",
+        },
+        {
+          label: ar ? "عدد الملاحظات المكتوبة" : "Written Comments",
+          value: stats.commentsCount,
+          color: "purple",
+        },
       ],
       headers: [
         "#",
@@ -273,18 +344,26 @@ export function HousingPulseSection() {
         ar ? "الملاحظة (سرية ومجهولة)" : "Feedback / Comment",
         ar ? "التاريخ" : "Date",
       ],
-      rows: (allCommentsList.length > 0 ? allCommentsList : commentsList).map((r: any, idx: number) => [
-        String(idx + 1),
-        r.propertyName || "-",
-        r.rating === "satisfied"
-          ? ar ? "راضي" : "Satisfied"
-          : r.rating === "neutral"
-          ? ar ? "متوسط" : "Neutral"
-          : ar ? "غير راضي" : "Dissatisfied",
-        `${r.score} / 5`,
-        r.comment || "-",
-        formatDate(r.createdAt),
-      ]),
+      rows: (allCommentsList.length > 0 ? allCommentsList : commentsList).map(
+        (r: any, idx: number) => [
+          String(idx + 1),
+          r.propertyName || "-",
+          r.rating === "satisfied"
+            ? ar
+              ? "راضي"
+              : "Satisfied"
+            : r.rating === "neutral"
+              ? ar
+                ? "متوسط"
+                : "Neutral"
+              : ar
+                ? "غير راضي"
+                : "Dissatisfied",
+          `${r.score} / 5`,
+          r.comment || "-",
+          formatDate(r.createdAt),
+        ],
+      ),
     });
   };
 
@@ -301,9 +380,16 @@ export function HousingPulseSection() {
             </div>
             <div>
               <h2 className="text-base font-bold flex items-center gap-2">
-                <span>{ar ? "استطلاع نبض السكن الدوري" : "Housing Satisfaction Pulse"}</span>
+                <span>
+                  {ar
+                    ? "استطلاع نبض السكن الدوري"
+                    : "Housing Satisfaction Pulse"}
+                </span>
                 {activeConfig.enabled ? (
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px]">
+                  <Badge
+                    variant="outline"
+                    className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px]"
+                  >
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />
                     {ar ? "الاستطلاع نشط" : "Pulse Active"}
                   </Badge>
@@ -331,7 +417,9 @@ export function HousingPulseSection() {
             className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs flex items-center gap-1.5"
           >
             <Send className="w-4 h-4" />
-            <span>{ar ? "إرسال الاستطلاع الآن (بوش اليوم)" : "Push Survey Now"}</span>
+            <span>
+              {ar ? "إرسال الاستطلاع الآن (بوش اليوم)" : "Push Survey Now"}
+            </span>
           </Button>
 
           {/* Configuration Dialog Button */}
@@ -375,36 +463,60 @@ export function HousingPulseSection() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs bg-muted/30 p-3.5 rounded-xl border border-border/50">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-          <span className="text-muted-foreground">{ar ? "فترة التكرار:" : "Cooldown:"}</span>
+          <span className="text-muted-foreground">
+            {ar ? "فترة التكرار:" : "Cooldown:"}
+          </span>
           <span className="font-semibold">
-            {ar ? `كل ${activeConfig.cooldownDays} أيام` : `Every ${activeConfig.cooldownDays} days`}
+            {ar
+              ? `كل ${activeConfig.cooldownDays} أيام`
+              : `Every ${activeConfig.cooldownDays} days`}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <Star className="w-4 h-4 text-amber-500 shrink-0" />
-          <span className="text-muted-foreground">{ar ? "طريقة الإجابة:" : "Rating Mode:"}</span>
+          <span className="text-muted-foreground">
+            {ar ? "طريقة الإجابة:" : "Rating Mode:"}
+          </span>
           <Badge variant="outline" className="text-[11px] font-semibold">
             {activeConfig.ratingType === "stars"
-              ? ar ? "⭐⭐⭐⭐⭐ نجوم (1 إلى 5)" : "Stars Scale (1-5)"
-              : ar ? "😊😐🙁 وجوه تعبيرية" : "Smiley Faces"}
+              ? ar
+                ? "⭐⭐⭐⭐⭐ نجوم (1 إلى 5)"
+                : "Stars Scale (1-5)"
+              : ar
+                ? "😊😐🙁 وجوه تعبيرية"
+                : "Smiley Faces"}
           </Badge>
         </div>
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-primary shrink-0" />
-          <span className="text-muted-foreground">{ar ? "كتابة الملاحظات:" : "Comments:"}</span>
+          <span className="text-muted-foreground">
+            {ar ? "كتابة الملاحظات:" : "Comments:"}
+          </span>
           <span className="font-semibold">
             {!activeConfig.allowComment
-              ? ar ? "معطلة" : "Disabled"
+              ? ar
+                ? "معطلة"
+                : "Disabled"
               : activeConfig.commentRequired
-              ? ar ? "إلزامية" : "Required"
-              : ar ? "مفعلة (اختيارية)" : "Optional"}
+                ? ar
+                  ? "إلزامية"
+                  : "Required"
+                : ar
+                  ? "مفعلة (اختيارية)"
+                  : "Optional"}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <Bell className="w-4 h-4 text-emerald-500 shrink-0" />
-          <span className="text-muted-foreground">{ar ? "آخر إرسال فوري:" : "Last Pushed:"}</span>
+          <span className="text-muted-foreground">
+            {ar ? "آخر إرسال فوري:" : "Last Pushed:"}
+          </span>
           <span className="font-mono text-[11px]">
-            {activeConfig.lastPushedAt ? formatDate(activeConfig.lastPushedAt) : (ar ? "تلقائي دوري" : "Automated periodic")}
+            {activeConfig.lastPushedAt
+              ? formatDate(activeConfig.lastPushedAt)
+              : ar
+                ? "تلقائي دوري"
+                : "Automated periodic"}
           </span>
         </div>
       </div>
@@ -480,7 +592,9 @@ export function HousingPulseSection() {
                   <h3 className="text-2xl font-bold tracking-tight text-amber-600">
                     {stats.averageScore}
                   </h3>
-                  <span className="text-xs text-muted-foreground font-semibold">/ 5</span>
+                  <span className="text-xs text-muted-foreground font-semibold">
+                    / 5
+                  </span>
                 </div>
               </div>
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
@@ -520,7 +634,11 @@ export function HousingPulseSection() {
             </div>
             <div className="mt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground">
               <Lock className="w-3 h-3 text-muted-foreground/60" />
-              <span>{ar ? "ملاحظات سرية 100% بدون إظهار اسم المقيم" : "100% Anonymous feedback"}</span>
+              <span>
+                {ar
+                  ? "ملاحظات سرية 100% بدون إظهار اسم المقيم"
+                  : "100% Anonymous feedback"}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -531,9 +649,15 @@ export function HousingPulseSection() {
         <Card className="border border-border/70 shadow-xs">
           <CardHeader className="py-3 px-4 border-b border-border/50">
             <CardTitle className="text-xs font-bold flex items-center justify-between">
-              <span>{ar ? "توزيع استجابات المقيمين" : "Resident Response Distribution"}</span>
+              <span>
+                {ar
+                  ? "توزيع استجابات المقيمين"
+                  : "Resident Response Distribution"}
+              </span>
               <span className="text-[11px] font-normal text-muted-foreground">
-                {ar ? `إجمالي الاستجابات: ${stats.totalRatings}` : `Total Responses: ${stats.totalRatings}`}
+                {ar
+                  ? `إجمالي الاستجابات: ${stats.totalRatings}`
+                  : `Total Responses: ${stats.totalRatings}`}
               </span>
             </CardTitle>
           </CardHeader>
@@ -621,13 +745,23 @@ export function HousingPulseSection() {
               }}
             >
               <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder={ar ? "تصفية التقييم" : "Filter Rating"} />
+                <SelectValue
+                  placeholder={ar ? "تصفية التقييم" : "Filter Rating"}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{ar ? "كافة التقييمات" : "All Ratings"}</SelectItem>
-                <SelectItem value="satisfied">{ar ? "راضي 😊 (أو 4-5 نجوم)" : "Satisfied 😊"}</SelectItem>
-                <SelectItem value="neutral">{ar ? "متوسط 😐 (أو 3 نجوم)" : "Neutral 😐"}</SelectItem>
-                <SelectItem value="dissatisfied">{ar ? "غير راضي 🙁 (أو 1-2 نجوم)" : "Dissatisfied 🙁"}</SelectItem>
+                <SelectItem value="all">
+                  {ar ? "كافة التقييمات" : "All Ratings"}
+                </SelectItem>
+                <SelectItem value="satisfied">
+                  {ar ? "راضي 😊 (أو 4-5 نجوم)" : "Satisfied 😊"}
+                </SelectItem>
+                <SelectItem value="neutral">
+                  {ar ? "متوسط 😐 (أو 3 نجوم)" : "Neutral 😐"}
+                </SelectItem>
+                <SelectItem value="dissatisfied">
+                  {ar ? "غير راضي 🙁 (أو 1-2 نجوم)" : "Dissatisfied 🙁"}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -638,7 +772,9 @@ export function HousingPulseSection() {
             <Input
               value={searchComment}
               onChange={(e) => setSearchComment(e.target.value)}
-              placeholder={ar ? "البحث في الملاحظات والمقترحات..." : "Search comments..."}
+              placeholder={
+                ar ? "البحث في الملاحظات والمقترحات..." : "Search comments..."
+              }
               className="h-8 text-xs ps-8"
             />
           </div>
@@ -652,7 +788,9 @@ export function HousingPulseSection() {
           disabled={isReportFetching}
           className="h-8 px-2 text-xs text-muted-foreground"
         >
-          <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isReportFetching ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`w-3.5 h-3.5 mr-1 ${isReportFetching ? "animate-spin" : ""}`}
+          />
           <span>{ar ? "تحديث" : "Refresh"}</span>
         </Button>
       </div>
@@ -662,7 +800,9 @@ export function HousingPulseSection() {
         <div className="p-3 border-b bg-muted/20 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h4 className="text-xs font-bold">
-              {ar ? "سجل استجابات وملاحظات المقيمين" : "Resident Feedback & Ratings Log"}
+              {ar
+                ? "سجل استجابات وملاحظات المقيمين"
+                : "Resident Feedback & Ratings Log"}
             </h4>
             <Badge variant="secondary" className="text-[10px]">
               {pagination.total} {ar ? "استجابة" : "records"}
@@ -670,7 +810,11 @@ export function HousingPulseSection() {
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <Lock className="w-3 h-3 text-emerald-600" />
-            <span>{ar ? "السرية التامة: لا يتم تسجيل اسم أو رقم الموظف نهائياً" : "Fully Anonymous: No employee IDs logged"}</span>
+            <span>
+              {ar
+                ? "السرية التامة: لا يتم تسجيل اسم أو رقم الموظف نهائياً"
+                : "Fully Anonymous: No employee IDs logged"}
+            </span>
           </div>
         </div>
 
@@ -684,7 +828,9 @@ export function HousingPulseSection() {
           <div className="text-center py-12 space-y-2">
             <HeartHandshake className="w-8 h-8 text-muted-foreground/40 mx-auto" />
             <p className="text-xs font-medium text-muted-foreground">
-              {ar ? "لا توجد تقييمات مسجلة مطابقة حتى الآن" : "No matching rating records found"}
+              {ar
+                ? "لا توجد تقييمات مسجلة مطابقة حتى الآن"
+                : "No matching rating records found"}
             </p>
           </div>
         ) : (
@@ -693,11 +839,21 @@ export function HousingPulseSection() {
               <TableHeader>
                 <TableRow className="bg-muted/40">
                   <TableHead className="w-12 text-center text-xs">#</TableHead>
-                  <TableHead className="text-xs">{ar ? "المقيم" : "Resident"}</TableHead>
-                  <TableHead className="text-xs">{ar ? "التقييم" : "Rating"}</TableHead>
-                  <TableHead className="text-xs">{ar ? "الدرجة" : "Score"}</TableHead>
-                  <TableHead className="text-xs">{ar ? "الملاحظة / المقترح" : "Feedback / Comment"}</TableHead>
-                  <TableHead className="text-xs text-right">{ar ? "التاريخ" : "Date"}</TableHead>
+                  <TableHead className="text-xs">
+                    {ar ? "المقيم" : "Resident"}
+                  </TableHead>
+                  <TableHead className="text-xs">
+                    {ar ? "التقييم" : "Rating"}
+                  </TableHead>
+                  <TableHead className="text-xs">
+                    {ar ? "الدرجة" : "Score"}
+                  </TableHead>
+                  <TableHead className="text-xs">
+                    {ar ? "الملاحظة / المقترح" : "Feedback / Comment"}
+                  </TableHead>
+                  <TableHead className="text-xs text-right">
+                    {ar ? "التاريخ" : "Date"}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -709,9 +865,15 @@ export function HousingPulseSection() {
                         {itemIndex}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="font-mono text-[10px] bg-muted/40 flex items-center gap-1 w-fit">
+                        <Badge
+                          variant="outline"
+                          className="font-mono text-[10px] bg-muted/40 flex items-center gap-1 w-fit"
+                        >
                           <Lock className="w-2.5 h-2.5 text-muted-foreground" />
-                          <span>{ar ? "مقيم سري مجهول" : "Anonymous Resident"} #{r.id || idx + 1}</span>
+                          <span>
+                            {ar ? "مقيم سري مجهول" : "Anonymous Resident"} #
+                            {r.id || idx + 1}
+                          </span>
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -776,11 +938,18 @@ export function HousingPulseSection() {
 
       {/* ── DIALOG 1: CONFIGURATION MODAL ── */}
       <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
-        <DialogContent className="max-w-lg" srTitle={ar ? "إعدادات استطلاع نبض السكن" : "Housing Pulse Settings"}>
+        <DialogContent
+          className="max-w-lg"
+          srTitle={ar ? "إعدادات استطلاع نبض السكن" : "Housing Pulse Settings"}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings2 className="w-5 h-5 text-primary" />
-              <span>{ar ? "إعدادات استطلاع نبض السكن الأسبوعي" : "Housing Pulse Survey Settings"}</span>
+              <span>
+                {ar
+                  ? "إعدادات استطلاع نبض السكن الأسبوعي"
+                  : "Housing Pulse Survey Settings"}
+              </span>
             </DialogTitle>
             <DialogDescription className="text-xs">
               {ar
@@ -804,7 +973,9 @@ export function HousingPulseSection() {
               </div>
               <Switch
                 checked={configForm.enabled}
-                onCheckedChange={(val) => setConfigForm((f) => ({ ...f, enabled: val }))}
+                onCheckedChange={(val) =>
+                  setConfigForm((f) => ({ ...f, enabled: val }))
+                }
               />
             </div>
 
@@ -816,7 +987,9 @@ export function HousingPulseSection() {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => setConfigForm((f) => ({ ...f, ratingType: "faces" }))}
+                  onClick={() =>
+                    setConfigForm((f) => ({ ...f, ratingType: "faces" }))
+                  }
                   className={`p-3 rounded-xl border text-start transition-all cursor-pointer ${
                     configForm.ratingType === "faces"
                       ? "border-primary bg-primary/10 shadow-xs"
@@ -828,13 +1001,17 @@ export function HousingPulseSection() {
                     <span>{ar ? "وجوه تعبيرية" : "Smiley Faces"}</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    {ar ? "😊 راضي / 😐 متوسط / 🙁 غير راضي" : "Satisfied / Neutral / Dissatisfied"}
+                    {ar
+                      ? "😊 راضي / 😐 متوسط / 🙁 غير راضي"
+                      : "Satisfied / Neutral / Dissatisfied"}
                   </p>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setConfigForm((f) => ({ ...f, ratingType: "stars" }))}
+                  onClick={() =>
+                    setConfigForm((f) => ({ ...f, ratingType: "stars" }))
+                  }
                   className={`p-3 rounded-xl border text-start transition-all cursor-pointer ${
                     configForm.ratingType === "stars"
                       ? "border-primary bg-primary/10 shadow-xs"
@@ -846,7 +1023,9 @@ export function HousingPulseSection() {
                     <span>{ar ? "نجوم (1 إلى 5)" : "5-Star Scale"}</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    {ar ? "⭐⭐⭐⭐⭐ تقييم رقمي تدريجي" : "1 to 5 numeric stars"}
+                    {ar
+                      ? "⭐⭐⭐⭐⭐ تقييم رقمي تدريجي"
+                      : "1 to 5 numeric stars"}
                   </p>
                 </button>
               </div>
@@ -865,7 +1044,9 @@ export function HousingPulseSection() {
                 </div>
                 <Switch
                   checked={configForm.allowComment}
-                  onCheckedChange={(val) => setConfigForm((f) => ({ ...f, allowComment: val }))}
+                  onCheckedChange={(val) =>
+                    setConfigForm((f) => ({ ...f, allowComment: val }))
+                  }
                 />
               </div>
 
@@ -875,13 +1056,17 @@ export function HousingPulseSection() {
                     {ar ? "التعليق إلزامي" : "Comment Required"}
                   </Label>
                   <p className="text-[9px] text-muted-foreground">
-                    {ar ? "إلزام الموظف بكتابة سبب" : "Require written explanation"}
+                    {ar
+                      ? "إلزام الموظف بكتابة سبب"
+                      : "Require written explanation"}
                   </p>
                 </div>
                 <Switch
                   disabled={!configForm.allowComment}
                   checked={configForm.commentRequired}
-                  onCheckedChange={(val) => setConfigForm((f) => ({ ...f, commentRequired: val }))}
+                  onCheckedChange={(val) =>
+                    setConfigForm((f) => ({ ...f, commentRequired: val }))
+                  }
                 />
               </div>
             </div>
@@ -889,7 +1074,9 @@ export function HousingPulseSection() {
             {/* 4. Recurrence Cooldown (Days) */}
             <div className="space-y-1">
               <Label className="text-xs font-semibold">
-                {ar ? "فترة التكرار التلقائي (بالأيام)" : "Recurrence Cooldown (Days)"}
+                {ar
+                  ? "فترة التكرار التلقائي (بالأيام)"
+                  : "Recurrence Cooldown (Days)"}
               </Label>
               <Input
                 type="number"
@@ -923,7 +1110,9 @@ export function HousingPulseSection() {
                   </Label>
                   <Input
                     value={configForm.titleAr}
-                    onChange={(e) => setConfigForm((f) => ({ ...f, titleAr: e.target.value }))}
+                    onChange={(e) =>
+                      setConfigForm((f) => ({ ...f, titleAr: e.target.value }))
+                    }
                     className="h-8 text-xs"
                   />
                 </div>
@@ -933,7 +1122,9 @@ export function HousingPulseSection() {
                   </Label>
                   <Input
                     value={configForm.titleEn}
-                    onChange={(e) => setConfigForm((f) => ({ ...f, titleEn: e.target.value }))}
+                    onChange={(e) =>
+                      setConfigForm((f) => ({ ...f, titleEn: e.target.value }))
+                    }
                     className="h-8 text-xs"
                   />
                 </div>
@@ -945,7 +1136,9 @@ export function HousingPulseSection() {
                 </Label>
                 <Input
                   value={configForm.questionAr}
-                  onChange={(e) => setConfigForm((f) => ({ ...f, questionAr: e.target.value }))}
+                  onChange={(e) =>
+                    setConfigForm((f) => ({ ...f, questionAr: e.target.value }))
+                  }
                   className="h-8 text-xs"
                 />
               </div>
@@ -956,7 +1149,9 @@ export function HousingPulseSection() {
                 </Label>
                 <Input
                   value={configForm.questionEn}
-                  onChange={(e) => setConfigForm((f) => ({ ...f, questionEn: e.target.value }))}
+                  onChange={(e) =>
+                    setConfigForm((f) => ({ ...f, questionEn: e.target.value }))
+                  }
                   className="h-8 text-xs"
                 />
               </div>
@@ -987,11 +1182,18 @@ export function HousingPulseSection() {
 
       {/* ── DIALOG 2: PUSH TODAY CONFIRMATION MODAL ── */}
       <Dialog open={isPushConfirmOpen} onOpenChange={setIsPushConfirmOpen}>
-        <DialogContent className="max-w-md" srTitle={ar ? "تأكيد إرسال الاستطلاع الآن" : "Confirm Instant Push"}>
+        <DialogContent
+          className="max-w-md"
+          srTitle={ar ? "تأكيد إرسال الاستطلاع الآن" : "Confirm Instant Push"}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-emerald-600">
               <Send className="w-5 h-5" />
-              <span>{ar ? "إرسال الاستطلاع الآن لجميع المقيمين؟" : "Push Survey to All Residents Now?"}</span>
+              <span>
+                {ar
+                  ? "إرسال الاستطلاع الآن لجميع المقيمين؟"
+                  : "Push Survey to All Residents Now?"}
+              </span>
             </DialogTitle>
             <DialogDescription className="text-xs">
               {ar
@@ -1003,12 +1205,26 @@ export function HousingPulseSection() {
           <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-foreground space-y-1.5">
             <div className="font-semibold flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
               <Sparkles className="w-4 h-4" />
-              <span>{ar ? "ماذا يحدث عند التأكيد؟" : "What happens next?"}</span>
+              <span>
+                {ar ? "ماذا يحدث عند التأكيد؟" : "What happens next?"}
+              </span>
             </div>
             <ul className="list-disc list-inside text-[11px] text-muted-foreground space-y-1">
-              <li>{ar ? "يظهر كارت الاستبيان على الفور في واجهة البوابة لكل موظف مقيم." : "The rating prompt immediately renders on each resident's portal."}</li>
-              <li>{ar ? "يتم بث إشعار WebSocket وتنبيه داخلي في البوابة." : "A real-time WebSocket notification is dispatched."}</li>
-              <li>{ar ? "التقييمات تظل سرية ومجهولة الهوية 100% لحماية خصوصية الموظفين." : "Ratings remain 100% anonymous."}</li>
+              <li>
+                {ar
+                  ? "يظهر كارت الاستبيان على الفور في واجهة البوابة لكل موظف مقيم."
+                  : "The rating prompt immediately renders on each resident's portal."}
+              </li>
+              <li>
+                {ar
+                  ? "يتم بث إشعار WebSocket وتنبيه داخلي في البوابة."
+                  : "A real-time WebSocket notification is dispatched."}
+              </li>
+              <li>
+                {ar
+                  ? "التقييمات تظل سرية ومجهولة الهوية 100% لحماية خصوصية الموظفين."
+                  : "Ratings remain 100% anonymous."}
+              </li>
             </ul>
           </div>
 
@@ -1031,7 +1247,9 @@ export function HousingPulseSection() {
               ) : (
                 <Send className="w-3.5 h-3.5 mr-1" />
               )}
-              <span>{ar ? "تأكيد وإرسال للمقيمين الآن" : "Confirm & Push Now"}</span>
+              <span>
+                {ar ? "تأكيد وإرسال للمقيمين الآن" : "Confirm & Push Now"}
+              </span>
             </Button>
           </DialogFooter>
         </DialogContent>

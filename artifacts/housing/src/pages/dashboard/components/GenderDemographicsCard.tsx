@@ -1,5 +1,11 @@
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
 import { Users, User, ShieldCheck } from "lucide-react";
@@ -40,7 +46,9 @@ export function GenderDemographicsCard({
                 {ar ? "التوزيع النوعي للمقيمين" : "Resident Demographics"}
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
-                {ar ? "توزيع وسعة السكن حسب الجنس" : "Gender allocation & capacity balance"}
+                {ar
+                  ? "توزيع وسعة السكن حسب الجنس"
+                  : "Gender allocation & capacity balance"}
               </CardDescription>
             </div>
           </div>
@@ -89,7 +97,9 @@ export function GenderDemographicsCard({
                 {malePercent}%
               </span>
             </div>
-            <p className="text-xl font-extrabold text-foreground font-mono">{male}</p>
+            <p className="text-xl font-extrabold text-foreground font-mono">
+              {male}
+            </p>
             <span className="text-[10px] text-muted-foreground mt-1">
               {ar ? "نزيل مسكن حالياً" : "Active male residents"}
             </span>
@@ -102,7 +112,9 @@ export function GenderDemographicsCard({
                 {femalePercent}%
               </span>
             </div>
-            <p className="text-xl font-extrabold text-foreground font-mono">{female}</p>
+            <p className="text-xl font-extrabold text-foreground font-mono">
+              {female}
+            </p>
             <span className="text-[10px] text-muted-foreground mt-1">
               {ar ? "نزيلة مسكنة حالياً" : "Active female residents"}
             </span>
@@ -111,8 +123,12 @@ export function GenderDemographicsCard({
 
         {/* Total Occupancy Note */}
         <div className="text-[11px] text-muted-foreground/80 bg-muted/40 p-2.5 rounded-lg border border-border/30 flex items-center justify-between">
-          <span>{ar ? "إجمالي الطاقة المشغولة:" : "Total Resident Occupancy:"}</span>
-          <span className="font-bold text-foreground font-mono">{male + female} {ar ? "نزيل" : "residents"}</span>
+          <span>
+            {ar ? "إجمالي الطاقة المشغولة:" : "Total Resident Occupancy:"}
+          </span>
+          <span className="font-bold text-foreground font-mono">
+            {male + female} {ar ? "نزيل" : "residents"}
+          </span>
         </div>
       </CardContent>
     </Card>

@@ -46,6 +46,15 @@ export type EditFormState = {
 };
 
 export type EditDialogState = { open: boolean; reservation: any | null };
-export type CancelDialogState = { open: boolean; reservation: any | null; reason: string };
-export type CheckinDialogState = { open: boolean; id: number | null; guestName?: string; reservation?: any };
+export type CancelDialogState = {
+  open: boolean;
+  reservation: any | null;
+  reason: string;
+};
+export type CheckinDialogState = {
+  open: boolean;
+  id: number | null;
+  guestName?: string;
+  reservation?: any;
+};
 export type WhatsAppDialogState = { open: boolean; reservation: any | null };

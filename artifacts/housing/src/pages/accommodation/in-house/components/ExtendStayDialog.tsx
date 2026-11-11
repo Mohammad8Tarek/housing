@@ -47,9 +47,7 @@ export function ExtendStayDialog({
   return (
     <Dialog
       open={extendDialog.open}
-      onOpenChange={(open) =>
-        setExtendDialog((prev) => ({ ...prev, open }))
-      }
+      onOpenChange={(open) => setExtendDialog((prev) => ({ ...prev, open }))}
     >
       <DialogContent
         className="max-w-md"
@@ -70,13 +68,17 @@ export function ExtendStayDialog({
                 {extendDialog.emp.firstName} {extendDialog.emp.lastName}
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                <span className="font-mono font-medium">{extendDialog.emp.profileId}</span>
+                <span className="font-mono font-medium">
+                  {extendDialog.emp.profileId}
+                </span>
                 {extendDialog.room && (
                   <>
                     <span>•</span>
                     <span>
                       {ar ? "غرفة" : "Room"} {extendDialog.room.roomNumber}
-                      {extendDialog.assignment?.bedNumber ? ` (${ar ? "سرير" : "Bed"} ${extendDialog.assignment.bedNumber})` : ""}
+                      {extendDialog.assignment?.bedNumber
+                        ? ` (${ar ? "سرير" : "Bed"} ${extendDialog.assignment.bedNumber})`
+                        : ""}
                     </span>
                   </>
                 )}
@@ -100,7 +102,10 @@ export function ExtendStayDialog({
                 {ar ? "تاريخ المغادرة الحالي:" : "Current Departure:"}
               </span>
               <span className="font-semibold">
-                {formatDate(extendDialog.assignment.expectedCheckOutDate, ar ? "غير محدد" : "Not set")}
+                {formatDate(
+                  extendDialog.assignment.expectedCheckOutDate,
+                  ar ? "غير محدد" : "Not set",
+                )}
               </span>
             </div>
           </div>
@@ -109,7 +114,10 @@ export function ExtendStayDialog({
         <div className="space-y-4 pt-1">
           <div className="space-y-1.5">
             <Label className="font-semibold text-sm">
-              {ar ? "تاريخ المغادرة الجديد المتوقع" : "New Expected Departure Date"} *
+              {ar
+                ? "تاريخ المغادرة الجديد المتوقع"
+                : "New Expected Departure Date"}{" "}
+              *
             </Label>
             <DateInput
               value={extendNewDate}

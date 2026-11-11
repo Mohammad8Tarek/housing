@@ -1,4 +1,13 @@
-import { pgTable, serial, integer, varchar, text, date, timestamp, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  integer,
+  varchar,
+  text,
+  date,
+  timestamp,
+  index,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { propertiesTable } from "./properties";
 import { usersTable } from "./users";
@@ -14,8 +23,10 @@ export const familyVisitRequestsTable = pgTable(
     hotelId: integer("hotel_id"),
     visitHotelId: integer("visit_hotel_id"),
 
-    requesterUserId: integer("requester_user_id")
-      .references(() => usersTable.id, { onDelete: "set null" }),
+    requesterUserId: integer("requester_user_id").references(
+      () => usersTable.id,
+      { onDelete: "set null" },
+    ),
     profileName: varchar("profile_name", { length: 200 }).notNull(),
     clockNumber: varchar("clock_number", { length: 50 }).notNull(),
     department: varchar("department", { length: 150 }).notNull(),

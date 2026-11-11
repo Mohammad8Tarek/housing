@@ -8,7 +8,12 @@ interface UseRoomOccupancyArgs {
 }
 
 /** Derived occupancy maps (active assignments, entire-room locks, single occupants, bed map). */
-export function useRoomOccupancy({ rooms, allAssignments, selectedRoomId, ar }: UseRoomOccupancyArgs) {
+export function useRoomOccupancy({
+  rooms,
+  allAssignments,
+  selectedRoomId,
+  ar,
+}: UseRoomOccupancyArgs) {
   // Active assignments indexed by roomId
   const roomActiveAssignmentsMap = useMemo(() => {
     const map = new Map<number, any[]>();
@@ -25,7 +30,10 @@ export function useRoomOccupancy({ rooms, allAssignments, selectedRoomId, ar }: 
   const entireRoomOccupiedSet = useMemo(() => {
     const set = new Set<number>();
     allAssignments
-      .filter((a: any) => a.status === "ACTIVE" && (a.isEntireRoom || a.is_entire_room))
+      .filter(
+        (a: any) =>
+          a.status === "ACTIVE" && (a.isEntireRoom || a.is_entire_room),
+      )
       .forEach((a: any) => set.add(Number(a.roomId)));
     return set;
   }, [allAssignments]);
@@ -45,8 +53,18 @@ export function useRoomOccupancy({ rooms, allAssignments, selectedRoomId, ar }: 
       if (effectiveOcc === 1 || (isEntire && cap > 1)) {
         const first = activeList[0];
         const name = first
-          ? [first.profileFirstName || first.firstName, first.profileLastName || first.lastName].filter(Boolean).join(" ") || first.employeeName || first.profileName || (ar ? "نزيل مسكن" : "Resident")
-          : (ar ? "نزيل بمفرده" : "Single Resident");
+          ? [
+              first.profileFirstName || first.firstName,
+              first.profileLastName || first.lastName,
+            ]
+              .filter(Boolean)
+              .join(" ") ||
+            first.employeeName ||
+            first.profileName ||
+            (ar ? "نزيل مسكن" : "Resident")
+          : ar
+            ? "نزيل بمفرده"
+            : "Single Resident";
         map.set(rId, { residentName: name });
       }
     }
@@ -65,14 +83,22 @@ export function useRoomOccupancy({ rooms, allAssignments, selectedRoomId, ar }: 
 
     if (isEntire) {
       for (let b = 1; b <= cap; b++) {
-        map.set(b, { residentName: ar ? "محجوز (غرفة كاملة)" : "Occupied (Full Room)" });
+        map.set(b, {
+          residentName: ar ? "محجوز (غرفة كاملة)" : "Occupied (Full Room)",
+        });
       }
       return map;
     }
 
     const unassigned: string[] = [];
     for (const a of activeList) {
-      const name = [a.profileFirstName || a.firstName, a.profileLastName || a.lastName].filter(Boolean).join(" ") || a.employeeName || a.profileName || (ar ? "نزيل مسكن" : "Resident");
+      const name =
+        [a.profileFirstName || a.firstName, a.profileLastName || a.lastName]
+          .filter(Boolean)
+          .join(" ") ||
+        a.employeeName ||
+        a.profileName ||
+        (ar ? "نزيل مسكن" : "Resident");
       if (a.bedNumber != null && Number(a.bedNumber) > 0) {
         map.set(Number(a.bedNumber), { residentName: name });
       } else {
@@ -92,11 +118,23 @@ export function useRoomOccupancy({ rooms, allAssignments, selectedRoomId, ar }: 
     }
 
     return map;
-  }, [selectedRoomId, rooms, roomActiveAssignmentsMap, entireRoomOccupiedSet, ar]);
+  }, [
+    selectedRoomId,
+    rooms,
+    roomActiveAssignmentsMap,
+    entireRoomOccupiedSet,
+    ar,
+  ]);
 
   const occupiedBeds = useMemo(() => {
     return new Set<number>(Array.from(selectedRoomBedMap.keys()));
   }, [selectedRoomBedMap]);
 
-  return { roomActiveAssignmentsMap, entireRoomOccupiedSet, singleOccupantRoomsMap, selectedRoomBedMap, occupiedBeds };
+  return {
+    roomActiveAssignmentsMap,
+    entireRoomOccupiedSet,
+    singleOccupantRoomsMap,
+    selectedRoomBedMap,
+    occupiedBeds,
+  };
 }

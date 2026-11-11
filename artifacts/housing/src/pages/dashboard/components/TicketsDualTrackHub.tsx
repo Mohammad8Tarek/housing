@@ -12,7 +12,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Wrench, Sparkles, Clock, CheckCircle2, Flame, ArrowRight, Star, Activity, ChevronRight } from "lucide-react";
+import {
+  Wrench,
+  Sparkles,
+  Clock,
+  CheckCircle2,
+  Flame,
+  ArrowRight,
+  Star,
+  Activity,
+  ChevronRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TrackStats {
@@ -65,12 +75,19 @@ export function TicketsDualTrackHub({
 }: TicketsDualTrackHubProps) {
   const { language } = useLanguage();
   const ar = language === "ar";
-  const [activeTab, setActiveTab] = useState<"both" | "maintenance" | "housekeeping">("both");
+  const [activeTab, setActiveTab] = useState<
+    "both" | "maintenance" | "housekeeping"
+  >("both");
 
-  const { data: response, isLoading } = useQuery<{ success: boolean; data: OverviewData }>({
+  const { data: response, isLoading } = useQuery<{
+    success: boolean;
+    data: OverviewData;
+  }>({
     queryKey: ["dashboard", "tickets-overview", propertyId],
     queryFn: async () => {
-      const res = await fetch(`/api/dashboard/tickets-overview?propertyId=${propertyId}`);
+      const res = await fetch(
+        `/api/dashboard/tickets-overview?propertyId=${propertyId}`,
+      );
       if (!res.ok) throw new Error("Failed to fetch tickets overview");
       return res.json();
     },
@@ -148,7 +165,7 @@ export function TicketsDualTrackHub({
               "w-2.5 h-2.5",
               star <= rating
                 ? "text-amber-400 fill-amber-400"
-                : "text-muted-foreground/30"
+                : "text-muted-foreground/30",
             )}
           />
         ))}
@@ -189,7 +206,7 @@ export function TicketsDualTrackHub({
                   "px-2.5 py-1 rounded-lg font-bold transition-all",
                   activeTab === "both"
                     ? "bg-background text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {ar ? "الشقين معاً" : "Dual Track"}
@@ -201,7 +218,7 @@ export function TicketsDualTrackHub({
                   "px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1",
                   activeTab === "maintenance"
                     ? "bg-background text-amber-600 dark:text-amber-400 shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <Wrench className="w-3 h-3" />
@@ -214,7 +231,7 @@ export function TicketsDualTrackHub({
                   "px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1",
                   activeTab === "housekeeping"
                     ? "bg-background text-emerald-600 dark:text-emerald-400 shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <Sparkles className="w-3 h-3" />
@@ -223,7 +240,11 @@ export function TicketsDualTrackHub({
             </div>
 
             <Link href={buildNavHref("/maintenance")}>
-              <Button variant="outline" size="sm" className="h-8 gap-1 text-xs font-semibold">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1 text-xs font-semibold"
+              >
                 <span>{ar ? "جميع التذاكر" : "All Tickets"}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
@@ -236,7 +257,7 @@ export function TicketsDualTrackHub({
         <div
           className={cn(
             "grid gap-5",
-            activeTab === "both" ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"
+            activeTab === "both" ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1",
           )}
         >
           {/* ══════════════════════════════════════════════════════════════ */}
@@ -253,12 +274,17 @@ export function TicketsDualTrackHub({
                   <div>
                     <h3 className="text-sm font-black text-foreground flex items-center gap-1.5">
                       {ar ? "شق الصيانة والأعطال" : "Maintenance Operations"}
-                      <Badge variant="outline" className="text-[10px] font-mono border-amber-500/30 text-amber-700 dark:text-amber-300">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-mono border-amber-500/30 text-amber-700 dark:text-amber-300"
+                      >
                         {mnt?.total ?? 0} {ar ? "بلاغ" : "tickets"}
                       </Badge>
                     </h3>
                     <p className="text-[11px] text-muted-foreground">
-                      {ar ? "سباكة، كهرباء، تكييف، نجارة، وأجهزة" : "Plumbing, electrical, AC, carpentry, appliances"}
+                      {ar
+                        ? "سباكة، كهرباء، تكييف، نجارة، وأجهزة"
+                        : "Plumbing, electrical, AC, carpentry, appliances"}
                     </p>
                   </div>
                 </div>
@@ -268,12 +294,19 @@ export function TicketsDualTrackHub({
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25">
                     <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                     <span className="text-xs font-black text-amber-600 dark:text-amber-400 font-mono">
-                      {mnt?.ratingStats.avgRating ? mnt.ratingStats.avgRating.toFixed(1) : "—"}
+                      {mnt?.ratingStats.avgRating
+                        ? mnt.ratingStats.avgRating.toFixed(1)
+                        : "—"}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">/ 5</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      / 5
+                    </span>
                   </div>
                   <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-                    {mnt?.ratingStats.totalRated ?? 0} {ar ? "تقييم" : "ratings"} ({mnt?.ratingStats.satisfactionRate ?? 0}% {ar ? "رضا" : "satisfaction"})
+                    {mnt?.ratingStats.totalRated ?? 0}{" "}
+                    {ar ? "تقييم" : "ratings"} (
+                    {mnt?.ratingStats.satisfactionRate ?? 0}%{" "}
+                    {ar ? "رضا" : "satisfaction"})
                   </span>
                 </div>
               </div>
@@ -341,20 +374,31 @@ export function TicketsDualTrackHub({
               <div className="space-y-1.5 bg-background/80 p-2.5 rounded-xl border">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-muted-foreground">
-                    {ar ? "نسبة إنجاز طلبات الصيانة:" : "Maintenance Completion Rate:"}
+                    {ar
+                      ? "نسبة إنجاز طلبات الصيانة:"
+                      : "Maintenance Completion Rate:"}
                   </span>
                   <span className="font-black font-mono text-amber-600 dark:text-amber-400">
                     {mnt?.completionRate ?? 0}%
                   </span>
                 </div>
-                <Progress value={mnt?.completionRate ?? 0} className="h-2 bg-amber-500/15" />
+                <Progress
+                  value={mnt?.completionRate ?? 0}
+                  className="h-2 bg-amber-500/15"
+                />
               </div>
 
               {/* Recent Tickets Table */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs font-bold text-muted-foreground px-1">
-                  <span>{ar ? "أحدث بلاغات الصيانة الواردة:" : "Recent Maintenance Requests:"}</span>
-                  <Link href={buildNavHref("/maintenance?category=maintenance")}>
+                  <span>
+                    {ar
+                      ? "أحدث بلاغات الصيانة الواردة:"
+                      : "Recent Maintenance Requests:"}
+                  </span>
+                  <Link
+                    href={buildNavHref("/maintenance?category=maintenance")}
+                  >
                     <span className="text-amber-600 dark:text-amber-400 hover:underline cursor-pointer flex items-center gap-1 text-[11px]">
                       {ar ? "عرض الكل" : "View All"}
                       <ChevronRight className="w-3 h-3" />
@@ -362,9 +406,12 @@ export function TicketsDualTrackHub({
                   </Link>
                 </div>
 
-                {(!overview?.recentMaintenance || overview.recentMaintenance.length === 0) ? (
+                {!overview?.recentMaintenance ||
+                overview.recentMaintenance.length === 0 ? (
                   <div className="text-center py-6 border rounded-xl bg-background/50 text-xs text-muted-foreground">
-                    {ar ? "لا توجد بلاغات صيانة حالياً" : "No maintenance tickets found"}
+                    {ar
+                      ? "لا توجد بلاغات صيانة حالياً"
+                      : "No maintenance tickets found"}
                   </div>
                 ) : (
                   <div className="border rounded-xl bg-background divide-y divide-border/60 overflow-hidden text-xs">
@@ -375,7 +422,10 @@ export function TicketsDualTrackHub({
                         className="p-2.5 flex items-center justify-between gap-2 hover:bg-muted/50 transition-colors block cursor-pointer"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 shrink-0 font-bold">
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-[10px] px-1.5 py-0 shrink-0 font-bold"
+                          >
                             #{t.roomNumber || t.roomId}
                           </Badge>
                           <div className="truncate">
@@ -383,7 +433,8 @@ export function TicketsDualTrackHub({
                               {t.problemType}
                             </p>
                             <span className="text-[10px] text-muted-foreground truncate block">
-                              {t.buildingName || "Housing"} • {t.reportedBy || (ar ? "نزيل" : "Resident")}
+                              {t.buildingName || "Housing"} •{" "}
+                              {t.reportedBy || (ar ? "نزيل" : "Resident")}
                             </span>
                           </div>
                         </div>
@@ -418,13 +469,20 @@ export function TicketsDualTrackHub({
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-foreground flex items-center gap-1.5">
-                      {ar ? "شق الهاوس كيبنج والنظافة" : "Housekeeping Operations"}
-                      <Badge variant="outline" className="text-[10px] font-mono border-emerald-500/30 text-emerald-700 dark:text-emerald-300">
+                      {ar
+                        ? "شق الهاوس كيبنج والنظافة"
+                        : "Housekeeping Operations"}
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-mono border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+                      >
                         {hsk?.total ?? 0} {ar ? "طلب" : "orders"}
                       </Badge>
                     </h3>
                     <p className="text-[11px] text-muted-foreground">
-                      {ar ? "نظافة الغرف، المفارش، مستلزمات الحمام، والقمامة" : "Room cleaning, linen, amenities, trash collection"}
+                      {ar
+                        ? "نظافة الغرف، المفارش، مستلزمات الحمام، والقمامة"
+                        : "Room cleaning, linen, amenities, trash collection"}
                     </p>
                   </div>
                 </div>
@@ -434,12 +492,19 @@ export function TicketsDualTrackHub({
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25">
                     <Star className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600 dark:text-emerald-400 dark:fill-emerald-400" />
                     <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 font-mono">
-                      {hsk?.ratingStats.avgRating ? hsk.ratingStats.avgRating.toFixed(1) : "—"}
+                      {hsk?.ratingStats.avgRating
+                        ? hsk.ratingStats.avgRating.toFixed(1)
+                        : "—"}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">/ 5</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      / 5
+                    </span>
                   </div>
                   <span className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-                    {hsk?.ratingStats.totalRated ?? 0} {ar ? "تقييم" : "ratings"} ({hsk?.ratingStats.satisfactionRate ?? 0}% {ar ? "رضا" : "satisfaction"})
+                    {hsk?.ratingStats.totalRated ?? 0}{" "}
+                    {ar ? "تقييم" : "ratings"} (
+                    {hsk?.ratingStats.satisfactionRate ?? 0}%{" "}
+                    {ar ? "رضا" : "satisfaction"})
                   </span>
                 </div>
               </div>
@@ -507,20 +572,31 @@ export function TicketsDualTrackHub({
               <div className="space-y-1.5 bg-background/80 p-2.5 rounded-xl border">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-muted-foreground">
-                    {ar ? "نسبة إنجاز طلبات النظافة:" : "Housekeeping Resolution Rate:"}
+                    {ar
+                      ? "نسبة إنجاز طلبات النظافة:"
+                      : "Housekeeping Resolution Rate:"}
                   </span>
                   <span className="font-black font-mono text-emerald-600 dark:text-emerald-400">
                     {hsk?.completionRate ?? 0}%
                   </span>
                 </div>
-                <Progress value={hsk?.completionRate ?? 0} className="h-2 bg-emerald-500/15" />
+                <Progress
+                  value={hsk?.completionRate ?? 0}
+                  className="h-2 bg-emerald-500/15"
+                />
               </div>
 
               {/* Recent Tickets Table */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs font-bold text-muted-foreground px-1">
-                  <span>{ar ? "أحدث طلبات النظافة الواردة:" : "Recent Housekeeping Orders:"}</span>
-                  <Link href={buildNavHref("/maintenance?category=housekeeping")}>
+                  <span>
+                    {ar
+                      ? "أحدث طلبات النظافة الواردة:"
+                      : "Recent Housekeeping Orders:"}
+                  </span>
+                  <Link
+                    href={buildNavHref("/maintenance?category=housekeeping")}
+                  >
                     <span className="text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer flex items-center gap-1 text-[11px]">
                       {ar ? "عرض الكل" : "View All"}
                       <ChevronRight className="w-3 h-3" />
@@ -528,20 +604,28 @@ export function TicketsDualTrackHub({
                   </Link>
                 </div>
 
-                {(!overview?.recentHousekeeping || overview.recentHousekeeping.length === 0) ? (
+                {!overview?.recentHousekeeping ||
+                overview.recentHousekeeping.length === 0 ? (
                   <div className="text-center py-6 border rounded-xl bg-background/50 text-xs text-muted-foreground">
-                    {ar ? "لا توجد طلبات نظافة حالياً" : "No housekeeping requests found"}
+                    {ar
+                      ? "لا توجد طلبات نظافة حالياً"
+                      : "No housekeeping requests found"}
                   </div>
                 ) : (
                   <div className="border rounded-xl bg-background divide-y divide-border/60 overflow-hidden text-xs">
                     {overview.recentHousekeeping.slice(0, 5).map((t) => (
                       <Link
                         key={t.id}
-                        href={buildNavHref(`/maintenance?category=housekeeping&ticketId=${t.id}`)}
+                        href={buildNavHref(
+                          `/maintenance?category=housekeeping&ticketId=${t.id}`,
+                        )}
                         className="p-2.5 flex items-center justify-between gap-2 hover:bg-muted/50 transition-colors block cursor-pointer"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 shrink-0 font-bold border-emerald-500/30">
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-[10px] px-1.5 py-0 shrink-0 font-bold border-emerald-500/30"
+                          >
                             #{t.roomNumber || t.roomId}
                           </Badge>
                           <div className="truncate">
@@ -549,7 +633,8 @@ export function TicketsDualTrackHub({
                               {t.problemType}
                             </p>
                             <span className="text-[10px] text-muted-foreground truncate block">
-                              {t.buildingName || "Housing"} • {t.reportedBy || (ar ? "نزيل" : "Resident")}
+                              {t.buildingName || "Housing"} •{" "}
+                              {t.reportedBy || (ar ? "نزيل" : "Resident")}
                             </span>
                           </div>
                         </div>

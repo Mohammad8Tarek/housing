@@ -49,18 +49,28 @@ export function useTransferTarget({
       : numericPropertyId;
   const { data: _targetRoomsWrapper } = useListRooms(
     { propertyId: targetPropId, limit: 1000 } as any,
-    { query: { queryKey: ["listRooms", targetPropId], enabled: !!targetPropId } as any },
+    {
+      query: {
+        queryKey: ["listRooms", targetPropId],
+        enabled: !!targetPropId,
+      } as any,
+    },
   );
   const targetRooms: any[] = Array.isArray(_targetRoomsWrapper)
     ? _targetRoomsWrapper
-    : (((_targetRoomsWrapper as any)?.data as any[]) || []);
+    : ((_targetRoomsWrapper as any)?.data as any[]) || [];
   const { data: _tbData } = useListBuildings(
     { propertyId: targetPropId } as any,
-    { query: { queryKey: ["listBuildings", targetPropId], enabled: !!targetPropId } as any },
+    {
+      query: {
+        queryKey: ["listBuildings", targetPropId],
+        enabled: !!targetPropId,
+      } as any,
+    },
   );
   const targetBuildings: any[] = Array.isArray(_tbData)
     ? _tbData
-    : (((_tbData as any)?.data as any[]) || []);
+    : ((_tbData as any)?.data as any[]) || [];
   const { data: _taData } = useListAssignments(
     { propertyId: targetPropId } as any,
     {
@@ -73,7 +83,7 @@ export function useTransferTarget({
   );
   const targetAssignments: any[] = Array.isArray(_taData)
     ? _taData
-    : (((_taData as any)?.data as any[]) || []);
+    : ((_taData as any)?.data as any[]) || [];
 
   // Fetch real-time bed occupancy for the selected target room
   const { data: roomBedOccupancy } = useQuery({
@@ -144,7 +154,11 @@ export function useTransferTarget({
 
     for (const a of targetAssignments) {
       const aStatus = String(a.status || "").toUpperCase();
-      if (aStatus === "ACTIVE" && Number(a.roomId) === selRoomId && a.bedNumber != null) {
+      if (
+        aStatus === "ACTIVE" &&
+        Number(a.roomId) === selRoomId &&
+        a.bedNumber != null
+      ) {
         const bedNum = Number(a.bedNumber);
         if (!map.has(bedNum)) {
           const empObj = profiles.find((p: any) => p.id === a.profileId);
@@ -152,7 +166,7 @@ export function useTransferTarget({
             ? getProfileDisplayName(empObj, ar)
             : a.profileFirstName
               ? `${a.profileFirstName} ${a.profileLastName || ""}`.trim()
-              : (a.profileName || (ar ? "نزيل آخر" : "Resident"));
+              : a.profileName || (ar ? "نزيل آخر" : "Resident");
           map.set(bedNum, {
             name: fullName,
             isOnVacation: (a as any).profileStatus === "VACATION",
@@ -176,7 +190,9 @@ export function useTransferTarget({
   // Auto-select first available bed when target room changes or occupied beds update
   useEffect(() => {
     if (!transferRoomId || bedOptions.length === 0) return;
-    const isCurrentBedOccupied = selectedTransferBed && targetOccupiedBeds.has(Number(selectedTransferBed));
+    const isCurrentBedOccupied =
+      selectedTransferBed &&
+      targetOccupiedBeds.has(Number(selectedTransferBed));
     if (!selectedTransferBed || isCurrentBedOccupied) {
       const firstFree = bedOptions.find((b) => !targetOccupiedBeds.has(b));
       if (firstFree != null) {
@@ -193,7 +209,11 @@ export function useTransferTarget({
 
   const transferRecommendations = useMemo(() => {
     if (!transferOpen || !transferEmp || targetRooms.length === 0) {
-      return { bestRoom: null, scoredRooms: [], recommendedMap: {} as Record<number, any> };
+      return {
+        bestRoom: null,
+        scoredRooms: [],
+        recommendedMap: {} as Record<number, any>,
+      };
     }
     return recommendBestRooms({
       profile: transferEmp,
@@ -228,7 +248,12 @@ export function useTransferTarget({
       const scoreB = transferRecommendations.recommendedMap[b.id]?.score ?? 0;
       return scoreB - scoreA;
     });
-  }, [transferableRooms, roomSearch, targetBuildingMap, transferRecommendations]);
+  }, [
+    transferableRooms,
+    roomSearch,
+    targetBuildingMap,
+    transferRecommendations,
+  ]);
 
   return {
     targetRooms,

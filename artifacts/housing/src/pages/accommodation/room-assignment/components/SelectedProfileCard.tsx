@@ -27,7 +27,11 @@ export function SelectedProfileCard({
       <div className="flex items-center gap-3.5">
         <div className="w-12 h-12 rounded-xl bg-primary text-white font-black flex items-center justify-center flex-shrink-0 shadow-md text-base">
           {selectedProfile.photoUrl ? (
-            <img src={selectedProfile.photoUrl} alt="" className="w-full h-full object-cover rounded-xl" />
+            <img
+              src={selectedProfile.photoUrl}
+              alt=""
+              className="w-full h-full object-cover rounded-xl"
+            />
           ) : (
             <span>
               {selectedProfile.firstName?.[0] || ""}
@@ -40,7 +44,10 @@ export function SelectedProfileCard({
             <span className="font-bold text-base text-foreground">
               {selectedProfile.firstName} {selectedProfile.lastName}
             </span>
-            <Badge variant="outline" className="text-xs font-mono font-bold bg-background">
+            <Badge
+              variant="outline"
+              className="text-xs font-mono font-bold bg-background"
+            >
               #{selectedProfile.profileId}
             </Badge>
             {selectedProfile.propertyName && (
@@ -51,7 +58,9 @@ export function SelectedProfileCard({
             )}
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 flex-wrap">
-            <span className="font-semibold text-foreground/80">{selectedProfile.jobTitle || "—"}</span>
+            <span className="font-semibold text-foreground/80">
+              {selectedProfile.jobTitle || "—"}
+            </span>
             <span>•</span>
             <span>{selectedProfile.department || "—"}</span>
             {selectedProfile.nationalId && (
@@ -63,17 +72,28 @@ export function SelectedProfileCard({
           </div>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             {selectedProfile.phone ? (
-              <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 flex items-center gap-1.5 font-mono py-0.5">
+              <Badge
+                variant="outline"
+                className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 flex items-center gap-1.5 font-mono py-0.5"
+              >
                 <Phone className="w-3 h-3 text-emerald-600" />
                 <span>{selectedProfile.phone}</span>
-                <span className="text-[10px] text-muted-foreground font-sans">({ar ? "سيصل له إشعار الواتساب" : "WhatsApp active"})</span>
+                <span className="text-[10px] text-muted-foreground font-sans">
+                  ({ar ? "سيصل له إشعار الواتساب" : "WhatsApp active"})
+                </span>
               </Badge>
             ) : (
               <div className="flex items-center gap-2 flex-wrap text-xs bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 px-2.5 py-1.5 rounded-lg">
                 <Info className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                <span className="font-semibold">{ar ? "لا يوجد رقم هاتف:" : "No phone:"}</span>
+                <span className="font-semibold">
+                  {ar ? "لا يوجد رقم هاتف:" : "No phone:"}
+                </span>
                 <Input
-                  placeholder={ar ? "أدخل رقم الواتساب لإرسال الترحيب..." : "Enter WhatsApp phone..."}
+                  placeholder={
+                    ar
+                      ? "أدخل رقم الواتساب لإرسال الترحيب..."
+                      : "Enter WhatsApp phone..."
+                  }
                   value={customPhone}
                   onChange={(e) => setCustomPhone(e.target.value)}
                   dir="ltr"

@@ -1,14 +1,16 @@
-import { Worker, Job } from 'bullmq';
-import { getRedisConnection } from '../connection.js';
+import { Worker, Job } from "bullmq";
+import { getRedisConnection } from "../connection.js";
 
-export function createAuditWorker(handler?: (data: any) => Promise<void>): Worker | null {
+export function createAuditWorker(
+  handler?: (data: any) => Promise<void>,
+): Worker | null {
   const connection = getRedisConnection();
   if (!connection) {
     return null;
   }
 
   const worker = new Worker(
-    'auditQueue',
+    "auditQueue",
     async (job: Job) => {
       if (handler) {
         await handler(job.data);
@@ -18,10 +20,10 @@ export function createAuditWorker(handler?: (data: any) => Promise<void>): Worke
     {
       connection,
       concurrency: 10,
-    }
+    },
   );
 
-  worker.on('failed', (job, err) => {
+  worker.on("failed", (job, err) => {
     console.error(`Audit job ${job?.id} failed:`, err);
   });
 

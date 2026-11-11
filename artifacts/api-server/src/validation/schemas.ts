@@ -17,7 +17,10 @@ import {
 // ─── settings.ts ─────────────────────────────────────────────────────────────
 const optText = (max = 1000) => zText(max).nullable().optional();
 const optInt = (min = 0, max = 100000) =>
-  z.preprocess((v) => (v === "" || v === null ? undefined : v), z.coerce.number().int().min(min).max(max).optional());
+  z.preprocess(
+    (v) => (v === "" || v === null ? undefined : v),
+    z.coerce.number().int().min(min).max(max).optional(),
+  );
 const optBool = zBool.optional();
 const optJson = z.union([z.record(z.any()), z.array(z.any())]).optional();
 
@@ -111,7 +114,9 @@ export const TestEmailBody = z.object({
 });
 
 // ─── lookup_values.ts ────────────────────────────────────────────────────────
-export const ListLookupQuery = z.object({ category: zText(100).optional() }).passthrough();
+export const ListLookupQuery = z
+  .object({ category: zText(100).optional() })
+  .passthrough();
 
 export const CreateLookupBody = z.object({
   category: zText(100).min(1),
@@ -165,7 +170,9 @@ export const PushSubscribeBody = z.object({
   authKey: zText(256).min(1),
 });
 
-export const PushUnsubscribeBody = z.object({ endpoint: z.string().trim().min(1).max(2048) });
+export const PushUnsubscribeBody = z.object({
+  endpoint: z.string().trim().min(1).max(2048),
+});
 
 export const RegisterDeviceBody = z.object({
   token: zText(4096).min(10),
@@ -221,7 +228,10 @@ export const GateLogBody = z.object({
   fullName: zText(200).min(1),
   department: zNullableText(200).optional(),
   jobTitle: zNullableText(200).optional(),
-  roomNumber: z.union([z.string().trim().max(50), z.number()]).nullable().optional(),
+  roomNumber: z
+    .union([z.string().trim().max(50), z.number()])
+    .nullable()
+    .optional(),
   buildingName: zNullableText(200).optional(),
   direction: z.enum(["IN", "OUT"]).default("IN"),
   status: z.enum(["GRANTED", "DENIED", "WARNING"]).default("GRANTED"),
@@ -232,7 +242,9 @@ export const GateLogBody = z.object({
 
 export const GateLogsQuery = paginationQuery(2000, 20)
   .extend({
-    propertyId: z.union([z.literal("all"), z.coerce.number().int().positive()]).optional(),
+    propertyId: z
+      .union([z.literal("all"), z.coerce.number().int().positive()])
+      .optional(),
     direction: z.enum(["IN", "OUT", "all"]).optional(),
     status: z.enum(["GRANTED", "DENIED", "WARNING", "all"]).optional(),
     search: zText(200).optional(),
@@ -240,7 +252,9 @@ export const GateLogsQuery = paginationQuery(2000, 20)
   })
   .passthrough();
 
-export const GateStatsQuery = z.object({ date: zOptionalDateString }).passthrough();
+export const GateStatsQuery = z
+  .object({ date: zOptionalDateString })
+  .passthrough();
 
 // ─── portal-schedule.ts ──────────────────────────────────────────────────────
 export const CreateCalendarEventBody = z
@@ -252,14 +266,29 @@ export const CreateCalendarEventBody = z
     location: zText(300).optional(),
     description: zText(5000).optional(),
   })
-  .refine((v) => Boolean(v.title || v.titleAr), { message: "Title is required" });
+  .refine((v) => Boolean(v.title || v.titleAr), {
+    message: "Title is required",
+  });
 
 export const SnoozeReminderBody = z.object({
-  minutes: z.coerce.number().int().min(1).max(60 * 24 * 7).optional(),
+  minutes: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(60 * 24 * 7)
+    .optional(),
 });
 
 // ─── reports.ts ──────────────────────────────────────────────────────────────
-const reportDataSource = z.enum(["in_house", "profiles", "rooms", "reservations", "maintenance", "vacations", "hostings"]);
+const reportDataSource = z.enum([
+  "in_house",
+  "profiles",
+  "rooms",
+  "reservations",
+  "maintenance",
+  "vacations",
+  "hostings",
+]);
 
 export const CreateReportTemplateBody = z.object({
   name: zText(200).min(1),
@@ -278,7 +307,10 @@ export const CustomReportQueryBody = z.object({
   filters: z.record(z.any()).default({}),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(5000).default(20),
-  sortBy: z.string().regex(/^[a-zA-Z0-9_]{1,64}$/).optional(),
+  sortBy: z
+    .string()
+    .regex(/^[a-zA-Z0-9_]{1,64}$/)
+    .optional(),
   sortOrder: z.enum(["asc", "desc"]).default("asc"),
   fetchAll: zBool.default(false),
 });
@@ -326,7 +358,9 @@ export const VacationsReportQuery = z
 export const RoomImportExecuteBody = z.object({
   propertyId: zOptionalId,
   buildingId: zOptionalId,
-  importMode: z.enum(["create_update", "create_only", "update_only", "replace"]).default("create_update"),
+  importMode: z
+    .enum(["create_update", "create_only", "update_only", "replace"])
+    .default("create_update"),
   fileName: zText(255).default("room_config.xlsx"),
   rooms: z.array(z.record(z.any())).min(1).max(20000),
 });
@@ -364,11 +398,15 @@ export const CreateInventoryItemBody = z.object({
   lastInspectedAt: z.union([zDateString, z.null(), z.literal("")]).optional(),
 });
 
-export const UpdateInventoryItemBody = CreateInventoryItemBody.omit({ roomId: true }).partial();
+export const UpdateInventoryItemBody = CreateInventoryItemBody.omit({
+  roomId: true,
+}).partial();
 
 export const SyncInventoryBody = z.object({ roomId: zOptionalId });
 
-export const CreateInventoryTicketBody = z.object({ reportedBy: zText(200).optional() });
+export const CreateInventoryTicketBody = z.object({
+  reportedBy: zText(200).optional(),
+});
 
 // ─── whatsapp.ts ─────────────────────────────────────────────────────────────
 export const WhatsAppConfigBody = z.object({
@@ -399,7 +437,9 @@ export const WhatsAppLogsQuery = z
   .passthrough();
 
 export const BroadcastPreviewBody = z.object({
-  targetType: z.enum(["ALL", "BUILDING", "FLOOR", "ROOMS", "INDIVIDUALS", "SELECTED"]).optional(),
+  targetType: z
+    .enum(["ALL", "BUILDING", "FLOOR", "ROOMS", "INDIVIDUALS", "SELECTED"])
+    .optional(),
   buildingId: zOptionalId,
   floorId: zOptionalId,
   roomIds: z.array(z.coerce.number().int().positive()).max(5000).optional(),
@@ -424,36 +464,63 @@ export const BroadcastSendBody = z.object({
 });
 
 // ─── dashboard.ts / portal-analytics.ts ──────────────────────────────────────
-export const DashboardActivityQuery = z.object({ limit: z.coerce.number().int().min(1).max(200).default(20) }).passthrough();
+export const DashboardActivityQuery = z
+  .object({ limit: z.coerce.number().int().min(1).max(200).default(20) })
+  .passthrough();
 
 export const DashboardHorizonQuery = z
   .object({ horizon: z.enum(["today", "7d", "30d", "quarter"]).default("7d") })
   .passthrough();
 
-export const AnalyticsDaysQuery = z.object({ days: z.coerce.number().int().min(1).max(365).default(30) }).passthrough();
+export const AnalyticsDaysQuery = z
+  .object({ days: z.coerce.number().int().min(1).max(365).default(30) })
+  .passthrough();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Route-parameter and list-query guards (AGENTS.md Rule 2, layer 3).
 // Values stay strings — handlers keep parsing them as before — but malformed
 // input is rejected with a bilingual 400 instead of reaching SQL as NaN.
 // ─────────────────────────────────────────────────────────────────────────────
-const numericIdParam = z.string().regex(/^[1-9]\d{0,9}$/, "must be a positive integer");
+const numericIdParam = z
+  .string()
+  .regex(/^[1-9]\d{0,9}$/, "must be a positive integer");
 const numericParams = <K extends string>(...keys: K[]) =>
-  z.object(Object.fromEntries(keys.map((k) => [k, numericIdParam])) as Record<K, typeof numericIdParam>).passthrough();
+  z
+    .object(
+      Object.fromEntries(keys.map((k) => [k, numericIdParam])) as Record<
+        K,
+        typeof numericIdParam
+      >,
+    )
+    .passthrough();
 
 export const IdParams = numericParams("id");
 export const RoomIdParams = numericParams("roomId");
 export const IdCompanionIdParams = numericParams("id", "companionId");
 /** Hosting requests accept the numeric id or the request number (e.g. "HR-2026-0001"). */
-export const RequestRefParams = z.object({ id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/) }).passthrough();
+export const RequestRefParams = z
+  .object({ id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/) })
+  .passthrough();
 /** BullMQ job ids. */
-export const JobIdParams = z.object({ id: z.string().regex(/^[\w:.-]{1,128}$/) }).passthrough();
+export const JobIdParams = z
+  .object({ id: z.string().regex(/^[\w:.-]{1,128}$/) })
+  .passthrough();
 /** Employee/profile codes (alphanumeric codes, not database ids). */
-export const ProfileCodeParams = z.object({ profileId: z.string().min(1).max(100) }).passthrough();
-export const ClockNumberParams = z.object({ clockNumber: z.string().min(1).max(100) }).passthrough();
+export const ProfileCodeParams = z
+  .object({ profileId: z.string().min(1).max(100) })
+  .passthrough();
+export const ClockNumberParams = z
+  .object({ clockNumber: z.string().min(1).max(100) })
+  .passthrough();
 export const FeedbackContentParams = z
   .object({
-    contentType: z.enum(["activity", "evaluation", "document", "accommodation", "services"]),
+    contentType: z.enum([
+      "activity",
+      "evaluation",
+      "document",
+      "accommodation",
+      "services",
+    ]),
     contentId: z.string().regex(/^\d{1,10}$/, "must be a non-negative integer"),
   })
   .passthrough();
@@ -475,12 +542,21 @@ export const CommonListQuery = z
 // objects/arrays where scalars are expected, oversized text, huge lists.
 // Unknown keys pass through untouched.
 // ─────────────────────────────────────────────────────────────────────────────
-const bId = z.union([z.number().int().nonnegative(), z.string().regex(/^\d{1,10}$/)]);
+const bId = z.union([
+  z.number().int().nonnegative(),
+  z.string().regex(/^\d{1,10}$/),
+]);
 const bIds = (max = 1000) => z.array(bId).max(max);
 const bText = (max = 500) => z.string().max(max);
-const bScalar = (max = 500) => z.union([z.string().max(max), z.number(), z.boolean()]);
+const bScalar = (max = 500) =>
+  z.union([z.string().max(max), z.number(), z.boolean()]);
 const bDate = z.string().max(40);
-const bBool = z.union([z.boolean(), z.enum(["true", "false"]), z.literal(0), z.literal(1)]);
+const bBool = z.union([
+  z.boolean(),
+  z.enum(["true", "false"]),
+  z.literal(0),
+  z.literal(1),
+]);
 const bNum = z.union([z.number(), z.string().regex(/^-?\d{1,9}(\.\d+)?$/)]);
 const bDataUrl = z.string().max(20 * 1024 * 1024); // base64 images / attachments
 const o = <T extends z.ZodTypeAny>(s: T) => s.nullable().optional();
@@ -489,106 +565,251 @@ const body = (shape: z.ZodRawShape) => z.object(shape).passthrough();
 // assignments / reservations
 export const SendWhatsAppBody = body({ phone: o(bScalar(30)) });
 export const BulkIdsBody = body({ ids: o(bIds()) });
-export const ReservationCheckoutBody = body({ checkOutDate: o(bDate), notes: o(bText(2000)), reason: o(bText(500)) });
+export const ReservationCheckoutBody = body({
+  checkOutDate: o(bDate),
+  notes: o(bText(2000)),
+  reason: o(bText(500)),
+});
 // auth
 export const SwitchPropertyBody = body({ propertyId: o(bId) });
 export const ForgotOtpRequestBody = body({ identifier: o(bText(200)) });
-export const ForgotOtpVerifyBody = body({ identifier: o(bText(200)), otp: o(bScalar(12)) });
-export const ForgotResetBody = body({ identifier: o(bText(200)), resetToken: o(bText(500)), newPassword: o(bText(200)) });
+export const ForgotOtpVerifyBody = body({
+  identifier: o(bText(200)),
+  otp: o(bScalar(12)),
+});
+export const ForgotResetBody = body({
+  identifier: o(bText(200)),
+  resetToken: o(bText(500)),
+  newPassword: o(bText(200)),
+});
 export const LastPropertyBody = body({ propertyId: o(bId) });
 // evaluations
 export const HousingPulseConfigBody = body({
-  enabled: o(bBool), ratingType: o(bText(40)), allowComment: o(bBool), commentRequired: o(bBool),
-  cooldownDays: o(bNum), titleAr: o(bText(300)), titleEn: o(bText(300)), questionAr: o(bText(1000)), questionEn: o(bText(1000)),
+  enabled: o(bBool),
+  ratingType: o(bText(40)),
+  allowComment: o(bBool),
+  commentRequired: o(bBool),
+  cooldownDays: o(bNum),
+  titleAr: o(bText(300)),
+  titleEn: o(bText(300)),
+  questionAr: o(bText(1000)),
+  questionEn: o(bText(1000)),
 });
 // hostings
 export const CompanionBody = body({
-  name: o(bText(200)), relation: o(bText(100)), idNumber: o(bScalar(60)), age: o(bNum), isChild: o(bBool),
-  documentType: o(bText(60)), documentFileName: o(bText(300)), documentImage: o(bDataUrl),
+  name: o(bText(200)),
+  relation: o(bText(100)),
+  idNumber: o(bScalar(60)),
+  age: o(bNum),
+  isChild: o(bBool),
+  documentType: o(bText(60)),
+  documentFileName: o(bText(300)),
+  documentImage: o(bDataUrl),
 });
 // hotek / smart locks
 export const PropertyScopedBody = body({ propertyId: o(bId) });
-export const LockUpdateBody = body({ propertyId: o(bId), protocol: o(bText(60)), status: o(bText(40)) });
+export const LockUpdateBody = body({
+  propertyId: o(bId),
+  protocol: o(bText(60)),
+  status: o(bText(40)),
+});
 export const KeyRevokeBody = body({ propertyId: o(bId), type: o(bText(40)) });
 export const KeyExtendBody = body({ propertyId: o(bId), expiresAt: o(bDate) });
 // HR sync / eSign (external integrations — record payloads stay flexible)
 const hrRecords = z.array(z.record(z.any())).max(20000);
 export const HrReceiveBody = body({
-  propertyId: o(bId), profiles: o(hrRecords), employees: o(hrRecords), data: o(z.union([hrRecords, z.record(z.any())])),
-  mapping: o(z.record(z.any())), syncProfiles: o(bBool), allowedLevels: o(z.array(bScalar(100)).max(500)),
-  allowedDepartments: o(z.array(bScalar(200)).max(500)), housingEligibleOnly: o(bBool), scope: o(bText(40)),
+  propertyId: o(bId),
+  profiles: o(hrRecords),
+  employees: o(hrRecords),
+  data: o(z.union([hrRecords, z.record(z.any())])),
+  mapping: o(z.record(z.any())),
+  syncProfiles: o(bBool),
+  allowedLevels: o(z.array(bScalar(100)).max(500)),
+  allowedDepartments: o(z.array(bScalar(200)).max(500)),
+  housingEligibleOnly: o(bBool),
+  scope: o(bText(40)),
 });
 export const HrSyncRunBody = body({ sourceId: o(bId), scope: o(bText(40)) });
-export const HrTestConnectionBody = body({ apiUrl: o(bText(2000)), apiKey: o(bText(2000)) });
+export const HrTestConnectionBody = body({
+  apiUrl: o(bText(2000)),
+  apiKey: o(bText(2000)),
+});
 export const HrNotifyVacationBody = body({
-  propertyId: o(bId), profileId: o(bScalar(100)), employeeId: o(bScalar(100)), type: o(bText(60)),
-  startDate: o(bDate), endDate: o(bDate), notes: o(bText(2000)),
+  propertyId: o(bId),
+  profileId: o(bScalar(100)),
+  employeeId: o(bScalar(100)),
+  type: o(bText(60)),
+  startDate: o(bDate),
+  endDate: o(bDate),
+  notes: o(bText(2000)),
 });
 export const HrNotifyDepartureBody = body({
-  propertyId: o(bId), profileId: o(bScalar(100)), employeeId: o(bScalar(100)), departureDate: o(bDate), reason: o(bText(2000)),
+  propertyId: o(bId),
+  profileId: o(bScalar(100)),
+  employeeId: o(bScalar(100)),
+  departureDate: o(bDate),
+  reason: o(bText(2000)),
 });
-export const EsignTestBody = body({ baseUrl: o(bText(2000)), hotelCode: o(bScalar(60)), username: o(bText(200)), password: o(bText(500)) });
+export const EsignTestBody = body({
+  baseUrl: o(bText(2000)),
+  hotelCode: o(bScalar(60)),
+  username: o(bText(200)),
+  password: o(bText(500)),
+});
 export const EsignRangeSyncBody = body({
-  fromClockNo: o(bScalar(60)), from: o(bScalar(60)), toClockNo: o(bScalar(60)), to: o(bScalar(60)), hotelCode: o(bScalar(60)), sourceId: o(bId),
+  fromClockNo: o(bScalar(60)),
+  from: o(bScalar(60)),
+  toClockNo: o(bScalar(60)),
+  to: o(bScalar(60)),
+  hotelCode: o(bScalar(60)),
+  sourceId: o(bId),
 });
 export const EsignRefreshBody = body({ sourceId: o(bId) });
 // maintenance
 export const PropertyIdOnlyBody = body({ propertyId: o(bId) });
 export const SubTicketBody = body({
-  propertyId: o(bId), problemType: o(bText(200)), description: o(bText(5000)), priority: o(bText(40)), roomId: o(bId), category: o(bText(100)),
+  propertyId: o(bId),
+  problemType: o(bText(200)),
+  description: o(bText(5000)),
+  priority: o(bText(40)),
+  roomId: o(bId),
+  category: o(bText(100)),
 });
 // portal chat
-export const CreateConversationBody = body({ participantIds: o(bIds(200)), subject: o(bText(300)) });
-export const ChatMessageBody = body({ content: o(z.string().max(20 * 1024 * 1024)), contentType: o(bText(40)) });
-export const AdminChatMessageBody = body({ content: o(z.string().max(20 * 1024 * 1024)) });
-// portal data
-export const ActivityRegistrationBody = body({ activityId: o(bId), status: o(bText(40)), badgeNumber: o(bScalar(60)) });
-export const ActivityCancelBody = body({ activityId: o(bId) });
-export const ActivityAttendanceBody = body({ registrationId: o(bId), attended: o(bBool) });
-export const EvaluationRespondBody = body({
-  profileRating: o(bNum), employeeRating: o(bNum), profileResponse: o(bText(5000)), employeeResponse: o(bText(5000)),
-  itemResponses: o(z.union([z.array(z.record(z.any())).max(500), z.record(z.any())])),
+export const CreateConversationBody = body({
+  participantIds: o(bIds(200)),
+  subject: o(bText(300)),
 });
-export const HousingRatingBody = body({ rating: o(bScalar(40)), score: o(bNum), comment: o(bText(5000)) });
+export const ChatMessageBody = body({
+  content: o(z.string().max(20 * 1024 * 1024)),
+  contentType: o(bText(40)),
+});
+export const AdminChatMessageBody = body({
+  content: o(z.string().max(20 * 1024 * 1024)),
+});
+// portal data
+export const ActivityRegistrationBody = body({
+  activityId: o(bId),
+  status: o(bText(40)),
+  badgeNumber: o(bScalar(60)),
+});
+export const ActivityCancelBody = body({ activityId: o(bId) });
+export const ActivityAttendanceBody = body({
+  registrationId: o(bId),
+  attended: o(bBool),
+});
+export const EvaluationRespondBody = body({
+  profileRating: o(bNum),
+  employeeRating: o(bNum),
+  profileResponse: o(bText(5000)),
+  employeeResponse: o(bText(5000)),
+  itemResponses: o(
+    z.union([z.array(z.record(z.any())).max(500), z.record(z.any())]),
+  ),
+});
+export const HousingRatingBody = body({
+  rating: o(bScalar(40)),
+  score: o(bNum),
+  comment: o(bText(5000)),
+});
 export const MyProfileBody = body({
-  phone: o(bScalar(30)), address: o(bText(1000)), photo: o(bDataUrl), email: o(bText(320)), emergencyContact: o(bText(500)),
+  phone: o(bScalar(30)),
+  address: o(bText(1000)),
+  photo: o(bDataUrl),
+  email: o(bText(320)),
+  emergencyContact: o(bText(500)),
 });
 // portal food / transport
-export const FoodOrderBody = body({ menuItemId: o(bId), quantity: o(bNum), orderDate: o(bDate), notes: o(bText(1000)) });
-export const TransportBookingBody = body({ scheduleId: o(bId), bookingDate: o(bDate) });
+export const FoodOrderBody = body({
+  menuItemId: o(bId),
+  quantity: o(bNum),
+  orderDate: o(bDate),
+  notes: o(bText(1000)),
+});
+export const TransportBookingBody = body({
+  scheduleId: o(bId),
+  bookingDate: o(bDate),
+});
 // profiles
-export const ProfilesBulkBody = body({ profiles: o(z.array(z.record(z.any())).max(20000)) });
+export const ProfilesBulkBody = body({
+  profiles: o(z.array(z.record(z.any())).max(20000)),
+});
 export const ProfilePhotoBody = body({ photoUrl: o(bDataUrl) });
 export const ProfileIdImageBody = body({ idImage: o(bDataUrl) });
-export const VacationStartBody = body({ startDate: o(bDate), endDate: o(bDate), notes: o(bText(2000)) });
+export const VacationStartBody = body({
+  startDate: o(bDate),
+  endDate: o(bDate),
+  notes: o(bText(2000)),
+});
 export const VacationReturnBody = body({ returnDate: o(bDate) });
 // rooms
-export const RoomFeaturesBody = body({ features: o(bText(5000)), featuresList: o(z.array(bText(200)).max(200)) });
+export const RoomFeaturesBody = body({
+  features: o(bText(5000)),
+  featuresList: o(z.array(bText(200)).max(200)),
+});
 export const RoomStatusBody = body({ status: o(bText(40)) });
 // users
-export const UsersBulkBody = body({ ids: o(bIds()), action: o(bText(60)), role: o(bText(60)), propertyIds: o(bIds(500)), status: o(bText(40)) });
+export const UsersBulkBody = body({
+  ids: o(bIds()),
+  action: o(bText(60)),
+  role: o(bText(60)),
+  propertyIds: o(bIds(500)),
+  status: o(bText(40)),
+});
 // whatsapp
-export const WhatsAppConnectBody = body({ phoneNumber: o(bScalar(30)), resetSession: o(bBool) });
+export const WhatsAppConnectBody = body({
+  phoneNumber: o(bScalar(30)),
+  resetSession: o(bBool),
+});
 
 // ─── GET /api/reports/rows/:report (server-side report pages) ───────────────
 const qText = (max: number) => z.string().max(max).optional();
 export const SERVER_REPORTS = [
-  "manager_flash", "occupancy_forecast", "housing_map", "arrivals_manifest", "departures_manifest", "housekeeping_sheet", "room_discrepancy",
-  "daily_movement", "assignments", "vacant_rooms", "housing", "department_occupancy",
-  "profiles", "expiring_contracts", "hostings", "vacations", "maintenance",
-  "equipment_inventory", "water_distribution", "gate_logs", "police_report", "policy_exceptions",
+  "manager_flash",
+  "occupancy_forecast",
+  "housing_map",
+  "arrivals_manifest",
+  "departures_manifest",
+  "housekeeping_sheet",
+  "room_discrepancy",
+  "daily_movement",
+  "assignments",
+  "vacant_rooms",
+  "housing",
+  "department_occupancy",
+  "profiles",
+  "expiring_contracts",
+  "hostings",
+  "vacations",
+  "maintenance",
+  "equipment_inventory",
+  "water_distribution",
+  "gate_logs",
+  "police_report",
+  "policy_exceptions",
 ] as const;
 export const ReportRowsParams = z.object({ report: z.enum(SERVER_REPORTS) });
-export const ReportFilterOptionsQuery = z.object({ propertyId: z.string().regex(/^\d{1,10}$/) }).passthrough();
+export const ReportFilterOptionsQuery = z
+  .object({ propertyId: z.string().regex(/^\d{1,10}$/) })
+  .passthrough();
 export const ReportRowsQuery = z
   .object({
     propertyId: z.string().regex(/^\d{1,10}$/),
-    page: z.string().regex(/^\d{1,6}$/).optional(),
-    limit: z.string().regex(/^\d{1,4}$/).optional(),
+    page: z
+      .string()
+      .regex(/^\d{1,6}$/)
+      .optional(),
+    limit: z
+      .string()
+      .regex(/^\d{1,4}$/)
+      .optional(),
     all: z.enum(["0", "1"]).optional(),
     lang: z.enum(["ar", "en"]).optional(),
     search: qText(200),
-    sortKey: z.string().regex(/^[A-Za-z0-9_]{1,64}$/).optional(),
+    sortKey: z
+      .string()
+      .regex(/^[A-Za-z0-9_]{1,64}$/)
+      .optional(),
     sortDir: z.enum(["asc", "desc"]).optional(),
     groupBy: z.enum(["room"]).optional(),
     filterBuilding: qText(20),
@@ -604,7 +825,10 @@ export const ReportRowsQuery = z
     dateTo: qText(40),
     inventoryViewMode: z.enum(["summary", "detailed", "items"]).optional(),
     waterSortMode: qText(20),
-    tz: z.string().regex(/^[A-Za-z0-9_+\-/]{1,64}$/).optional(),
+    tz: z
+      .string()
+      .regex(/^[A-Za-z0-9_+\-/]{1,64}$/)
+      .optional(),
   })
   .passthrough();
 
@@ -615,7 +839,10 @@ export const ReportAnalyticsQuery = z
     lang: z.enum(["ar", "en"]).optional(),
     filterBuilding: z.string().max(20).optional(),
     filterFloor: z.string().max(20).optional(),
-    tz: z.string().regex(/^[A-Za-z0-9_+\-/]{1,64}$/).optional(),
+    tz: z
+      .string()
+      .regex(/^[A-Za-z0-9_+\-/]{1,64}$/)
+      .optional(),
   })
   .passthrough();
 
@@ -634,7 +861,13 @@ export const OccupancyForecastQuery = z
     propertyId: z.string().regex(/^\d{1,10}$/),
     lang: z.enum(["ar", "en"]).optional(),
     horizon: z.enum(["7", "14", "30"]),
-    buildingId: z.string().regex(/^(all|\d{1,10})$/).optional(),
-    tz: z.string().regex(/^[A-Za-z0-9_+\-/]{1,64}$/).optional(),
+    buildingId: z
+      .string()
+      .regex(/^(all|\d{1,10})$/)
+      .optional(),
+    tz: z
+      .string()
+      .regex(/^[A-Za-z0-9_+\-/]{1,64}$/)
+      .optional(),
   })
   .passthrough();

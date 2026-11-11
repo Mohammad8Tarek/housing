@@ -5,8 +5,10 @@ const normalize = (value: unknown): string => {
   let val = String(value ?? "")
     .trim()
     .toLowerCase();
-  if (val.startsWith("employees.")) val = val.replace("employees.", "profiles.");
-  if (val.startsWith("employees:")) val = val.replace("employees:", "profiles:");
+  if (val.startsWith("employees."))
+    val = val.replace("employees.", "profiles.");
+  if (val.startsWith("employees:"))
+    val = val.replace("employees:", "profiles:");
   return val;
 };
 
@@ -38,10 +40,9 @@ function resolveInheritedRoles(roles: string[]): string[] {
 export function usePermission() {
   const { user, isSystemAdmin } = useAuth();
 
-  const isSuperAdmin =
-    !!user?.roles?.some((r) =>
-      ["super_admin"].includes(normalize(r)),
-    );
+  const isSuperAdmin = !!user?.roles?.some((r) =>
+    ["super_admin"].includes(normalize(r)),
+  );
 
   const isAdmin =
     isSuperAdmin ||
@@ -53,12 +54,14 @@ export function usePermission() {
   const hasRole = (role: string): boolean => {
     if (!user) return false;
     const target = normalize(role);
-    if (target === "super_admin" && (isSuperAdmin || isSystemAdmin)) return true;
+    if (target === "super_admin" && (isSuperAdmin || isSystemAdmin))
+      return true;
     if (target === "admin" && isAdmin) return true;
     if (user.roles && Array.isArray(user.roles)) {
       if (user.roles.some((r) => normalize(r) === target)) return true;
     }
-    if ((user as any).role && normalize((user as any).role) === target) return true;
+    if ((user as any).role && normalize((user as any).role) === target)
+      return true;
     return false;
   };
 
@@ -82,8 +85,10 @@ export function usePermission() {
         const normalized = normalize(permission);
         if (normalized) {
           combined.add(normalized);
-          if (normalized.includes(".")) combined.add(normalized.replace(".", ":"));
-          if (normalized.includes(":")) combined.add(normalized.replace(":", "."));
+          if (normalized.includes("."))
+            combined.add(normalized.replace(".", ":"));
+          if (normalized.includes(":"))
+            combined.add(normalized.replace(":", "."));
         }
       }
     }

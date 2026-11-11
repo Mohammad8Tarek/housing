@@ -1,58 +1,72 @@
-import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  timestamp,
+  index,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { roomsTable } from "./rooms";
 import { profilesTable } from "./profiles";
 import { workersTable } from "./workers";
 
-export const maintenanceTable = pgTable("maintenance", {
-  id: serial("id").primaryKey(),
-  parentId: integer("parent_id").references((): any => maintenanceTable.id, {
-    onDelete: "cascade",
-  }),
-  roomId: integer("room_id")
-    .notNull()
-    .references(() => roomsTable.id, { onDelete: "cascade" }),
-  category: text("category").notNull().default("maintenance"),
-  problemType: text("problem_type").notNull(),
-  description: text("description").notNull().default(""),
-  status: text("status").notNull().default("open"),
-  priority: text("priority").notNull().default("medium"),
-  reportedBy: text("reported_by"),
-  assignedTo: integer("assigned_to").references(() => profilesTable.id, {
-    onDelete: "set null",
-  }),
-  workerId: integer("worker_id").references(() => workersTable.id, {
-    onDelete: "set null",
-  }),
-  reportedAt: timestamp("reported_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  startedAt: timestamp("started_at", { withTimezone: true }),
-  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
-  dueDate: text("due_date"),
-  notes: text("notes"),
-  photoUrl: text("photo_url"),
-  rating: integer("rating"),
-  ratingComment: text("rating_comment"),
-  ratedAt: timestamp("rated_at", { withTimezone: true }),
-  ratedByProfileId: integer("rated_by_profile_id").references(() => profilesTable.id, {
-    onDelete: "set null",
-  }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-}, (table) => [
-  index("idx_maintenance_room_id").on(table.roomId),
-  index("idx_maintenance_status").on(table.status),
-  index("idx_maintenance_priority").on(table.priority),
-  index("idx_maintenance_assigned_to").on(table.assignedTo),
-  index("idx_maintenance_worker_id").on(table.workerId),
-  index("idx_maintenance_parent_id").on(table.parentId),
-  index("idx_maintenance_status_priority").on(table.status, table.priority),
-  index("idx_maintenance_rating").on(table.rating),
-  index("idx_maintenance_rated_at").on(table.ratedAt),
-]);
+export const maintenanceTable = pgTable(
+  "maintenance",
+  {
+    id: serial("id").primaryKey(),
+    parentId: integer("parent_id").references((): any => maintenanceTable.id, {
+      onDelete: "cascade",
+    }),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => roomsTable.id, { onDelete: "cascade" }),
+    category: text("category").notNull().default("maintenance"),
+    problemType: text("problem_type").notNull(),
+    description: text("description").notNull().default(""),
+    status: text("status").notNull().default("open"),
+    priority: text("priority").notNull().default("medium"),
+    reportedBy: text("reported_by"),
+    assignedTo: integer("assigned_to").references(() => profilesTable.id, {
+      onDelete: "set null",
+    }),
+    workerId: integer("worker_id").references(() => workersTable.id, {
+      onDelete: "set null",
+    }),
+    reportedAt: timestamp("reported_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    dueDate: text("due_date"),
+    notes: text("notes"),
+    photoUrl: text("photo_url"),
+    rating: integer("rating"),
+    ratingComment: text("rating_comment"),
+    ratedAt: timestamp("rated_at", { withTimezone: true }),
+    ratedByProfileId: integer("rated_by_profile_id").references(
+      () => profilesTable.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_maintenance_room_id").on(table.roomId),
+    index("idx_maintenance_status").on(table.status),
+    index("idx_maintenance_priority").on(table.priority),
+    index("idx_maintenance_assigned_to").on(table.assignedTo),
+    index("idx_maintenance_worker_id").on(table.workerId),
+    index("idx_maintenance_parent_id").on(table.parentId),
+    index("idx_maintenance_status_priority").on(table.status, table.priority),
+    index("idx_maintenance_rating").on(table.rating),
+    index("idx_maintenance_rated_at").on(table.ratedAt),
+  ],
+);
 
 export const insertMaintenanceSchema = createInsertSchema(
   maintenanceTable,

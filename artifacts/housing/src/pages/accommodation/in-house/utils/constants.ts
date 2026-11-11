@@ -1,10 +1,30 @@
 export const CHECKOUT_REASONS = [
   { value: "resignation", labelAr: "استقالة من العمل", labelEn: "Resignation" },
-  { value: "contract_end", labelAr: "انتهاء عقد العمل", labelEn: "Contract Termination / End" },
-  { value: "property_transfer", labelAr: "نقل لفندق أو فرع آخر", labelEn: "Transfer to Another Property" },
-  { value: "external_housing", labelAr: "انتقال لسكن خارجي (بدل سكن)", labelEn: "Moved to External Housing" },
-  { value: "extended_leave", labelAr: "إجازة مطولة مع إخلاء طرف", labelEn: "Extended Leave with Clearance" },
-  { value: "disciplinary", labelAr: "إنهاء خدمة / فصل تأديبي", labelEn: "Disciplinary Dismissal" },
+  {
+    value: "contract_end",
+    labelAr: "انتهاء عقد العمل",
+    labelEn: "Contract Termination / End",
+  },
+  {
+    value: "property_transfer",
+    labelAr: "نقل لفندق أو فرع آخر",
+    labelEn: "Transfer to Another Property",
+  },
+  {
+    value: "external_housing",
+    labelAr: "انتقال لسكن خارجي (بدل سكن)",
+    labelEn: "Moved to External Housing",
+  },
+  {
+    value: "extended_leave",
+    labelAr: "إجازة مطولة مع إخلاء طرف",
+    labelEn: "Extended Leave with Clearance",
+  },
+  {
+    value: "disciplinary",
+    labelAr: "إنهاء خدمة / فصل تأديبي",
+    labelEn: "Disciplinary Dismissal",
+  },
   { value: "other", labelAr: "أسباب أخرى", labelEn: "Other Reason" },
 ];
 

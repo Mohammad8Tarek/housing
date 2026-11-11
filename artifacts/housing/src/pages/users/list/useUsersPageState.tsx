@@ -14,7 +14,15 @@ import { useLocation } from "wouter";
 import { useDebounce } from "@/hooks/use-debounce";
 import { getExportFileName } from "@/lib/date-utils";
 import { toast } from "sonner";
-import { ShieldCheck, Users, Crown, Briefcase, Headphones, Wrench, Sparkles } from "lucide-react";
+import {
+  ShieldCheck,
+  Users,
+  Crown,
+  Briefcase,
+  Headphones,
+  Wrench,
+  Sparkles,
+} from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { useColumnVisibility } from "@/components/ui/column-chooser";
 import * as XLSX from "xlsx";
@@ -22,12 +30,21 @@ import * as XLSX from "xlsx";
 export function useUsersPageState() {
   const [, setLocation] = useLocation();
   const { user: currentUser } = useAuth();
-  const { isSuperAdmin, properties: ctxProperties, canSeeAllProperties, buildNavHref } = useProperty();
+  const {
+    isSuperAdmin,
+    properties: ctxProperties,
+    canSeeAllProperties,
+    buildNavHref,
+  } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
   const { can, isAdmin } = usePermission();
-  const showPropertyCol = isSuperAdmin || Boolean(canSeeAllProperties) || (ctxProperties && ctxProperties.length > 1) || can("users", "view");
+  const showPropertyCol =
+    isSuperAdmin ||
+    Boolean(canSeeAllProperties) ||
+    (ctxProperties && ctxProperties.length > 1) ||
+    can("users", "view");
 
   const [deleteUser, setDeleteUser] = useState<any | null>(null);
   const [pageSize, setPageSize] = useState(10);
@@ -36,7 +53,9 @@ export function useUsersPageState() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [workflowFilter, setWorkflowFilter] = useState<"all" | "workflow">("all");
+  const [workflowFilter, setWorkflowFilter] = useState<"all" | "workflow">(
+    "all",
+  );
   const [signedFilter, setSignedFilter] = useState<"all" | "signed">("all");
   const [customPermsFilter, setCustomPermsFilter] = useState(false);
 
@@ -46,11 +65,23 @@ export function useUsersPageState() {
   const [selectedBulkRole, setSelectedBulkRole] = useState("manager");
   const [selectedBulkProps, setSelectedBulkProps] = useState<number[]>([]);
   const [isBulkExecuting, setIsBulkExecuting] = useState(false);
-  const [activeMainTab, setActiveMainTab] = useState<"users" | "matrix">("users");
-  const [matrixTargetUserId, setMatrixTargetUserId] = useState<number | null>(null);
+  const [activeMainTab, setActiveMainTab] = useState<"users" | "matrix">(
+    "users",
+  );
+  const [matrixTargetUserId, setMatrixTargetUserId] = useState<number | null>(
+    null,
+  );
 
   // Direct navigation to Dedicated User Details & Governance Hub (/users/:id)
-  const openUserSheet = (u: any, tab: "profile" | "properties" | "permissions" | "signature" | "audit" = "profile") => {
+  const openUserSheet = (
+    u: any,
+    tab:
+      | "profile"
+      | "properties"
+      | "permissions"
+      | "signature"
+      | "audit" = "profile",
+  ) => {
     setLocation(buildNavHref(`/users/${u.id}?tab=${tab}`));
   };
 
@@ -61,18 +92,22 @@ export function useUsersPageState() {
     isLoading,
     isError,
     refetch,
-  } = useListUsers({ 
-    page: currentPage, 
+  } = useListUsers({
+    page: currentPage,
     limit: pageSize as any,
     search: debouncedSearch,
     role: roleFilter,
-    status: statusFilter
+    status: statusFilter,
   } as any);
   const { data: properties } = useListProperties();
   const { data: allUsersRes } = useListUsers({ limit: 500 } as any);
 
-  const users: any[] = Array.isArray(_apiResponseWrapper) ? _apiResponseWrapper : (((_apiResponseWrapper as any)?.data as any[]) ?? []);
-  const allUsers: any[] = Array.isArray(allUsersRes) ? allUsersRes : (((allUsersRes as any)?.data as any[]) ?? users);
+  const users: any[] = Array.isArray(_apiResponseWrapper)
+    ? _apiResponseWrapper
+    : (((_apiResponseWrapper as any)?.data as any[]) ?? []);
+  const allUsers: any[] = Array.isArray(allUsersRes)
+    ? allUsersRes
+    : (((allUsersRes as any)?.data as any[]) ?? users);
   const pagination = (_apiResponseWrapper as any)?.pagination;
 
   const invalidate = () =>
@@ -82,7 +117,10 @@ export function useUsersPageState() {
 
   const isUserLocked = (u: any) => {
     const st = String(u.status || "").toUpperCase();
-    return st === "LOCKED" || Boolean(u.lockedUntil && new Date(u.lockedUntil) > new Date());
+    return (
+      st === "LOCKED" ||
+      Boolean(u.lockedUntil && new Date(u.lockedUntil) > new Date())
+    );
   };
 
   const isUserActive = (u: any) => {
@@ -101,17 +139,21 @@ export function useUsersPageState() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || (ar ? "فشل فتح قفل الحساب" : "Failed to unlock user"));
+        throw new Error(
+          err.error || (ar ? "فشل فتح قفل الحساب" : "Failed to unlock user"),
+        );
       }
       toast.success(
         ar
           ? `تم فتح قفل حساب ${u.username} بنجاح وإعادة تفعيله`
-          : `User ${u.username} unlocked and reactivated successfully`
+          : `User ${u.username} unlocked and reactivated successfully`,
       );
       invalidate();
       refetch();
     } catch (err: any) {
-      toast.error(err.message || (ar ? "فشل فتح قفل الحساب" : "Failed to unlock user"));
+      toast.error(
+        err.message || (ar ? "فشل فتح قفل الحساب" : "Failed to unlock user"),
+      );
     } finally {
       setUnlockingUserId(null);
     }
@@ -119,7 +161,7 @@ export function useUsersPageState() {
 
   // ── Optimized Stats (Single Pass across all accounts) ──
   const stats = useMemo(() => {
-    const all = (allUsers && allUsers.length > 0) ? allUsers : (users || []);
+    const all = allUsers && allUsers.length > 0 ? allUsers : users || [];
     const s = {
       total: all.length,
       superAdmin: 0,
@@ -145,7 +187,8 @@ export function useUsersPageState() {
         s.inactive++;
       }
       if (u.jobTitle && u.jobTitle !== "none") s.workflowUsers++;
-      if (u.jobTitle && u.jobTitle !== "none" && u.hasSignature) s.signedWorkflowUsers++;
+      if (u.jobTitle && u.jobTitle !== "none" && u.hasSignature)
+        s.signedWorkflowUsers++;
       if ((u.permissions || []).length > 0) {
         s.customPermissionUsers++;
         s.customPermissionTotal += (u.permissions || []).length;
@@ -273,7 +316,9 @@ export function useUsersPageState() {
       list = list.filter((u: any) => u.jobTitle && u.jobTitle !== "none");
     }
     if (signedFilter === "signed") {
-      list = list.filter((u: any) => u.jobTitle && u.jobTitle !== "none" && u.hasSignature);
+      list = list.filter(
+        (u: any) => u.jobTitle && u.jobTitle !== "none" && u.hasSignature,
+      );
     }
     if (customPermsFilter) {
       list = list.filter((u: any) => (u.permissions || []).length > 0);
@@ -355,7 +400,9 @@ export function useUsersPageState() {
       setSelectedRows(new Set());
       invalidate();
     } catch (err: any) {
-      toast.error(err.message || (ar ? "فشل التحديث الجماعي" : "Bulk update failed"));
+      toast.error(
+        err.message || (ar ? "فشل التحديث الجماعي" : "Bulk update failed"),
+      );
     } finally {
       setIsBulkExecuting(false);
     }
@@ -385,7 +432,10 @@ export function useUsersPageState() {
       setSelectedRows(new Set());
       invalidate();
     } catch (err: any) {
-      toast.error(err.message || (ar ? "فشل تعيين الفروع" : "Failed to assign properties"));
+      toast.error(
+        err.message ||
+          (ar ? "فشل تعيين الفروع" : "Failed to assign properties"),
+      );
     } finally {
       setIsBulkExecuting(false);
     }
@@ -414,7 +464,9 @@ export function useUsersPageState() {
       setSelectedRows(new Set());
       invalidate();
     } catch (err: any) {
-      toast.error(err.message || (ar ? "فشل فك القفل" : "Failed to unlock users"));
+      toast.error(
+        err.message || (ar ? "فشل فك القفل" : "Failed to unlock users"),
+      );
     } finally {
       setIsBulkExecuting(false);
     }
@@ -424,10 +476,15 @@ export function useUsersPageState() {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-        toast.success(ar ? "تم حذف المستخدمين المحددين" : "Selected users deleted");
+        toast.success(
+          ar ? "تم حذف المستخدمين المحددين" : "Selected users deleted",
+        );
       },
       onError: (err: any) => {
-        toast.error(err?.message || (ar ? "فشل حذف المستخدمين" : "Failed to delete users"));
+        toast.error(
+          err?.message ||
+            (ar ? "فشل حذف المستخدمين" : "Failed to delete users"),
+        );
       },
     },
   });

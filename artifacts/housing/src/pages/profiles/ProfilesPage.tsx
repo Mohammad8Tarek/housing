@@ -1,6 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useListProfiles, useCreateProfile, useDeleteProfile, getListProfilesQueryKey } from "@workspace/api-client-react";
+import {
+  useListProfiles,
+  useCreateProfile,
+  useDeleteProfile,
+  getListProfilesQueryKey,
+} from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
@@ -39,7 +44,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Link } from "wouter";
-import { Eye, Trash2, Plus, Search, Users, AlertCircle, FileSpreadsheet, FileDown, Pencil, Key, LayoutGrid, List, ChevronDown, Phone, CreditCard, QrCode } from "lucide-react";
+import {
+  Eye,
+  Trash2,
+  Plus,
+  Search,
+  Users,
+  AlertCircle,
+  FileSpreadsheet,
+  FileDown,
+  Pencil,
+  Key,
+  LayoutGrid,
+  List,
+  ChevronDown,
+  Phone,
+  CreditCard,
+  QrCode,
+} from "lucide-react";
 import { GatePassModal } from "@/pages/accommodation/GatePassModal";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { SortableHead } from "@/components/ui/sortable-head";
@@ -97,7 +119,9 @@ export function ProfilesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [view, setView] = useState<"table" | "grid">("table");
   const [gatePassOpen, setGatePassOpen] = useState(false);
-  const [selectedGatePassProfileId, setSelectedGatePassProfileId] = useState<number | null>(null);
+  const [selectedGatePassProfileId, setSelectedGatePassProfileId] = useState<
+    number | null
+  >(null);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -125,18 +149,20 @@ export function ProfilesPage() {
     ...(sort ? { sortBy: sort.key, sortDir: sort.dir } : {}),
   };
 
-  const { data: _eData, isLoading } = useListProfiles(
-    queryParams as any,
-    {
-      query: {
-        queryKey: getListProfilesQueryKey(queryParams as any),
-        enabled: !!activePropertyId,
-      },
+  const { data: _eData, isLoading } = useListProfiles(queryParams as any, {
+    query: {
+      queryKey: getListProfilesQueryKey(queryParams as any),
+      enabled: !!activePropertyId,
     },
-  );
-  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
-  const profiles: any[] = Array.isArray(_eData) ? _eData : (((_eData as any)?.data as any[]) || []);
-  const totalRecords: number = Array.isArray(_eData) ? _eData.length : (((_eData as any)?.pagination?.total as number) ?? profiles.length);
+  });
+  const numericPropertyId =
+    typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const profiles: any[] = Array.isArray(_eData)
+    ? _eData
+    : ((_eData as any)?.data as any[]) || [];
+  const totalRecords: number = Array.isArray(_eData)
+    ? _eData.length
+    : (((_eData as any)?.pagination?.total as number) ?? profiles.length);
 
   const { data: departments = [] } = useLookupValues(
     numericPropertyId,
@@ -168,7 +194,7 @@ export function ProfilesPage() {
   );
 
   const isTargetHoused = Boolean(
-    targetProfile?.status === "ASSIGNED" || targetProfile?.currentRoom
+    targetProfile?.status === "ASSIGNED" || targetProfile?.currentRoom,
   );
 
   const createMutation = useCreateProfile({ mutation: {} });
@@ -177,7 +203,9 @@ export function ProfilesPage() {
     mutation: {
       onSuccess: () => {
         invalidate();
-        toast.success(ar ? "تم حذف الملف الشخصي بنجاح" : "Profile deleted successfully");
+        toast.success(
+          ar ? "تم حذف الملف الشخصي بنجاح" : "Profile deleted successfully",
+        );
         setDeleteTarget(null);
       },
       onError: (err: any) => {
@@ -194,29 +222,35 @@ export function ProfilesPage() {
   const handleSave = async (
     formData: ProfileForm,
     photo?: string,
-    targetPropertyId?: number
+    targetPropertyId?: number,
   ) => {
     try {
       const resolvedPropertyId =
         targetPropertyId ||
-        (typeof (formData as any).propertyId === "number" && (formData as any).propertyId > 0
+        (typeof (formData as any).propertyId === "number" &&
+        (formData as any).propertyId > 0
           ? (formData as any).propertyId
           : typeof activePropertyId === "number" && activePropertyId > 0
-          ? activePropertyId
-          : 1);
+            ? activePropertyId
+            : 1);
 
       const created = await createMutation.mutateAsync({
         data: { ...formData, propertyId: resolvedPropertyId } as any,
       });
       if (photo && created?.id) {
-        await fetch(`/api/profiles/${created.id}/photo?propertyId=${resolvedPropertyId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ photoUrl: photo }),
-        });
+        await fetch(
+          `/api/profiles/${created.id}/photo?propertyId=${resolvedPropertyId}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ photoUrl: photo }),
+          },
+        );
       }
       invalidate();
-      toast.success(ar ? "تمت إضافة الملف الشخصي بنجاح" : "Profile added successfully");
+      toast.success(
+        ar ? "تمت إضافة الملف الشخصي بنجاح" : "Profile added successfully",
+      );
       setIsOpen(false);
     } catch (err: any) {
       const msg =
@@ -311,7 +345,9 @@ export function ProfilesPage() {
       const data = await res.json();
       if (data.success) {
         toast.success(
-          ar ? "تمت إعادة تعيين كلمة المرور بنجاح" : "Password Reset Successfully",
+          ar
+            ? "تمت إعادة تعيين كلمة المرور بنجاح"
+            : "Password Reset Successfully",
           {
             description: `${ar ? "كلمة المرور الجديدة" : "New password"}: ${data.temporaryPassword || "1234"}`,
           },
@@ -331,32 +367,154 @@ export function ProfilesPage() {
   };
 
   const EMP_COLS = [
-    { key: "profile", label: "Profile & Name", labelAr: "الملف والشخص", defaultVisible: true, fixed: true },
-    { key: "employmentType", label: "Employment & Company", labelAr: "نوع التوظيف والشركة / مكان العمل", defaultVisible: true },
-    { key: "job", label: "Job, Dept & Level", labelAr: "الوظيفة والقسم والدرجة", defaultVisible: true },
-    { key: "contact", label: "Contact & ID", labelAr: "الهوية والتواصل", defaultVisible: true },
-    { key: "dates", label: "Dates", labelAr: "التعيين / انتهاء العقد", defaultVisible: true },
+    {
+      key: "profile",
+      label: "Profile & Name",
+      labelAr: "الملف والشخص",
+      defaultVisible: true,
+      fixed: true,
+    },
+    {
+      key: "employmentType",
+      label: "Employment & Company",
+      labelAr: "نوع التوظيف والشركة / مكان العمل",
+      defaultVisible: true,
+    },
+    {
+      key: "job",
+      label: "Job, Dept & Level",
+      labelAr: "الوظيفة والقسم والدرجة",
+      defaultVisible: true,
+    },
+    {
+      key: "contact",
+      label: "Contact & ID",
+      labelAr: "الهوية والتواصل",
+      defaultVisible: true,
+    },
+    {
+      key: "dates",
+      label: "Dates",
+      labelAr: "التعيين / انتهاء العقد",
+      defaultVisible: true,
+    },
     { key: "status", label: "Status", labelAr: "الحالة", defaultVisible: true },
-    { key: "actions", label: "Actions", labelAr: "إجراءات", defaultVisible: true, fixed: true },
+    {
+      key: "actions",
+      label: "Actions",
+      labelAr: "إجراءات",
+      defaultVisible: true,
+      fixed: true,
+    },
     // Granular columns for power users via ColumnChooser:
-    { key: "photo", label: "Photo only", labelAr: "صورة فقط", defaultVisible: false },
-    { key: "code", label: "Code only", labelAr: "الكود فقط", defaultVisible: false },
-    { key: "firstName", label: "First Name only", labelAr: "الاسم الأول فقط", defaultVisible: false },
-    { key: "secondName", label: "Second Name only", labelAr: "الاسم الثاني فقط", defaultVisible: false },
-    { key: "thirdName", label: "Third Name only", labelAr: "الاسم الثالث فقط", defaultVisible: false },
-    { key: "fourthName", label: "Fourth Name only", labelAr: "الاسم الرابع فقط", defaultVisible: false },
-    { key: "nid", label: "National ID only", labelAr: "رقم الهوية فقط", defaultVisible: false },
-    { key: "phone", label: "Phone only", labelAr: "الهاتف فقط", defaultVisible: false },
-    { key: "nationality", label: "Nationality only", labelAr: "الجنسية فقط", defaultVisible: false },
-    { key: "gender", label: "Gender only", labelAr: "الجنس فقط", defaultVisible: false },
-    { key: "dept", label: "Department only", labelAr: "القسم فقط", defaultVisible: false },
-    { key: "title", label: "Job Title only", labelAr: "المسمى الوظيفي فقط", defaultVisible: false },
-    { key: "level", label: "Level only", labelAr: "الدرجة فقط", defaultVisible: false },
-    { key: "companyName", label: "Company only", labelAr: "الشركة فقط", defaultVisible: false },
-    { key: "dateOfBirth", label: "Date of Birth", labelAr: "تاريخ الميلاد", defaultVisible: true },
-    { key: "address", label: "Address", labelAr: "العنوان", defaultVisible: false },
-    { key: "hiredate", label: "Hire Date only", labelAr: "تاريخ التعيين فقط", defaultVisible: false },
-    { key: "contractEndDate", label: "Contract End only", labelAr: "انتهاء العقد فقط", defaultVisible: false },
+    {
+      key: "photo",
+      label: "Photo only",
+      labelAr: "صورة فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "code",
+      label: "Code only",
+      labelAr: "الكود فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "firstName",
+      label: "First Name only",
+      labelAr: "الاسم الأول فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "secondName",
+      label: "Second Name only",
+      labelAr: "الاسم الثاني فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "thirdName",
+      label: "Third Name only",
+      labelAr: "الاسم الثالث فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "fourthName",
+      label: "Fourth Name only",
+      labelAr: "الاسم الرابع فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "nid",
+      label: "National ID only",
+      labelAr: "رقم الهوية فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "phone",
+      label: "Phone only",
+      labelAr: "الهاتف فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "nationality",
+      label: "Nationality only",
+      labelAr: "الجنسية فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "gender",
+      label: "Gender only",
+      labelAr: "الجنس فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "dept",
+      label: "Department only",
+      labelAr: "القسم فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "title",
+      label: "Job Title only",
+      labelAr: "المسمى الوظيفي فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "level",
+      label: "Level only",
+      labelAr: "الدرجة فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "companyName",
+      label: "Company only",
+      labelAr: "الشركة فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "dateOfBirth",
+      label: "Date of Birth",
+      labelAr: "تاريخ الميلاد",
+      defaultVisible: true,
+    },
+    {
+      key: "address",
+      label: "Address",
+      labelAr: "العنوان",
+      defaultVisible: false,
+    },
+    {
+      key: "hiredate",
+      label: "Hire Date only",
+      labelAr: "تاريخ التعيين فقط",
+      defaultVisible: false,
+    },
+    {
+      key: "contractEndDate",
+      label: "Contract End only",
+      labelAr: "انتهاء العقد فقط",
+      defaultVisible: false,
+    },
   ];
   const {
     visible: colVisible,
@@ -369,7 +527,8 @@ export function ProfilesPage() {
   const currentPageEmps = profiles;
   const pagedEmpIds = currentPageEmps.map((e: any) => e.id);
   const allEmpPageSelected =
-    pagedEmpIds.length > 0 && pagedEmpIds.every((id: any) => selectedRows.has(id));
+    pagedEmpIds.length > 0 &&
+    pagedEmpIds.every((id: any) => selectedRows.has(id));
   const toggleSelectAll = () => {
     if (allEmpPageSelected) {
       setSelectedRows((prev) => {
@@ -400,7 +559,7 @@ export function ProfilesPage() {
         ar
           ? "جاري تجهيز وتصدير ملف الموظفين الشامل..."
           : "Preparing full employee profiles export...",
-        { id: "export-profiles" }
+        { id: "export-profiles" },
       );
 
       let targetList: any[] = [];
@@ -408,7 +567,9 @@ export function ProfilesPage() {
         targetList = profiles.filter((e: any) => selectedRows.has(e.id));
       } else {
         // Fetch all profiles from server without pagination limitation
-        const res = await fetch(`/api/profiles?propertyId=${activePropertyId}&limit=5000`);
+        const res = await fetch(
+          `/api/profiles?propertyId=${activePropertyId}&limit=5000`,
+        );
         if (!res.ok) throw new Error("Failed to fetch profiles");
         const json = await res.json();
         targetList = json.data || [];
@@ -417,7 +578,7 @@ export function ProfilesPage() {
       if (targetList.length === 0) {
         toast.error(
           ar ? "لا توجد ملفات موظفين لتصديرها" : "No profiles found to export",
-          { id: "export-profiles" }
+          { id: "export-profiles" },
         );
         return;
       }
@@ -425,7 +586,9 @@ export function ProfilesPage() {
       // Fetch active assignments to include housing info (building, room, bed)
       let asgnMap: Record<number, any> = {};
       try {
-        const asgnRes = await fetch(`/api/assignments/in-house?propertyId=${activePropertyId}&limit=5000`);
+        const asgnRes = await fetch(
+          `/api/assignments/in-house?propertyId=${activePropertyId}&limit=5000`,
+        );
         if (asgnRes.ok) {
           const asgnJson = await asgnRes.json();
           const asgnList = asgnJson.data || [];
@@ -444,53 +607,70 @@ export function ProfilesPage() {
         const nat = formatNationality(e.nationality, ar);
 
         const housingStatusAr = asgn
-          ? (asgn.profileStatus === "VACATION" ? "مقيم (في إجازة)" : "مقيم بالسكن")
-          : (e.status === "VACATION"
-              ? "في إجازة"
-              : e.status === "LEFT"
-                ? "تمت المغادرة"
-                : e.status === "TRANSFERRED"
-                  ? "منقول لفندق آخر"
-                  : "غير مسكّن");
+          ? asgn.profileStatus === "VACATION"
+            ? "مقيم (في إجازة)"
+            : "مقيم بالسكن"
+          : e.status === "VACATION"
+            ? "في إجازة"
+            : e.status === "LEFT"
+              ? "تمت المغادرة"
+              : e.status === "TRANSFERRED"
+                ? "منقول لفندق آخر"
+                : "غير مسكّن";
 
         const housingStatusEn = asgn
-          ? (asgn.profileStatus === "VACATION" ? "In-House (Vacation)" : "In-House")
-          : (e.status === "VACATION"
-              ? "On Vacation"
-              : e.status === "LEFT"
-                ? "Checked Out / Left"
-                : e.status === "TRANSFERRED"
-                  ? "Transferred"
-                  : "Unassigned");
+          ? asgn.profileStatus === "VACATION"
+            ? "In-House (Vacation)"
+            : "In-House"
+          : e.status === "VACATION"
+            ? "On Vacation"
+            : e.status === "LEFT"
+              ? "Checked Out / Left"
+              : e.status === "TRANSFERRED"
+                ? "Transferred"
+                : "Unassigned";
 
         const roomNum = asgn?.roomNumber || "";
         const bldName = asgn?.buildingName || "";
         const flrNum = asgn?.floorNumber != null ? asgn.floorNumber : "";
-        const bedStr = asgn ? ((asgn.assignment?.bedNumber || asgn.bedNumber) ? `Bed ${asgn.assignment?.bedNumber || asgn.bedNumber}` : "") : "";
+        const bedStr = asgn
+          ? asgn.assignment?.bedNumber || asgn.bedNumber
+            ? `Bed ${asgn.assignment?.bedNumber || asgn.bedNumber}`
+            : ""
+          : "";
 
         if (ar) {
           return {
             "كود الموظف": e.profileId ?? "",
-            "الاسم بالكامل (عربي)": [e.firstNameAr, e.lastNameAr, e.thirdNameAr, e.fourthNameAr].filter(Boolean).join(" ") || dispName,
-            "الاسم بالكامل (إنجليزي)": [e.firstName, e.lastName, e.thirdName, e.fourthName].filter(Boolean).join(" ") || "",
+            "الاسم بالكامل (عربي)":
+              [e.firstNameAr, e.lastNameAr, e.thirdNameAr, e.fourthNameAr]
+                .filter(Boolean)
+                .join(" ") || dispName,
+            "الاسم بالكامل (إنجليزي)":
+              [e.firstName, e.lastName, e.thirdName, e.fourthName]
+                .filter(Boolean)
+                .join(" ") || "",
             "الاسم الأول": e.firstNameAr || e.firstName || "",
             "اسم الأب": e.lastNameAr || e.lastName || "",
             "اسم الجد": e.thirdNameAr || e.thirdName || "",
             "العائلة / اللقب": e.fourthNameAr || e.fourthName || "",
             "الرقم القومي / الهوية": e.nationalId ?? "",
-            "الجنسية": nat,
-            "النوع": e.gender === "M" ? "ذكر" : e.gender === "F" ? "أنثى" : "",
+            الجنسية: nat,
+            النوع: e.gender === "M" ? "ذكر" : e.gender === "F" ? "أنثى" : "",
             "تاريخ الميلاد": formatDate(e.dateOfBirth, ""),
-            "الهاتف": e.phone ?? "",
+            الهاتف: e.phone ?? "",
             "البريد الإلكتروني": e.email ?? "",
             "جهة اتصال الطوارئ": e.emergencyContact ?? "",
-            "العنوان": e.address ?? "",
-            "القسم": dispDept,
+            العنوان: e.address ?? "",
+            القسم: dispDept,
             "القسم (إنجليزي)": e.department || "",
             "المسمى الوظيفي": dispJob,
             "المسمى الوظيفي (إنجليزي)": e.jobTitle || "",
             "الدرجة الوظيفية": e.level ?? "",
-            "نوع التوظيف": e.employmentType === "THIRD_PARTY" ? "طرف ثالث (عمالة خارجية)" : "موظف داخلي",
+            "نوع التوظيف":
+              e.employmentType === "THIRD_PARTY"
+                ? "طرف ثالث (عمالة خارجية)"
+                : "موظف داخلي",
             "الشركة / مقاول الباطن": e.companyName || "",
             "تاريخ التعيين": formatDate(e.hireDate, ""),
             "انتهاء العقد": formatDate(e.contractEndDate, ""),
@@ -498,7 +678,7 @@ export function ProfilesPage() {
             "المبنى الحالي": bldName,
             "الدور الحالي": flrNum,
             "الغرفة الحالية": roomNum,
-            "السرير": bedStr,
+            السرير: bedStr,
             "تاريخ بداية الإجازة": formatDate(e.vacationStartDate, ""),
             "تاريخ انتهاء الإجازة": formatDate(e.vacationEndDate, ""),
             "ملاحظات الإجازة": e.vacationNotes ?? "",
@@ -508,21 +688,27 @@ export function ProfilesPage() {
 
         return {
           "Profile / Employee Code": e.profileId ?? "",
-          "Full Name": [e.firstName, e.lastName, e.thirdName, e.fourthName].filter(Boolean).join(" ") || dispName,
-          "Full Name (Arabic)": [e.firstNameAr, e.lastNameAr, e.thirdNameAr, e.fourthNameAr].filter(Boolean).join(" ") || "",
+          "Full Name":
+            [e.firstName, e.lastName, e.thirdName, e.fourthName]
+              .filter(Boolean)
+              .join(" ") || dispName,
+          "Full Name (Arabic)":
+            [e.firstNameAr, e.lastNameAr, e.thirdNameAr, e.fourthNameAr]
+              .filter(Boolean)
+              .join(" ") || "",
           "First Name": e.firstName || "",
           "Second Name": e.lastName || "",
           "Third Name": e.thirdName || "",
           "Last / Family Name": e.fourthName || "",
           "National ID": e.nationalId ?? "",
-          "Nationality": nat,
-          "Gender": e.gender === "M" ? "Male" : e.gender === "F" ? "Female" : "",
+          Nationality: nat,
+          Gender: e.gender === "M" ? "Male" : e.gender === "F" ? "Female" : "",
           "Date of Birth": formatDate(e.dateOfBirth, ""),
-          "Phone": e.phone ?? "",
-          "Email": e.email ?? "",
+          Phone: e.phone ?? "",
+          Email: e.email ?? "",
           "Emergency Contact": e.emergencyContact ?? "",
-          "Address": e.address ?? "",
-          "Department": dispDept,
+          Address: e.address ?? "",
+          Department: dispDept,
           "Job Title": dispJob,
           "Job Level": e.level ?? "",
           "Employment Type": e.employmentType || "INTERNAL",
@@ -550,12 +736,14 @@ export function ProfilesPage() {
         ar
           ? `تم تصدير بيانات ${rows.length} موظف بنجاح!`
           : `Successfully exported ${rows.length} employee profiles!`,
-        { id: "export-profiles" }
+        { id: "export-profiles" },
       );
     } catch (err: any) {
       toast.error(
-        ar ? `فشل تصدير الموظفين: ${err.message}` : `Export failed: ${err.message}`,
-        { id: "export-profiles" }
+        ar
+          ? `فشل تصدير الموظفين: ${err.message}`
+          : `Export failed: ${err.message}`,
+        { id: "export-profiles" },
       );
     } finally {
       setIsExporting(false);
@@ -604,7 +792,11 @@ export function ProfilesPage() {
               onClick={() => handleExportProfilesExcel(false)}
               disabled={isExporting}
               className="gap-1.5 text-xs font-semibold h-9 shadow-xs"
-              title={ar ? "تصدير كافة الموظفين بكل البيانات إلى ملف Excel" : "Export all employee profiles to Excel"}
+              title={
+                ar
+                  ? "تصدير كافة الموظفين بكل البيانات إلى ملف Excel"
+                  : "Export all employee profiles to Excel"
+              }
             >
               <FileDown className="w-4 h-4 text-emerald-600" />
               {ar ? "تصدير Excel" : "Export Excel"}
@@ -685,11 +877,21 @@ export function ProfilesPage() {
                 <SelectItem value="ALL">
                   {ar ? "كل الحالات" : "All Status"}
                 </SelectItem>
-                <SelectItem value="ACTIVE">{ar ? "مقيم بالسكن" : "In-House"}</SelectItem>
-                <SelectItem value="UNASSIGNED">{ar ? "غير مسكّن" : "Unassigned"}</SelectItem>
-                <SelectItem value="LEFT">{ar ? "تمت المغادرة" : "Checked Out"}</SelectItem>
-                <SelectItem value="VACATION">{ar ? "في إجازة" : "On Vacation"}</SelectItem>
-                <SelectItem value="TRANSFERRED">{ar ? "منقول لفندق آخر" : "Transferred"}</SelectItem>
+                <SelectItem value="ACTIVE">
+                  {ar ? "مقيم بالسكن" : "In-House"}
+                </SelectItem>
+                <SelectItem value="UNASSIGNED">
+                  {ar ? "غير مسكّن" : "Unassigned"}
+                </SelectItem>
+                <SelectItem value="LEFT">
+                  {ar ? "تمت المغادرة" : "Checked Out"}
+                </SelectItem>
+                <SelectItem value="VACATION">
+                  {ar ? "في إجازة" : "On Vacation"}
+                </SelectItem>
+                <SelectItem value="TRANSFERRED">
+                  {ar ? "منقول لفندق آخر" : "Transferred"}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -708,18 +910,33 @@ export function ProfilesPage() {
               variant="destructive"
               size="sm"
               onClick={() => {
-                const selectedList = profiles.filter((p: any) => selectedRows.has(p.id));
-                const housedList = selectedList.filter((p: any) => p.status === "ASSIGNED" || p.currentRoom);
+                const selectedList = profiles.filter((p: any) =>
+                  selectedRows.has(p.id),
+                );
+                const housedList = selectedList.filter(
+                  (p: any) => p.status === "ASSIGNED" || p.currentRoom,
+                );
                 if (housedList.length > 0) {
                   toast.error(
                     ar
-                      ? `لا يمكن حذف السجلات المحددة: يوجد ${housedList.length} موظف مقيم حالياً في غرف سكنية (${housedList.map((p: any) => p.firstName).slice(0, 3).join("، ")}${housedList.length > 3 ? "..." : ""}). يجب إجراء تسجيل مغادرة (Check-out) لهم أولاً.`
+                      ? `لا يمكن حذف السجلات المحددة: يوجد ${housedList.length} موظف مقيم حالياً في غرف سكنية (${housedList
+                          .map((p: any) => p.firstName)
+                          .slice(0, 3)
+                          .join(
+                            "، ",
+                          )}${housedList.length > 3 ? "..." : ""}). يجب إجراء تسجيل مغادرة (Check-out) لهم أولاً.`
                       : `Cannot delete selected profiles: ${housedList.length} are currently residing in rooms. Please check them out first.`,
-                    { duration: 7000 }
+                    { duration: 7000 },
                   );
                   return;
                 }
-                if (window.confirm(ar ? `هل أنت متأكد من حذف ${selectedRows.size} ملف شخصي محدد؟` : `Are you sure you want to delete ${selectedRows.size} selected profiles?`)) {
+                if (
+                  window.confirm(
+                    ar
+                      ? `هل أنت متأكد من حذف ${selectedRows.size} ملف شخصي محدد؟`
+                      : `Are you sure you want to delete ${selectedRows.size} selected profiles?`,
+                  )
+                ) {
                   selectedRows.forEach((id) => deleteMutation.mutate({ id }));
                   setSelectedRows(new Set());
                 }
@@ -756,469 +973,632 @@ export function ProfilesPage() {
                 : "Add a profile or import from Excel"}
           </p>
         </div>
-      ) : (
-        view === "grid" ? (
-          <>
-            <ProfileGrid
-              profiles={currentPageEmps}
-              ar={ar}
-              onEdit={setEditingProfile}
-              onResetPassword={handleResetPassword}
-              onDelete={setDeleteTarget}
+      ) : view === "grid" ? (
+        <>
+          <ProfileGrid
+            profiles={currentPageEmps}
+            ar={ar}
+            onEdit={setEditingProfile}
+            onResetPassword={handleResetPassword}
+            onDelete={setDeleteTarget}
+          />
+          {totalRecords > 0 && (
+            <DataPagination
+              total={totalRecords}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
             />
-            {totalRecords > 0 && (
-              <DataPagination
-                total={totalRecords}
-                pageSize={pageSize}
-                onPageSizeChange={(size) => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                currentPage={currentPage}
-                onPageChange={setCurrentPage}
-              />
-            )}
-          </>
-        ) : (
-          <div className="border rounded-xl overflow-hidden overflow-x-auto bg-card shadow-xs">
-            <Table className="w-full">
-              <TableHeader>
-                <TableRow className="bg-muted/80 hover:bg-muted/80">
-                  <TableHead className="w-10 px-3 sticky rtl:right-0 ltr:left-0 z-20 bg-muted/90">
-                    <Checkbox
-                      checked={allEmpPageSelected}
-                      onCheckedChange={toggleSelectAll}
-                    />
+          )}
+        </>
+      ) : (
+        <div className="border rounded-xl overflow-hidden overflow-x-auto bg-card shadow-xs">
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow className="bg-muted/80 hover:bg-muted/80">
+                <TableHead className="w-10 px-3 sticky rtl:right-0 ltr:left-0 z-20 bg-muted/90">
+                  <Checkbox
+                    checked={allEmpPageSelected}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+                {isColVisible("profile") &&
+                  H(
+                    "fullName",
+                    ar ? "الملف والشخص" : "Profile & Person",
+                    "font-semibold text-xs text-foreground min-w-[210px]",
+                  )}
+                {isColVisible("employmentType") &&
+                  H(
+                    "employmentType",
+                    ar
+                      ? "نوع التوظيف والشركة / مكان العمل"
+                      : "Employment & Company",
+                    "font-semibold text-xs text-foreground min-w-[160px]",
+                  )}
+                {isColVisible("job") &&
+                  H(
+                    "jobTitle",
+                    ar ? "الوظيفة والقسم والدرجة" : "Job, Dept & Level",
+                    "font-semibold text-xs text-foreground min-w-[160px]",
+                  )}
+                {isColVisible("contact") &&
+                  H(
+                    "nationalId",
+                    ar ? "الهوية والتواصل" : "Contact & ID",
+                    "font-semibold text-xs text-foreground min-w-[130px]",
+                  )}
+                {isColVisible("dates") &&
+                  H(
+                    "hireDate",
+                    ar ? "التعيين / العقد" : "Hire / Contract",
+                    "font-semibold text-xs text-foreground min-w-[130px]",
+                  )}
+                {/* Granular Headers if user specifically enables them in ColumnChooser */}
+                {isColVisible("photo") && (
+                  <TableHead className="font-semibold text-xs">
+                    {ar ? "صورة" : "Photo"}
                   </TableHead>
-                  {isColVisible("profile") && (
-                    H("fullName", ar ? "الملف والشخص" : "Profile & Person", "font-semibold text-xs text-foreground min-w-[210px]")
+                )}
+                {isColVisible("code") &&
+                  H(
+                    "profileId",
+                    ar ? "الكود" : "Code",
+                    "font-semibold text-xs",
                   )}
-                  {isColVisible("employmentType") && (
-                    H("employmentType", ar ? "نوع التوظيف والشركة / مكان العمل" : "Employment & Company", "font-semibold text-xs text-foreground min-w-[160px]")
+                {isColVisible("firstName") &&
+                  H(
+                    "firstName",
+                    ar ? "الاسم الأول" : "First Name",
+                    "font-semibold text-xs",
                   )}
-                  {isColVisible("job") && (
-                    H("jobTitle", ar ? "الوظيفة والقسم والدرجة" : "Job, Dept & Level", "font-semibold text-xs text-foreground min-w-[160px]")
+                {isColVisible("secondName") && (
+                  <TableHead className="font-semibold text-xs">
+                    {ar ? "الاسم الثاني" : "Second Name"}
+                  </TableHead>
+                )}
+                {isColVisible("thirdName") &&
+                  H(
+                    "thirdName",
+                    ar ? "الاسم الثالث" : "Third Name",
+                    "font-semibold text-xs",
                   )}
-                  {isColVisible("contact") && (
-                    H("nationalId", ar ? "الهوية والتواصل" : "Contact & ID", "font-semibold text-xs text-foreground min-w-[130px]")
+                {isColVisible("fourthName") &&
+                  H(
+                    "fourthName",
+                    ar ? "الاسم الرابع" : "Fourth Name",
+                    "font-semibold text-xs",
                   )}
-                  {isColVisible("dates") && (
-                    H("hireDate", ar ? "التعيين / العقد" : "Hire / Contract", "font-semibold text-xs text-foreground min-w-[130px]")
+                {isColVisible("nid") &&
+                  H(
+                    "nationalId",
+                    ar ? "رقم الهوية" : "National ID",
+                    "font-semibold text-xs",
                   )}
-                  {/* Granular Headers if user specifically enables them in ColumnChooser */}
-                  {isColVisible("photo") && <TableHead className="font-semibold text-xs">{ar ? "صورة" : "Photo"}</TableHead>}
-                  {isColVisible("code") && (
-                    H("profileId", ar ? "الكود" : "Code", "font-semibold text-xs")
+                {isColVisible("phone") &&
+                  H("phone", ar ? "الهاتف" : "Phone", "font-semibold text-xs")}
+                {isColVisible("nationality") &&
+                  H(
+                    "nationality",
+                    ar ? "الجنسية" : "Nationality",
+                    "font-semibold text-xs",
                   )}
-                  {isColVisible("firstName") && (
-                    H("firstName", ar ? "الاسم الأول" : "First Name", "font-semibold text-xs")
+                {isColVisible("gender") &&
+                  H("gender", ar ? "الجنس" : "Gender", "font-semibold text-xs")}
+                {isColVisible("dept") &&
+                  H(
+                    "department",
+                    ar ? "القسم" : "Department",
+                    "font-semibold text-xs",
                   )}
-                  {isColVisible("secondName") && <TableHead className="font-semibold text-xs">{ar ? "الاسم الثاني" : "Second Name"}</TableHead>}
-                  {isColVisible("thirdName") && (
-                    H("thirdName", ar ? "الاسم الثالث" : "Third Name", "font-semibold text-xs")
+                {isColVisible("title") &&
+                  H(
+                    "jobTitle",
+                    ar ? "المسمى الوظيفي" : "Job Title",
+                    "font-semibold text-xs",
                   )}
-                  {isColVisible("fourthName") && (
-                    H("fourthName", ar ? "الاسم الرابع" : "Fourth Name", "font-semibold text-xs")
+                {isColVisible("level") &&
+                  H("level", ar ? "الدرجة" : "Level", "font-semibold text-xs")}
+                {isColVisible("companyName") &&
+                  H(
+                    "companyName",
+                    ar ? "الشركة" : "Company",
+                    "font-semibold text-xs",
                   )}
-                  {isColVisible("nid") && (
-                    H("nationalId", ar ? "رقم الهوية" : "National ID", "font-semibold text-xs")
+                {isColVisible("dateOfBirth") &&
+                  H(
+                    "dateOfBirth",
+                    ar ? "تاريخ الميلاد" : "Date of Birth",
+                    "font-semibold text-xs",
                   )}
-                  {isColVisible("phone") && (
-                    H("phone", ar ? "الهاتف" : "Phone", "font-semibold text-xs")
+                {isColVisible("address") &&
+                  H(
+                    "address",
+                    ar ? "العنوان" : "Address",
+                    "font-semibold text-xs",
                   )}
-                  {isColVisible("nationality") && (
-                    H("nationality", ar ? "الجنسية" : "Nationality", "font-semibold text-xs")
+                {isColVisible("hiredate") &&
+                  H(
+                    "hireDate",
+                    ar ? "تاريخ التعيين" : "Hire Date",
+                    "font-semibold text-xs",
                   )}
-                  {isColVisible("gender") && (
-                    H("gender", ar ? "الجنس" : "Gender", "font-semibold text-xs")
+                {isColVisible("contractEndDate") &&
+                  H(
+                    "contractEndDate",
+                    ar ? "انتهاء العقد" : "Contract End",
+                    "font-semibold text-xs",
                   )}
-                  {isColVisible("dept") && (
-                    H("department", ar ? "القسم" : "Department", "font-semibold text-xs")
+                {isColVisible("status") &&
+                  H(
+                    "status",
+                    ar ? "الحالة" : "Status",
+                    "font-semibold text-xs text-foreground min-w-[95px]",
                   )}
-                  {isColVisible("title") && (
-                    H("jobTitle", ar ? "المسمى الوظيفي" : "Job Title", "font-semibold text-xs")
-                  )}
-                  {isColVisible("level") && (
-                    H("level", ar ? "الدرجة" : "Level", "font-semibold text-xs")
-                  )}
-                  {isColVisible("companyName") && (
-                    H("companyName", ar ? "الشركة" : "Company", "font-semibold text-xs")
-                  )}
-                  {isColVisible("dateOfBirth") && (
-                    H("dateOfBirth", ar ? "تاريخ الميلاد" : "Date of Birth", "font-semibold text-xs")
-                  )}
-                  {isColVisible("address") && (
-                    H("address", ar ? "العنوان" : "Address", "font-semibold text-xs")
-                  )}
-                  {isColVisible("hiredate") && (
-                    H("hireDate", ar ? "تاريخ التعيين" : "Hire Date", "font-semibold text-xs")
-                  )}
-                  {isColVisible("contractEndDate") && (
-                    H("contractEndDate", ar ? "انتهاء العقد" : "Contract End", "font-semibold text-xs")
-                  )}
-                  {isColVisible("status") && (
-                    H("status", ar ? "الحالة" : "Status", "font-semibold text-xs text-foreground min-w-[95px]")
-                  )}
-                  {isColVisible("actions") && (
-                    <TableHead className="w-24 text-center sticky rtl:left-0 ltr:right-0 z-20 bg-muted/90 border-s border-border font-semibold text-xs">
-                      {ar ? "إجراءات" : "Actions"}
-                    </TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentPageEmps.map((emp: any) => {
-                  const isSelected = selectedRows.has(emp.id);
-                  const fullName = getProfileDisplayName(emp, ar);
-                  const jobTitle = getProfileDisplayJobTitle(emp, ar);
-                  const deptName = getProfileDisplayDepartment(emp, ar);
-                  const isThirdParty = emp.employmentType === "THIRD_PARTY";
-                  return (
-                    <TableRow
-                      key={emp.id}
-                      className={`group ${isSelected ? "bg-primary/5" : "hover:bg-muted/20"}`}
-                    >
-                      <TableCell className="px-3 sticky rtl:right-0 ltr:left-0 z-10 bg-card group-hover:bg-accent/40">
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleEmpRow(emp.id)}
-                        />
-                      </TableCell>
+                {isColVisible("actions") && (
+                  <TableHead className="w-24 text-center sticky rtl:left-0 ltr:right-0 z-20 bg-muted/90 border-s border-border font-semibold text-xs">
+                    {ar ? "إجراءات" : "Actions"}
+                  </TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {currentPageEmps.map((emp: any) => {
+                const isSelected = selectedRows.has(emp.id);
+                const fullName = getProfileDisplayName(emp, ar);
+                const jobTitle = getProfileDisplayJobTitle(emp, ar);
+                const deptName = getProfileDisplayDepartment(emp, ar);
+                const isThirdParty = emp.employmentType === "THIRD_PARTY";
+                return (
+                  <TableRow
+                    key={emp.id}
+                    className={`group ${isSelected ? "bg-primary/5" : "hover:bg-muted/20"}`}
+                  >
+                    <TableCell className="px-3 sticky rtl:right-0 ltr:left-0 z-10 bg-card group-hover:bg-accent/40">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleEmpRow(emp.id)}
+                      />
+                    </TableCell>
 
-                      {/* 1. Profile & Full Name */}
-                      {isColVisible("profile") && (
-                        <TableCell className="py-2.5">
-                          <div className="flex items-center gap-2.5">
-                            <ProfileAvatar
-                              firstName={emp.firstName}
-                              lastName={emp.lastName}
-                              photoUrl={(emp as any).photoUrl}
-                            />
-                            <div className="flex flex-col min-w-0">
-                              <span className="font-semibold text-sm text-foreground leading-tight truncate">
-                                {fullName || "—"}
-                              </span>
-                              <span className="font-mono text-[11px] text-primary font-medium tracking-wide">
-                                {emp.profileId}
-                              </span>
-                            </div>
-                          </div>
-                        </TableCell>
-                      )}
-
-                      {/* 2. Employment Type & Works For / Company */}
-                      {isColVisible("employmentType") && (
-                        <TableCell className="py-2.5 whitespace-nowrap">
-                          {isThirdParty ? (
-                            <div className="flex flex-col gap-1">
-                              <Badge
-                                variant="secondary"
-                                className="bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 font-bold px-2 py-0 text-[11px] w-fit shadow-2xs"
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-purple-600 inline-block mr-1 rtl:ml-1 rtl:mr-0" />
-                                {ar ? "طرف ثالث" : "Third Party"}
-                              </Badge>
-                              <span className="text-xs font-semibold text-foreground truncate max-w-[160px]" title={emp.companyName || ""}>
-                                {emp.companyName || "—"}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-1">
-                              <Badge
-                                variant="outline"
-                                className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 font-bold px-2 py-0 text-[11px] w-fit shadow-2xs"
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 inline-block mr-1 rtl:ml-1 rtl:mr-0" />
-                                {ar ? "موظف داخلي" : "Internal"}
-                              </Badge>
-                              <span className="text-xs font-medium text-foreground truncate max-w-[160px]" title={emp.companyName || ""}>
-                                {emp.companyName || (ar ? "الفندق" : "Hotel")}
-                              </span>
-                            </div>
-                          )}
-                        </TableCell>
-                      )}
-
-                      {/* 3. Job Title, Department & Level */}
-                      {isColVisible("job") && (
-                        <TableCell className="py-2.5">
-                          <div className="flex flex-col gap-0.5 text-xs">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-semibold text-foreground text-sm leading-tight">
-                                {jobTitle || "—"}
-                              </span>
-                              {emp.level && (
-                                <Badge
-                                  variant="outline"
-                                  className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 font-bold px-1.5 py-0 text-[10px] rounded-md"
-                                >
-                                  {emp.level}
-                                </Badge>
-                              )}
-                            </div>
-                            {deptName && deptName !== "طرف ثالث" && (
-                              <span className="text-xs font-medium text-primary/90 truncate max-w-[160px]" title={deptName}>
-                                {deptName}
-                              </span>
-                            )}
-                            {emp.nationality && (
-                              <span className="text-muted-foreground/70 text-[11px]">
-                                {formatNationality(emp.nationality, ar)} {emp.gender === "M" ? (ar ? "• ذكر" : "• Male") : emp.gender === "F" ? (ar ? "• أنثى" : "• Female") : ""}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
-
-                      {/* 4. Contact & ID */}
-                      {isColVisible("contact") && (
-                        <TableCell className="py-2.5">
-                          <div className="flex flex-col text-xs gap-0.5">
-                            {emp.phone ? (
-                              <span className="font-mono text-foreground font-medium flex items-center gap-1" dir="ltr">
-                                <Phone className="w-3 h-3 text-muted-foreground" />
-                                {emp.phone}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                            {emp.nationalId && (
-                              <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-1">
-                                <CreditCard className="w-3 h-3 text-muted-foreground/70" />
-                                {emp.nationalId}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
-
-                      {/* 5. Dates: Hire Date & Contract End */}
-                      {isColVisible("dates") && (
-                        <TableCell className="py-2.5 text-xs whitespace-nowrap">
-                          {isThirdParty ? (
-                            <span className="text-muted-foreground/60 text-xs">—</span>
-                          ) : (
-                            <div className="flex flex-col gap-0.5">
-                              {emp.dateOfBirth && (
-                                <span className="text-muted-foreground text-[11px]">
-                                  <span>{ar ? "الميلاد: " : "DOB: "}</span>
-                                  <span className="text-foreground">{formatDate(emp.dateOfBirth)}</span>
-                                </span>
-                              )}
-                              {emp.hireDate && (
-                                <span className="text-foreground">
-                                  <span className="text-muted-foreground text-[11px]">{ar ? "التعيين: " : "Hire: "}</span>
-                                  {formatDate(emp.hireDate)}
-                                </span>
-                              )}
-                              {emp.contractEndDate && (
-                                <span className="text-amber-700 dark:text-amber-400 font-medium">
-                                  <span className="text-muted-foreground text-[11px]">{ar ? "انتهاء: " : "End: "}</span>
-                                  {formatDate(emp.contractEndDate)}
-                                </span>
-                              )}
-                              {!emp.hireDate && !emp.contractEndDate && (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </div>
-                          )}
-                        </TableCell>
-                      )}
-
-                      {/* Granular Fallback Cells if user checked them specifically in ColumnChooser */}
-                      {isColVisible("photo") && (
-                        <TableCell className="pr-0">
+                    {/* 1. Profile & Full Name */}
+                    {isColVisible("profile") && (
+                      <TableCell className="py-2.5">
+                        <div className="flex items-center gap-2.5">
                           <ProfileAvatar
                             firstName={emp.firstName}
                             lastName={emp.lastName}
                             photoUrl={(emp as any).photoUrl}
                           />
-                        </TableCell>
-                      )}
-                      {isColVisible("code") && (
-                        <TableCell className="font-mono text-sm font-medium text-primary">
-                          {emp.profileId}
-                        </TableCell>
-                      )}
-                      {isColVisible("firstName") && (
-                        <TableCell className="font-medium whitespace-nowrap">{ar ? (emp.firstNameAr || emp.firstName) : (emp.firstName || "—")}</TableCell>
-                      )}
-                      {isColVisible("secondName") && (
-                        <TableCell className="font-medium whitespace-nowrap">{ar ? (emp.lastNameAr || emp.lastName) : (emp.lastName || "—")}</TableCell>
-                      )}
-                      {isColVisible("thirdName") && (
-                        <TableCell className="font-medium whitespace-nowrap">{ar ? (emp.thirdNameAr || emp.thirdName) : (emp.thirdName || "—")}</TableCell>
-                      )}
-                      {isColVisible("fourthName") && (
-                        <TableCell className="font-medium whitespace-nowrap">{ar ? (emp.fourthNameAr || emp.fourthName) : (emp.fourthName || "—")}</TableCell>
-                      )}
-                      {isColVisible("nid") && (
-                        <TableCell className="font-mono text-sm whitespace-nowrap">{emp.nationalId}</TableCell>
-                      )}
-                      {isColVisible("phone") && (
-                        <TableCell className="text-sm whitespace-nowrap" dir="ltr">{emp.phone || "—"}</TableCell>
-                      )}
-                      {isColVisible("nationality") && (
-                        <TableCell className="text-sm whitespace-nowrap">{formatNationality(emp.nationality, ar) || "—"}</TableCell>
-                      )}
-                      {isColVisible("gender") && (
-                        <TableCell className="text-sm whitespace-nowrap">
-                          {emp.gender === "M" ? (ar ? "ذكر" : "Male") : emp.gender === "F" ? (ar ? "أنثى" : "Female") : "—"}
-                        </TableCell>
-                      )}
-                      {isColVisible("dept") && (
-                        <TableCell className="whitespace-nowrap">
-                          {isThirdParty ? (
-                            <span className="text-muted-foreground/60 italic text-xs">—</span>
-                          ) : deptName ? (
-                            <Badge variant="outline" className="font-normal">{deptName}</Badge>
-                          ) : "—"}
-                        </TableCell>
-                      )}
-                      {isColVisible("title") && (
-                        <TableCell className="text-sm whitespace-nowrap">{jobTitle || "—"}</TableCell>
-                      )}
-                      {isColVisible("level") && (
-                        <TableCell className="text-xs whitespace-nowrap">
-                          {isThirdParty ? (
-                            <span className="text-muted-foreground/60 italic text-xs">—</span>
-                          ) : emp.level ? (
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-semibold text-sm text-foreground leading-tight truncate">
+                              {fullName || "—"}
+                            </span>
+                            <span className="font-mono text-[11px] text-primary font-medium tracking-wide">
+                              {emp.profileId}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                    )}
+
+                    {/* 2. Employment Type & Works For / Company */}
+                    {isColVisible("employmentType") && (
+                      <TableCell className="py-2.5 whitespace-nowrap">
+                        {isThirdParty ? (
+                          <div className="flex flex-col gap-1">
+                            <Badge
+                              variant="secondary"
+                              className="bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 font-bold px-2 py-0 text-[11px] w-fit shadow-2xs"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-600 inline-block mr-1 rtl:ml-1 rtl:mr-0" />
+                              {ar ? "طرف ثالث" : "Third Party"}
+                            </Badge>
+                            <span
+                              className="text-xs font-semibold text-foreground truncate max-w-[160px]"
+                              title={emp.companyName || ""}
+                            >
+                              {emp.companyName || "—"}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-1">
                             <Badge
                               variant="outline"
-                              className="bg-primary/10 text-primary border-primary/25 font-bold px-2 py-0.5"
+                              className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 font-bold px-2 py-0 text-[11px] w-fit shadow-2xs"
                             >
-                              {emp.level}
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 inline-block mr-1 rtl:ml-1 rtl:mr-0" />
+                              {ar ? "موظف داخلي" : "Internal"}
                             </Badge>
-                          ) : (
-                            <span className="text-muted-foreground/60 italic text-xs">—</span>
-                          )}
-                        </TableCell>
-                      )}
-                      {isColVisible("companyName") && (
-                        <TableCell
-                          className="text-xs whitespace-nowrap max-w-[160px] truncate"
-                          title={emp.companyName || ""}
-                        >
-                          {emp.companyName ? (
-                            <span className="font-medium text-foreground">{emp.companyName}</span>
-                          ) : (
-                            <span className="text-muted-foreground/60 italic text-xs">
-                              {emp.employmentType === "INTERNAL" ? (ar ? "الفندق" : "Hotel") : "—"}
+                            <span
+                              className="text-xs font-medium text-foreground truncate max-w-[160px]"
+                              title={emp.companyName || ""}
+                            >
+                              {emp.companyName || (ar ? "الفندق" : "Hotel")}
+                            </span>
+                          </div>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* 3. Job Title, Department & Level */}
+                    {isColVisible("job") && (
+                      <TableCell className="py-2.5">
+                        <div className="flex flex-col gap-0.5 text-xs">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-foreground text-sm leading-tight">
+                              {jobTitle || "—"}
+                            </span>
+                            {emp.level && (
+                              <Badge
+                                variant="outline"
+                                className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 font-bold px-1.5 py-0 text-[10px] rounded-md"
+                              >
+                                {emp.level}
+                              </Badge>
+                            )}
+                          </div>
+                          {deptName && deptName !== "طرف ثالث" && (
+                            <span
+                              className="text-xs font-medium text-primary/90 truncate max-w-[160px]"
+                              title={deptName}
+                            >
+                              {deptName}
                             </span>
                           )}
-                        </TableCell>
-                      )}
-                      {isColVisible("dateOfBirth") && (
-                        <TableCell className="text-sm whitespace-nowrap">
-                          {formatDate(emp.dateOfBirth)}
-                        </TableCell>
-                      )}
-                      {isColVisible("address") && (
-                        <TableCell className="text-sm whitespace-nowrap max-w-[200px] truncate" title={emp.address}>{emp.address || "—"}</TableCell>
-                      )}
-                      {isColVisible("hiredate") && (
-                        <TableCell className="text-sm whitespace-nowrap">
-                          {isThirdParty ? (
-                            <span className="text-muted-foreground/60 italic text-xs">—</span>
-                          ) : (
-                            formatDate(emp.hireDate)
+                          {emp.nationality && (
+                            <span className="text-muted-foreground/70 text-[11px]">
+                              {formatNationality(emp.nationality, ar)}{" "}
+                              {emp.gender === "M"
+                                ? ar
+                                  ? "• ذكر"
+                                  : "• Male"
+                                : emp.gender === "F"
+                                  ? ar
+                                    ? "• أنثى"
+                                    : "• Female"
+                                  : ""}
+                            </span>
                           )}
-                        </TableCell>
-                      )}
-                      {isColVisible("contractEndDate") && (
-                        <TableCell className="text-sm whitespace-nowrap">
-                          {!isThirdParty && emp.contractEndDate ? (
-                            <span className="font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 text-xs">
-                              {formatDate(emp.contractEndDate)}
+                        </div>
+                      </TableCell>
+                    )}
+
+                    {/* 4. Contact & ID */}
+                    {isColVisible("contact") && (
+                      <TableCell className="py-2.5">
+                        <div className="flex flex-col text-xs gap-0.5">
+                          {emp.phone ? (
+                            <span
+                              className="font-mono text-foreground font-medium flex items-center gap-1"
+                              dir="ltr"
+                            >
+                              <Phone className="w-3 h-3 text-muted-foreground" />
+                              {emp.phone}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
-                        </TableCell>
-                      )}
+                          {emp.nationalId && (
+                            <span className="font-mono text-[11px] text-muted-foreground flex items-center gap-1">
+                              <CreditCard className="w-3 h-3 text-muted-foreground/70" />
+                              {emp.nationalId}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
 
-                      {/* Status */}
-                      {isColVisible("status") && (
-                        <TableCell className="py-2.5 whitespace-nowrap">
-                          <StatusBadge status={emp.status} />
-                        </TableCell>
-                      )}
+                    {/* 5. Dates: Hire Date & Contract End */}
+                    {isColVisible("dates") && (
+                      <TableCell className="py-2.5 text-xs whitespace-nowrap">
+                        {isThirdParty ? (
+                          <span className="text-muted-foreground/60 text-xs">
+                            —
+                          </span>
+                        ) : (
+                          <div className="flex flex-col gap-0.5">
+                            {emp.dateOfBirth && (
+                              <span className="text-muted-foreground text-[11px]">
+                                <span>{ar ? "الميلاد: " : "DOB: "}</span>
+                                <span className="text-foreground">
+                                  {formatDate(emp.dateOfBirth)}
+                                </span>
+                              </span>
+                            )}
+                            {emp.hireDate && (
+                              <span className="text-foreground">
+                                <span className="text-muted-foreground text-[11px]">
+                                  {ar ? "التعيين: " : "Hire: "}
+                                </span>
+                                {formatDate(emp.hireDate)}
+                              </span>
+                            )}
+                            {emp.contractEndDate && (
+                              <span className="text-amber-700 dark:text-amber-400 font-medium">
+                                <span className="text-muted-foreground text-[11px]">
+                                  {ar ? "انتهاء: " : "End: "}
+                                </span>
+                                {formatDate(emp.contractEndDate)}
+                              </span>
+                            )}
+                            {!emp.hireDate && !emp.contractEndDate && (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                    )}
 
-                      {/* Actions */}
-                      {isColVisible("actions") && (
-                        <TableCell className="w-24 text-center sticky rtl:left-0 ltr:right-0 z-10 bg-card group-hover:bg-accent/40 border-s border-border">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 px-2 text-xs gap-1 font-medium bg-background hover:bg-muted shadow-xs transition-colors"
+                    {/* Granular Fallback Cells if user checked them specifically in ColumnChooser */}
+                    {isColVisible("photo") && (
+                      <TableCell className="pr-0">
+                        <ProfileAvatar
+                          firstName={emp.firstName}
+                          lastName={emp.lastName}
+                          photoUrl={(emp as any).photoUrl}
+                        />
+                      </TableCell>
+                    )}
+                    {isColVisible("code") && (
+                      <TableCell className="font-mono text-sm font-medium text-primary">
+                        {emp.profileId}
+                      </TableCell>
+                    )}
+                    {isColVisible("firstName") && (
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {ar
+                          ? emp.firstNameAr || emp.firstName
+                          : emp.firstName || "—"}
+                      </TableCell>
+                    )}
+                    {isColVisible("secondName") && (
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {ar
+                          ? emp.lastNameAr || emp.lastName
+                          : emp.lastName || "—"}
+                      </TableCell>
+                    )}
+                    {isColVisible("thirdName") && (
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {ar
+                          ? emp.thirdNameAr || emp.thirdName
+                          : emp.thirdName || "—"}
+                      </TableCell>
+                    )}
+                    {isColVisible("fourthName") && (
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {ar
+                          ? emp.fourthNameAr || emp.fourthName
+                          : emp.fourthName || "—"}
+                      </TableCell>
+                    )}
+                    {isColVisible("nid") && (
+                      <TableCell className="font-mono text-sm whitespace-nowrap">
+                        {emp.nationalId}
+                      </TableCell>
+                    )}
+                    {isColVisible("phone") && (
+                      <TableCell
+                        className="text-sm whitespace-nowrap"
+                        dir="ltr"
+                      >
+                        {emp.phone || "—"}
+                      </TableCell>
+                    )}
+                    {isColVisible("nationality") && (
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {formatNationality(emp.nationality, ar) || "—"}
+                      </TableCell>
+                    )}
+                    {isColVisible("gender") && (
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {emp.gender === "M"
+                          ? ar
+                            ? "ذكر"
+                            : "Male"
+                          : emp.gender === "F"
+                            ? ar
+                              ? "أنثى"
+                              : "Female"
+                            : "—"}
+                      </TableCell>
+                    )}
+                    {isColVisible("dept") && (
+                      <TableCell className="whitespace-nowrap">
+                        {isThirdParty ? (
+                          <span className="text-muted-foreground/60 italic text-xs">
+                            —
+                          </span>
+                        ) : deptName ? (
+                          <Badge variant="outline" className="font-normal">
+                            {deptName}
+                          </Badge>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                    )}
+                    {isColVisible("title") && (
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {jobTitle || "—"}
+                      </TableCell>
+                    )}
+                    {isColVisible("level") && (
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {isThirdParty ? (
+                          <span className="text-muted-foreground/60 italic text-xs">
+                            —
+                          </span>
+                        ) : emp.level ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-primary/10 text-primary border-primary/25 font-bold px-2 py-0.5"
+                          >
+                            {emp.level}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground/60 italic text-xs">
+                            —
+                          </span>
+                        )}
+                      </TableCell>
+                    )}
+                    {isColVisible("companyName") && (
+                      <TableCell
+                        className="text-xs whitespace-nowrap max-w-[160px] truncate"
+                        title={emp.companyName || ""}
+                      >
+                        {emp.companyName ? (
+                          <span className="font-medium text-foreground">
+                            {emp.companyName}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/60 italic text-xs">
+                            {emp.employmentType === "INTERNAL"
+                              ? ar
+                                ? "الفندق"
+                                : "Hotel"
+                              : "—"}
+                          </span>
+                        )}
+                      </TableCell>
+                    )}
+                    {isColVisible("dateOfBirth") && (
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {formatDate(emp.dateOfBirth)}
+                      </TableCell>
+                    )}
+                    {isColVisible("address") && (
+                      <TableCell
+                        className="text-sm whitespace-nowrap max-w-[200px] truncate"
+                        title={emp.address}
+                      >
+                        {emp.address || "—"}
+                      </TableCell>
+                    )}
+                    {isColVisible("hiredate") && (
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {isThirdParty ? (
+                          <span className="text-muted-foreground/60 italic text-xs">
+                            —
+                          </span>
+                        ) : (
+                          formatDate(emp.hireDate)
+                        )}
+                      </TableCell>
+                    )}
+                    {isColVisible("contractEndDate") && (
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {!isThirdParty && emp.contractEndDate ? (
+                          <span className="font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 text-xs">
+                            {formatDate(emp.contractEndDate)}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
+
+                    {/* Status */}
+                    {isColVisible("status") && (
+                      <TableCell className="py-2.5 whitespace-nowrap">
+                        <StatusBadge status={emp.status} />
+                      </TableCell>
+                    )}
+
+                    {/* Actions */}
+                    {isColVisible("actions") && (
+                      <TableCell className="w-24 text-center sticky rtl:left-0 ltr:right-0 z-10 bg-card group-hover:bg-accent/40 border-s border-border">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-xs gap-1 font-medium bg-background hover:bg-muted shadow-xs transition-colors"
+                            >
+                              {ar ? "إجراءات" : "Actions"}
+                              <ChevronDown className="w-3 h-3 opacity-60" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-48 shadow-lg"
+                          >
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/profiles/${emp.id}`}
+                                className="cursor-pointer"
                               >
-                                {ar ? "إجراءات" : "Actions"}
-                                <ChevronDown className="w-3 h-3 opacity-60" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48 shadow-lg">
-                              <DropdownMenuItem asChild>
-                                <Link href={`/profiles/${emp.id}`} className="cursor-pointer">
-                                  <Eye className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-blue-500" />
-                                  {ar ? "عرض التفاصيل" : "View Details"}
-                                </Link>
-                              </DropdownMenuItem>
+                                <Eye className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-blue-500" />
+                                {ar ? "عرض التفاصيل" : "View Details"}
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedGatePassProfileId(emp.id);
+                                setGatePassOpen(true);
+                              }}
+                              className="cursor-pointer font-medium text-emerald-600 dark:text-emerald-400"
+                            >
+                              <QrCode className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-600 dark:text-emerald-400" />
+                              {ar ? "تصريح السكن (Gate Pass)" : "Gate QR Pass"}
+                            </DropdownMenuItem>
+                            <PermissionGate module="profiles" action="edit">
                               <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedGatePassProfileId(emp.id);
-                                  setGatePassOpen(true);
-                                }}
-                                className="cursor-pointer font-medium text-emerald-600 dark:text-emerald-400"
+                                onClick={() => setEditingProfile(emp)}
+                                className="cursor-pointer"
                               >
-                                <QrCode className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-600 dark:text-emerald-400" />
-                                {ar ? "تصريح السكن (Gate Pass)" : "Gate QR Pass"}
+                                <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-amber-500" />
+                                {ar ? "تعديل" : "Edit"}
                               </DropdownMenuItem>
-                              <PermissionGate module="profiles" action="edit">
-                                <DropdownMenuItem onClick={() => setEditingProfile(emp)} className="cursor-pointer">
-                                  <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-amber-500" />
-                                  {ar ? "تعديل" : "Edit"}
-                                </DropdownMenuItem>
-                              </PermissionGate>
-                              <PermissionGate module="profiles" action="edit">
-                                <DropdownMenuItem onClick={() => handleResetPassword(emp)} className="cursor-pointer">
-                                  <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-indigo-500" />
-                                  {ar ? "إعادة تعيين كلمة المرور" : "Reset Password"}
-                                </DropdownMenuItem>
-                              </PermissionGate>
-                              <PermissionGate module="profiles" action="delete">
-                                <DropdownMenuItem
-                                  onClick={() => setDeleteTarget(emp.id)}
-                                  className="text-destructive font-medium cursor-pointer focus:text-destructive focus:bg-destructive/10"
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-destructive" />
-                                  {ar ? "حذف" : "Delete"}
-                                </DropdownMenuItem>
-                              </PermissionGate>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-            {totalRecords > 0 && (
-              <DataPagination
-                total={totalRecords}
-                pageSize={pageSize}
-                onPageSizeChange={(size) => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                currentPage={currentPage}
-                onPageChange={setCurrentPage}
-              />
-            )}
-          </div>
-        )
+                            </PermissionGate>
+                            <PermissionGate module="profiles" action="edit">
+                              <DropdownMenuItem
+                                onClick={() => handleResetPassword(emp)}
+                                className="cursor-pointer"
+                              >
+                                <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-indigo-500" />
+                                {ar
+                                  ? "إعادة تعيين كلمة المرور"
+                                  : "Reset Password"}
+                              </DropdownMenuItem>
+                            </PermissionGate>
+                            <PermissionGate module="profiles" action="delete">
+                              <DropdownMenuItem
+                                onClick={() => setDeleteTarget(emp.id)}
+                                className="text-destructive font-medium cursor-pointer focus:text-destructive focus:bg-destructive/10"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-destructive" />
+                                {ar ? "حذف" : "Delete"}
+                              </DropdownMenuItem>
+                            </PermissionGate>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          {totalRecords > 0 && (
+            <DataPagination
+              total={totalRecords}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+              currentPage={currentPage}
+              onPageChange={setCurrentPage}
+            />
+          )}
+        </div>
       )}
 
       {/* Add Dialog */}
@@ -1265,7 +1645,9 @@ export function ProfilesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              {isTargetHoused && <AlertCircle className="w-5 h-5 text-destructive shrink-0" />}
+              {isTargetHoused && (
+                <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
+              )}
               {ar ? "حذف الملف الشخصي" : "Delete Profile"}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -1304,7 +1686,13 @@ export function ProfilesPage() {
                 disabled={deleteMutation.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {deleteMutation.isPending ? (ar ? "جاري الحذف..." : "Deleting...") : (ar ? "حذف" : "Delete")}
+                {deleteMutation.isPending
+                  ? ar
+                    ? "جاري الحذف..."
+                    : "Deleting..."
+                  : ar
+                    ? "حذف"
+                    : "Delete"}
               </AlertDialogAction>
             )}
           </AlertDialogFooter>

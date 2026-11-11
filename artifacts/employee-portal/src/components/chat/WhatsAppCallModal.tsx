@@ -30,7 +30,9 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
   isDark = true,
   isRtl = true,
 }) => {
-  const [callState, setCallState] = useState<"calling" | "ringing" | "connected">("calling");
+  const [callState, setCallState] = useState<
+    "calling" | "ringing" | "connected"
+  >("calling");
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(true);
@@ -46,7 +48,9 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
   const playRingTone = () => {
     try {
       if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioCtxRef.current = new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
       }
       const ctx = audioCtxRef.current;
       if (ctx.state === "suspended") ctx.resume();
@@ -182,7 +186,8 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
     <div
       className="fixed inset-0 z-50 flex flex-col justify-between select-none animate-in fade-in duration-200"
       style={{
-        background: "linear-gradient(180deg, #091a1a 0%, #0d2b27 50%, #061413 100%)",
+        background:
+          "linear-gradient(180deg, #091a1a 0%, #0d2b27 50%, #061413 100%)",
         color: "#ffffff",
       }}
       dir={isRtl ? "rtl" : "ltr"}
@@ -212,8 +217,8 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
                 ? "مكالمة فيديو مشفرة"
                 : "Encrypted Video Call"
               : isRtl
-              ? "مكالمة صوتية مشفرة"
-              : "Encrypted Voice Call"}
+                ? "مكالمة صوتية مشفرة"
+                : "Encrypted Voice Call"}
           </span>
         </div>
 
@@ -249,7 +254,8 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
 
         {/* Call Status */}
         <p className="text-base text-white/80 font-medium">
-          {callState === "calling" && (isRtl ? "جارٍ الاتصال..." : "Calling...")}
+          {callState === "calling" &&
+            (isRtl ? "جارٍ الاتصال..." : "Calling...")}
           {callState === "ringing" && (
             <span className="text-[#25d366] font-semibold animate-pulse">
               {isRtl ? "يرن..." : "Ringing..."}
@@ -267,23 +273,25 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
       {callType === "voice" && (
         <div className="relative z-10 flex-1 flex items-center justify-center px-4">
           <div className="flex items-center gap-1.5 h-16">
-            {[40, 70, 30, 90, 60, 100, 45, 80, 50, 95, 35, 75, 55, 85].map((h, i) => (
-              <div
-                key={i}
-                className="w-1.5 rounded-full bg-[#25d366] transition-all duration-300"
-                style={{
-                  height:
-                    callState === "connected"
-                      ? `${Math.max(12, h * (0.4 + (i % 3) * 0.3))}px`
-                      : "8px",
-                  opacity: callState === "connected" ? 0.9 : 0.3,
-                  animation:
-                    callState === "connected"
-                      ? `pulse ${0.6 + (i % 5) * 0.2}s ease-in-out infinite alternate`
-                      : "none",
-                }}
-              />
-            ))}
+            {[40, 70, 30, 90, 60, 100, 45, 80, 50, 95, 35, 75, 55, 85].map(
+              (h, i) => (
+                <div
+                  key={i}
+                  className="w-1.5 rounded-full bg-[#25d366] transition-all duration-300"
+                  style={{
+                    height:
+                      callState === "connected"
+                        ? `${Math.max(12, h * (0.4 + (i % 3) * 0.3))}px`
+                        : "8px",
+                    opacity: callState === "connected" ? 0.9 : 0.3,
+                    animation:
+                      callState === "connected"
+                        ? `pulse ${0.6 + (i % 5) * 0.2}s ease-in-out infinite alternate`
+                        : "none",
+                  }}
+                />
+              ),
+            )}
           </div>
         </div>
       )}
@@ -300,9 +308,21 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
                 ? "bg-white text-gray-900 shadow-lg"
                 : "bg-white/15 text-white hover:bg-white/25 active:scale-95"
             }`}
-            title={isRtl ? (isMuted ? "إلغاء كتم الصوت" : "كتم الصوت") : isMuted ? "Unmute" : "Mute"}
+            title={
+              isRtl
+                ? isMuted
+                  ? "إلغاء كتم الصوت"
+                  : "كتم الصوت"
+                : isMuted
+                  ? "Unmute"
+                  : "Mute"
+            }
           >
-            {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {isMuted ? (
+              <MicOff className="w-5 h-5" />
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
           </button>
 
           {/* Speaker Toggle */}
@@ -316,7 +336,11 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
             }`}
             title={isRtl ? "مكبر الصوت" : "Speaker"}
           >
-            {isSpeaker ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            {isSpeaker ? (
+              <Volume2 className="w-5 h-5" />
+            ) : (
+              <VolumeX className="w-5 h-5" />
+            )}
           </button>
 
           {/* Video Toggle / Flip for Video Call */}
@@ -332,7 +356,11 @@ export const WhatsAppCallModal: React.FC<WhatsAppCallModalProps> = ({
                 }`}
                 title={isRtl ? "تبديل الكاميرا" : "Toggle Camera"}
               >
-                {isVideoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                {isVideoEnabled ? (
+                  <Video className="w-5 h-5" />
+                ) : (
+                  <VideoOff className="w-5 h-5" />
+                )}
               </button>
 
               <button

@@ -15,7 +15,10 @@ import {
 import { ArrowLeft } from "lucide-react";
 import { EditProfileDialog } from "./components/EditProfileDialog";
 import { PrintLanguageDialog } from "@/lib/PrintLanguageDialog";
-import { useProfileDetailState, buildProfileDetailView } from "./detail-parts/useProfileDetailState";
+import {
+  useProfileDetailState,
+  buildProfileDetailView,
+} from "./detail-parts/useProfileDetailState";
 import { renderIdentityCard } from "./detail-parts/IdentityCard";
 import { renderDocumentsCard } from "./detail-parts/DocumentsCard";
 import { renderCurrentHousingCard } from "./detail-parts/CurrentHousingCard";
@@ -26,8 +29,24 @@ import { renderExtendStayDialog } from "./detail-parts/ExtendStayDialog";
 
 export default function ProfileDetail() {
   const s = useProfileDetailState();
-  const { profileId, ar, langDialogOpen, handleSelect, handleCancel, profile, empLoading, refetch, effectivePropId, previewDoc, setPreviewDoc, editProfileOpen, setEditProfileOpen, resetOpen, setResetOpen, pwSaving } = s;
-
+  const {
+    profileId,
+    ar,
+    langDialogOpen,
+    handleSelect,
+    handleCancel,
+    profile,
+    empLoading,
+    refetch,
+    effectivePropId,
+    previewDoc,
+    setPreviewDoc,
+    editProfileOpen,
+    setEditProfileOpen,
+    resetOpen,
+    setResetOpen,
+    pwSaving,
+  } = s;
 
   if (empLoading || !profileId)
     return (
@@ -56,7 +75,6 @@ export default function ProfileDetail() {
       {/* Profile card */}
       {renderIdentityCard(s, v)}
 
-      
       {/* Passport / ID Documents */}
       {renderDocumentsCard(s, v)}
 

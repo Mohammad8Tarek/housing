@@ -1,4 +1,5 @@
 # Sunrise Housing — HR System Integration & Multi-Source Synchronization Runbook
+
 # دليل الربط والتكامل الشامل مع أنظمة الموارد البشرية (HR Sync API)
 
 ## 1. Overview (نظرة عامة)
@@ -6,6 +7,7 @@
 The Sunrise Staff Housing Management System provides an enterprise-grade integration bridge with external HR systems (e.g. Oracle HRMS, SAP SuccessFactors, MenaITech, or custom HR Solutions). It supports both **Pull (استيراد دوري)** and **Push Webhooks (إرسال فوري)**.
 
 ### Key Capabilities (المزايا الرئيسية):
+
 1. **Multi-Database & Multi-Hotel Connections (ربط عدة قواعد بيانات وفنادق):**
    - Connect multiple HR APIs simultaneously (e.g. Al-Taj Hotel, White Hills Hotel, and Al-Marafe Hotel, all housing staff at the same location or distributed across properties).
 2. **Selective Operations (مزامنة مخصصة بدون موظفين):**
@@ -26,14 +28,19 @@ The Sunrise Staff Housing Management System provides an enterprise-grade integra
 ## 2. Authentication (المصادقة والتأمين)
 
 ### Webhook & Push Security (HR → Housing)
+
 Requests sent from the external HR system to Housing Webhooks must include the `x-api-key` header:
+
 ```http
 x-api-key: sunrise-hr-secret-2026
 ```
-*(Configurable via `HR_SYNC_API_KEY` in `artifacts/api-server/.env`).*
+
+_(Configurable via `HR_SYNC_API_KEY` in `artifacts/api-server/.env`)._
 
 ### Pull Security (Housing → HR)
+
 When Housing pulls data from external HR endpoints, it attaches the configured Bearer token:
+
 ```http
 Authorization: Bearer <CONFIGURED_API_KEY>
 ```
@@ -43,15 +50,18 @@ Authorization: Bearer <CONFIGURED_API_KEY>
 ## 3. Webhook Endpoints Reference (نقاط الاتصال)
 
 ### 1. `POST /api/hr-sync/receive`
+
 Pushes employee profiles from HR into Housing. Supports filtering options and automatic Casual upgrade.
 
 #### Headers
+
 ```http
 Content-Type: application/json
 x-api-key: sunrise-hr-secret-2026
 ```
 
 #### Request Body
+
 ```json
 {
   "propertyId": 1,
@@ -78,6 +88,7 @@ x-api-key: sunrise-hr-secret-2026
 ```
 
 #### Response
+
 ```json
 {
   "success": true,
@@ -96,9 +107,11 @@ x-api-key: sunrise-hr-secret-2026
 ---
 
 ### 2. `POST /api/hr-sync/notify-vacation`
+
 Notifies that an employee has departed on leave or returned from leave.
 
 #### Body (Vacation Start)
+
 ```json
 {
   "propertyId": 1,
@@ -111,6 +124,7 @@ Notifies that an employee has departed on leave or returned from leave.
 ```
 
 #### Body (Vacation Return)
+
 ```json
 {
   "propertyId": 1,
@@ -122,9 +136,11 @@ Notifies that an employee has departed on leave or returned from leave.
 ---
 
 ### 3. `POST /api/hr-sync/notify-departure`
+
 Notifies of employee resignation, termination, or clearance (تصفية).
 
 #### Body
+
 ```json
 {
   "propertyId": 1,
@@ -135,6 +151,7 @@ Notifies of employee resignation, termination, or clearance (تصفية).
 ```
 
 #### Automatic Actions:
+
 1. Profile marked as `DEPARTED`.
 2. Locates active room assignment and bed.
 3. Completes checkout, decrements occupancy, and transitions room status to `dirty`.
@@ -143,9 +160,11 @@ Notifies of employee resignation, termination, or clearance (تصفية).
 ---
 
 ### 4. `POST /api/hr-sync/test-connection`
+
 Tests latency and parses sample records from any target HR API URL.
 
 #### Body
+
 ```json
 {
   "apiUrl": "https://hr-system.com/api/employees",
@@ -156,6 +175,7 @@ Tests latency and parses sample records from any target HR API URL.
 ---
 
 ### 5. `GET /api/hr-sync/mock-feed`
+
 Built-in sandbox feed returning realistic demo employee records for all 3 hotels (Al-Taj, White Hills, Al-Marafe).
 
 - `GET /api/hr-sync/mock-feed?hotel=al_taj` — Al-Taj Hotel executives & casual worker.
@@ -166,6 +186,7 @@ Built-in sandbox feed returning realistic demo employee records for all 3 hotels
 ---
 
 ## 4. Architectural Rules & Compliance
+
 - **Rule 1 (Zero Data Loss):** Idempotent migrations with `ADD COLUMN IF NOT EXISTS`.
 - **Rule 2 (Dual-Layer RBAC):** Endpoints guarded with `requireAnyPermission(["hr_sync", "edit"], ["settings", "edit"])`.
 - **Rule 5 (Room Lifecycle):** Automatic synchronization between HR status, profile state, and room cleanliness state.

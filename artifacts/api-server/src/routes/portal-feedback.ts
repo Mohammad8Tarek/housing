@@ -54,132 +54,135 @@ const FeedbackSchema = z.object({
 });
 
 // ─── GET /:contentType/:contentId — جلب كل التعليقات والتقييم لمحتوى ─────
-router.get("/:contentType/:contentId", validate({ params: FeedbackContentParams }),
+router.get(
+  "/:contentType/:contentId",
+  validate({ params: FeedbackContentParams }),
   async (req, res, next) => {
-  try {
-    const sess = portalSession(req)!;
-    const { contentType, contentId } = req.params;
-    const cid = Number(contentId);
+    try {
+      const sess = portalSession(req)!;
+      const { contentType, contentId } = req.params;
+      const cid = Number(contentId);
 
-    const result = await withTenant(sess.propertyId, async (tenantDb) => {
-      // Get feedback/rating summary
-      const feedbackRows = await tenantDb
-        .select()
-        .from(portalFeedbackTable)
-        .where(
-          and(
-            eq(portalFeedbackTable.contentType, String(contentType)),
-            eq(portalFeedbackTable.contentId, cid),
-          ),
-        );
+      const result = await withTenant(sess.propertyId, async (tenantDb) => {
+        // Get feedback/rating summary
+        const feedbackRows = await tenantDb
+          .select()
+          .from(portalFeedbackTable)
+          .where(
+            and(
+              eq(portalFeedbackTable.contentType, String(contentType)),
+              eq(portalFeedbackTable.contentId, cid),
+            ),
+          );
 
-      const ratedRows = feedbackRows.filter((f) => f.rating != null);
-      const avgRating =
-        ratedRows.length > 0
-          ? ratedRows.reduce((s, f) => s + (f.rating || 0), 0) /
-            ratedRows.length
-          : 0;
+        const ratedRows = feedbackRows.filter((f) => f.rating != null);
+        const avgRating =
+          ratedRows.length > 0
+            ? ratedRows.reduce((s, f) => s + (f.rating || 0), 0) /
+              ratedRows.length
+            : 0;
 
-      const myFeedback =
-        feedbackRows.find((f) => f.profileId === sess.profileDbId) || null;
+        const myFeedback =
+          feedbackRows.find((f) => f.profileId === sess.profileDbId) || null;
 
-      // Get top-level comments with author names
-      const comments = await tenantDb
-        .select({
-          id: portalCommentsTable.id,
-          text: portalCommentsTable.text,
-          profileId: portalCommentsTable.profileId,
-          parentCommentId: portalCommentsTable.parentCommentId,
-          likesCount: portalCommentsTable.likesCount,
-          createdAt: portalCommentsTable.createdAt,
-          firstName: profilesTable.firstName,
-          lastName: profilesTable.lastName,
-        })
-        .from(portalCommentsTable)
-        .leftJoin(
-          profilesTable,
-          eq(portalCommentsTable.profileId, profilesTable.id),
-        )
-        .where(
-          and(
-            eq(portalCommentsTable.contentType, String(contentType)),
-            eq(portalCommentsTable.contentId, cid),
-            isNull(portalCommentsTable.parentCommentId),
-          ),
-        )
-        .orderBy(desc(portalCommentsTable.createdAt))
-        .limit(100);
+        // Get top-level comments with author names
+        const comments = await tenantDb
+          .select({
+            id: portalCommentsTable.id,
+            text: portalCommentsTable.text,
+            profileId: portalCommentsTable.profileId,
+            parentCommentId: portalCommentsTable.parentCommentId,
+            likesCount: portalCommentsTable.likesCount,
+            createdAt: portalCommentsTable.createdAt,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName,
+          })
+          .from(portalCommentsTable)
+          .leftJoin(
+            profilesTable,
+            eq(portalCommentsTable.profileId, profilesTable.id),
+          )
+          .where(
+            and(
+              eq(portalCommentsTable.contentType, String(contentType)),
+              eq(portalCommentsTable.contentId, cid),
+              isNull(portalCommentsTable.parentCommentId),
+            ),
+          )
+          .orderBy(desc(portalCommentsTable.createdAt))
+          .limit(100);
 
-      // Get replies
-      const replies = await tenantDb
-        .select({
-          id: portalCommentsTable.id,
-          text: portalCommentsTable.text,
-          profileId: portalCommentsTable.profileId,
-          parentCommentId: portalCommentsTable.parentCommentId,
-          likesCount: portalCommentsTable.likesCount,
-          createdAt: portalCommentsTable.createdAt,
-          firstName: profilesTable.firstName,
-          lastName: profilesTable.lastName,
-        })
-        .from(portalCommentsTable)
-        .leftJoin(
-          profilesTable,
-          eq(portalCommentsTable.profileId, profilesTable.id),
-        )
-        .where(
-          and(
-            eq(portalCommentsTable.contentType, String(contentType)),
-            eq(portalCommentsTable.contentId, cid),
-            isNotNull(portalCommentsTable.parentCommentId),
-          ),
-        )
-        .orderBy(desc(portalCommentsTable.createdAt));
+        // Get replies
+        const replies = await tenantDb
+          .select({
+            id: portalCommentsTable.id,
+            text: portalCommentsTable.text,
+            profileId: portalCommentsTable.profileId,
+            parentCommentId: portalCommentsTable.parentCommentId,
+            likesCount: portalCommentsTable.likesCount,
+            createdAt: portalCommentsTable.createdAt,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName,
+          })
+          .from(portalCommentsTable)
+          .leftJoin(
+            profilesTable,
+            eq(portalCommentsTable.profileId, profilesTable.id),
+          )
+          .where(
+            and(
+              eq(portalCommentsTable.contentType, String(contentType)),
+              eq(portalCommentsTable.contentId, cid),
+              isNotNull(portalCommentsTable.parentCommentId),
+            ),
+          )
+          .orderBy(desc(portalCommentsTable.createdAt));
 
-      // Get my liked comment IDs
-      const myLikes = await tenantDb
-        .select({ commentId: portalCommentLikesTable.commentId })
-        .from(portalCommentLikesTable)
-        .where(eq(portalCommentLikesTable.profileId, sess.profileDbId));
-      const myLikedSet = new Set(myLikes.map((l) => l.commentId));
+        // Get my liked comment IDs
+        const myLikes = await tenantDb
+          .select({ commentId: portalCommentLikesTable.commentId })
+          .from(portalCommentLikesTable)
+          .where(eq(portalCommentLikesTable.profileId, sess.profileDbId));
+        const myLikedSet = new Set(myLikes.map((l) => l.commentId));
 
-      // Build comment tree
-      const commentMap: Record<number, any> = {};
-      comments.forEach((c) => {
-        commentMap[c.id] = {
-          ...c,
-          authorName: `${c.firstName || ""} ${c.lastName || ""}`.trim(),
-          isOwn: c.profileId === sess.profileDbId,
-          isLiked: myLikedSet.has(c.id),
-          replies: [],
+        // Build comment tree
+        const commentMap: Record<number, any> = {};
+        comments.forEach((c) => {
+          commentMap[c.id] = {
+            ...c,
+            authorName: `${c.firstName || ""} ${c.lastName || ""}`.trim(),
+            isOwn: c.profileId === sess.profileDbId,
+            isLiked: myLikedSet.has(c.id),
+            replies: [],
+          };
+        });
+
+        replies.forEach((r) => {
+          if (r.parentCommentId && commentMap[r.parentCommentId]) {
+            commentMap[r.parentCommentId].replies.push({
+              ...r,
+              authorName: `${r.firstName || ""} ${r.lastName || ""}`.trim(),
+              isOwn: r.profileId === sess.profileDbId,
+              isLiked: myLikedSet.has(r.id),
+            });
+          }
+        });
+
+        return {
+          totalFeedback: feedbackRows.length,
+          avgRating: Math.round(avgRating * 10) / 10,
+          helpfulCount: feedbackRows.filter((f) => f.helpful === "yes").length,
+          myFeedback,
+          comments: Object.values(commentMap),
         };
       });
 
-      replies.forEach((r) => {
-        if (r.parentCommentId && commentMap[r.parentCommentId]) {
-          commentMap[r.parentCommentId].replies.push({
-            ...r,
-            authorName: `${r.firstName || ""} ${r.lastName || ""}`.trim(),
-            isOwn: r.profileId === sess.profileDbId,
-            isLiked: myLikedSet.has(r.id),
-          });
-        }
-      });
-
-      return {
-        totalFeedback: feedbackRows.length,
-        avgRating: Math.round(avgRating * 10) / 10,
-        helpfulCount: feedbackRows.filter((f) => f.helpful === "yes").length,
-        myFeedback,
-        comments: Object.values(commentMap),
-      };
-    });
-
-    res.json({ success: true, ...result });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({ success: true, ...result });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ─── POST /feedback — إضافة/تحديث تقييم ─────────────────────────────────
 router.post("/feedback", async (req, res, next) => {
@@ -299,111 +302,117 @@ router.post("/comments", async (req, res, next) => {
 });
 
 // ─── DELETE /comments/:id — حذف تعليق ───────────────────────────────────
-router.delete("/comments/:id", validate({ params: IdParams }),
+router.delete(
+  "/comments/:id",
+  validate({ params: IdParams }),
   async (req, res, next): Promise<any> => {
-  try {
-    const sess = portalSession(req)!;
-    const id = Number(req.params.id);
+    try {
+      const sess = portalSession(req)!;
+      const id = Number(req.params.id);
 
-    await withTenant(sess.propertyId, async (tenantDb) => {
-      // Only owner can delete
-      const [comment] = await tenantDb
-        .select()
-        .from(portalCommentsTable)
-        .where(
-          and(
-            eq(portalCommentsTable.id, id),
-            eq(portalCommentsTable.profileId, sess.profileDbId),
-          ),
-        )
-        .limit(1);
+      await withTenant(sess.propertyId, async (tenantDb) => {
+        // Only owner can delete
+        const [comment] = await tenantDb
+          .select()
+          .from(portalCommentsTable)
+          .where(
+            and(
+              eq(portalCommentsTable.id, id),
+              eq(portalCommentsTable.profileId, sess.profileDbId),
+            ),
+          )
+          .limit(1);
 
-      if (!comment)
-        throw Object.assign(new Error("Not found or not authorized"), {
-          status: 403,
-        });
+        if (!comment)
+          throw Object.assign(new Error("Not found or not authorized"), {
+            status: 403,
+          });
 
-      // Delete likes for child comments
-      const childComments = await tenantDb
-        .select({ id: portalCommentsTable.id })
-        .from(portalCommentsTable)
-        .where(eq(portalCommentsTable.parentCommentId, id));
-      if (childComments.length > 0) {
-        const childIds = childComments.map((c) => c.id);
+        // Delete likes for child comments
+        const childComments = await tenantDb
+          .select({ id: portalCommentsTable.id })
+          .from(portalCommentsTable)
+          .where(eq(portalCommentsTable.parentCommentId, id));
+        if (childComments.length > 0) {
+          const childIds = childComments.map((c) => c.id);
+          await tenantDb
+            .delete(portalCommentLikesTable)
+            .where(inArray(portalCommentLikesTable.commentId, childIds));
+        }
+        // Delete child comments
+        await tenantDb
+          .delete(portalCommentsTable)
+          .where(eq(portalCommentsTable.parentCommentId, id));
+
+        // Delete likes for parent comment
         await tenantDb
           .delete(portalCommentLikesTable)
-          .where(inArray(portalCommentLikesTable.commentId, childIds));
-      }
-      // Delete child comments
-      await tenantDb
-        .delete(portalCommentsTable)
-        .where(eq(portalCommentsTable.parentCommentId, id));
+          .where(eq(portalCommentLikesTable.commentId, id));
+        // Delete parent comment
+        await tenantDb
+          .delete(portalCommentsTable)
+          .where(eq(portalCommentsTable.id, id));
+      });
 
-      // Delete likes for parent comment
-      await tenantDb
-        .delete(portalCommentLikesTable)
-        .where(eq(portalCommentLikesTable.commentId, id));
-      // Delete parent comment
-      await tenantDb
-        .delete(portalCommentsTable)
-        .where(eq(portalCommentsTable.id, id));
-    });
-
-    res.json({ success: true });
-  } catch (err: any) {
-    if (err.status === 403)
-      return res.status(403).json({ success: false, message: err.message });
-    next(err);
-  }
-});
+      res.json({ success: true });
+    } catch (err: any) {
+      if (err.status === 403)
+        return res.status(403).json({ success: false, message: err.message });
+      next(err);
+    }
+  },
+);
 
 // ─── POST /comments/:id/like — إعجاب/إلغاء إعجاب ────────────────────────
-router.post("/comments/:id/like", validate({ params: IdParams }),
+router.post(
+  "/comments/:id/like",
+  validate({ params: IdParams }),
   async (req, res, next) => {
-  try {
-    const sess = portalSession(req)!;
-    const id = Number(req.params.id);
+    try {
+      const sess = portalSession(req)!;
+      const id = Number(req.params.id);
 
-    const result = await withTenant(sess.propertyId, async (tenantDb) => {
-      // Toggle like
-      const existing = await tenantDb
-        .select()
-        .from(portalCommentLikesTable)
-        .where(
-          and(
-            eq(portalCommentLikesTable.commentId, id),
-            eq(portalCommentLikesTable.profileId, sess.profileDbId),
-          ),
-        )
-        .limit(1);
+      const result = await withTenant(sess.propertyId, async (tenantDb) => {
+        // Toggle like
+        const existing = await tenantDb
+          .select()
+          .from(portalCommentLikesTable)
+          .where(
+            and(
+              eq(portalCommentLikesTable.commentId, id),
+              eq(portalCommentLikesTable.profileId, sess.profileDbId),
+            ),
+          )
+          .limit(1);
 
-      if (existing.length > 0) {
-        // Unlike
-        await tenantDb
-          .delete(portalCommentLikesTable)
-          .where(eq(portalCommentLikesTable.id, existing[0].id));
-        await tenantDb.execute(sql`
+        if (existing.length > 0) {
+          // Unlike
+          await tenantDb
+            .delete(portalCommentLikesTable)
+            .where(eq(portalCommentLikesTable.id, existing[0].id));
+          await tenantDb.execute(sql`
           UPDATE portal_comments SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = ${id}
         `);
-        return { liked: false };
-      } else {
-        // Like
-        await tenantDb.insert(portalCommentLikesTable).values({
-          commentId: id,
-          profileId: sess.profileDbId,
-        });
-        await tenantDb.execute(sql`
+          return { liked: false };
+        } else {
+          // Like
+          await tenantDb.insert(portalCommentLikesTable).values({
+            commentId: id,
+            profileId: sess.profileDbId,
+          });
+          await tenantDb.execute(sql`
           UPDATE portal_comments SET likes_count = likes_count + 1 WHERE id = ${id}
         `);
-        return { liked: true };
-      }
-    });
+          return { liked: true };
+        }
+      });
 
-    res.json({ success: true, ...result });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({ success: true, ...result });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ─── GET /stats — إحصائيات (للأدمن) ─────────────────────────────────────
 router.get("/stats", async (req, res, next) => {

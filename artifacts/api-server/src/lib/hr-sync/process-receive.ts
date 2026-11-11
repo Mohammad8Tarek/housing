@@ -1,12 +1,23 @@
 /**
  * hr-sync/process-receive.ts — Core batch processor for /receive and /sync.
  */
-import { pool, withTenant, profilesTable, profileDocumentsTable, profileVacationsTable, profilePortalAccountsTable } from "@workspace/db";
+import {
+  pool,
+  withTenant,
+  profilesTable,
+  profileDocumentsTable,
+  profileVacationsTable,
+  profilePortalAccountsTable,
+} from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logActivity } from "../activity-logger.js";
 import { ensureProfilePortalAccount } from "../portal-accounts.js";
 import { su } from "../request-utils.js";
-import { enrichProfileBilingual, translateDepartment, translateJobTitle } from "../bilingual-translator.js";
+import {
+  enrichProfileBilingual,
+  translateDepartment,
+  translateJobTitle,
+} from "../bilingual-translator.js";
 import { extractProfileFields } from "./profile-fields.js";
 import { syncEmployeeAccommodationLifecycle } from "./lifecycle.js";
 import { autoRegisterLookups } from "./lookups.js";
@@ -55,11 +66,18 @@ export async function processReceive(
     // 2. Housing eligible filter
     if (options.housingEligibleOnly) {
       normalizedProfiles = normalizedProfiles.filter((p) => {
-        const raw = rawProfiles.find((rp: any) =>
-          String(rp.profileId || rp.employeeId || rp.emp_id || rp.id || "").trim() === p.profileId
+        const raw = rawProfiles.find(
+          (rp: any) =>
+            String(
+              rp.profileId || rp.employeeId || rp.emp_id || rp.id || "",
+            ).trim() === p.profileId,
         );
         if (!raw) return true;
-        if (raw.housingEligible === false || raw.isHousingEligible === false || raw.housing_eligible === false) {
+        if (
+          raw.housingEligible === false ||
+          raw.isHousingEligible === false ||
+          raw.housing_eligible === false
+        ) {
           return false;
         }
         return true;
@@ -68,18 +86,30 @@ export async function processReceive(
 
     // 3. Allowed Levels filter (e.g. only Levels 0, 1, 2 for executive housing)
     if (options.allowedLevels && options.allowedLevels.length > 0) {
-      const allowedSet = new Set(options.allowedLevels.map((l) => String(l).trim()));
-      normalizedProfiles = normalizedProfiles.filter((p) => allowedSet.has(String(p.level).trim()));
+      const allowedSet = new Set(
+        options.allowedLevels.map((l) => String(l).trim()),
+      );
+      normalizedProfiles = normalizedProfiles.filter((p) =>
+        allowedSet.has(String(p.level).trim()),
+      );
     }
 
     // 4. Allowed Departments filter
     if (options.allowedDepartments && options.allowedDepartments.length > 0) {
-      const deptSet = new Set(options.allowedDepartments.map((d) => String(d).trim().toLowerCase()));
-      normalizedProfiles = normalizedProfiles.filter((p) => deptSet.has(String(p.department).trim().toLowerCase()));
+      const deptSet = new Set(
+        options.allowedDepartments.map((d) => String(d).trim().toLowerCase()),
+      );
+      normalizedProfiles = normalizedProfiles.filter((p) =>
+        deptSet.has(String(p.department).trim().toLowerCase()),
+      );
     }
 
     // 5. Auto-register lookup values (departments, job titles, levels, companies)
-    const lookupRes = await autoRegisterLookups(tenantDb, normalizedProfiles, propertyId);
+    const lookupRes = await autoRegisterLookups(
+      tenantDb,
+      normalizedProfiles,
+      propertyId,
+    );
     lookupsAdded = lookupRes.added;
 
     // If scope is lookups_only, return immediately after autoRegisterLookups
@@ -87,7 +117,8 @@ export async function processReceive(
       return;
     }
 
-    const syncProfiles = options.syncProfiles !== false && options.scope !== "movements_only";
+    const syncProfiles =
+      options.syncProfiles !== false && options.scope !== "movements_only";
 
     // 6. Query all existing profiles in current property for ultra-reliable matching
     const allExistingProfiles = await tenantDb.select().from(profilesTable);
@@ -96,7 +127,10 @@ export async function processReceive(
     const byUnpaddedCode = new Map<string, any>();
     const byNationalId = new Map<string, any>();
 
-    const normKey = (v: any) => String(v ?? "").trim().toLowerCase();
+    const normKey = (v: any) =>
+      String(v ?? "")
+        .trim()
+        .toLowerCase();
     const stripZeros = (v: any) => {
       const s = normKey(v);
       const stripped = s.replace(/^0+/, "");
@@ -131,7 +165,13 @@ export async function processReceive(
         let oldProfileId = "";
 
         // Check if existing profile matches by nationalId (Casual to Permanent transition)
-        if (existing && empNid && byNationalId.get(empNid) === existing && empCode && normKey(existing.profileId) !== empCode) {
+        if (
+          existing &&
+          empNid &&
+          byNationalId.get(empNid) === existing &&
+          empCode &&
+          normKey(existing.profileId) !== empCode
+        ) {
           isCasualUpgrade = true;
           oldProfileId = existing.profileId;
         }
@@ -144,30 +184,51 @@ export async function processReceive(
             const deptChanged = Boolean(
               emp.department &&
               emp.department.trim() !== "" &&
-              emp.department.trim().toLowerCase() !== String(existing.department || "").trim().toLowerCase()
+              emp.department.trim().toLowerCase() !==
+                String(existing.department || "")
+                  .trim()
+                  .toLowerCase(),
             );
             const titleChanged = Boolean(
               emp.jobTitle &&
               emp.jobTitle.trim() !== "" &&
-              emp.jobTitle.trim().toLowerCase() !== String(existing.jobTitle || "").trim().toLowerCase()
+              emp.jobTitle.trim().toLowerCase() !==
+                String(existing.jobTitle || "")
+                  .trim()
+                  .toLowerCase(),
             );
 
             // Compute target department and bilingual translation
-            const targetDept = deptChanged ? emp.department.trim() : (emp.department || existing.department || "");
+            const targetDept = deptChanged
+              ? emp.department.trim()
+              : emp.department || existing.department || "";
             const targetDeptAr = deptChanged
-              ? (emp.departmentAr ? emp.departmentAr.trim() : translateDepartment(targetDept, "ar"))
-              : (emp.departmentAr || existing.departmentAr || translateDepartment(targetDept, "ar"));
+              ? emp.departmentAr
+                ? emp.departmentAr.trim()
+                : translateDepartment(targetDept, "ar")
+              : emp.departmentAr ||
+                existing.departmentAr ||
+                translateDepartment(targetDept, "ar");
 
             // Compute target job title and bilingual translation
-            const targetTitle = titleChanged ? emp.jobTitle.trim() : (emp.jobTitle || existing.jobTitle || "");
+            const targetTitle = titleChanged
+              ? emp.jobTitle.trim()
+              : emp.jobTitle || existing.jobTitle || "";
             const targetTitleAr = titleChanged
-              ? (emp.jobTitleAr ? emp.jobTitleAr.trim() : translateJobTitle(targetTitle, "ar"))
-              : (emp.jobTitleAr || existing.jobTitleAr || translateJobTitle(targetTitle, "ar"));
+              ? emp.jobTitleAr
+                ? emp.jobTitleAr.trim()
+                : translateJobTitle(targetTitle, "ar")
+              : emp.jobTitleAr ||
+                existing.jobTitleAr ||
+                translateJobTitle(targetTitle, "ar");
 
             // Compute target level
-            const targetLevel = (emp.level !== undefined && emp.level !== null && String(emp.level).trim() !== "")
-              ? String(emp.level).trim()
-              : (existing.level || "");
+            const targetLevel =
+              emp.level !== undefined &&
+              emp.level !== null &&
+              String(emp.level).trim() !== ""
+                ? String(emp.level).trim()
+                : existing.level || "";
 
             const enrichedUpdate = enrichProfileBilingual({
               firstName: emp.firstName || existing.firstName,
@@ -186,7 +247,12 @@ export async function processReceive(
 
             const changedFields: string[] = [];
             const checkDiff = (labelAr: string, newVal: any, oldVal: any) => {
-              if (newVal !== undefined && newVal !== null && String(newVal).trim() !== "" && String(newVal).trim() !== String(oldVal ?? "").trim()) {
+              if (
+                newVal !== undefined &&
+                newVal !== null &&
+                String(newVal).trim() !== "" &&
+                String(newVal).trim() !== String(oldVal ?? "").trim()
+              ) {
                 changedFields.push(labelAr);
               }
             };
@@ -202,39 +268,88 @@ export async function processReceive(
             checkDiff("المسمى الوظيفي", targetTitle, existing.jobTitle);
             checkDiff("الدرجة", targetLevel, existing.level);
             checkDiff("الحالة", emp.status, existing.status);
-            checkDiff("انتهاء العقد", emp.contractEndDate, existing.contractEndDate);
+            checkDiff(
+              "انتهاء العقد",
+              emp.contractEndDate,
+              existing.contractEndDate,
+            );
             checkDiff("الصورة", emp.photoUrl, existing.photoUrl);
             checkDiff("صورة البطاقة", emp.idImage, existing.idImage);
 
             const updateData: any = {
-              firstName: emp.firstName !== undefined && emp.firstName !== "" ? emp.firstName : existing.firstName,
-              lastName: emp.lastName !== undefined && emp.lastName !== "" ? emp.lastName : existing.lastName,
-              thirdName: emp.thirdName !== undefined ? emp.thirdName : existing.thirdName,
-              fourthName: emp.fourthName !== undefined ? emp.fourthName : existing.fourthName,
+              firstName:
+                emp.firstName !== undefined && emp.firstName !== ""
+                  ? emp.firstName
+                  : existing.firstName,
+              lastName:
+                emp.lastName !== undefined && emp.lastName !== ""
+                  ? emp.lastName
+                  : existing.lastName,
+              thirdName:
+                emp.thirdName !== undefined
+                  ? emp.thirdName
+                  : existing.thirdName,
+              fourthName:
+                emp.fourthName !== undefined
+                  ? emp.fourthName
+                  : existing.fourthName,
               firstNameAr: enrichedUpdate.firstNameAr ?? existing.firstNameAr,
               lastNameAr: enrichedUpdate.lastNameAr ?? existing.lastNameAr,
               thirdNameAr: enrichedUpdate.thirdNameAr ?? existing.thirdNameAr,
-              fourthNameAr: enrichedUpdate.fourthNameAr ?? existing.fourthNameAr,
-              nationalId: emp.nationalId !== undefined && emp.nationalId !== "" ? emp.nationalId : existing.nationalId,
-              nationality: emp.nationality !== undefined && emp.nationality !== "" ? emp.nationality : existing.nationality,
+              fourthNameAr:
+                enrichedUpdate.fourthNameAr ?? existing.fourthNameAr,
+              nationalId:
+                emp.nationalId !== undefined && emp.nationalId !== ""
+                  ? emp.nationalId
+                  : existing.nationalId,
+              nationality:
+                emp.nationality !== undefined && emp.nationality !== ""
+                  ? emp.nationality
+                  : existing.nationality,
               jobTitle: enrichedUpdate.jobTitle || targetTitle,
               jobTitleAr: enrichedUpdate.jobTitleAr || targetTitleAr,
               department: enrichedUpdate.department || targetDept,
               departmentAr: enrichedUpdate.departmentAr || targetDeptAr,
-              phone: emp.phone !== undefined && emp.phone !== "" ? emp.phone : existing.phone,
-              address: emp.address !== undefined && emp.address !== "" ? emp.address : existing.address,
+              phone:
+                emp.phone !== undefined && emp.phone !== ""
+                  ? emp.phone
+                  : existing.phone,
+              address:
+                emp.address !== undefined && emp.address !== ""
+                  ? emp.address
+                  : existing.address,
               status: emp.status || existing.status,
               gender: (emp as any).gender || existing.gender,
               level: targetLevel,
               hireDate: emp.hireDate || existing.hireDate,
-              dateOfBirth: emp.dateOfBirth !== undefined && emp.dateOfBirth !== "" ? emp.dateOfBirth : existing.dateOfBirth,
-              email: emp.email !== undefined && emp.email !== "" ? emp.email : existing.email,
-              emergencyContact: emp.emergencyContact !== undefined && emp.emergencyContact !== "" ? emp.emergencyContact : existing.emergencyContact,
-              contractEndDate: emp.contractEndDate !== undefined ? emp.contractEndDate : existing.contractEndDate,
-              employmentType: emp.employmentType || (isCasualUpgrade ? "INTERNAL" : existing.employmentType),
-              companyName: emp.companyName !== undefined && emp.companyName !== "" ? emp.companyName : existing.companyName,
-              photoUrl: emp.photoUrl !== undefined ? emp.photoUrl : existing.photoUrl,
-              idImage: emp.idImage !== undefined ? emp.idImage : existing.idImage,
+              dateOfBirth:
+                emp.dateOfBirth !== undefined && emp.dateOfBirth !== ""
+                  ? emp.dateOfBirth
+                  : existing.dateOfBirth,
+              email:
+                emp.email !== undefined && emp.email !== ""
+                  ? emp.email
+                  : existing.email,
+              emergencyContact:
+                emp.emergencyContact !== undefined &&
+                emp.emergencyContact !== ""
+                  ? emp.emergencyContact
+                  : existing.emergencyContact,
+              contractEndDate:
+                emp.contractEndDate !== undefined
+                  ? emp.contractEndDate
+                  : existing.contractEndDate,
+              employmentType:
+                emp.employmentType ||
+                (isCasualUpgrade ? "INTERNAL" : existing.employmentType),
+              companyName:
+                emp.companyName !== undefined && emp.companyName !== ""
+                  ? emp.companyName
+                  : existing.companyName,
+              photoUrl:
+                emp.photoUrl !== undefined ? emp.photoUrl : existing.photoUrl,
+              idImage:
+                emp.idImage !== undefined ? emp.idImage : existing.idImage,
               vacationStartDate:
                 emp.vacationStartDate !== undefined
                   ? emp.vacationStartDate
@@ -250,14 +365,22 @@ export async function processReceive(
             };
 
             // Sync document attachments into profileDocumentsTable
-            if (emp.documents && Array.isArray(emp.documents) && emp.documents.length > 0) {
+            if (
+              emp.documents &&
+              Array.isArray(emp.documents) &&
+              emp.documents.length > 0
+            ) {
               try {
                 const existingDocs = await tenantDb
                   .select({ fileName: profileDocumentsTable.fileName })
                   .from(profileDocumentsTable)
                   .where(eq(profileDocumentsTable.profileId, existing.id));
-                const existingNames = new Set(existingDocs.map((d: any) => d.fileName));
-                const newDocs = emp.documents.filter((d: any) => !existingNames.has(d.fileName));
+                const existingNames = new Set(
+                  existingDocs.map((d: any) => d.fileName),
+                );
+                const newDocs = emp.documents.filter(
+                  (d: any) => !existingNames.has(d.fileName),
+                );
                 if (newDocs.length > 0) {
                   await tenantDb.insert(profileDocumentsTable).values(
                     newDocs.map((d: any) => ({
@@ -265,12 +388,15 @@ export async function processReceive(
                       fileName: d.fileName,
                       fileType: d.fileType || "application/octet-stream",
                       fileData: d.fileData,
-                    }))
+                    })),
                   );
                   changedFields.push(`مستندات (${newDocs.length} ملف جديد)`);
                 }
               } catch (docErr) {
-                console.warn(`[HrSync] Error inserting documents for profile ${existing.id}`, docErr);
+                console.warn(
+                  `[HrSync] Error inserting documents for profile ${existing.id}`,
+                  docErr,
+                );
               }
             }
 
@@ -285,7 +411,9 @@ export async function processReceive(
                 await tenantDb
                   .update(profilePortalAccountsTable)
                   .set({ profileId: emp.profileId })
-                  .where(eq(profilePortalAccountsTable.profileId, oldProfileId));
+                  .where(
+                    eq(profilePortalAccountsTable.profileId, oldProfileId),
+                  );
               } catch {}
 
               const s = su(req);
@@ -406,21 +534,32 @@ export async function processReceive(
             autoVacationSync &&
             emp.vacationStartDate
           ) {
-            await tenantDb.insert(profileVacationsTable).values({
-              profileId: inserted.id,
-              startDate: emp.vacationStartDate,
-              endDate: emp.vacationEndDate || emp.vacationStartDate,
-              notes: emp.vacationNotes || "Synced from HR system",
-              status: "ACTIVE",
-            }).catch(() => {});
+            await tenantDb
+              .insert(profileVacationsTable)
+              .values({
+                profileId: inserted.id,
+                startDate: emp.vacationStartDate,
+                endDate: emp.vacationEndDate || emp.vacationStartDate,
+                notes: emp.vacationNotes || "Synced from HR system",
+                status: "ACTIVE",
+              })
+              .catch(() => {});
           }
 
           if (inserted && inserted.profileId) {
-            await ensureProfilePortalAccount(propertyId, inserted.profileId).catch(() => {});
+            await ensureProfilePortalAccount(
+              propertyId,
+              inserted.profileId,
+            ).catch(() => {});
           }
 
           // Insert documents for new profile from HR
-          if (emp.documents && Array.isArray(emp.documents) && emp.documents.length > 0 && inserted?.id) {
+          if (
+            emp.documents &&
+            Array.isArray(emp.documents) &&
+            emp.documents.length > 0 &&
+            inserted?.id
+          ) {
             try {
               await tenantDb.insert(profileDocumentsTable).values(
                 emp.documents.map((d: any) => ({
@@ -428,10 +567,13 @@ export async function processReceive(
                   fileName: d.fileName,
                   fileType: d.fileType || "application/octet-stream",
                   fileData: d.fileData,
-                }))
+                })),
               );
             } catch (docErr) {
-              console.warn(`[HrSync] Error inserting documents for new profile ${inserted.id}`, docErr);
+              console.warn(
+                `[HrSync] Error inserting documents for new profile ${inserted.id}`,
+                docErr,
+              );
             }
           }
 
@@ -458,7 +600,9 @@ export async function processReceive(
           created++;
         }
       } catch (err: any) {
-        errors.push(`${emp.profileId || "unknown"}: ${err.message || "sync error"}`);
+        errors.push(
+          `${emp.profileId || "unknown"}: ${err.message || "sync error"}`,
+        );
       }
     }
   });

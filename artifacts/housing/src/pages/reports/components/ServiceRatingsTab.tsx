@@ -3,8 +3,23 @@ import { useQuery } from "@tanstack/react-query";
 import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
-import { transliterateFullName, hasArabicCharacters } from "@/lib/bilingual-name-engine";
-import { Star, Award, ThumbsUp, Wrench, Sparkles, Clock, Filter, Calendar, CheckCircle2, AlertCircle, TrendingUp } from "lucide-react";
+import {
+  transliterateFullName,
+  hasArabicCharacters,
+} from "@/lib/bilingual-name-engine";
+import {
+  Star,
+  Award,
+  ThumbsUp,
+  Wrench,
+  Sparkles,
+  Clock,
+  Filter,
+  Calendar,
+  CheckCircle2,
+  AlertCircle,
+  TrendingUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
@@ -32,7 +47,10 @@ interface ServiceRatingsTabProps {
   ar: boolean;
   activePropertyId?: number | string | null;
   properties?: any[];
-  onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
+  onRegisterExport?: (actions: {
+    exportExcel?: () => void;
+    exportPDF?: () => void;
+  }) => void;
 }
 
 export function ServiceRatingsTab({
@@ -46,16 +64,29 @@ export function ServiceRatingsTab({
   const [toDate, setToDate] = useState<string>("");
   const [searchTicket, setSearchTicket] = useState<string>("");
 
-  const { data: responseData, isLoading, refetch } = useQuery({
-    queryKey: ["service-ratings-report", activePropertyId, category, fromDate, toDate],
+  const {
+    data: responseData,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      "service-ratings-report",
+      activePropertyId,
+      category,
+      fromDate,
+      toDate,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (activePropertyId) params.append("propertyId", String(activePropertyId));
+      if (activePropertyId)
+        params.append("propertyId", String(activePropertyId));
       if (category && category !== "all") params.append("category", category);
       if (fromDate) params.append("fromDate", fromDate);
       if (toDate) params.append("toDate", toDate);
 
-      const res = await fetch(`/api/reports/service-ratings?${params.toString()}`);
+      const res = await fetch(
+        `/api/reports/service-ratings?${params.toString()}`,
+      );
       if (!res.ok) {
         throw new Error("Failed to fetch service ratings report");
       }
@@ -108,37 +139,64 @@ export function ServiceRatingsTab({
     }));
 
     const wsLeaderboard = XLSX.utils.json_to_sheet(leaderboardRows);
-    XLSX.utils.book_append_sheet(wb, wsLeaderboard, ar ? "لوحة أداء الفنيين" : "Worker Leaderboard");
+    XLSX.utils.book_append_sheet(
+      wb,
+      wsLeaderboard,
+      ar ? "لوحة أداء الفنيين" : "Worker Leaderboard",
+    );
 
     // Sheet 2: Detailed Rated Tickets
     const ticketRows = ratedTickets.map((t: any) => ({
       [ar ? "رقم الطلب" : "Ticket #"]: t.id,
       [ar ? "المبنى" : "Building"]: t.buildingName || "—",
-      [ar ? "الدور" : "Floor"]: t.floorNumber != null ? (ar ? `الدور ${t.floorNumber}` : `Floor ${t.floorNumber}`) : "—",
+      [ar ? "الدور" : "Floor"]:
+        t.floorNumber != null
+          ? ar
+            ? `الدور ${t.floorNumber}`
+            : `Floor ${t.floorNumber}`
+          : "—",
       [ar ? "الغرفة" : "Room"]: t.roomNumber || "—",
       [ar ? "القسم" : "Category"]:
         t.category === "maintenance"
-          ? (ar ? "صيانة" : "Maintenance")
+          ? ar
+            ? "صيانة"
+            : "Maintenance"
           : t.category === "housekeeping"
-          ? (ar ? "هاوس كيبنج" : "Housekeeping")
-          : t.category,
+            ? ar
+              ? "هاوس كيبنج"
+              : "Housekeeping"
+            : t.category,
       [ar ? "نوع المشكلة" : "Problem Type"]: t.problemType,
       [ar ? "الفني المعين" : "Worker"]: t.workerName || "—",
       [ar ? "التقييم النجوم" : "Rating (Stars)"]: `${t.rating} / 5`,
       [ar ? "ملاحظات الموظف" : "Resident Comment"]: t.ratingComment || "—",
-      [ar ? "تاريخ الإبلاغ" : "Reported At"]: t.reportedAt ? formatDateTime(t.reportedAt) : "—",
-      [ar ? "تاريخ التقييم" : "Rated At"]: t.ratedAt ? formatDateTime(t.ratedAt) : "—",
+      [ar ? "تاريخ الإبلاغ" : "Reported At"]: t.reportedAt
+        ? formatDateTime(t.reportedAt)
+        : "—",
+      [ar ? "تاريخ التقييم" : "Rated At"]: t.ratedAt
+        ? formatDateTime(t.ratedAt)
+        : "—",
     }));
 
     const wsTickets = XLSX.utils.json_to_sheet(ticketRows);
-    XLSX.utils.book_append_sheet(wb, wsTickets, ar ? "سجل التقييمات التفصيلي" : "Ratings Detail Log");
+    XLSX.utils.book_append_sheet(
+      wb,
+      wsTickets,
+      ar ? "سجل التقييمات التفصيلي" : "Ratings Detail Log",
+    );
 
-    writeSunriseWorkbook(wb, getExportFileName("Service_Ratings_Report", "xlsx"), { rtl: ar });
+    writeSunriseWorkbook(
+      wb,
+      getExportFileName("Service_Ratings_Report", "xlsx"),
+      { rtl: ar },
+    );
   };
 
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [studioRows, setStudioRows] = useState<Record<string, any>[]>([]);
-  const [studioMode, setStudioMode] = useState<"tickets" | "leaderboard">("tickets");
+  const [studioMode, setStudioMode] = useState<"tickets" | "leaderboard">(
+    "tickets",
+  );
 
   const studioColumns: ReportColumnConfig[] =
     studioMode === "tickets"
@@ -150,17 +208,42 @@ export function ServiceRatingsTab({
           { key: "category", header: "Category", headerAr: "القسم" },
           { key: "problem", header: "Problem Type", headerAr: "نوع المشكلة" },
           { key: "worker", header: "Worker", headerAr: "الفني المعين" },
-          { key: "rating", header: "Rating (Stars)", headerAr: "التقييم النجوم" },
-          { key: "comment", header: "Resident Comment", headerAr: "ملاحظات الموظف" },
-          { key: "ratedAt", header: "Rated At", headerAr: "تاريخ التقييم", type: "date" },
+          {
+            key: "rating",
+            header: "Rating (Stars)",
+            headerAr: "التقييم النجوم",
+          },
+          {
+            key: "comment",
+            header: "Resident Comment",
+            headerAr: "ملاحظات الموظف",
+          },
+          {
+            key: "ratedAt",
+            header: "Rated At",
+            headerAr: "تاريخ التقييم",
+            type: "date",
+          },
         ]
       : [
           { key: "rank", header: "Rank", headerAr: "الترتيب" },
-          { key: "workerName", header: "Worker Name", headerAr: "اسم الفني / العامل" },
+          {
+            key: "workerName",
+            header: "Worker Name",
+            headerAr: "اسم الفني / العامل",
+          },
           { key: "specialty", header: "Specialty", headerAr: "التخصص" },
-          { key: "totalRated", header: "Total Rated Orders", headerAr: "الطلبات المقيّمة" },
+          {
+            key: "totalRated",
+            header: "Total Rated Orders",
+            headerAr: "الطلبات المقيّمة",
+          },
           { key: "avgRating", header: "Avg Rating", headerAr: "متوسط التقييم" },
-          { key: "satisfactionRate", header: "Satisfaction Rate", headerAr: "نسبة الرضا" },
+          {
+            key: "satisfactionRate",
+            header: "Satisfaction Rate",
+            headerAr: "نسبة الرضا",
+          },
         ];
 
   const handlePrint = async () => {
@@ -168,10 +251,10 @@ export function ServiceRatingsTab({
       !name || name === "—"
         ? "—"
         : ar
-        ? hasArabicCharacters(name)
-          ? name
-          : transliterateFullName(name, "ar")
-        : name;
+          ? hasArabicCharacters(name)
+            ? name
+            : transliterateFullName(name, "ar")
+          : name;
 
     const useTickets = ratedTickets.length > 0;
     const records: Record<string, any>[] = useTickets
@@ -235,7 +318,9 @@ export function ServiceRatingsTab({
           </div>
           <div>
             <h2 className="text-lg font-bold text-foreground">
-              {ar ? "تقرير جودة الخدمات وتقييمات النزلاء" : "Service Quality & Resident Satisfaction Report"}
+              {ar
+                ? "تقرير جودة الخدمات وتقييمات النزلاء"
+                : "Service Quality & Resident Satisfaction Report"}
             </h2>
             <p className="text-xs text-muted-foreground">
               {ar
@@ -244,7 +329,6 @@ export function ServiceRatingsTab({
             </p>
           </div>
         </div>
-
       </div>
 
       {/* Filter Toolbar */}
@@ -261,9 +345,15 @@ export function ServiceRatingsTab({
                 <SelectValue placeholder={ar ? "الكل" : "All Categories"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{ar ? "كافة الأقسام (صيانة ونظافة)" : "All Categories"}</SelectItem>
-                <SelectItem value="maintenance">{ar ? "صيانة فنية فقط" : "Maintenance Only"}</SelectItem>
-                <SelectItem value="housekeeping">{ar ? "هاوس كيبنج فقط" : "Housekeeping Only"}</SelectItem>
+                <SelectItem value="all">
+                  {ar ? "كافة الأقسام (صيانة ونظافة)" : "All Categories"}
+                </SelectItem>
+                <SelectItem value="maintenance">
+                  {ar ? "صيانة فنية فقط" : "Maintenance Only"}
+                </SelectItem>
+                <SelectItem value="housekeeping">
+                  {ar ? "هاوس كيبنج فقط" : "Housekeeping Only"}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -330,7 +420,9 @@ export function ServiceRatingsTab({
             <span className="text-3xl font-extrabold text-foreground">
               {summary.averageRating}
             </span>
-            <span className="text-xs font-semibold text-muted-foreground">/ 5</span>
+            <span className="text-xs font-semibold text-muted-foreground">
+              / 5
+            </span>
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
             <span>{summary.totalRated}</span>
@@ -372,7 +464,9 @@ export function ServiceRatingsTab({
             <span className="text-3xl font-extrabold text-blue-600 dark:text-blue-400">
               {summary.maintenanceAvg}
             </span>
-            <span className="text-xs font-semibold text-muted-foreground">/ 5</span>
+            <span className="text-xs font-semibold text-muted-foreground">
+              / 5
+            </span>
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">
             {ar ? "صيانة غرف ومرافق" : "Technical & facilities"}
@@ -393,7 +487,9 @@ export function ServiceRatingsTab({
             <span className="text-3xl font-extrabold text-sky-600 dark:text-sky-400">
               {summary.housekeepingAvg}
             </span>
-            <span className="text-xs font-semibold text-muted-foreground">/ 5</span>
+            <span className="text-xs font-semibold text-muted-foreground">
+              / 5
+            </span>
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">
             {ar ? "نظافة وهاوس كيبنج" : "Room cleaning & linens"}
@@ -428,7 +524,9 @@ export function ServiceRatingsTab({
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-primary" />
-              <span>{ar ? "توزيع التقييمات بالنجوم" : "Star Rating Distribution"}</span>
+              <span>
+                {ar ? "توزيع التقييمات بالنجوم" : "Star Rating Distribution"}
+              </span>
             </h3>
             <Badge variant="outline" className="text-xs">
               {summary.totalRated} {ar ? "تقييم" : "Ratings"}
@@ -438,7 +536,10 @@ export function ServiceRatingsTab({
           <div className="space-y-3 pt-2">
             {[5, 4, 3, 2, 1].map((stars) => {
               const count = summary.starsBreakdown?.[stars] || 0;
-              const percent = summary.totalRated > 0 ? Math.round((count / summary.totalRated) * 100) : 0;
+              const percent =
+                summary.totalRated > 0
+                  ? Math.round((count / summary.totalRated) * 100)
+                  : 0;
               return (
                 <div key={stars} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
@@ -477,7 +578,9 @@ export function ServiceRatingsTab({
                 <Award className="w-4 h-4" />
               </div>
               <h3 className="font-bold text-sm text-foreground">
-                {ar ? "لوحة شرف وتقييم الفنيين وعمال النظافة" : "Technician & Worker Performance Leaderboard"}
+                {ar
+                  ? "لوحة شرف وتقييم الفنيين وعمال النظافة"
+                  : "Technician & Worker Performance Leaderboard"}
               </h3>
             </div>
             <span className="text-xs text-muted-foreground font-medium">
@@ -489,20 +592,37 @@ export function ServiceRatingsTab({
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
-                  <TableHead className="w-12 text-center">{ar ? "#" : "Rank"}</TableHead>
+                  <TableHead className="w-12 text-center">
+                    {ar ? "#" : "Rank"}
+                  </TableHead>
                   <TableHead>{ar ? "الفني / العامل" : "Worker Name"}</TableHead>
                   <TableHead>{ar ? "التخصص" : "Specialty"}</TableHead>
-                  <TableHead className="text-center">{ar ? "المهام المقيّمة" : "Rated Orders"}</TableHead>
-                  <TableHead className="text-center">{ar ? "متوسط التقييم" : "Avg Rating"}</TableHead>
-                  <TableHead className="text-end">{ar ? "نسبة الرضا" : "Satisfaction"}</TableHead>
+                  <TableHead className="text-center">
+                    {ar ? "المهام المقيّمة" : "Rated Orders"}
+                  </TableHead>
+                  <TableHead className="text-center">
+                    {ar ? "متوسط التقييم" : "Avg Rating"}
+                  </TableHead>
+                  <TableHead className="text-end">
+                    {ar ? "نسبة الرضا" : "Satisfaction"}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {workerLeaderboard.length > 0 ? (
                   workerLeaderboard.map((w: any, idx: number) => (
-                    <TableRow key={w.workerId || idx} className="hover:bg-muted/30">
+                    <TableRow
+                      key={w.workerId || idx}
+                      className="hover:bg-muted/30"
+                    >
                       <TableCell className="text-center font-mono font-bold text-xs text-muted-foreground">
-                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : idx + 1}
+                        {idx === 0
+                          ? "🥇"
+                          : idx === 1
+                            ? "🥈"
+                            : idx === 2
+                              ? "🥉"
+                              : idx + 1}
                       </TableCell>
                       <TableCell className="font-semibold text-xs text-foreground">
                         <div className="flex items-center gap-2">
@@ -533,8 +653,13 @@ export function ServiceRatingsTab({
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-xs text-muted-foreground">
-                      {ar ? "لا توجد بيانات تقييمات للفنيين حالياً." : "No technician ratings data available."}
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-8 text-xs text-muted-foreground"
+                    >
+                      {ar
+                        ? "لا توجد بيانات تقييمات للفنيين حالياً."
+                        : "No technician ratings data available."}
                     </TableCell>
                   </TableRow>
                 )}
@@ -550,16 +675,26 @@ export function ServiceRatingsTab({
           <div>
             <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-primary" />
-              <span>{ar ? "سجل التقييمات وملاحظات النزلاء التفصيلي" : "Detailed Service Ratings & Feedback Log"}</span>
+              <span>
+                {ar
+                  ? "سجل التقييمات وملاحظات النزلاء التفصيلي"
+                  : "Detailed Service Ratings & Feedback Log"}
+              </span>
             </h3>
             <p className="text-xs text-muted-foreground">
-              {ar ? "عرض كافة الطلبات المقيمة مع تعليقات وملاحظات الموظفين" : "All rated orders with resident comments and evaluation timestamps"}
+              {ar
+                ? "عرض كافة الطلبات المقيمة مع تعليقات وملاحظات الموظفين"
+                : "All rated orders with resident comments and evaluation timestamps"}
             </p>
           </div>
 
           <div className="w-full sm:w-64">
             <Input
-              placeholder={ar ? "بحث برقم الغرفة، الفني، التعليق..." : "Search tickets, worker, room..."}
+              placeholder={
+                ar
+                  ? "بحث برقم الغرفة، الفني، التعليق..."
+                  : "Search tickets, worker, room..."
+              }
               value={searchTicket}
               onChange={(e) => setSearchTicket(e.target.value)}
               className="h-8.5 text-xs"
@@ -571,15 +706,33 @@ export function ServiceRatingsTab({
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
-                <TableHead className="w-16 font-semibold text-xs">{ar ? "رقم" : "ID"}</TableHead>
-                <TableHead className="font-semibold text-xs">{ar ? "المبنى" : "Building"}</TableHead>
-                <TableHead className="font-semibold text-xs">{ar ? "الدور" : "Floor"}</TableHead>
-                <TableHead className="font-semibold text-xs">{ar ? "الغرفة" : "Room"}</TableHead>
-                <TableHead className="font-semibold text-xs">{ar ? "القسم والخدمة" : "Category & Problem"}</TableHead>
-                <TableHead className="font-semibold text-xs">{ar ? "الفني المعين" : "Worker"}</TableHead>
-                <TableHead className="font-semibold text-xs min-w-[120px]">{ar ? "التقييم" : "Rating"}</TableHead>
-                <TableHead className="font-semibold text-xs min-w-[200px]">{ar ? "ملاحظات وتعليق الموظف" : "Resident Feedback"}</TableHead>
-                <TableHead className="font-semibold text-xs text-end">{ar ? "تاريخ التقييم" : "Rated Date"}</TableHead>
+                <TableHead className="w-16 font-semibold text-xs">
+                  {ar ? "رقم" : "ID"}
+                </TableHead>
+                <TableHead className="font-semibold text-xs">
+                  {ar ? "المبنى" : "Building"}
+                </TableHead>
+                <TableHead className="font-semibold text-xs">
+                  {ar ? "الدور" : "Floor"}
+                </TableHead>
+                <TableHead className="font-semibold text-xs">
+                  {ar ? "الغرفة" : "Room"}
+                </TableHead>
+                <TableHead className="font-semibold text-xs">
+                  {ar ? "القسم والخدمة" : "Category & Problem"}
+                </TableHead>
+                <TableHead className="font-semibold text-xs">
+                  {ar ? "الفني المعين" : "Worker"}
+                </TableHead>
+                <TableHead className="font-semibold text-xs min-w-[120px]">
+                  {ar ? "التقييم" : "Rating"}
+                </TableHead>
+                <TableHead className="font-semibold text-xs min-w-[200px]">
+                  {ar ? "ملاحظات وتعليق الموظف" : "Resident Feedback"}
+                </TableHead>
+                <TableHead className="font-semibold text-xs text-end">
+                  {ar ? "تاريخ التقييم" : "Rated Date"}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -593,21 +746,35 @@ export function ServiceRatingsTab({
                       {t.buildingName || "—"}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {t.floorNumber != null ? (ar ? `الدور ${t.floorNumber}` : `Floor ${t.floorNumber}`) : "—"}
+                      {t.floorNumber != null
+                        ? ar
+                          ? `الدور ${t.floorNumber}`
+                          : `Floor ${t.floorNumber}`
+                        : "—"}
                     </TableCell>
                     <TableCell className="text-xs font-bold text-primary">
-                      {t.roomNumber ? (ar ? `غرفة ${t.roomNumber}` : `Room ${t.roomNumber}`) : "—"}
+                      {t.roomNumber
+                        ? ar
+                          ? `غرفة ${t.roomNumber}`
+                          : `Room ${t.roomNumber}`
+                        : "—"}
                     </TableCell>
                     <TableCell className="text-xs">
                       <div className="flex flex-col">
                         <span className="font-bold text-foreground">
                           {t.category === "maintenance"
-                            ? (ar ? "صيانة فنية" : "Maintenance")
+                            ? ar
+                              ? "صيانة فنية"
+                              : "Maintenance"
                             : t.category === "housekeeping"
-                            ? (ar ? "هاوس كيبنج" : "Housekeeping")
-                            : t.category}
+                              ? ar
+                                ? "هاوس كيبنج"
+                                : "Housekeeping"
+                              : t.category}
                         </span>
-                        <span className="text-[11px] text-muted-foreground">{t.problemType}</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {t.problemType}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell className="text-xs font-medium">
@@ -637,10 +804,15 @@ export function ServiceRatingsTab({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-xs text-muted-foreground">
+                  <TableCell
+                    colSpan={7}
+                    className="text-center py-12 text-xs text-muted-foreground"
+                  >
                     <AlertCircle className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
                     <p className="font-semibold text-sm text-foreground mb-1">
-                      {ar ? "لا توجد تقييمات تطابق معايير البحث" : "No rated tickets matching criteria"}
+                      {ar
+                        ? "لا توجد تقييمات تطابق معايير البحث"
+                        : "No rated tickets matching criteria"}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {ar
@@ -662,7 +834,9 @@ export function ServiceRatingsTab({
         titleAr="تقرير تقييمات الخدمات وجودة الصيانة"
         propertyName={
           activePropertyId && activePropertyId !== "all"
-            ? properties.find((p: any) => String(p.id) === String(activePropertyId))?.name
+            ? properties.find(
+                (p: any) => String(p.id) === String(activePropertyId),
+              )?.name
             : undefined
         }
         availableColumns={studioColumns}

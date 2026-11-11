@@ -20,27 +20,31 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const profilePortalAccountsTable = pgTable("profile_portal_accounts", {
-  id: serial("id").primaryKey(),
-  profileId: text("profile_id").notNull(), // HR profile ID (e.g. "EMP-001")
-  passwordHash: text("password_hash").notNull(), // bcrypt hash
-  mustChangePassword: boolean("must_change_password").notNull().default(true),
-  isActive: boolean("is_active").notNull().default(true),
-  failedAttempts: integer("failed_attempts").notNull().default(0),
-  lockedUntil: timestamp("locked_until", { withTimezone: true }),
-  resetRequired: boolean("reset_required").notNull().default(false),
-  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
-  passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-}, (table) => [
-  uniqueIndex("uq_portal_accounts_profile_id").on(table.profileId),
-  index("idx_portal_accounts_is_active").on(table.isActive),
-]);
+export const profilePortalAccountsTable = pgTable(
+  "profile_portal_accounts",
+  {
+    id: serial("id").primaryKey(),
+    profileId: text("profile_id").notNull(), // HR profile ID (e.g. "EMP-001")
+    passwordHash: text("password_hash").notNull(), // bcrypt hash
+    mustChangePassword: boolean("must_change_password").notNull().default(true),
+    isActive: boolean("is_active").notNull().default(true),
+    failedAttempts: integer("failed_attempts").notNull().default(0),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    resetRequired: boolean("reset_required").notNull().default(false),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_portal_accounts_profile_id").on(table.profileId),
+    index("idx_portal_accounts_is_active").on(table.isActive),
+  ],
+);
 
 export const insertProfilePortalAccountSchema = createInsertSchema(
   profilePortalAccountsTable,
@@ -52,21 +56,25 @@ export type InsertProfilePortalAccount = z.infer<
 export type ProfilePortalAccount =
   typeof profilePortalAccountsTable.$inferSelect;
 
-export const passwordResetTokensTable = pgTable("password_reset_tokens", {
-  id: serial("id").primaryKey(),
-  profileId: text("profile_id").notNull(),
-  propertyId: integer("property_id").notNull(),
-  tokenHash: text("token_hash").notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  usedAt: timestamp("used_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-}, (table) => [
-  index("idx_reset_tokens_profile_id").on(table.profileId),
-  index("idx_reset_tokens_token_hash").on(table.tokenHash),
-  index("idx_reset_tokens_expires_at").on(table.expiresAt),
-]);
+export const passwordResetTokensTable = pgTable(
+  "password_reset_tokens",
+  {
+    id: serial("id").primaryKey(),
+    profileId: text("profile_id").notNull(),
+    propertyId: integer("property_id").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_reset_tokens_profile_id").on(table.profileId),
+    index("idx_reset_tokens_token_hash").on(table.tokenHash),
+    index("idx_reset_tokens_expires_at").on(table.expiresAt),
+  ],
+);
 
 export const insertPasswordResetTokenSchema = createInsertSchema(
   passwordResetTokensTable,

@@ -25,7 +25,9 @@ export function validate(schemas: ValidateSchemas): RequestHandler {
         req.body = schemas.body.parse(req.body ?? {});
       }
       if (schemas.params) {
-        req.params = schemas.params.parse(req.params ?? {}) as typeof req.params;
+        req.params = schemas.params.parse(
+          req.params ?? {},
+        ) as typeof req.params;
       }
       if (schemas.query) {
         const parsed = schemas.query.parse(req.query ?? {});

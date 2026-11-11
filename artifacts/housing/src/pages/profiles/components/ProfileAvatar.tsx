@@ -13,7 +13,12 @@ export function ProfileAvatar({
 }) {
   const initials =
     `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
-  const dim = size === "lg" ? "w-24 h-24 text-3xl" : size === "md" ? "w-12 h-12 text-base" : "w-8 h-8 text-xs";
+  const dim =
+    size === "lg"
+      ? "w-24 h-24 text-3xl"
+      : size === "md"
+        ? "w-12 h-12 text-base"
+        : "w-8 h-8 text-xs";
 
   if (photoUrl) {
     return (

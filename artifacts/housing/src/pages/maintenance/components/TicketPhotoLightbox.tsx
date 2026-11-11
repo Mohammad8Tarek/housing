@@ -6,7 +6,11 @@ interface TicketPhotoLightboxProps {
   onClose: () => void;
 }
 
-export function TicketPhotoLightbox({ ar, photoUrl, onClose }: TicketPhotoLightboxProps) {
+export function TicketPhotoLightbox({
+  ar,
+  photoUrl,
+  onClose,
+}: TicketPhotoLightboxProps) {
   return (
     <Dialog
       open={!!photoUrl}

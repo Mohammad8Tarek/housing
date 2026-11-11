@@ -1,12 +1,22 @@
 import { Router } from "express";
-import { withTenant, profilesTable, profileVacationsTable, assignmentsTable, roomsTable } from "@workspace/db";
+import {
+  withTenant,
+  profilesTable,
+  profileVacationsTable,
+  assignmentsTable,
+  roomsTable,
+} from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { logActivity } from "../../lib/activity-logger.js";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
 import { resolveProfileTenant } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
-import { IdParams, VacationStartBody, VacationReturnBody } from "../../validation/schemas.js";
+import {
+  IdParams,
+  VacationStartBody,
+  VacationReturnBody,
+} from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -71,8 +81,8 @@ router.post(
         .where(
           and(
             eq(assignmentsTable.profileId, id),
-            eq(assignmentsTable.status, "ACTIVE")
-          )
+            eq(assignmentsTable.status, "ACTIVE"),
+          ),
         );
 
       if (activeAssign?.roomId) {
@@ -105,7 +115,7 @@ router.post(
     });
 
     res.json({ success: true, profile: result });
-  }
+  },
 );
 
 router.post(
@@ -128,7 +138,8 @@ router.post(
     }
     propertyId = resolved.propertyId;
 
-    const returnDate = req.body.returnDate || new Date().toISOString().split("T")[0];
+    const returnDate =
+      req.body.returnDate || new Date().toISOString().split("T")[0];
 
     const result = await withTenant(propertyId, async (tenantDb) => {
       const [emp] = await tenantDb
@@ -159,8 +170,8 @@ router.post(
         .where(
           and(
             eq(profileVacationsTable.profileId, id),
-            eq(profileVacationsTable.status, "ACTIVE")
-          )
+            eq(profileVacationsTable.status, "ACTIVE"),
+          ),
         );
 
       // 3. Update room back to occupied
@@ -170,8 +181,8 @@ router.post(
         .where(
           and(
             eq(assignmentsTable.profileId, id),
-            eq(assignmentsTable.status, "ACTIVE")
-          )
+            eq(assignmentsTable.status, "ACTIVE"),
+          ),
         );
 
       if (activeAssign?.roomId) {
@@ -204,7 +215,7 @@ router.post(
     });
 
     res.json({ success: true, profile: result });
-  }
+  },
 );
 
 export default router;

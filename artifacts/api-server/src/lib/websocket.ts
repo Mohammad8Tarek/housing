@@ -134,14 +134,20 @@ export function getOnlineEmployeeIds(propertyId?: number): number[] {
   return result;
 }
 
-export function isEmployeeOnline(profileDbId: number, propertyId?: number): boolean {
+export function isEmployeeOnline(
+  profileDbId: number,
+  propertyId?: number,
+): boolean {
   if (propertyId) {
     const key = makeKey(`emp_${profileDbId}`, propertyId);
     const client = clients.get(key);
     return Boolean(client && client.ws.readyState === WebSocket.OPEN);
   }
   for (const client of clients.values()) {
-    if (client.userId === `emp_${profileDbId}` && client.ws.readyState === WebSocket.OPEN) {
+    if (
+      client.userId === `emp_${profileDbId}` &&
+      client.ws.readyState === WebSocket.OPEN
+    ) {
       return true;
     }
   }
@@ -156,7 +162,10 @@ export function getAllEmployeeLastSeen(): Record<number, string> {
   return res;
 }
 
-function handleClientDisconnect(userId: number | string, propertyId: number): void {
+function handleClientDisconnect(
+  userId: number | string,
+  propertyId: number,
+): void {
   if (typeof userId === "string" && userId.startsWith("emp_")) {
     const empId = parseInt(userId.slice(4), 10);
     if (!Number.isNaN(empId)) {
@@ -323,9 +332,10 @@ function makeKey(userId: number | string, propertyId: number): string {
 function safeSend(ws: WebSocket, payload: WsPayload | string | Buffer): void {
   if (ws.readyState !== WebSocket.OPEN) return;
   try {
-    const data = typeof payload === "string" || Buffer.isBuffer(payload)
-      ? payload
-      : JSON.stringify(payload);
+    const data =
+      typeof payload === "string" || Buffer.isBuffer(payload)
+        ? payload
+        : JSON.stringify(payload);
     fastSend(ws, data);
   } catch {
     // ignore — connection may have died between the check and send
@@ -683,7 +693,10 @@ export function broadcastSyncEverywhere(): void {
   logger.info({ recipients: sent }, "[WS] Global SYNC_DATA broadcast");
 }
 
-export function broadcastDataUpdatedAll(module: WsModule, action: WsAction): void {
+export function broadcastDataUpdatedAll(
+  module: WsModule,
+  action: WsAction,
+): void {
   const payload: WsPayload = {
     type: "data_updated",
     module,
@@ -696,7 +709,10 @@ export function broadcastDataUpdatedAll(module: WsModule, action: WsAction): voi
   for (const client of clients.values()) {
     if (fastSend(client.ws, serialized)) sent++;
   }
-  logger.info({ module, action, recipients: sent }, "[WS] Global data_updated broadcast");
+  logger.info(
+    { module, action, recipients: sent },
+    "[WS] Global data_updated broadcast",
+  );
 }
 /**
  * closeWebSocket — Closes all active WebSocket connections and clears the registry.

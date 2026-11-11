@@ -640,7 +640,8 @@ router.get(
             cooldownDays: 7,
             titleAr: "استطلاع جودة السكن الأسبوعي",
             titleEn: "Weekly Housing Quality Pulse",
-            questionAr: "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟",
+            questionAr:
+              "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟",
             questionEn:
               "How satisfied are you with housing conditions, cleanliness & services this week?",
           })
@@ -840,7 +841,9 @@ router.post(
           // Insert a broadcast notification into portalNotificationsTable for active residents
           await tenantDb.insert(portalNotificationsTable).values({
             propertyId,
-            title: config.questionEn || "Housing Quality Survey: Share Your Feedback",
+            title:
+              config.questionEn ||
+              "Housing Quality Survey: Share Your Feedback",
             titleAr: "استطلاع رأي: شاركنا رأيك في جودة السكن",
             message:
               config.questionEn ||

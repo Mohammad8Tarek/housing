@@ -2,7 +2,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3 } from "lucide-react";
-import { usePortalReportsState, buildPortalReportsView } from "./portal-reports/usePortalReportsState";
+import {
+  usePortalReportsState,
+  buildPortalReportsView,
+} from "./portal-reports/usePortalReportsState";
 import { renderKpiCards } from "./portal-reports/KpiCards";
 import { renderReportConfigCard } from "./portal-reports/ReportConfigCard";
 import { renderChartsCard } from "./portal-reports/ChartsCard";
@@ -24,7 +27,6 @@ import { renderActivitiesList } from "./portal-reports/ActivitiesList";
 export default function PortalReports(props: { defaultType?: string }) {
   const s = usePortalReportsState(props);
   const { ar, reportData, isLoading, reportsError, refetch } = s;
-
 
   if (isLoading) return <Skeleton className="h-96 w-full rounded-lg" />;
 
@@ -54,7 +56,6 @@ export default function PortalReports(props: { defaultType?: string }) {
     );
   }
   const v = buildPortalReportsView(s);
-  
 
   return (
     <div className="space-y-6">

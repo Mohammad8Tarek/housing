@@ -39,7 +39,9 @@ export function TicketsToolbar({
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={ar ? "بحث برقم الغرفة، الوصف، الفني..." : "Search tickets..."}
+            placeholder={
+              ar ? "بحث برقم الغرفة، الوصف، الفني..." : "Search tickets..."
+            }
             className="h-8.5 text-xs ps-8 pe-7 bg-background"
           />
           {searchTerm && (

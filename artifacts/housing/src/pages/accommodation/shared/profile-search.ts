@@ -39,7 +39,11 @@ export const roomTypeCapacity: Record<string, number> = {
 };
 
 /** Bed numbers selectable for a room: by room type first, then by its stored capacity. */
-export function getBedOptions(roomType?: string | null, capacity?: number | null): number[] {
-  const max = roomTypeCapacity[roomType?.toLowerCase() || ""] ?? (capacity || 1);
+export function getBedOptions(
+  roomType?: string | null,
+  capacity?: number | null,
+): number[] {
+  const max =
+    roomTypeCapacity[roomType?.toLowerCase() || ""] ?? (capacity || 1);
   return Array.from({ length: max }, (_, i) => i + 1);
 }

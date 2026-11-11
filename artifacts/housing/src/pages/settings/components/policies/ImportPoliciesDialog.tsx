@@ -12,14 +12,26 @@ import { CheckCircle2, FileSpreadsheet, Upload } from "lucide-react";
 import type { PoliciesSectionState } from "./usePoliciesSectionState";
 
 export function renderImportPoliciesDialog(s: PoliciesSectionState) {
-  const { ar, isImportModalOpen, setIsImportModalOpen, importFileName, setImportFileName, importData, setImportData, handleFileChange, handleConfirmImport } = s;
+  const {
+    ar,
+    isImportModalOpen,
+    setIsImportModalOpen,
+    importFileName,
+    setImportFileName,
+    importData,
+    setImportData,
+    handleFileChange,
+    handleConfirmImport,
+  } = s;
   return (
-<Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+    <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-bold text-primary">
             <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-            {ar ? "استيراد وتحديث السياسات من ملف إكسيل" : "Import Policies from Excel"}
+            {ar
+              ? "استيراد وتحديث السياسات من ملف إكسيل"
+              : "Import Policies from Excel"}
           </DialogTitle>
           <DialogDescription className="text-xs">
             {ar
@@ -71,7 +83,9 @@ export function renderImportPoliciesDialog(s: PoliciesSectionState) {
             <div className="rounded-xl border bg-muted/30 p-3.5 space-y-2 text-xs">
               <span className="font-bold flex items-center gap-1.5 text-foreground">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                {ar ? "ملخص البيانات المكتشفة في الملف:" : "Detected Excel Content:"}
+                {ar
+                  ? "ملخص البيانات المكتشفة في الملف:"
+                  : "Detected Excel Content:"}
               </span>
               <div className="grid grid-cols-3 gap-2 text-center pt-1">
                 <div className="p-2 rounded-lg bg-background border">

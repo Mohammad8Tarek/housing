@@ -49,7 +49,10 @@ export function getPropertySlug(
     if (slug) return slug;
   }
   if (prop.code) {
-    return prop.code.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    return prop.code
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_");
   }
   if (prop.id) return String(prop.id);
   return "";
@@ -82,7 +85,9 @@ export function extractPropertySlugFromPath(): string | null {
   return first.toLowerCase();
 }
 
-export function resolveInitialPropertyId(pathSlug: string | null): number | "all" | undefined {
+export function resolveInitialPropertyId(
+  pathSlug: string | null,
+): number | "all" | undefined {
   if (!pathSlug) return undefined;
   const clean = pathSlug.trim().toLowerCase();
   if (clean === "all") return "all";

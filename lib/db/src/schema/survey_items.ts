@@ -12,22 +12,24 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { evaluationsTable } from "./evaluations";
 
-export const surveyItemsTable = pgTable("survey_items", {
-  id: serial("id").primaryKey(),
-  templateId: integer("template_id")
-    .notNull()
-    .references(() => evaluationsTable.id, { onDelete: "cascade" }),
-  titleAr: text("title_ar").notNull(),
-  titleEn: text("title_en").notNull(),
-  type: text("type").notNull().default("rating"), // rating | text | yes_no
-  required: boolean("required").notNull().default(true),
-  orderIndex: integer("order_index").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-}, (table) => [
-  index("idx_survey_items_template_id").on(table.templateId),
-]);
+export const surveyItemsTable = pgTable(
+  "survey_items",
+  {
+    id: serial("id").primaryKey(),
+    templateId: integer("template_id")
+      .notNull()
+      .references(() => evaluationsTable.id, { onDelete: "cascade" }),
+    titleAr: text("title_ar").notNull(),
+    titleEn: text("title_en").notNull(),
+    type: text("type").notNull().default("rating"), // rating | text | yes_no
+    required: boolean("required").notNull().default(true),
+    orderIndex: integer("order_index").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("idx_survey_items_template_id").on(table.templateId)],
+);
 
 export const surveyItemResponsesTable = pgTable("survey_item_responses", {
   id: serial("id").primaryKey(),

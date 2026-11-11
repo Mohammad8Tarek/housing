@@ -38,9 +38,13 @@ export function GateCameraScanner({
   active = true,
 }: GateCameraScannerProps) {
   const [isCameraActive, setIsCameraActive] = useState<boolean>(true);
-  const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>([]);
+  const [cameras, setCameras] = useState<Array<{ id: string; label: string }>>(
+    [],
+  );
   const [selectedCameraId, setSelectedCameraId] = useState<string>("");
-  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const [facingMode, setFacingMode] = useState<"environment" | "user">(
+    "environment",
+  );
   const [hasTorch, setHasTorch] = useState<boolean>(false);
   const [isTorchOn, setIsTorchOn] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -78,162 +82,195 @@ export function GateCameraScanner({
   }, []);
 
   // Start camera helper
-  const startCamera = useCallback(async (camId?: string, mode?: "environment" | "user") => {
-    if (!active || !isCameraActive) return;
-    setIsStarting(true);
-    setCameraError(null);
+  const startCamera = useCallback(
+    async (camId?: string, mode?: "environment" | "user") => {
+      if (!active || !isCameraActive) return;
+      setIsStarting(true);
+      setCameraError(null);
 
-    await stopCamera();
+      await stopCamera();
 
-    // Check secure context (HTTPS / localhost required for getUserMedia)
-    if (
-      typeof window !== "undefined" &&
-      !window.isSecureContext &&
-      window.location.hostname !== "localhost" &&
-      window.location.hostname !== "127.0.0.1"
-    ) {
-      setCameraError(
-        isAr
-          ? "متصفحك يمنع فتح الكاميرا بدون اتصال آمن (HTTPS). يرجى الدخول عبر رابط https:// أو إدخال الكود يدوياً."
-          : "Camera requires a secure context (HTTPS). Please open the site via HTTPS or enter ID manually."
-      );
-      setIsStarting(false);
-      return;
-    }
+      // Check secure context (HTTPS / localhost required for getUserMedia)
+      if (
+        typeof window !== "undefined" &&
+        !window.isSecureContext &&
+        window.location.hostname !== "localhost" &&
+        window.location.hostname !== "127.0.0.1"
+      ) {
+        setCameraError(
+          isAr
+            ? "متصفحك يمنع فتح الكاميرا بدون اتصال آمن (HTTPS). يرجى الدخول عبر رابط https:// أو إدخال الكود يدوياً."
+            : "Camera requires a secure context (HTTPS). Please open the site via HTTPS or enter ID manually.",
+        );
+        setIsStarting(false);
+        return;
+      }
 
-    const containerEl = document.getElementById(containerId);
-    if (!containerEl) {
-      console.warn(`[GateCameraScanner] Container #${containerId} not found in DOM yet.`);
-      setIsStarting(false);
-      return;
-    }
+      const containerEl = document.getElementById(containerId);
+      if (!containerEl) {
+        console.warn(
+          `[GateCameraScanner] Container #${containerId} not found in DOM yet.`,
+        );
+        setIsStarting(false);
+        return;
+      }
 
-    try {
-      const scanner = new Html5Qrcode(containerId, {
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.UPC_A,
-        ],
-        verbose: false,
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true,
-        },
-      });
-      scannerRef.current = scanner;
-
-      // Enumerate cameras if not already done
-      let targetCamId = camId || selectedCameraId;
       try {
-        const devs = await Html5Qrcode.getCameras();
-        if (devs && devs.length > 0) {
-          setCameras(devs);
-          if (!targetCamId) {
-            // Pick back camera if labeled, or default to first
-            const backCam = devs.find((d) =>
-              /back|rear|environment|خلف/i.test(d.label)
-            );
-            if (backCam) {
-              targetCamId = backCam.id;
-              setSelectedCameraId(backCam.id);
-            } else {
-              targetCamId = devs[0].id;
-              setSelectedCameraId(devs[0].id);
+        const scanner = new Html5Qrcode(containerId, {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.UPC_A,
+          ],
+          verbose: false,
+          experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true,
+          },
+        });
+        scannerRef.current = scanner;
+
+        // Enumerate cameras if not already done
+        let targetCamId = camId || selectedCameraId;
+        try {
+          const devs = await Html5Qrcode.getCameras();
+          if (devs && devs.length > 0) {
+            setCameras(devs);
+            if (!targetCamId) {
+              // Pick back camera if labeled, or default to first
+              const backCam = devs.find((d) =>
+                /back|rear|environment|خلف/i.test(d.label),
+              );
+              if (backCam) {
+                targetCamId = backCam.id;
+                setSelectedCameraId(backCam.id);
+              } else {
+                targetCamId = devs[0].id;
+                setSelectedCameraId(devs[0].id);
+              }
             }
           }
+        } catch (e) {
+          console.warn("[GateCameraScanner] Could not enumerate devices:", e);
         }
-      } catch (e) {
-        console.warn("[GateCameraScanner] Could not enumerate devices:", e);
-      }
 
-      const scanConfig = {
-        fps: 20,
-        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          const edgeSize = Math.max(220, Math.floor(minEdge * 0.85));
-          return { width: edgeSize, height: edgeSize };
-        },
-      };
+        const scanConfig = {
+          fps: 20,
+          qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const edgeSize = Math.max(220, Math.floor(minEdge * 0.85));
+            return { width: edgeSize, height: edgeSize };
+          },
+        };
 
-      const onScanSuccess = (decodedText: string) => {
-        if (isCooldownRef.current || isVerifyingRef.current) return;
-        isCooldownRef.current = true;
-        setLastScannedCode(decodedText);
-        setCooldownRemaining(2);
+        const onScanSuccess = (decodedText: string) => {
+          if (isCooldownRef.current || isVerifyingRef.current) return;
+          isCooldownRef.current = true;
+          setLastScannedCode(decodedText);
+          setCooldownRemaining(2);
 
-        onScanRef.current(decodedText, directionRef.current);
+          onScanRef.current(decodedText, directionRef.current);
 
-        let remaining = 2;
-        if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
-        cooldownTimerRef.current = setInterval(() => {
-          remaining -= 1;
-          setCooldownRemaining(remaining);
-          if (remaining <= 0) {
-            clearInterval(cooldownTimerRef.current);
-            isCooldownRef.current = false;
-            setCooldownRemaining(0);
-          }
-        }, 1000);
-      };
+          let remaining = 2;
+          if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+          cooldownTimerRef.current = setInterval(() => {
+            remaining -= 1;
+            setCooldownRemaining(remaining);
+            if (remaining <= 0) {
+              clearInterval(cooldownTimerRef.current);
+              isCooldownRef.current = false;
+              setCooldownRemaining(0);
+            }
+          }, 1000);
+        };
 
-      let started = false;
-      // 1. Try with targetCamId or facingMode environment
-      try {
-        const camConfig: any = targetCamId
-          ? { deviceId: { exact: targetCamId } }
-          : { facingMode: { ideal: mode || facingMode } };
-        await scanner.start(camConfig, scanConfig, onScanSuccess, () => {});
-        started = true;
-      } catch (err1) {
-        console.warn("[GateCameraScanner] First camera attempt failed, retrying with fallback constraint:", err1);
-      }
-
-      // 2. If first attempt failed (e.g. desktop webcam without environment mode), try user or generic
-      if (!started) {
+        let started = false;
+        // 1. Try with targetCamId or facingMode environment
         try {
-          await scanner.start({ facingMode: "user" }, scanConfig, onScanSuccess, () => {});
+          const camConfig: any = targetCamId
+            ? { deviceId: { exact: targetCamId } }
+            : { facingMode: { ideal: mode || facingMode } };
+          await scanner.start(camConfig, scanConfig, onScanSuccess, () => {});
           started = true;
-        } catch (err2) {
-          console.warn("[GateCameraScanner] User facing mode failed, trying default constraint:", err2);
-          await scanner.start({} as any, scanConfig, onScanSuccess, () => {});
-          started = true;
+        } catch (err1) {
+          console.warn(
+            "[GateCameraScanner] First camera attempt failed, retrying with fallback constraint:",
+            err1,
+          );
         }
-      }
 
-      // Check for torch capability
-      try {
-        const capabilities = scanner.getRunningTrackCapabilities();
-        if (capabilities && (capabilities as any).torch) {
-          setHasTorch(true);
-        } else {
-          setHasTorch(false);
+        // 2. If first attempt failed (e.g. desktop webcam without environment mode), try user or generic
+        if (!started) {
+          try {
+            await scanner.start(
+              { facingMode: "user" },
+              scanConfig,
+              onScanSuccess,
+              () => {},
+            );
+            started = true;
+          } catch (err2) {
+            console.warn(
+              "[GateCameraScanner] User facing mode failed, trying default constraint:",
+              err2,
+            );
+            await scanner.start({} as any, scanConfig, onScanSuccess, () => {});
+            started = true;
+          }
         }
-      } catch {}
-    } catch (err: any) {
-      console.error("[GateCameraScanner] Camera start error:", err);
-      let errMsg = isAr
-        ? "تعذر الوصول إلى الكاميرا. يرجى التأكد من منح الإذن للمتصفح واستخدام اتصال HTTPS."
-        : "Failed to access camera. Please allow camera permissions and ensure HTTPS.";
-      if (err?.name === "NotAllowedError" || String(err).includes("Permission")) {
-        errMsg = isAr
-          ? "تم رفض إذن الكاميرا. الرجاء السماح بالوصول للكاميرا من إعدادات المتصفح."
-          : "Camera permission denied. Please allow camera access in browser settings.";
-      } else if (err?.name === "NotFoundError" || String(err).includes("DevicesNotFoundError")) {
-        errMsg = isAr
-          ? "لم يتم العثور على أي كاميرا متصلة بالجهاز."
-          : "No camera found on this device.";
-      } else if (err?.name === "NotReadableError" || String(err).includes("Could not start video source")) {
-        errMsg = isAr
-          ? "الكاميرا قيد الاستخدام بواسطة تطبيق أو نافذة أخرى."
-          : "Camera is already in use by another app or browser tab.";
+
+        // Check for torch capability
+        try {
+          const capabilities = scanner.getRunningTrackCapabilities();
+          if (capabilities && (capabilities as any).torch) {
+            setHasTorch(true);
+          } else {
+            setHasTorch(false);
+          }
+        } catch {}
+      } catch (err: any) {
+        console.error("[GateCameraScanner] Camera start error:", err);
+        let errMsg = isAr
+          ? "تعذر الوصول إلى الكاميرا. يرجى التأكد من منح الإذن للمتصفح واستخدام اتصال HTTPS."
+          : "Failed to access camera. Please allow camera permissions and ensure HTTPS.";
+        if (
+          err?.name === "NotAllowedError" ||
+          String(err).includes("Permission")
+        ) {
+          errMsg = isAr
+            ? "تم رفض إذن الكاميرا. الرجاء السماح بالوصول للكاميرا من إعدادات المتصفح."
+            : "Camera permission denied. Please allow camera access in browser settings.";
+        } else if (
+          err?.name === "NotFoundError" ||
+          String(err).includes("DevicesNotFoundError")
+        ) {
+          errMsg = isAr
+            ? "لم يتم العثور على أي كاميرا متصلة بالجهاز."
+            : "No camera found on this device.";
+        } else if (
+          err?.name === "NotReadableError" ||
+          String(err).includes("Could not start video source")
+        ) {
+          errMsg = isAr
+            ? "الكاميرا قيد الاستخدام بواسطة تطبيق أو نافذة أخرى."
+            : "Camera is already in use by another app or browser tab.";
+        }
+        setCameraError(errMsg);
+      } finally {
+        setIsStarting(false);
       }
-      setCameraError(errMsg);
-    } finally {
-      setIsStarting(false);
-    }
-  }, [active, containerId, facingMode, isAr, isCameraActive, selectedCameraId, stopCamera]);
+    },
+    [
+      active,
+      containerId,
+      facingMode,
+      isAr,
+      isCameraActive,
+      selectedCameraId,
+      stopCamera,
+    ],
+  );
 
   // Handle Torch Toggle
   const toggleTorch = async () => {
@@ -263,7 +300,11 @@ export function GateCameraScanner({
     if (!file) return;
 
     try {
-      toast.info(isAr ? "جارٍ قراءة كود الـ QR من الصورة..." : "Scanning QR from image...");
+      toast.info(
+        isAr
+          ? "جارٍ قراءة كود الـ QR من الصورة..."
+          : "Scanning QR from image...",
+      );
       let html5QrCode = scannerRef.current;
       let tempInstance = false;
       if (!html5QrCode) {
@@ -279,13 +320,15 @@ export function GateCameraScanner({
       if (tempInstance) {
         html5QrCode.clear();
       }
-      toast.success(isAr ? "تم قراءة الكود بنجاح!" : "QR Code detected successfully!");
+      toast.success(
+        isAr ? "تم قراءة الكود بنجاح!" : "QR Code detected successfully!",
+      );
       onScanRef.current(decodedText, directionRef.current);
     } catch (err) {
       toast.error(
         isAr
           ? "لم يتم العثور على كود QR واضح في الصورة المختارة"
-          : "No valid QR code found in selected image"
+          : "No valid QR code found in selected image",
       );
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -407,7 +450,11 @@ export function GateCameraScanner({
               variant="outline"
               size="sm"
               onClick={flipCamera}
-              title={isAr ? "تبديل الكاميرا (أمامية / خلفية)" : "Flip Camera (Front / Back)"}
+              title={
+                isAr
+                  ? "تبديل الكاميرا (أمامية / خلفية)"
+                  : "Flip Camera (Front / Back)"
+              }
               className="h-8 w-8 p-0 rounded-xl"
             >
               <FlipHorizontal className="w-3.5 h-3.5" />
@@ -444,7 +491,9 @@ export function GateCameraScanner({
             className="h-8 px-2.5 rounded-xl text-xs gap-1 font-semibold"
           >
             <Upload className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{isAr ? "مسح من صورة" : "Scan Image"}</span>
+            <span className="hidden sm:inline">
+              {isAr ? "مسح من صورة" : "Scan Image"}
+            </span>
           </Button>
           <input
             ref={fileInputRef}
@@ -473,23 +522,34 @@ export function GateCameraScanner({
             <div className="absolute top-3 inset-x-0 flex justify-center pointer-events-auto">
               <button
                 type="button"
-                onClick={() => onDirectionChange && onDirectionChange(direction === "IN" ? "OUT" : "IN")}
+                onClick={() =>
+                  onDirectionChange &&
+                  onDirectionChange(direction === "IN" ? "OUT" : "IN")
+                }
                 className={`font-mono text-xs px-3.5 py-1 font-bold rounded-full shadow-lg transition-all flex items-center gap-1.5 border cursor-pointer ${
                   direction === "IN"
                     ? "bg-emerald-600/90 hover:bg-emerald-600 text-white border-emerald-400/60"
                     : "bg-blue-600/90 hover:bg-blue-600 text-white border-blue-400/60"
                 }`}
-                title={isAr ? "اضغط للتبديل بين الدخول والخروج" : "Click to toggle IN / OUT"}
+                title={
+                  isAr
+                    ? "اضغط للتبديل بين الدخول والخروج"
+                    : "Click to toggle IN / OUT"
+                }
               >
                 {direction === "IN" ? (
                   <>
                     <LogIn className="w-3.5 h-3.5" />
-                    <span>{isAr ? "اتجاه المسح: دخول (IN)" : "SCANNING: IN"}</span>
+                    <span>
+                      {isAr ? "اتجاه المسح: دخول (IN)" : "SCANNING: IN"}
+                    </span>
                   </>
                 ) : (
                   <>
                     <LogOut className="w-3.5 h-3.5" />
-                    <span>{isAr ? "اتجاه المسح: خروج (OUT)" : "SCANNING: OUT"}</span>
+                    <span>
+                      {isAr ? "اتجاه المسح: خروج (OUT)" : "SCANNING: OUT"}
+                    </span>
                   </>
                 )}
               </button>
@@ -520,8 +580,8 @@ export function GateCameraScanner({
                       ? `تم المسح بنجاح (استئناف بعد ${cooldownRemaining}ث)`
                       : `Scanned! Resuming in ${cooldownRemaining}s`
                     : isAr
-                    ? "وجّه كود الـ QR داخل الإطار للمسح التلقائي"
-                    : "Align QR code inside the frame"}
+                      ? "وجّه كود الـ QR داخل الإطار للمسح التلقائي"
+                      : "Align QR code inside the frame"}
                 </span>
               </Badge>
             </div>

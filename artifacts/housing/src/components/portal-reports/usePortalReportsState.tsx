@@ -11,7 +11,9 @@ import { drawPdfHeader, drawPdfFooter, pdfTextSafe } from "@/lib/pdf-utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-export function usePortalReportsState({ defaultType }: { defaultType?: string } = {}) {
+export function usePortalReportsState({
+  defaultType,
+}: { defaultType?: string } = {}) {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -31,7 +33,8 @@ export function usePortalReportsState({ defaultType }: { defaultType?: string } 
     Record<string, boolean>
   >({});
 
-  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const numericPropertyId =
+    typeof activePropertyId === "number" ? activePropertyId : undefined;
   const { data: settings } = useGetSettings(
     { propertyId: numericPropertyId },
     { query: { enabled: !!numericPropertyId } as any },
@@ -42,7 +45,9 @@ export function usePortalReportsState({ defaultType }: { defaultType?: string } 
       gcTime: 30 * 60 * 1000,
     } as any,
   });
-  const properties = Array.isArray(_pData) ? _pData : ((_pData as any)?.data || []);
+  const properties = Array.isArray(_pData)
+    ? _pData
+    : (_pData as any)?.data || [];
 
   // Fetch departments for filter
   const { data: departments = [] } = useQuery({
@@ -505,7 +510,9 @@ export function usePortalReportsState({ defaultType }: { defaultType?: string } 
     }
 
     drawPdfFooter(doc, pageW);
-    doc.save(getExportFileName(`Portal_Report_${data.type || "export"}`, "pdf"));
+    doc.save(
+      getExportFileName(`Portal_Report_${data.type || "export"}`, "pdf"),
+    );
   };
 
   const toggleSection = (key: string) => {
@@ -581,7 +588,6 @@ export type PortalReportsState = ReturnType<typeof usePortalReportsState>;
 // narrowed inputs (none) are passed in non-null.
 export function buildPortalReportsView(s: PortalReportsState) {
   const { reportData } = s;
-
 
   const summary = reportData?.summary || {};
   return {

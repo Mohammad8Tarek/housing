@@ -9,7 +9,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QrCode, Printer, Download, ShieldCheck, AlertCircle, User } from "lucide-react";
+import {
+  QrCode,
+  Printer,
+  Download,
+  ShieldCheck,
+  AlertCircle,
+  User,
+} from "lucide-react";
 import { useProperty } from "@/context/PropertyContext";
 
 interface GatePassModalProps {
@@ -35,7 +42,7 @@ export function GatePassModal({
       if (!profileId) return null;
       const res = await fetch(
         `/api/gate/pass/${profileId}?propertyId=${selectedPropertyId || ""}`,
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { "Content-Type": "application/json" } },
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -72,7 +79,9 @@ export function GatePassModal({
             </div>
             <div>
               <DialogTitle className="text-base font-bold text-foreground">
-                {isAr ? "تصريح بوابة السكن الإلكترونية" : "Electronic Gate Pass"}
+                {isAr
+                  ? "تصريح بوابة السكن الإلكترونية"
+                  : "Electronic Gate Pass"}
               </DialogTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {isAr
@@ -99,7 +108,11 @@ export function GatePassModal({
             <div className="p-6 text-center space-y-3 bg-red-500/10 border border-red-500/20 rounded-2xl text-destructive">
               <AlertCircle className="w-10 h-10 mx-auto" />
               <p className="text-sm font-semibold">
-                {error instanceof Error ? error.message : (isAr ? "تعذر تحميل تصريح السكن" : "Failed to load gate pass")}
+                {error instanceof Error
+                  ? error.message
+                  : isAr
+                    ? "تعذر تحميل تصريح السكن"
+                    : "Failed to load gate pass"}
               </p>
               <Button size="sm" variant="outline" onClick={() => refetch()}>
                 {isAr ? "إعادة المحاولة" : "Try Again"}
@@ -143,12 +156,18 @@ export function GatePassModal({
                   >
                     <span
                       className={`w-1.5 h-1.5 rounded-full mr-1.5 inline-block ${
-                        gatePass.housing?.isAssigned ? "bg-emerald-400" : "bg-amber-400"
+                        gatePass.housing?.isAssigned
+                          ? "bg-emerald-400"
+                          : "bg-amber-400"
                       }`}
                     />
                     {gatePass.housing?.isAssigned
-                      ? (isAr ? "مقيم نشط" : "Active Resident")
-                      : (isAr ? "قيد التسكين" : "Unassigned")}
+                      ? isAr
+                        ? "مقيم نشط"
+                        : "Active Resident"
+                      : isAr
+                        ? "قيد التسكين"
+                        : "Unassigned"}
                   </Badge>
                 </div>
 
@@ -174,7 +193,12 @@ export function GatePassModal({
                       {gatePass.jobTitle} · {gatePass.department}
                     </p>
                     <div className="flex items-center gap-2 mt-1 text-[11px] text-white/70 font-mono">
-                      <span>ID: <strong className="text-white">{gatePass.employeeId}</strong></span>
+                      <span>
+                        ID:{" "}
+                        <strong className="text-white">
+                          {gatePass.employeeId}
+                        </strong>
+                      </span>
                       {gatePass.nationalId && (
                         <span>· NID: {gatePass.nationalId}</span>
                       )}

@@ -17,7 +17,14 @@ export function normalizeGender(g?: string | null): "M" | "F" | "" {
   if (!g) return "";
   const s = String(g).trim().toLowerCase();
   if (s === "m" || s === "male" || s === "ذكر" || s === "رجال") return "M";
-  if (s === "f" || s === "female" || s === "أنثى" || s === "سيدات" || s === "إناث") return "F";
+  if (
+    s === "f" ||
+    s === "female" ||
+    s === "أنثى" ||
+    s === "سيدات" ||
+    s === "إناث"
+  )
+    return "F";
   return "";
 }
 
@@ -33,7 +40,9 @@ export function getLevelTargetCapacity(
   levelNameAr: string;
   levelNameEn: string;
 } {
-  const lvl = String(levelRaw ?? "").trim().toLowerCase();
+  const lvl = String(levelRaw ?? "")
+    .trim()
+    .toLowerCase();
 
   const l0Cap = Number(policySettings?.policyLevel0Capacity) || 1;
   const l1Cap = Number(policySettings?.policyLevel1Capacity) || 1;
@@ -50,15 +59,32 @@ export function getLevelTargetCapacity(
 
   if (jobPolicies.length > 0) {
     const matched = jobPolicies.find((jp: any) => {
-      const key = String(jp.levelKey ?? "").trim().toLowerCase();
-      const name = String(jp.name ?? "").trim().toLowerCase();
-      const nameAr = String(jp.nameAr ?? "").trim().toLowerCase();
-      const id = String(jp.id ?? "").trim().toLowerCase();
+      const key = String(jp.levelKey ?? "")
+        .trim()
+        .toLowerCase();
+      const name = String(jp.name ?? "")
+        .trim()
+        .toLowerCase();
+      const nameAr = String(jp.nameAr ?? "")
+        .trim()
+        .toLowerCase();
+      const id = String(jp.id ?? "")
+        .trim()
+        .toLowerCase();
 
-      if (key && (lvl === key || lvl === `level ${key}` || lvl === `level_${key}`)) return true;
+      if (
+        key &&
+        (lvl === key || lvl === `level ${key}` || lvl === `level_${key}`)
+      )
+        return true;
       if (id && (lvl === id || lvl === `level_${id}`)) return true;
-      if (name && (lvl === name || lvl.includes(name) || name.includes(lvl))) return true;
-      if (nameAr && (lvl === nameAr || lvl.includes(nameAr) || nameAr.includes(lvl))) return true;
+      if (name && (lvl === name || lvl.includes(name) || name.includes(lvl)))
+        return true;
+      if (
+        nameAr &&
+        (lvl === nameAr || lvl.includes(nameAr) || nameAr.includes(lvl))
+      )
+        return true;
 
       // Smart keyword heuristics for standard level codes
       if (key === "0") {
@@ -73,7 +99,8 @@ export function getLevelTargetCapacity(
           lvl.includes("general manager") ||
           lvl.includes("director") ||
           lvl.includes("cluster")
-        ) return true;
+        )
+          return true;
       }
       if (key === "1") {
         if (
@@ -82,7 +109,8 @@ export function getLevelTargetCapacity(
           lvl.includes("مدير فندق") ||
           lvl.includes("head") ||
           lvl.includes("hod")
-        ) return true;
+        )
+          return true;
       }
       if (key === "2") {
         if (
@@ -92,7 +120,8 @@ export function getLevelTargetCapacity(
           lvl.includes("assistant manager") ||
           lvl.includes("specialist") ||
           lvl.includes("نائب")
-        ) return true;
+        )
+          return true;
       }
       if (key === "3") {
         if (
@@ -101,7 +130,8 @@ export function getLevelTargetCapacity(
           lvl.includes("senior") ||
           lvl.includes("officer") ||
           lvl.includes("موظف")
-        ) return true;
+        )
+          return true;
       }
       if (key === "4") {
         if (
@@ -110,15 +140,20 @@ export function getLevelTargetCapacity(
           lvl.includes("سائق") ||
           lvl.includes("driver") ||
           lvl.includes("خدمات")
-        ) return true;
+        )
+          return true;
       }
       return false;
     });
 
     if (matched) {
-      const allowed: number[] = Array.isArray(matched.allowedCapacities) && matched.allowedCapacities.length > 0
-        ? matched.allowedCapacities.map(Number).filter((n: number) => !isNaN(n) && n > 0)
-        : [1];
+      const allowed: number[] =
+        Array.isArray(matched.allowedCapacities) &&
+        matched.allowedCapacities.length > 0
+          ? matched.allowedCapacities
+              .map(Number)
+              .filter((n: number) => !isNaN(n) && n > 0)
+          : [1];
       const minCap = Math.min(...allowed);
       const maxCap = Math.max(...allowed);
       return {
@@ -138,8 +173,12 @@ export function getLevelTargetCapacity(
     ? policySettings.customLevelRules
     : [];
   const matchedCustom = customRules.find((cr: any) => {
-    const crName = String(cr.name || "").trim().toLowerCase();
-    const crNameAr = String(cr.nameAr || "").trim().toLowerCase();
+    const crName = String(cr.name || "")
+      .trim()
+      .toLowerCase();
+    const crNameAr = String(cr.nameAr || "")
+      .trim()
+      .toLowerCase();
     return (
       (crName && lvl === crName) ||
       (crNameAr && lvl === crNameAr) ||
@@ -301,14 +340,14 @@ export function getLevelTargetCapacity(
       lvl === "4" || lvl === "level 4"
         ? "عمال وخدمات (المستوى 4)"
         : lvl
-        ? `مستوى ${lvl}`
-        : "طاقم العمل (المستوى 4)",
+          ? `مستوى ${lvl}`
+          : "طاقم العمل (المستوى 4)",
     levelNameEn:
       lvl === "4" || lvl === "level 4"
         ? "General Workers (Level 4)"
         : lvl
-        ? `Level ${lvl}`
-        : "General Staff (Level 4)",
+          ? `Level ${lvl}`
+          : "General Staff (Level 4)",
   };
 }
 
@@ -336,12 +375,12 @@ export function recommendBestRooms({
   policySettings?: any;
   /** Optional caller-supplied preferences to influence scoring */
   preferences?: {
-    preferredView?: string;       // e.g. "Sea view", "Tal View"
-    preferredBedType?: string;    // e.g. "Twin Bed", "Single Bed"
+    preferredView?: string; // e.g. "Sea view", "Tal View"
+    preferredBedType?: string; // e.g. "Twin Bed", "Single Bed"
     preferredClassification?: string; // e.g. "Deluxe room"
-    requiredFeatures?: string[];  // e.g. ["Balcony", "WiFi"]
-    sameNationality?: boolean;    // prefer roommates of same nationality
-    isFamily?: boolean;           // prioritize family suites
+    requiredFeatures?: string[]; // e.g. ["Balcony", "WiFi"]
+    sameNationality?: boolean; // prefer roommates of same nationality
+    isFamily?: boolean; // prioritize family suites
   };
 }): {
   bestRoom: any | null;
@@ -356,7 +395,8 @@ export function recommendBestRooms({
   const activeAssignmentsByRoom: Record<number, any[]> = {};
   for (const a of assignments) {
     if (a.status === "ACTIVE") {
-      if (!activeAssignmentsByRoom[a.roomId]) activeAssignmentsByRoom[a.roomId] = [];
+      if (!activeAssignmentsByRoom[a.roomId])
+        activeAssignmentsByRoom[a.roomId] = [];
       activeAssignmentsByRoom[a.roomId].push(a);
     }
   }
@@ -389,12 +429,14 @@ export function recommendBestRooms({
             const bId = occRoom.buildingId ?? (occRoom as any).building_id;
             const fId = occRoom.floorId ?? (occRoom as any).floor_id;
             if (bId != null) {
-              if (!deptBuildingDensity.has(dept)) deptBuildingDensity.set(dept, new Map());
+              if (!deptBuildingDensity.has(dept))
+                deptBuildingDensity.set(dept, new Map());
               const bMap = deptBuildingDensity.get(dept)!;
               bMap.set(bId, (bMap.get(bId) || 0) + 1);
             }
             if (fId != null) {
-              if (!deptFloorDensity.has(dept)) deptFloorDensity.set(dept, new Map());
+              if (!deptFloorDensity.has(dept))
+                deptFloorDensity.set(dept, new Map());
               const fMap = deptFloorDensity.get(dept)!;
               fMap.set(fId, (fMap.get(fId) || 0) + 1);
             }
@@ -417,12 +459,18 @@ export function recommendBestRooms({
   for (const r of rooms) {
     const status = (r.status || "").toLowerCase();
     // Strictly exclude Out of Order and Out of Service
-    if (status === "out_of_order" || status === "ooo" || status === "out_of_service" || status === "oos") {
+    if (
+      status === "out_of_order" ||
+      status === "ooo" ||
+      status === "out_of_service" ||
+      status === "oos"
+    ) {
       continue;
     }
 
     const roomCapacity = r.capacity || 1;
-    const roomOcc = r.currentOccupancy ?? (activeAssignmentsByRoom[r.id]?.length ?? 0);
+    const roomOcc =
+      r.currentOccupancy ?? activeAssignmentsByRoom[r.id]?.length ?? 0;
     const availableBeds = Math.max(0, roomCapacity - roomOcc);
 
     // If completely full, skip
@@ -433,11 +481,12 @@ export function recommendBestRooms({
     // 1. Gender Compatibility Check (with Strict Segregation Support)
     const rawRoomGender = (r.gender || "").toLowerCase();
     const roomGender = normalizeGender(r.gender);
-    const existingOccupants = (activeAssignmentsByRoom[r.id] || []).map((a) =>
-      profileMap.get(a.profileId)
-    ).filter(Boolean);
+    const existingOccupants = (activeAssignmentsByRoom[r.id] || [])
+      .map((a) => profileMap.get(a.profileId))
+      .filter(Boolean);
 
-    const strictGender = policySettings?.policyStrictGenderSegregation !== false;
+    const strictGender =
+      policySettings?.policyStrictGenderSegregation !== false;
 
     if (profileGender) {
       if (roomGender && rawRoomGender !== "any" && rawRoomGender !== "all") {
@@ -464,9 +513,11 @@ export function recommendBestRooms({
     let matchReasonAr = "";
     let matchReasonEn = "";
 
-    const allowed = Array.isArray(target.allowedCapacities) && target.allowedCapacities.length > 0
-      ? target.allowedCapacities
-      : [target.idealCap];
+    const allowed =
+      Array.isArray(target.allowedCapacities) &&
+      target.allowedCapacities.length > 0
+        ? target.allowedCapacities
+        : [target.idealCap];
 
     if (allowed.includes(roomCapacity)) {
       score += 40;
@@ -493,15 +544,18 @@ export function recommendBestRooms({
 
     // 4. Department Harmony, Clustering Policy & Adaptive Learning
     const clusterEnabled = policySettings?.policyDepartmentClustering ?? true;
-    const strictSegregation = policySettings?.policyStrictDepartmentSegregation ?? false;
+    const strictSegregation =
+      policySettings?.policyStrictDepartmentSegregation ?? false;
 
     if (profileDept) {
       if (existingOccupants.length > 0) {
         const sameDeptCount = existingOccupants.filter(
-          (o) => (o.department || "").toLowerCase().trim() === profileDept
+          (o) => (o.department || "").toLowerCase().trim() === profileDept,
         ).length;
         const diffDeptCount = existingOccupants.filter(
-          (o) => (o.department || "").toLowerCase().trim() !== profileDept && (o.department || "").trim() !== ""
+          (o) =>
+            (o.department || "").toLowerCase().trim() !== profileDept &&
+            (o.department || "").trim() !== "",
         ).length;
 
         if (strictSegregation && diffDeptCount > 0) {
@@ -521,8 +575,10 @@ export function recommendBestRooms({
         // Room is vacant: Check spatial sector affinity for this department!
         const bId = r.buildingId ?? (r as any).building_id;
         const fId = r.floorId ?? (r as any).floor_id;
-        const bCount = (bId != null && deptBuildingDensity.get(profileDept)?.get(bId)) || 0;
-        const fCount = (fId != null && deptFloorDensity.get(profileDept)?.get(fId)) || 0;
+        const bCount =
+          (bId != null && deptBuildingDensity.get(profileDept)?.get(bId)) || 0;
+        const fCount =
+          (fId != null && deptFloorDensity.get(profileDept)?.get(fId)) || 0;
 
         if (fCount >= 2 || bCount >= 4) {
           score += 45;
@@ -559,7 +615,11 @@ export function recommendBestRooms({
 
     // ── 8. Smart Room Classification & Job Title / Family Match ──────────────
     const roomCls = (r.classification || "").toLowerCase();
-    const profileJobTitle = (profile?.jobTitle || profile?.title || "").toLowerCase();
+    const profileJobTitle = (
+      profile?.jobTitle ||
+      profile?.title ||
+      ""
+    ).toLowerCase();
     const isFamilyTarget =
       profile?.isFamily === true ||
       preferences.isFamily === true ||
@@ -567,7 +627,9 @@ export function recommendBestRooms({
       profileJobTitle.includes("عائل") ||
       preferredClassification.toLowerCase().includes("family");
 
-    const lvlStr = String(profileLevel ?? "").trim().toLowerCase();
+    const lvlStr = String(profileLevel ?? "")
+      .trim()
+      .toLowerCase();
     const isTopExecutive =
       lvlStr === "0" ||
       lvlStr === "level 0" ||
@@ -584,13 +646,13 @@ export function recommendBestRooms({
     const isExecutive =
       !isTopExecutive &&
       (lvlStr === "1" ||
-      lvlStr === "level 1" ||
-      profileJobTitle.includes("مدير إدارة") ||
-      profileJobTitle.includes("مدير فندق") ||
-      profileJobTitle.includes("مدير قسم") ||
-      profileJobTitle.includes("head") ||
-      profileJobTitle.includes("hod") ||
-      profileJobTitle.includes("executive"));
+        lvlStr === "level 1" ||
+        profileJobTitle.includes("مدير إدارة") ||
+        profileJobTitle.includes("مدير فندق") ||
+        profileJobTitle.includes("مدير قسم") ||
+        profileJobTitle.includes("head") ||
+        profileJobTitle.includes("hod") ||
+        profileJobTitle.includes("executive"));
 
     const isSupervisory =
       lvlStr === "2" ||
@@ -607,7 +669,11 @@ export function recommendBestRooms({
 
     // 8.1 Family match
     if (isFamilyTarget) {
-      if (roomCls.includes("family") || roomCls.includes("suite") || roomCls.includes("عائل")) {
+      if (
+        roomCls.includes("family") ||
+        roomCls.includes("suite") ||
+        roomCls.includes("عائل")
+      ) {
         score += 60;
         levelMatch = true;
         matchReasonAr += ` • جناح عائلي متسع ملائم للأسرة (${r.classification || "Family suite"} - سعة ${roomCapacity} أفراد)`;
@@ -629,14 +695,23 @@ export function recommendBestRooms({
 
     // 8.2 Top Executive / Level 0 (VIP Suites, Deluxe, Single)
     if (isTopExecutive) {
-      if (roomCls.includes("deluxe") || roomCls.includes("ديلوكس") || roomCls.includes("suite") || roomCls.includes("جناح")) {
+      if (
+        roomCls.includes("deluxe") ||
+        roomCls.includes("ديلوكس") ||
+        roomCls.includes("suite") ||
+        roomCls.includes("جناح")
+      ) {
         score += 70;
         levelMatch = true;
         matchReasonAr += ` • جناح / غرفة فاخرة ملائمة للإدارة العليا (${r.classification || "VIP / Suite"})`;
         matchReasonEn += ` • Suite / Deluxe room matching Top Executive (${r.classification || "VIP / Suite"})`;
         customBadgeLabelAr = "إدارة عليا VIP";
         customBadgeLabelEn = "Top Executive VIP";
-      } else if (roomCls.includes("superior") || roomCls.includes("سوبيريور") || roomCapacity === 1) {
+      } else if (
+        roomCls.includes("superior") ||
+        roomCls.includes("سوبيريور") ||
+        roomCapacity === 1
+      ) {
         score += 50;
         levelMatch = true;
         matchReasonAr += ` • غرفة فردية متميزة (${r.classification || "غرفة فردية"})`;
@@ -658,7 +733,11 @@ export function recommendBestRooms({
         matchReasonEn += ` • Deluxe classification matching executive title (${r.classification})`;
         customBadgeLabelAr = r.classification || "تنفيذي";
         customBadgeLabelEn = r.classification || "Executive";
-      } else if (roomCls.includes("superior") || roomCls.includes("سوبيريور") || roomCapacity === 1) {
+      } else if (
+        roomCls.includes("superior") ||
+        roomCls.includes("سوبيريور") ||
+        roomCapacity === 1
+      ) {
         score += 35;
         levelMatch = true;
         matchReasonAr += ` • تصنيف ممتاز (${r.classification})`;
@@ -686,7 +765,11 @@ export function recommendBestRooms({
       if (roomCls.includes("standard") || !r.classification) {
         score += 15;
       }
-      if (roomCls.includes("suite") || roomCls.includes("جناح") || (roomCls.includes("deluxe") && roomCapacity === 1)) {
+      if (
+        roomCls.includes("suite") ||
+        roomCls.includes("جناح") ||
+        (roomCls.includes("deluxe") && roomCapacity === 1)
+      ) {
         score -= 40;
       }
     }
@@ -705,9 +788,12 @@ export function recommendBestRooms({
     if (requiredFeatures.length > 0) {
       const roomFeaturesList: string[] = Array.isArray(r.featuresList)
         ? r.featuresList.map((f: string) => f.toLowerCase())
-        : (r.features || "").toLowerCase().split(/[,;\n]+/).map((f: string) => f.trim());
+        : (r.features || "")
+            .toLowerCase()
+            .split(/[,;\n]+/)
+            .map((f: string) => f.trim());
       const matchedFeatures = requiredFeatures.filter((f) =>
-        roomFeaturesList.some((rf) => rf.includes(f.toLowerCase()))
+        roomFeaturesList.some((rf) => rf.includes(f.toLowerCase())),
       );
       if (matchedFeatures.length > 0) {
         score += matchedFeatures.length * 8;
@@ -722,7 +808,7 @@ export function recommendBestRooms({
     // ── 10. Nationality Harmony Bonus ────────────────────────────────────
     if (sameNationality && profileNat && existingOccupants.length > 0) {
       const sameNatCount = existingOccupants.filter(
-        (o) => (o.nationality || "").toLowerCase() === profileNat
+        (o) => (o.nationality || "").toLowerCase() === profileNat,
       ).length;
       if (sameNatCount > 0) {
         score += 10;
@@ -731,14 +817,24 @@ export function recommendBestRooms({
       }
     }
 
-    const targetRoleAr = profile?.jobTitle ? profile.jobTitle : (profileLevel ? `مستوى ${profileLevel}` : "الموظف");
-    const targetRoleEn = profile?.jobTitle ? profile.jobTitle : (profileLevel ? `Level ${profileLevel}` : "Role");
-    const badgeLabelAr = customBadgeLabelAr || (levelMatch
-      ? (r.classification || targetRoleAr || "موصى بها")
-      : "متاحة");
-    const badgeLabelEn = customBadgeLabelEn || (levelMatch
-      ? (r.classification || targetRoleEn || "Recommended")
-      : "Available");
+    const targetRoleAr = profile?.jobTitle
+      ? profile.jobTitle
+      : profileLevel
+        ? `مستوى ${profileLevel}`
+        : "الموظف";
+    const targetRoleEn = profile?.jobTitle
+      ? profile.jobTitle
+      : profileLevel
+        ? `Level ${profileLevel}`
+        : "Role";
+    const badgeLabelAr =
+      customBadgeLabelAr ||
+      (levelMatch ? r.classification || targetRoleAr || "موصى بها" : "متاحة");
+    const badgeLabelEn =
+      customBadgeLabelEn ||
+      (levelMatch
+        ? r.classification || targetRoleEn || "Recommended"
+        : "Available");
 
     scored.push({
       room: r,
@@ -785,16 +881,19 @@ export function checkPolicyCompliance({
   compliant: boolean;
   violations: { code: string; messageAr: string; messageEn: string }[];
 } {
-  const violations: { code: string; messageAr: string; messageEn: string }[] = [];
+  const violations: { code: string; messageAr: string; messageEn: string }[] =
+    [];
   if (!profile || !room) return { compliant: true, violations };
 
   const target = getLevelTargetCapacity(profile.level, policySettings);
   const roomCap = room.capacity || 1;
 
   // 1. Capacity & Level Check
-  const allowed = Array.isArray(target.allowedCapacities) && target.allowedCapacities.length > 0
-    ? target.allowedCapacities
-    : null;
+  const allowed =
+    Array.isArray(target.allowedCapacities) &&
+    target.allowedCapacities.length > 0
+      ? target.allowedCapacities
+      : null;
 
   if (allowed) {
     if (!allowed.includes(roomCap)) {
@@ -816,7 +915,9 @@ export function checkPolicyCompliance({
   const allowL0Entire = policySettings?.policyLevel0AllowEntire ?? true;
   const allowL1Entire = policySettings?.policyLevel1AllowEntire ?? true;
   const allowL2Entire = policySettings?.policyLevel2AllowEntire ?? false;
-  const lvl = String(profile.level ?? "").trim().toLowerCase();
+  const lvl = String(profile.level ?? "")
+    .trim()
+    .toLowerCase();
   const isL0 =
     lvl === "0" ||
     lvl === "level 0" ||
@@ -827,11 +928,22 @@ export function checkPolicyCompliance({
     lvl.includes("controller") ||
     lvl.includes("gm") ||
     lvl.includes("director");
-  const isL1 = !isL0 && (lvl === "1" || lvl === "level 1" || lvl.includes("مدير"));
-  const isL2 = !isL0 && !isL1 && (lvl === "2" || lvl === "level 2" || lvl.includes("مشرف") || lvl.includes("supervisor"));
+  const isL1 =
+    !isL0 && (lvl === "1" || lvl === "level 1" || lvl.includes("مدير"));
+  const isL2 =
+    !isL0 &&
+    !isL1 &&
+    (lvl === "2" ||
+      lvl === "level 2" ||
+      lvl.includes("مشرف") ||
+      lvl.includes("supervisor"));
 
   if (isEntireRoom) {
-    const isAllowedEntire = target.allowEntire ?? ((isL0 && allowL0Entire) || (isL1 && allowL1Entire) || (isL2 && allowL2Entire));
+    const isAllowedEntire =
+      target.allowEntire ??
+      ((isL0 && allowL0Entire) ||
+        (isL1 && allowL1Entire) ||
+        (isL2 && allowL2Entire));
     if (!isAllowedEntire) {
       violations.push({
         code: "ENTIRE_ROOM_NOT_ALLOWED",
@@ -845,15 +957,25 @@ export function checkPolicyCompliance({
   const profileDept = (profile.department || "").trim().toLowerCase();
   const profileMap = new Map<number, any>(profiles.map((p: any) => [p.id, p]));
   const roomActiveAssignments = (assignments || []).filter(
-    (a: any) => a.roomId === room.id && a.status === "ACTIVE" && a.profileId !== profile.id
+    (a: any) =>
+      a.roomId === room.id &&
+      a.status === "ACTIVE" &&
+      a.profileId !== profile.id,
   );
-  const existingRoommates = roomActiveAssignments.map((a: any) => profileMap.get(a.profileId)).filter(Boolean);
+  const existingRoommates = roomActiveAssignments
+    .map((a: any) => profileMap.get(a.profileId))
+    .filter(Boolean);
 
   if (profileDept && existingRoommates.length > 0) {
     const diffDeptOccupants = existingRoommates.filter(
-      (r: any) => (r.department || "").trim().toLowerCase() !== profileDept && (r.department || "").trim() !== ""
+      (r: any) =>
+        (r.department || "").trim().toLowerCase() !== profileDept &&
+        (r.department || "").trim() !== "",
     );
-    if (policySettings?.policyStrictDepartmentSegregation && diffDeptOccupants.length > 0) {
+    if (
+      policySettings?.policyStrictDepartmentSegregation &&
+      diffDeptOccupants.length > 0
+    ) {
       violations.push({
         code: "STRICT_DEPT_VIOLATION",
         messageAr: `مخالفة سياسة فصل الأقسام: الغرفة تضم نزلاء من أقسام أخرى (${diffDeptOccupants.map((o: any) => o.department).join(", ")})`,
@@ -868,7 +990,12 @@ export function checkPolicyCompliance({
   if (strictGender && profileGender) {
     const rawRoomGender = (room.gender || "").trim().toLowerCase();
     const roomGender = normalizeGender(room.gender);
-    if (roomGender && rawRoomGender !== "any" && rawRoomGender !== "all" && roomGender !== profileGender) {
+    if (
+      roomGender &&
+      rawRoomGender !== "any" &&
+      rawRoomGender !== "all" &&
+      roomGender !== profileGender
+    ) {
       violations.push({
         code: "GENDER_ROOM_MISMATCH",
         messageAr: `مخالفة سياسة فصل الجنسين الصارمة: الغرفة مخصصة لـ (${roomGender === "F" ? "الإناث" : "الذكور"}) بينما الموظف (${profileGender === "F" ? "أنثى" : "ذكر"})`,
@@ -901,7 +1028,7 @@ export function checkPolicyCompliance({
     const isFamilyEmp = Boolean(
       profile.isFamily === true ||
       (profile.guestType || "").toLowerCase() === "family" ||
-      (profile.jobTitle || profile.title || "").toLowerCase().includes("عائل")
+      (profile.jobTitle || profile.title || "").toLowerCase().includes("عائل"),
     );
 
     if (!isFamilyEmp && isFamilyRoom && !isEntireRoom) {
@@ -937,12 +1064,14 @@ export function checkPolicyCompliance({
   const isSmoker = Boolean(
     profile.isSmoking === true ||
     String(profile.notes || "").includes("مدخن") ||
-    String(profile.smokingPreference || "").toLowerCase() === "smoker"
+    String(profile.smokingPreference || "").toLowerCase() === "smoker",
   );
   const isNonSmokingRoom = Boolean(
     room.isNonSmoking === true ||
     String(room.notes || "").includes("غير مدخن") ||
-    String(room.notes || "").toLowerCase().includes("non-smoking")
+    String(room.notes || "")
+      .toLowerCase()
+      .includes("non-smoking"),
   );
   if (isSmoker && isNonSmokingRoom) {
     violations.push({
@@ -958,10 +1087,16 @@ export function checkPolicyCompliance({
     for (const rm of existingRoommates) {
       const rmCode = String(rm.profileId || rm.code || "").toLowerCase();
       const rmNotes = String(rm.notes || "").toLowerCase();
-      const myCode = String(profile.profileId || profile.code || "").toLowerCase();
+      const myCode = String(
+        profile.profileId || profile.code || "",
+      ).toLowerCase();
       const isBlacklisted =
-        (rmCode && pNotes.includes("عدم التسكين مع") && pNotes.includes(rmCode)) ||
-        (myCode && rmNotes.includes("عدم التسكين مع") && rmNotes.includes(myCode));
+        (rmCode &&
+          pNotes.includes("عدم التسكين مع") &&
+          pNotes.includes(rmCode)) ||
+        (myCode &&
+          rmNotes.includes("عدم التسكين مع") &&
+          rmNotes.includes(myCode));
       if (isBlacklisted) {
         violations.push({
           code: "DO_NOT_ROOM_TOGETHER",

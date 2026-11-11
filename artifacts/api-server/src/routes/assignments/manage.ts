@@ -1,9 +1,16 @@
 import { Router } from "express";
 import { withTenant, assignmentsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { UpdateAssignmentBody, UpdateAssignmentParams, UpdateAssignmentResponse } from "@workspace/api-zod";
+import {
+  UpdateAssignmentBody,
+  UpdateAssignmentParams,
+  UpdateAssignmentResponse,
+} from "@workspace/api-zod";
 import { logActivity } from "../../lib/activity-logger.js";
-import { requirePermission, requireAnyPermission } from "../../middlewares/permissions.js";
+import {
+  requirePermission,
+  requireAnyPermission,
+} from "../../middlewares/permissions.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
 import { fmtAssignment, findPropertyByAssignmentId } from "./shared.js";
@@ -128,7 +135,8 @@ router.delete(
         if (assignment.status === "ACTIVE") {
           return {
             isActive: true,
-            error: "لا يمكن حذف إقامة نشطة حالياً. يجب تسجيل الخروج (Check-out) أولاً.",
+            error:
+              "لا يمكن حذف إقامة نشطة حالياً. يجب تسجيل الخروج (Check-out) أولاً.",
           };
         }
 
@@ -172,7 +180,9 @@ router.delete(
 
       res.json({ success: true, id: assignmentId });
     } catch (err: any) {
-      res.status(500).json({ error: err.message || "Failed to delete assignment" });
+      res
+        .status(500)
+        .json({ error: err.message || "Failed to delete assignment" });
     }
   },
 );
@@ -186,11 +196,15 @@ router.post(
     let propertyId = getTenantId(req);
     const { ids } = req.body || {};
     if (!Array.isArray(ids) || ids.length === 0) {
-      res.status(400).json({ error: "ids must be a non-empty array of assignment IDs" });
+      res
+        .status(400)
+        .json({ error: "ids must be a non-empty array of assignment IDs" });
       return;
     }
 
-    const numIds = ids.map((id: any) => Number(id)).filter((id: number) => !isNaN(id) && id > 0);
+    const numIds = ids
+      .map((id: any) => Number(id))
+      .filter((id: number) => !isNaN(id) && id > 0);
     if (numIds.length === 0) {
       res.status(400).json({ error: "No valid assignment IDs provided" });
       return;
@@ -207,7 +221,10 @@ router.post(
 
     try {
       const result = await withTenant(propertyId, async (tenantDb) => {
-        const idListSql = sql.join(numIds.map((id) => sql`${id}`), sql`, `);
+        const idListSql = sql.join(
+          numIds.map((id) => sql`${id}`),
+          sql`, `,
+        );
 
         // Find which assignments are ACTIVE
         const activeRows = await tenantDb.execute(sql`
@@ -216,14 +233,19 @@ router.post(
             AND status = 'ACTIVE'
         `);
 
-        const activeIds = new Set<number>((activeRows.rows || []).map((r: any) => Number(r.id)));
+        const activeIds = new Set<number>(
+          (activeRows.rows || []).map((r: any) => Number(r.id)),
+        );
         const deletableIds = numIds.filter((id) => !activeIds.has(id));
 
         // Count what was actually removed: requested IDs may not exist (or
         // belong to another property), and those must not be reported/logged.
         let deletedCount = 0;
         if (deletableIds.length > 0) {
-          const deletableSql = sql.join(deletableIds.map((id) => sql`${id}`), sql`, `);
+          const deletableSql = sql.join(
+            deletableIds.map((id) => sql`${id}`),
+            sql`, `,
+          );
           const deleted = await tenantDb
             .delete(assignmentsTable)
             .where(sql`${assignmentsTable.id} IN (${deletableSql})`)
@@ -262,7 +284,9 @@ router.post(
 
       res.json(result);
     } catch (err: any) {
-      res.status(500).json({ error: err.message || "Failed to bulk delete assignments" });
+      res
+        .status(500)
+        .json({ error: err.message || "Failed to bulk delete assignments" });
     }
   },
 );

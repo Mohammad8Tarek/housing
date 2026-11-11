@@ -1,7 +1,10 @@
 import { pool, withTenant, profilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger.js";
-import { enrichProfileBilingual, splitCompoundName } from "./bilingual-translator.js";
+import {
+  enrichProfileBilingual,
+  splitCompoundName,
+} from "./bilingual-translator.js";
 
 export interface SunriseEsignConfig {
   id?: string;
@@ -60,7 +63,9 @@ const DEFAULT_BASE_URL = "https://signature-backend.sunrise-resorts.com/api";
  * Load ALL Sunrise e-Signature configs for a property (multi-source support).
  * Backward-compatible: converts old single-object format to array automatically.
  */
-export async function getEsignConfigs(propertyId?: number | null): Promise<SunriseEsignConfig[]> {
+export async function getEsignConfigs(
+  propertyId?: number | null,
+): Promise<SunriseEsignConfig[]> {
   try {
     const client = await pool.connect();
     try {
@@ -84,14 +89,19 @@ export async function getEsignConfigs(propertyId?: number | null): Promise<Sunri
         }
         // Old single-object format → wrap in array
         if (raw && typeof raw === "object" && (raw.username || raw.hotelCode)) {
-          return [{ id: "default", label: "Default", ...raw }] as SunriseEsignConfig[];
+          return [
+            { id: "default", label: "Default", ...raw },
+          ] as SunriseEsignConfig[];
         }
       }
     } finally {
       client.release();
     }
   } catch (err) {
-    logger.warn({ err }, "[SunriseEsignService] Failed to load esign configs from DB");
+    logger.warn(
+      { err },
+      "[SunriseEsignService] Failed to load esign configs from DB",
+    );
   }
   return [];
 }
@@ -100,7 +110,9 @@ export async function getEsignConfigs(propertyId?: number | null): Promise<Sunri
  * Load a single Sunrise e-Signature config for a property (first active source).
  * Backward-compatible wrapper around getEsignConfigs.
  */
-export async function getEsignConfig(propertyId?: number | null): Promise<SunriseEsignConfig | null> {
+export async function getEsignConfig(
+  propertyId?: number | null,
+): Promise<SunriseEsignConfig | null> {
   const configs = await getEsignConfigs(propertyId);
   return configs.find((c) => c.isActive !== false) || configs[0] || null;
 }
@@ -108,7 +120,10 @@ export async function getEsignConfig(propertyId?: number | null): Promise<Sunris
 /**
  * Load a specific source by its ID from a property's esign configs.
  */
-export async function getEsignConfigById(propertyId: number, sourceId: string): Promise<SunriseEsignConfig | null> {
+export async function getEsignConfigById(
+  propertyId: number,
+  sourceId: string,
+): Promise<SunriseEsignConfig | null> {
   const configs = await getEsignConfigs(propertyId);
   return configs.find((c) => c.id === sourceId) || null;
 }
@@ -120,9 +135,14 @@ export async function getEsignConfigById(propertyId: number, sourceId: string): 
 export async function fetchEmployeeFromAllSources(
   propertyId: number,
   clockNo: string | number,
-): Promise<{ employee: NormalizedEsignEmployee | null; sourceId: string | null }> {
+): Promise<{
+  employee: NormalizedEsignEmployee | null;
+  sourceId: string | null;
+}> {
   const configs = await getEsignConfigs(propertyId);
-  const active = configs.filter((c) => c.isActive !== false && c.username && c.password);
+  const active = configs.filter(
+    (c) => c.isActive !== false && c.username && c.password,
+  );
   for (const cfg of active) {
     try {
       const emp = await fetchEmployeeByCode(cfg, clockNo);
@@ -130,7 +150,10 @@ export async function fetchEmployeeFromAllSources(
         return { employee: emp, sourceId: cfg.id || "default" };
       }
     } catch (err: any) {
-      logger.warn({ err: err?.message, sourceId: cfg.id }, "[EsignMultiLookup] Source failed, trying next...");
+      logger.warn(
+        { err: err?.message, sourceId: cfg.id },
+        "[EsignMultiLookup] Source failed, trying next...",
+      );
     }
   }
   return { employee: null, sourceId: null };
@@ -139,13 +162,18 @@ export async function fetchEmployeeFromAllSources(
 /**
  * Authenticate with Sunrise e-Signature backend and return Bearer token
  */
-export async function authenticateEsign(config: SunriseEsignConfig, forceRefresh = false): Promise<string> {
+export async function authenticateEsign(
+  config: SunriseEsignConfig,
+  forceRefresh = false,
+): Promise<string> {
   const baseUrl = (config.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "");
   const username = (config.username || "").trim();
   const password = (config.password || "").trim();
 
   if (!username || !password) {
-    throw new Error("بيانات الدخول (اسم المستخدم وكلمة المرور) لسيرفر Sunrise e-Signature غير مكتملة");
+    throw new Error(
+      "بيانات الدخول (اسم المستخدم وكلمة المرور) لسيرفر Sunrise e-Signature غير مكتملة",
+    );
   }
 
   const cacheKey = `${baseUrl}:${username}`;
@@ -172,13 +200,19 @@ export async function authenticateEsign(config: SunriseEsignConfig, forceRefresh
   const body = (await res.json().catch(() => ({}))) as any;
 
   if (!res.ok) {
-    const msg = body?.message || res.statusText || "فشل تسجيل الدخول في سيرفر Sunrise e-Signature";
+    const msg =
+      body?.message ||
+      res.statusText ||
+      "فشل تسجيل الدخول في سيرفر Sunrise e-Signature";
     throw new Error(`[Sunrise e-Signature Login 401] ${msg}`);
   }
 
   const token = body?.access_token;
   if (!token) {
-    throw new Error(body?.message || "لم يقم سيرفر Sunrise e-Signature بإرجاع رمز الدخول access_token");
+    throw new Error(
+      body?.message ||
+        "لم يقم سيرفر Sunrise e-Signature بإرجاع رمز الدخول access_token",
+    );
   }
 
   tokenCache.set(cacheKey, { token, cachedAt: now });
@@ -188,9 +222,15 @@ export async function authenticateEsign(config: SunriseEsignConfig, forceRefresh
 /**
  * Resolve hotel ID from hotel code
  */
-export async function resolveHotelId(config: SunriseEsignConfig, token: string, hotelCodeOverride?: string): Promise<{ id: number; name: string; code: string }> {
+export async function resolveHotelId(
+  config: SunriseEsignConfig,
+  token: string,
+  hotelCodeOverride?: string,
+): Promise<{ id: number; name: string; code: string }> {
   const baseUrl = (config.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "");
-  const hotelCode = (hotelCodeOverride || config.hotelCode || "").trim().toUpperCase();
+  const hotelCode = (hotelCodeOverride || config.hotelCode || "")
+    .trim()
+    .toUpperCase();
 
   if (!hotelCode) {
     throw new Error("كود الفندق (Hotel Code) غير محدد في إعدادات الربط");
@@ -198,7 +238,11 @@ export async function resolveHotelId(config: SunriseEsignConfig, token: string, 
 
   const cacheKey = `${baseUrl}:${hotelCode}`;
   if (hotelIdCache.has(cacheKey) && !hotelCodeOverride) {
-    return { id: hotelIdCache.get(cacheKey)!, name: hotelCode, code: hotelCode };
+    return {
+      id: hotelIdCache.get(cacheKey)!,
+      name: hotelCode,
+      code: hotelCode,
+    };
   }
 
   const url = `${baseUrl}/hotels/getbycode/${encodeURIComponent(hotelCode)}`;
@@ -213,7 +257,10 @@ export async function resolveHotelId(config: SunriseEsignConfig, token: string, 
   const body = (await res.json().catch(() => ({}))) as any;
 
   if (!res.ok || !body?.data?.id) {
-    throw new Error(body?.message || `لم يتم العثور على الفندق ذو الكود "${hotelCode}" في نظام الموارد البشرية`);
+    throw new Error(
+      body?.message ||
+        `لم يتم العثور على الفندق ذو الكود "${hotelCode}" في نظام الموارد البشرية`,
+    );
   }
 
   const hotelId = Number(body.data.id);
@@ -231,7 +278,8 @@ export function normalizeEsignRecord(
   hotel?: { id?: number; name?: string; code?: string },
   config?: SunriseEsignConfig,
 ): NormalizedEsignEmployee {
-  const employeeCode = raw.EmployeeCode ?? raw.clock_no ?? raw.clockNumber ?? "";
+  const employeeCode =
+    raw.EmployeeCode ?? raw.clock_no ?? raw.clockNumber ?? "";
   const profileId = String(employeeCode).trim();
 
   // Decompose compound names (Abd El Atay, Abu Bakr, Salah Eldin, etc.)
@@ -241,7 +289,10 @@ export function normalizeEsignRecord(
   // Gender normalization: 1 = Male (M), 2 = Female (F)
   const rawSex = raw.Sex ?? raw.gender ?? 1;
   const gender: "M" | "F" =
-    rawSex === 2 || rawSex === "2" || String(rawSex).toUpperCase().startsWith("F") || String(rawSex).includes("أنثى")
+    rawSex === 2 ||
+    rawSex === "2" ||
+    String(rawSex).toUpperCase().startsWith("F") ||
+    String(rawSex).includes("أنثى")
       ? "F"
       : "M";
 
@@ -258,7 +309,8 @@ export function normalizeEsignRecord(
     raw.level_name ??
     raw.LevelName ??
     "";
-  const level = rawLevel !== undefined && rawLevel !== null ? String(rawLevel).trim() : "";
+  const level =
+    rawLevel !== undefined && rawLevel !== null ? String(rawLevel).trim() : "";
 
   // Dates
   const cleanIsoDate = (val: any): string => {
@@ -266,74 +318,85 @@ export function normalizeEsignRecord(
     const s = String(val).trim();
     return s.split(/[T ]/)[0] || "";
   };
-  const hireDate = raw.HiringDate ? cleanIsoDate(raw.HiringDate) : new Date().toISOString().split("T")[0];
+  const hireDate = raw.HiringDate
+    ? cleanIsoDate(raw.HiringDate)
+    : new Date().toISOString().split("T")[0];
   const dateOfBirth = raw.BirthDate ? cleanIsoDate(raw.BirthDate) : "";
-  const contractEndDate = raw.ContractExpireDate ? cleanIsoDate(raw.ContractExpireDate) : null;
+  const contractEndDate = raw.ContractExpireDate
+    ? cleanIsoDate(raw.ContractExpireDate)
+    : null;
 
   // Phone / Mobile
-  const phone = String(raw.Mobile || raw.phone || raw.mobile || raw.telephone || "").trim();
+  const phone = String(
+    raw.Mobile || raw.phone || raw.mobile || raw.telephone || "",
+  ).trim();
 
   // Titles & Departments (Check all possible HR API field keys)
   const jobTitle = String(
     raw.position_name ||
-    raw.PositionName ||
-    raw.job_title ||
-    raw.JobTitle ||
-    raw.position ||
-    raw.Position ||
-    raw.PositionCode ||
-    raw.position_code ||
-    ""
+      raw.PositionName ||
+      raw.job_title ||
+      raw.JobTitle ||
+      raw.position ||
+      raw.Position ||
+      raw.PositionCode ||
+      raw.position_code ||
+      "",
   )
     .trim()
     .replace(/\s+/g, " ");
 
   let jobTitleAr = String(
     raw.ar_position_name ||
-    raw.ArabicPositionName ||
-    raw.position_ar ||
-    raw.PositionAr ||
-    raw.job_title_ar ||
-    raw.JobTitleAr ||
-    raw.position_name_ar ||
-    raw.ar_position ||
-    ""
+      raw.ArabicPositionName ||
+      raw.position_ar ||
+      raw.PositionAr ||
+      raw.job_title_ar ||
+      raw.JobTitleAr ||
+      raw.position_name_ar ||
+      raw.ar_position ||
+      "",
   )
     .trim()
     .replace(/\s+/g, " ");
 
   const department = String(
     raw.department_name ||
-    raw.DepartmentName ||
-    raw.department ||
-    raw.Department ||
-    raw.section_name ||
-    raw.SectionName ||
-    raw.section ||
-    raw.Section ||
-    raw.DepartmentCode ||
-    raw.department_code ||
-    ""
+      raw.DepartmentName ||
+      raw.department ||
+      raw.Department ||
+      raw.section_name ||
+      raw.SectionName ||
+      raw.section ||
+      raw.Section ||
+      raw.DepartmentCode ||
+      raw.department_code ||
+      "",
   )
     .trim()
     .replace(/\s+/g, " ");
 
   let departmentAr = String(
     raw.ar_department_name ||
-    raw.ArabicDepartmentName ||
-    raw.department_ar ||
-    raw.DepartmentAr ||
-    raw.ar_section_name ||
-    raw.section_ar ||
-    raw.section_name_ar ||
-    ""
+      raw.ArabicDepartmentName ||
+      raw.department_ar ||
+      raw.DepartmentAr ||
+      raw.ar_section_name ||
+      raw.section_ar ||
+      raw.section_name_ar ||
+      "",
   )
     .trim()
     .replace(/\s+/g, " ");
 
   // Address & Nationality
   const address = String(raw.ArabicFullAddress || raw.address || "").trim();
-  const nationality = String(raw.nationality_name || raw.ar_nationality_name || raw.CountryName || "Egyptian").trim();
+  const nationality = String(
+    raw.nationality_name ||
+      raw.ar_nationality_name ||
+      raw.CountryName ||
+      "Egyptian",
+  ).trim();
   const rawNid =
     raw.NationalId ||
     raw.national_id ||
@@ -386,7 +449,16 @@ export function normalizeEsignRecord(
     contractEndDate,
     email: raw.email || "",
     emergencyContact: raw.emergency_contact || "",
-    photoUrl: String(raw.photo || raw.photoUrl || raw.photo_url || raw.avatar || raw.image || raw.ProfileImage || raw.profile_image || "").trim(),
+    photoUrl: String(
+      raw.photo ||
+        raw.photoUrl ||
+        raw.photo_url ||
+        raw.avatar ||
+        raw.image ||
+        raw.ProfileImage ||
+        raw.profile_image ||
+        "",
+    ).trim(),
     companyName: hotelOriginName,
     hotelName: hotel?.name || config?.label || "",
     hotelCode: hotel?.code || config?.hotelCode || "",
@@ -425,13 +497,16 @@ export async function fetchEmployeeByCode(
   if (res.status === 401) {
     token = await authenticateEsign(config, true);
     hotel = await resolveHotelId(config, token, hotelCodeOverride);
-    res = await fetch(`${baseUrl}/hotels/getEmploye/${hotel.id}/${encodeURIComponent(cleanCode)}`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
+    res = await fetch(
+      `${baseUrl}/hotels/getEmploye/${hotel.id}/${encodeURIComponent(cleanCode)}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
+    );
   }
 
   if (res.status === 500) {
@@ -453,7 +528,9 @@ export async function fetchEmployeeByCode(
     try {
       const client = await pool.connect();
       try {
-        const propsRes = await client.query("SELECT id FROM public.properties ORDER BY id ASC");
+        const propsRes = await client.query(
+          "SELECT id FROM public.properties ORDER BY id ASC",
+        );
         for (const p of propsRes.rows) {
           try {
             const found = await withTenant(p.id, async (tenantDb) => {

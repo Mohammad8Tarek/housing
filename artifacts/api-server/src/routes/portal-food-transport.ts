@@ -13,7 +13,12 @@ import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, IdParams, FoodOrderBody, TransportBookingBody } from "../validation/schemas.js";
+import {
+  CommonListQuery,
+  IdParams,
+  FoodOrderBody,
+  TransportBookingBody,
+} from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -51,37 +56,41 @@ const TransportScheduleSchema = z.object({
 // ─── FOOD: Profile-facing ─────────────────────────────────────
 
 // GET /portal-food/menu — قائمة الطعام
-router.get("/menu", requirePortalAuth, validate({ query: CommonListQuery }),
+router.get(
+  "/menu",
+  requirePortalAuth,
+  validate({ query: CommonListQuery }),
   async (req, res, next) => {
-  try {
-    const sess = portalSession(req)!;
-    const type = (req.query.type as string) || "daily";
-    const date =
-      (req.query.date as string) || new Date().toISOString().split("T")[0];
+    try {
+      const sess = portalSession(req)!;
+      const type = (req.query.type as string) || "daily";
+      const date =
+        (req.query.date as string) || new Date().toISOString().split("T")[0];
 
-    const items = await withTenant(sess.propertyId, async (tenantDb) => {
-      return await tenantDb
-        .select()
-        .from(portalFoodMenuTable)
-        .where(
-          and(
-            eq(portalFoodMenuTable.propertyId, sess.propertyId),
-            eq(portalFoodMenuTable.available, true),
-            eq(portalFoodMenuTable.mealType, type),
-            or(
-              eq(portalFoodMenuTable.date, date),
-              isNull(portalFoodMenuTable.date),
+      const items = await withTenant(sess.propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select()
+          .from(portalFoodMenuTable)
+          .where(
+            and(
+              eq(portalFoodMenuTable.propertyId, sess.propertyId),
+              eq(portalFoodMenuTable.available, true),
+              eq(portalFoodMenuTable.mealType, type),
+              or(
+                eq(portalFoodMenuTable.date, date),
+                isNull(portalFoodMenuTable.date),
+              ),
             ),
-          ),
-        )
-        .orderBy(portalFoodMenuTable.category);
-    });
+          )
+          .orderBy(portalFoodMenuTable.category);
+      });
 
-    res.json({ success: true, items });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({ success: true, items });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // GET /portal-food/my-orders — طلباتي
 router.get("/my-orders", requirePortalAuth, async (req, res, next) => {
@@ -106,59 +115,68 @@ router.get("/my-orders", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /portal-food/order — طلب وجبة
-router.post("/order", requirePortalAuth, validate({ body: FoodOrderBody }),
+router.post(
+  "/order",
+  requirePortalAuth,
+  validate({ body: FoodOrderBody }),
   async (req, res, next): Promise<any> => {
-  try {
-    const sess = portalSession(req)!;
-    const { menuItemId, quantity, orderDate, notes } = req.body;
-    if (!menuItemId || !orderDate) {
-      return res
-        .status(400)
-        .json({ success: false, message: "menuItemId and orderDate required" });
+    try {
+      const sess = portalSession(req)!;
+      const { menuItemId, quantity, orderDate, notes } = req.body;
+      if (!menuItemId || !orderDate) {
+        return res.status(400).json({
+          success: false,
+          message: "menuItemId and orderDate required",
+        });
+      }
+
+      const [order] = await withTenant(sess.propertyId, async (tenantDb) => {
+        return await tenantDb
+          .insert(portalMealOrdersTable)
+          .values({
+            propertyId: sess.propertyId,
+            profileId: sess.profileDbId,
+            menuItemId,
+            quantity: quantity || 1,
+            orderDate,
+            notes: notes || null,
+          })
+          .returning();
+      });
+
+      res.json({ success: true, order });
+    } catch (err) {
+      next(err);
     }
-
-    const [order] = await withTenant(sess.propertyId, async (tenantDb) => {
-      return await tenantDb
-        .insert(portalMealOrdersTable)
-        .values({
-          propertyId: sess.propertyId,
-          profileId: sess.profileDbId,
-          menuItemId,
-          quantity: quantity || 1,
-          orderDate,
-          notes: notes || null,
-        })
-        .returning();
-    });
-
-    res.json({ success: true, order });
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // PUT /portal-food/order/:id/cancel — إلغاء طلب
-router.put("/order/:id/cancel", requirePortalAuth, validate({ params: IdParams }),
+router.put(
+  "/order/:id/cancel",
+  requirePortalAuth,
+  validate({ params: IdParams }),
   async (req, res, next) => {
-  try {
-    const sess = portalSession(req)!;
-    const id = Number(req.params.id);
-    await withTenant(sess.propertyId, async (tenantDb) => {
-      await tenantDb
-        .update(portalMealOrdersTable)
-        .set({ status: "cancelled" })
-        .where(
-          and(
-            eq(portalMealOrdersTable.id, id),
-            eq(portalMealOrdersTable.profileId, sess.profileDbId),
-          ),
-        );
-    });
-    res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-});
+    try {
+      const sess = portalSession(req)!;
+      const id = Number(req.params.id);
+      await withTenant(sess.propertyId, async (tenantDb) => {
+        await tenantDb
+          .update(portalMealOrdersTable)
+          .set({ status: "cancelled" })
+          .where(
+            and(
+              eq(portalMealOrdersTable.id, id),
+              eq(portalMealOrdersTable.profileId, sess.profileDbId),
+            ),
+          );
+      });
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ─── TRANSPORT: Profile-facing ─────────────────────────────────
 
@@ -207,287 +225,331 @@ router.get("/my-bookings", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /portal-transport/book — حجز مواصلات
-router.post("/book", requirePortalAuth, validate({ body: TransportBookingBody }),
+router.post(
+  "/book",
+  requirePortalAuth,
+  validate({ body: TransportBookingBody }),
   async (req, res, next): Promise<any> => {
-  try {
-    const sess = portalSession(req)!;
-    const { scheduleId, bookingDate } = req.body;
-    if (!scheduleId || !bookingDate) {
-      return res.status(400).json({
-        success: false,
-        message: "scheduleId and bookingDate required",
+    try {
+      const sess = portalSession(req)!;
+      const { scheduleId, bookingDate } = req.body;
+      if (!scheduleId || !bookingDate) {
+        return res.status(400).json({
+          success: false,
+          message: "scheduleId and bookingDate required",
+        });
+      }
+
+      const [booking] = await withTenant(sess.propertyId, async (tenantDb) => {
+        return await tenantDb
+          .insert(portalTransportBookingsTable)
+          .values({
+            propertyId: sess.propertyId,
+            profileId: sess.profileDbId,
+            scheduleId,
+            bookingDate,
+          })
+          .returning();
       });
+
+      res.json({ success: true, booking });
+    } catch (err) {
+      next(err);
     }
-
-    const [booking] = await withTenant(sess.propertyId, async (tenantDb) => {
-      return await tenantDb
-        .insert(portalTransportBookingsTable)
-        .values({
-          propertyId: sess.propertyId,
-          profileId: sess.profileDbId,
-          scheduleId,
-          bookingDate,
-        })
-        .returning();
-    });
-
-    res.json({ success: true, booking });
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // PUT /portal-transport/booking/:id/cancel — إلغاء حجز
-router.put("/booking/:id/cancel", requirePortalAuth, validate({ params: IdParams }),
+router.put(
+  "/booking/:id/cancel",
+  requirePortalAuth,
+  validate({ params: IdParams }),
   async (req, res, next) => {
-  try {
-    const sess = portalSession(req)!;
-    const id = Number(req.params.id);
-    await withTenant(sess.propertyId, async (tenantDb) => {
-      await tenantDb
-        .update(portalTransportBookingsTable)
-        .set({ status: "cancelled" })
-        .where(
-          and(
-            eq(portalTransportBookingsTable.id, id),
-            eq(portalTransportBookingsTable.profileId, sess.profileDbId),
-          ),
-        );
-    });
-    res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-});
+    try {
+      const sess = portalSession(req)!;
+      const id = Number(req.params.id);
+      await withTenant(sess.propertyId, async (tenantDb) => {
+        await tenantDb
+          .update(portalTransportBookingsTable)
+          .set({ status: "cancelled" })
+          .where(
+            and(
+              eq(portalTransportBookingsTable.id, id),
+              eq(portalTransportBookingsTable.profileId, sess.profileDbId),
+            ),
+          );
+      });
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ─── ADMIN: Food Menu CRUD ──────────────────────────────────────
 
-router.get("/admin/menu", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
-    const items = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .select()
-        .from(portalFoodMenuTable)
-        .where(eq(portalFoodMenuTable.propertyId, propertyId))
-        .orderBy(desc(portalFoodMenuTable.date));
-    });
-    res.json({ success: true, items });
-  } catch (err) {
-    next(err);
-  }
-});
+router.get(
+  "/admin/menu",
+  requirePermission("portal_content", "view"),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+      const items = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select()
+          .from(portalFoodMenuTable)
+          .where(eq(portalFoodMenuTable.propertyId, propertyId))
+          .orderBy(desc(portalFoodMenuTable.date));
+      });
+      res.json({ success: true, items });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
-router.post("/admin/menu", requirePermission("portal_content", "create"), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    const userId = (req.session as any)?.userId;
-    if (!propertyId || !userId)
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing required fields" });
-    const validated = FoodMenuSchema.parse(req.body);
-    const [item] = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .insert(portalFoodMenuTable)
-        .values({ ...validated, propertyId, createdBy: userId })
-        .returning();
-    });
-    const s = su(req);
-    await logActivity({
-      req,
-      propertyId,
-      username: s.username,
-      userId: s.userId,
-      userRole: s.userRole,
-      action: `إضافة وجبة: ${validated.name}`,
-      actionType: "CREATE",
-      module: "portal_food_transport",
-    });
-    res.json({ success: true, item });
-  } catch (err) {
-    next(err);
-  }
-});
+router.post(
+  "/admin/menu",
+  requirePermission("portal_content", "create"),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      const userId = (req.session as any)?.userId;
+      if (!propertyId || !userId)
+        return res
+          .status(400)
+          .json({ success: false, message: "Missing required fields" });
+      const validated = FoodMenuSchema.parse(req.body);
+      const [item] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .insert(portalFoodMenuTable)
+          .values({ ...validated, propertyId, createdBy: userId })
+          .returning();
+      });
+      const s = su(req);
+      await logActivity({
+        req,
+        propertyId,
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `إضافة وجبة: ${validated.name}`,
+        actionType: "CREATE",
+        module: "portal_food_transport",
+      });
+      res.json({ success: true, item });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
-router.delete("/admin/menu/:id", requirePermission("portal_content", "delete"), validate({ params: IdParams }),
+router.delete(
+  "/admin/menu/:id",
+  requirePermission("portal_content", "delete"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
-  try {
-    const propertyId = getTenantId(req);
-    const id = Number(req.params.id);
-    await withTenant(propertyId, async (tenantDb) => {
-      await tenantDb
-        .delete(portalFoodMenuTable)
-        .where(
-          and(
-            eq(portalFoodMenuTable.id, id),
-            eq(portalFoodMenuTable.propertyId, propertyId),
-          ),
-        );
-    });
-    res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-});
+    try {
+      const propertyId = getTenantId(req);
+      const id = Number(req.params.id);
+      await withTenant(propertyId, async (tenantDb) => {
+        await tenantDb
+          .delete(portalFoodMenuTable)
+          .where(
+            and(
+              eq(portalFoodMenuTable.id, id),
+              eq(portalFoodMenuTable.propertyId, propertyId),
+            ),
+          );
+      });
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
-router.put("/admin/menu/:id", requirePermission("portal_content", "edit"), validate({ params: IdParams }),
+router.put(
+  "/admin/menu/:id",
+  requirePermission("portal_content", "edit"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
-  try {
-    const propertyId = getTenantId(req);
-    const id = Number(req.params.id);
-    const validated = FoodMenuSchema.partial().parse(req.body);
-    await withTenant(propertyId, async (tenantDb) => {
-      await tenantDb
-        .update(portalFoodMenuTable)
-        .set(validated)
-        .where(
-          and(
-            eq(portalFoodMenuTable.id, id),
-            eq(portalFoodMenuTable.propertyId, propertyId),
-          ),
-        );
-    });
-    res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-});
+    try {
+      const propertyId = getTenantId(req);
+      const id = Number(req.params.id);
+      const validated = FoodMenuSchema.partial().parse(req.body);
+      await withTenant(propertyId, async (tenantDb) => {
+        await tenantDb
+          .update(portalFoodMenuTable)
+          .set(validated)
+          .where(
+            and(
+              eq(portalFoodMenuTable.id, id),
+              eq(portalFoodMenuTable.propertyId, propertyId),
+            ),
+          );
+      });
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ─── ADMIN: Transport Schedules CRUD ────────────────────────────
 
-router.get("/admin/schedules", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
-    const schedules = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .select()
-        .from(portalTransportSchedulesTable)
-        .where(eq(portalTransportSchedulesTable.propertyId, propertyId))
-        .orderBy(portalTransportSchedulesTable.departure);
-    });
-    res.json({ success: true, schedules });
-  } catch (err) {
-    next(err);
-  }
-});
+router.get(
+  "/admin/schedules",
+  requirePermission("portal_content", "view"),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+      const schedules = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select()
+          .from(portalTransportSchedulesTable)
+          .where(eq(portalTransportSchedulesTable.propertyId, propertyId))
+          .orderBy(portalTransportSchedulesTable.departure);
+      });
+      res.json({ success: true, schedules });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
-router.post("/admin/schedules", requirePermission("portal_content", "create"), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    const userId = (req.session as any)?.userId;
-    if (!propertyId || !userId)
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing required fields" });
-    const validated = TransportScheduleSchema.parse(req.body);
-    const [schedule] = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .insert(portalTransportSchedulesTable)
-        .values({ ...validated, propertyId, createdBy: userId })
-        .returning();
-    });
-    const s = su(req);
-    await logActivity({
-      req,
-      propertyId,
-      username: s.username,
-      userId: s.userId,
-      userRole: s.userRole,
-      action: `إضافة موعد مواصلات: ${validated.route}`,
-      actionType: "CREATE",
-      module: "portal_food_transport",
-    });
-    res.json({ success: true, schedule });
-  } catch (err) {
-    next(err);
-  }
-});
+router.post(
+  "/admin/schedules",
+  requirePermission("portal_content", "create"),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      const userId = (req.session as any)?.userId;
+      if (!propertyId || !userId)
+        return res
+          .status(400)
+          .json({ success: false, message: "Missing required fields" });
+      const validated = TransportScheduleSchema.parse(req.body);
+      const [schedule] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .insert(portalTransportSchedulesTable)
+          .values({ ...validated, propertyId, createdBy: userId })
+          .returning();
+      });
+      const s = su(req);
+      await logActivity({
+        req,
+        propertyId,
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `إضافة موعد مواصلات: ${validated.route}`,
+        actionType: "CREATE",
+        module: "portal_food_transport",
+      });
+      res.json({ success: true, schedule });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
-router.delete("/admin/schedules/:id", requirePermission("portal_content", "delete"), validate({ params: IdParams }),
+router.delete(
+  "/admin/schedules/:id",
+  requirePermission("portal_content", "delete"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
-  try {
-    const propertyId = getTenantId(req);
-    const id = Number(req.params.id);
-    await withTenant(propertyId, async (tenantDb) => {
-      await tenantDb
-        .delete(portalTransportSchedulesTable)
-        .where(
-          and(
-            eq(portalTransportSchedulesTable.id, id),
-            eq(portalTransportSchedulesTable.propertyId, propertyId),
-          ),
-        );
-    });
-    res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-});
+    try {
+      const propertyId = getTenantId(req);
+      const id = Number(req.params.id);
+      await withTenant(propertyId, async (tenantDb) => {
+        await tenantDb
+          .delete(portalTransportSchedulesTable)
+          .where(
+            and(
+              eq(portalTransportSchedulesTable.id, id),
+              eq(portalTransportSchedulesTable.propertyId, propertyId),
+            ),
+          );
+      });
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
-router.put("/admin/schedules/:id", requirePermission("portal_content", "edit"), validate({ params: IdParams }),
+router.put(
+  "/admin/schedules/:id",
+  requirePermission("portal_content", "edit"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
-  try {
-    const propertyId = getTenantId(req);
-    const id = Number(req.params.id);
-    const validated = TransportScheduleSchema.partial().parse(req.body);
-    await withTenant(propertyId, async (tenantDb) => {
-      await tenantDb
-        .update(portalTransportSchedulesTable)
-        .set(validated)
-        .where(
-          and(
-            eq(portalTransportSchedulesTable.id, id),
-            eq(portalTransportSchedulesTable.propertyId, propertyId),
-          ),
-        );
-    });
-    res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-});
+    try {
+      const propertyId = getTenantId(req);
+      const id = Number(req.params.id);
+      const validated = TransportScheduleSchema.partial().parse(req.body);
+      await withTenant(propertyId, async (tenantDb) => {
+        await tenantDb
+          .update(portalTransportSchedulesTable)
+          .set(validated)
+          .where(
+            and(
+              eq(portalTransportSchedulesTable.id, id),
+              eq(portalTransportSchedulesTable.propertyId, propertyId),
+            ),
+          );
+      });
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ─── ADMIN: Stats ───────────────────────────────────────────────
 
-router.get("/admin/stats", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
-    const stats = await withTenant(propertyId, async (tenantDb) => {
-      const [menuCount] = await tenantDb
-        .select({ count: sql`COUNT(*)` })
-        .from(portalFoodMenuTable)
-        .where(eq(portalFoodMenuTable.propertyId, propertyId));
-      const [orderCount] = await tenantDb
-        .select({ count: sql`COUNT(*)` })
-        .from(portalMealOrdersTable)
-        .where(eq(portalMealOrdersTable.propertyId, propertyId));
-      const [scheduleCount] = await tenantDb
-        .select({ count: sql`COUNT(*)` })
-        .from(portalTransportSchedulesTable)
-        .where(eq(portalTransportSchedulesTable.propertyId, propertyId));
-      return {
-        menuItems: Number(menuCount?.count || 0),
-        totalOrders: Number(orderCount?.count || 0),
-        schedules: Number(scheduleCount?.count || 0),
-      };
-    });
-    res.json({ success: true, ...stats });
-  } catch (err) {
-    next(err);
-  }
-});
+router.get(
+  "/admin/stats",
+  requirePermission("portal_content", "view"),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+      const stats = await withTenant(propertyId, async (tenantDb) => {
+        const [menuCount] = await tenantDb
+          .select({ count: sql`COUNT(*)` })
+          .from(portalFoodMenuTable)
+          .where(eq(portalFoodMenuTable.propertyId, propertyId));
+        const [orderCount] = await tenantDb
+          .select({ count: sql`COUNT(*)` })
+          .from(portalMealOrdersTable)
+          .where(eq(portalMealOrdersTable.propertyId, propertyId));
+        const [scheduleCount] = await tenantDb
+          .select({ count: sql`COUNT(*)` })
+          .from(portalTransportSchedulesTable)
+          .where(eq(portalTransportSchedulesTable.propertyId, propertyId));
+        return {
+          menuItems: Number(menuCount?.count || 0),
+          totalOrders: Number(orderCount?.count || 0),
+          schedules: Number(scheduleCount?.count || 0),
+        };
+      });
+      res.json({ success: true, ...stats });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 export default router;

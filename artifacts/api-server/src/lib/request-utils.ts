@@ -1,4 +1,3 @@
-
 export function getTenantId(req: any): number {
   return (
     Number(req.query?.propertyId) ||

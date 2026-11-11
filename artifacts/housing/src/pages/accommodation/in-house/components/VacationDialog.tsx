@@ -73,7 +73,10 @@ export function VacationDialog({
                 {vacationDialog.emp.firstName} {vacationDialog.emp.lastName}
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                <span>{vacationDialog.emp.employeeId || vacationDialog.emp.profileId}</span>
+                <span>
+                  {vacationDialog.emp.employeeId ||
+                    vacationDialog.emp.profileId}
+                </span>
                 {vacationDialog.room && (
                   <Badge variant="outline" className="text-[10px] py-0">
                     {ar ? "غرفة" : "Room"} {vacationDialog.room.roomNumber}
@@ -133,10 +136,21 @@ export function VacationDialog({
 
           <div className="p-2.5 rounded-lg bg-muted/40 border text-[11px] text-muted-foreground space-y-1">
             <p className="font-semibold text-foreground flex items-center gap-1.5">
-              <Info className="w-3.5 h-3.5 text-blue-500" /> {ar ? "تأثير الإجراء:" : "Action Effect:"}
+              <Info className="w-3.5 h-3.5 text-blue-500" />{" "}
+              {ar ? "تأثير الإجراء:" : "Action Effect:"}
             </p>
-            <p>• {ar ? "سيتحول الموظف إلى حالة 'في إجازة' مع حفظ التواريخ." : "Employee status will change to Vacation with dates saved."}</p>
-            <p>• {ar ? "ستتحول غرفته تلقائياً إلى 'مشغولة - إجازة' ويبقى سريره محجوزاً له." : "Room will automatically switch to Occupied Vacation holding his bed."}</p>
+            <p>
+              •{" "}
+              {ar
+                ? "سيتحول الموظف إلى حالة 'في إجازة' مع حفظ التواريخ."
+                : "Employee status will change to Vacation with dates saved."}
+            </p>
+            <p>
+              •{" "}
+              {ar
+                ? "ستتحول غرفته تلقائياً إلى 'مشغولة - إجازة' ويبقى سريره محجوزاً له."
+                : "Room will automatically switch to Occupied Vacation holding his bed."}
+            </p>
           </div>
 
           <div className="flex gap-2 justify-end pt-2">
@@ -149,7 +163,9 @@ export function VacationDialog({
             </Button>
             <Button
               onClick={handleConfirmVacation}
-              disabled={vacationSubmitting || !vacationStartDate || !vacationEndDate}
+              disabled={
+                vacationSubmitting || !vacationStartDate || !vacationEndDate
+              }
               className="bg-amber-600 hover:bg-amber-700 text-white gap-2 font-semibold"
             >
               <Palmtree className="w-4 h-4" />

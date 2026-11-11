@@ -1,4 +1,11 @@
-import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  timestamp,
+  index,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { roomsTable } from "./rooms";
@@ -32,11 +39,11 @@ export const roomInventoryTable = pgTable(
     index("idx_room_inventory_condition").on(table.condition),
     index("idx_room_inventory_category").on(table.category),
     index("idx_room_inventory_room_category").on(table.roomId, table.category),
-  ]
+  ],
 );
 
 export const insertRoomInventorySchema = createInsertSchema(
-  roomInventoryTable
+  roomInventoryTable,
 ).omit({ id: true, createdAt: true, updatedAt: true });
 
 export type InsertRoomInventory = z.infer<typeof insertRoomInventorySchema>;

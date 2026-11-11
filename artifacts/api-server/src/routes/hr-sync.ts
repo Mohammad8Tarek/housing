@@ -1,9 +1,20 @@
 import { Router } from "express";
-import { pool, withTenant, profilesTable, assignmentsTable, roomsTable, buildingsTable } from "@workspace/db";
+import {
+  pool,
+  withTenant,
+  profilesTable,
+  assignmentsTable,
+  roomsTable,
+  buildingsTable,
+} from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { requireAnyPermission, loadAuthUser, hasPermission } from "../middlewares/permissions.js";
+import {
+  requireAnyPermission,
+  loadAuthUser,
+  hasPermission,
+} from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import {
   getEsignConfig,
@@ -64,7 +75,18 @@ import { syncEmployeeAccommodationLifecycle } from "../lib/hr-sync/lifecycle.js"
 import { processReceive } from "../lib/hr-sync/process-receive.js";
 import { buildMockHrFeed } from "../lib/hr-sync/mock-feed.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, ProfileCodeParams, HrReceiveBody, HrSyncRunBody, HrTestConnectionBody, HrNotifyVacationBody, HrNotifyDepartureBody, EsignTestBody, EsignRangeSyncBody, EsignRefreshBody } from "../validation/schemas.js";
+import {
+  CommonListQuery,
+  ProfileCodeParams,
+  HrReceiveBody,
+  HrSyncRunBody,
+  HrTestConnectionBody,
+  HrNotifyVacationBody,
+  HrNotifyDepartureBody,
+  EsignTestBody,
+  EsignRangeSyncBody,
+  EsignRefreshBody,
+} from "../validation/schemas.js";
 
 // ============================================================================
 // GET /api/hr-sync/config — Get HR sync config for current property
@@ -103,7 +125,9 @@ router.get(
       return;
     }
     const row = configRes.rows[0];
-    const rawSources: HrSourceConfig[] = Array.isArray(row.sources) ? row.sources : [];
+    const rawSources: HrSourceConfig[] = Array.isArray(row.sources)
+      ? row.sources
+      : [];
     const safeSources = rawSources.map((s) => ({
       ...s,
       apiKey: s.apiKey ? "••••••" : "",
@@ -114,7 +138,11 @@ router.get(
     let esignArr: SunriseEsignConfig[] = [];
     if (Array.isArray(rawEsignData)) {
       esignArr = rawEsignData;
-    } else if (rawEsignData && typeof rawEsignData === "object" && (rawEsignData.username || rawEsignData.hotelCode)) {
+    } else if (
+      rawEsignData &&
+      typeof rawEsignData === "object" &&
+      (rawEsignData.username || rawEsignData.hotelCode)
+    ) {
       esignArr = [{ id: "default", label: "Default", ...rawEsignData }];
     }
 
@@ -136,7 +164,11 @@ router.get(
         isActive: row.is_active || false,
         autoCheckoutOnDeparture: row.auto_checkout_on_departure ?? true,
         autoVacationSync: row.auto_vacation_sync ?? true,
-        targetPropertyIds: Array.isArray(row.target_property_ids) && row.target_property_ids.length > 0 ? row.target_property_ids : [propertyId],
+        targetPropertyIds:
+          Array.isArray(row.target_property_ids) &&
+          row.target_property_ids.length > 0
+            ? row.target_property_ids
+            : [propertyId],
         sources: safeSources,
         esignConfig: safeEsign,
         esignConfigs: safeEsignConfigs,
@@ -192,8 +224,12 @@ router.put(
       finalApiKey = existing?.api_key || "";
     }
 
-    const existingSources: HrSourceConfig[] = Array.isArray(existing?.sources) ? existing.sources : [];
-    const existingKeyMap = new Map(existingSources.map((s) => [s.id, s.apiKey || ""]));
+    const existingSources: HrSourceConfig[] = Array.isArray(existing?.sources)
+      ? existing.sources
+      : [];
+    const existingKeyMap = new Map(
+      existingSources.map((s) => [s.id, s.apiKey || ""]),
+    );
 
     const finalSources = (sources || []).map((s: any) => {
       let key = s.apiKey;
@@ -207,20 +243,26 @@ router.put(
     });
 
     // Multi-source esign: accept esignConfigs (array) or esignConfig (single, backward compat)
-    const incomingEsignConfigs: SunriseEsignConfig[] | undefined = Array.isArray(req.body.esignConfigs)
-      ? req.body.esignConfigs
-      : undefined;
+    const incomingEsignConfigs: SunriseEsignConfig[] | undefined =
+      Array.isArray(req.body.esignConfigs) ? req.body.esignConfigs : undefined;
 
     // Load existing esign data for password preservation
     let existingEsignArr: SunriseEsignConfig[] = [];
     if (existing?.esign_config) {
       if (Array.isArray(existing.esign_config)) {
         existingEsignArr = existing.esign_config;
-      } else if (typeof existing.esign_config === "object" && (existing.esign_config.username || existing.esign_config.hotelCode)) {
-        existingEsignArr = [{ id: "default", label: "Default", ...existing.esign_config }];
+      } else if (
+        typeof existing.esign_config === "object" &&
+        (existing.esign_config.username || existing.esign_config.hotelCode)
+      ) {
+        existingEsignArr = [
+          { id: "default", label: "Default", ...existing.esign_config },
+        ];
       }
     }
-    const existingPwdMap = new Map(existingEsignArr.map((c: any) => [c.id || "default", c.password || ""]));
+    const existingPwdMap = new Map(
+      existingEsignArr.map((c: any) => [c.id || "default", c.password || ""]),
+    );
 
     let finalEsignConfig: any;
 
@@ -228,7 +270,10 @@ router.put(
       // New array format: preserve masked passwords per source
       finalEsignConfig = incomingEsignConfigs.map((c: any) => {
         let pwd = c.password;
-        if (pwd === "••••••••" || (typeof pwd === "string" && pwd.startsWith("•••"))) {
+        if (
+          pwd === "••••••••" ||
+          (typeof pwd === "string" && pwd.startsWith("•••"))
+        ) {
           pwd = existingPwdMap.get(c.id || "default") || "";
         }
         return { ...c, password: pwd };
@@ -237,29 +282,39 @@ router.put(
       // Legacy single object format
       const existingEsign = existingEsignArr[0] || {};
       let pwd = esignConfig.password;
-      if (pwd === "••••••••" || (typeof pwd === "string" && pwd.startsWith("•••"))) {
+      if (
+        pwd === "••••••••" ||
+        (typeof pwd === "string" && pwd.startsWith("•••"))
+      ) {
         pwd = (existingEsign as any).password || "";
       }
-      finalEsignConfig = [{
-        id: "default",
-        label: "Default",
-        ...existingEsign,
-        ...esignConfig,
-        password: pwd,
-      }];
+      finalEsignConfig = [
+        {
+          id: "default",
+          label: "Default",
+          ...existingEsign,
+          ...esignConfig,
+          password: pwd,
+        },
+      ];
     }
 
     if (existing) {
       const updates: any = { updated_at: new Date() };
       if (apiUrl !== undefined) updates.api_url = apiUrl;
       if (finalApiKey !== undefined) updates.api_key = finalApiKey;
-      if (fieldMapping !== undefined) updates.field_mapping = JSON.stringify(fieldMapping);
+      if (fieldMapping !== undefined)
+        updates.field_mapping = JSON.stringify(fieldMapping);
       if (isActive !== undefined) updates.is_active = isActive;
-      if (autoCheckoutOnDeparture !== undefined) updates.auto_checkout_on_departure = autoCheckoutOnDeparture;
-      if (autoVacationSync !== undefined) updates.auto_vacation_sync = autoVacationSync;
-      if (targetPropertyIds !== undefined) updates.target_property_ids = JSON.stringify(targetPropertyIds);
+      if (autoCheckoutOnDeparture !== undefined)
+        updates.auto_checkout_on_departure = autoCheckoutOnDeparture;
+      if (autoVacationSync !== undefined)
+        updates.auto_vacation_sync = autoVacationSync;
+      if (targetPropertyIds !== undefined)
+        updates.target_property_ids = JSON.stringify(targetPropertyIds);
       if (sources !== undefined) updates.sources = JSON.stringify(finalSources);
-      if (finalEsignConfig !== undefined) updates.esign_config = JSON.stringify(finalEsignConfig);
+      if (finalEsignConfig !== undefined)
+        updates.esign_config = JSON.stringify(finalEsignConfig);
 
       const setClauses = Object.entries(updates)
         .map(([k, v], i) => `${k} = $${i + 2}`)
@@ -313,76 +368,94 @@ router.put(
 // POST /api/hr-sync/receive — Receive profile data pushed from HR system
 // Body: { propertyId, profiles: [...], mapping?: {...}, ...options }
 // ============================================================================
-router.post("/receive", validate({ query: CommonListQuery }),
+router.post(
+  "/receive",
+  validate({ query: CommonListQuery }),
   validate({ body: HrReceiveBody }),
   async (req, res): Promise<void> => {
-  const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
-  const providedKey = String(req.headers["x-api-key"] || "").trim();
-  const isAdmin = Boolean((req as any).session?.userId);
-  if (isAdmin) {
-    const authUser = await loadAuthUser(req, res);
-    if (!authUser || (!authUser.isSystemAdmin && !hasPermission(authUser, "hr_sync", "edit") && !hasPermission(authUser, "profiles", "create"))) {
-      res.status(403).json({ success: false, error: "Permission denied. Requires hr_sync.edit or profiles.create" });
-      return;
-    }
-  } else {
-    if (expectedKey) {
-      if (providedKey !== expectedKey) {
-        console.warn("[HR_SYNC_AUTH_FAIL]", { expectedKey, providedKey });
-        res.status(401).json({ success: false, error: "Unauthorized" });
+    const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
+    const providedKey = String(req.headers["x-api-key"] || "").trim();
+    const isAdmin = Boolean((req as any).session?.userId);
+    if (isAdmin) {
+      const authUser = await loadAuthUser(req, res);
+      if (
+        !authUser ||
+        (!authUser.isSystemAdmin &&
+          !hasPermission(authUser, "hr_sync", "edit") &&
+          !hasPermission(authUser, "profiles", "create"))
+      ) {
+        res.status(403).json({
+          success: false,
+          error: "Permission denied. Requires hr_sync.edit or profiles.create",
+        });
         return;
       }
-    } else if (process.env.NODE_ENV === "production") {
-      res.status(403).json({
-        error: "HR_SYNC_API_KEY not configured — webhook access denied in production",
-      });
+    } else {
+      if (expectedKey) {
+        if (providedKey !== expectedKey) {
+          console.warn("[HR_SYNC_AUTH_FAIL]", { expectedKey, providedKey });
+          res.status(401).json({ success: false, error: "Unauthorized" });
+          return;
+        }
+      } else if (process.env.NODE_ENV === "production") {
+        res.status(403).json({
+          error:
+            "HR_SYNC_API_KEY not configured — webhook access denied in production",
+        });
+        return;
+      }
+    }
+
+    const propertyId =
+      Number(req.body?.propertyId) || Number(req.query?.propertyId);
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId required" });
       return;
     }
-  }
 
-  const propertyId =
-    Number(req.body?.propertyId) || Number(req.query?.propertyId);
-  if (!propertyId) {
-    res.status(400).json({ error: "propertyId required" });
-    return;
-  }
+    const profiles =
+      req.body?.profiles || req.body?.employees || req.body?.data || req.body;
+    if (!Array.isArray(profiles) || profiles.length === 0) {
+      res
+        .status(400)
+        .json({ error: "profiles array required (e.g. { profiles: [...] })" });
+      return;
+    }
 
-  const profiles =
-    req.body?.profiles || req.body?.employees || req.body?.data || req.body;
-  if (!Array.isArray(profiles) || profiles.length === 0) {
-    res
-      .status(400)
-      .json({ error: "profiles array required (e.g. { profiles: [...] })" });
-    return;
-  }
+    const mapping = req.body?.mapping || {};
+    const options = {
+      syncProfiles: req.body?.syncProfiles !== false,
+      allowedLevels: req.body?.allowedLevels || [],
+      allowedDepartments: req.body?.allowedDepartments || [],
+      housingEligibleOnly: req.body?.housingEligibleOnly || false,
+      scope: req.body?.scope || "full",
+    };
 
-  const mapping = req.body?.mapping || {};
-  const options = {
-    syncProfiles: req.body?.syncProfiles !== false,
-    allowedLevels: req.body?.allowedLevels || [],
-    allowedDepartments: req.body?.allowedDepartments || [],
-    housingEligibleOnly: req.body?.housingEligibleOnly || false,
-    scope: req.body?.scope || "full",
-  };
+    const result = await processReceive(
+      propertyId,
+      profiles,
+      req,
+      mapping,
+      options,
+    );
 
-  const result = await processReceive(propertyId, profiles, req, mapping, options);
+    const s = su(req);
+    await logActivity({
+      req,
+      propertyId,
+      username: s?.username || "hr-webhook",
+      userId: s?.userId || 0,
+      userRole: s?.userRole || "system",
+      action: `استقبال بيانات موظفين من HR (Push) — تم إنشاء ${result.stats.created} وتحديث ${result.stats.updated} وترقية ${result.stats.casualUpgrades} مؤقتين وإخلاء ${result.stats.departedAutoCheckouts} وتسجيل ${result.stats.lookupsAdded} مسميات`,
+      actionType: "SYNC",
+      module: "hr_sync",
+      entityType: "profile",
+      entityId: propertyId,
+    });
 
-  const s = su(req);
-  await logActivity({
-    req,
-    propertyId,
-    username: s?.username || "hr-webhook",
-    userId: s?.userId || 0,
-    userRole: s?.userRole || "system",
-    action: `استقبال بيانات موظفين من HR (Push) — تم إنشاء ${result.stats.created} وتحديث ${result.stats.updated} وترقية ${result.stats.casualUpgrades} مؤقتين وإخلاء ${result.stats.departedAutoCheckouts} وتسجيل ${result.stats.lookupsAdded} مسميات`,
-    actionType: "SYNC",
-    module: "hr_sync",
-    entityType: "profile",
-    entityId: propertyId,
-  });
-
-  res.json(result);
-});
+    res.json(result);
+  },
+);
 
 // ============================================================================
 // POST /api/hr-sync/sync — Pull profiles from external HR API
@@ -412,7 +485,9 @@ router.post(
       return;
     }
 
-    const configuredSources: HrSourceConfig[] = Array.isArray(config.sources) ? config.sources : [];
+    const configuredSources: HrSourceConfig[] = Array.isArray(config.sources)
+      ? config.sources
+      : [];
 
     let sourcesToRun: HrSourceConfig[] = [];
     if (sourceId) {
@@ -420,13 +495,16 @@ router.post(
       if (found) {
         sourcesToRun = [found];
       } else {
-        res.status(404).json({ error: `المصدر المحدد '${sourceId}' غير مسجل في النظام` });
+        res
+          .status(404)
+          .json({ error: `المصدر المحدد '${sourceId}' غير مسجل في النظام` });
         return;
       }
     } else if (configuredSources.length > 0) {
       sourcesToRun = configuredSources.filter((s) => {
         if (!s.isActive) return false;
-        if (!s.targetPropertyIds || s.targetPropertyIds.length === 0) return true;
+        if (!s.targetPropertyIds || s.targetPropertyIds.length === 0)
+          return true;
         return s.targetPropertyIds.includes(propertyId);
       });
     } else if (config.api_url && config.is_active) {
@@ -454,7 +532,14 @@ router.post(
     const logEntry = await pool.query(
       `INSERT INTO public.hr_sync_log (property_id, sync_type, status, started_at)
        VALUES ($1, $2, 'in_progress', NOW()) RETURNING id`,
-      [propertyId, scope === "lookups_only" ? "lookups" : scope === "movements_only" ? "movements" : "pull"],
+      [
+        propertyId,
+        scope === "lookups_only"
+          ? "lookups"
+          : scope === "movements_only"
+            ? "movements"
+            : "pull",
+      ],
     );
     const logId = logEntry?.rows?.[0]?.id;
 
@@ -493,7 +578,9 @@ router.post(
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(`[${source.name}] HR API returned ${response.status}: ${response.statusText}`);
+          throw new Error(
+            `[${source.name}] HR API returned ${response.status}: ${response.statusText}`,
+          );
         }
 
         const data = (await response.json()) as any;
@@ -561,7 +648,11 @@ router.post(
        SET status = $1, records_processed = $2, records_created = $3, records_updated = $4, errors = $5, completed_at = NOW()
        WHERE id = $6`,
       [
-        errors.length > 0 ? (totalReceived > 0 ? "completed_with_errors" : "failed") : "completed",
+        errors.length > 0
+          ? totalReceived > 0
+            ? "completed_with_errors"
+            : "failed"
+          : "completed",
         totalReceived,
         totalCreated,
         totalUpdated,
@@ -612,7 +703,9 @@ router.post(
   async (req, res): Promise<void> => {
     const { apiUrl, apiKey } = req.body || {};
     if (!apiUrl) {
-      res.status(400).json({ success: false, error: "apiUrl مطلوب لاختبار الرابط" });
+      res
+        .status(400)
+        .json({ success: false, error: "apiUrl مطلوب لاختبار الرابط" });
       return;
     }
 
@@ -665,7 +758,10 @@ router.post(
     } catch (err: any) {
       res.status(400).json({
         success: false,
-        error: err.name === "AbortError" ? "انتهت مهلة الاتصال (Timeout 15s)" : err.message,
+        error:
+          err.name === "AbortError"
+            ? "انتهت مهلة الاتصال (Timeout 15s)"
+            : err.message,
         latencyMs: Date.now() - startTime,
       });
     }
@@ -675,185 +771,52 @@ router.post(
 // ============================================================================
 // GET /api/hr-sync/mock-feed — Realistic Mock API feed for testing multi-hotel sync
 // ============================================================================
-router.get("/mock-feed", validate({ query: CommonListQuery }),
+router.get(
+  "/mock-feed",
+  validate({ query: CommonListQuery }),
   (req, res): void => {
-  const hotel = String(req.query.hotel || "all").toLowerCase();
-  const testUpgrade = req.query.test_casual_upgrade === "true";
+    const hotel = String(req.query.hotel || "all").toLowerCase();
+    const testUpgrade = req.query.test_casual_upgrade === "true";
 
-  const allRecords = buildMockHrFeed(testUpgrade);
+    const allRecords = buildMockHrFeed(testUpgrade);
 
-  let filtered = allRecords;
-  if (hotel === "al_taj") {
-    filtered = allRecords.filter((r) => r.hotel === "al_taj");
-  } else if (hotel === "white_hills") {
-    filtered = allRecords.filter((r) => r.hotel === "white_hills");
-  } else if (hotel === "al_marafe") {
-    filtered = allRecords.filter((r) => r.hotel === "al_marafe");
-  }
+    let filtered = allRecords;
+    if (hotel === "al_taj") {
+      filtered = allRecords.filter((r) => r.hotel === "al_taj");
+    } else if (hotel === "white_hills") {
+      filtered = allRecords.filter((r) => r.hotel === "white_hills");
+    } else if (hotel === "al_marafe") {
+      filtered = allRecords.filter((r) => r.hotel === "al_marafe");
+    }
 
-  res.json(filtered);
-});
+    res.json(filtered);
+  },
+);
 
 // ============================================================================
 // POST /api/hr-sync/notify-vacation — Direct Vacation Start or Return Webhook
 // Body: { propertyId, profileId, type: "START"|"RETURN", startDate?, endDate?, notes? }
 // ============================================================================
-router.post("/notify-vacation", validate({ query: CommonListQuery }),
+router.post(
+  "/notify-vacation",
+  validate({ query: CommonListQuery }),
   validate({ body: HrNotifyVacationBody }),
   async (req, res): Promise<void> => {
-  const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
-  const providedKey = String(req.headers["x-api-key"] || "").trim();
-  if (expectedKey) {
-    if (providedKey !== expectedKey) {
-      console.warn("[HR_SYNC_AUTH_FAIL_VACATION]", { expectedKey, providedKey });
-      res.status(401).json({ success: false, error: "Unauthorized" });
-      return;
-    }
-  } else if (process.env.NODE_ENV === "production") {
-    res.status(403).json({
-      error: "HR_SYNC_API_KEY not configured — webhook access denied in production",
-    });
-    return;
-  }
-
-  const propertyId =
-    Number(req.body?.propertyId) || Number(req.query?.propertyId);
-  if (!propertyId) {
-    res.status(400).json({ error: "propertyId required" });
-    return;
-  }
-
-  const {
-    profileId,
-    employeeId,
-    type = "START",
-    startDate,
-    endDate,
-    notes,
-  } = req.body as any;
-
-  const targetId = profileId || employeeId;
-  if (!targetId) {
-    res.status(400).json({ error: "profileId or employeeId required" });
-    return;
-  }
-
-  const isReturn =
-    String(type).toUpperCase() === "RETURN" ||
-    String(type).toUpperCase() === "END";
-
-  let updatedProfile: any = null;
-
-  await withTenant(propertyId, async (tenantDb) => {
-    const [profile] = await tenantDb
-      .select()
-      .from(profilesTable)
-      .where(eq(profilesTable.profileId, String(targetId)));
-
-    if (!profile) {
-      res.status(404).json({ success: false, error: "Profile not found" });
-      return;
-    }
-
-    if (isReturn) {
-      // Return from vacation -> status ACTIVE
-      const [emp] = await tenantDb
-        .update(profilesTable)
-        .set({
-          status: "ACTIVE",
-          vacationStartDate: null,
-          vacationEndDate: null,
-          vacationNotes: "",
-        })
-        .where(eq(profilesTable.id, profile.id))
-        .returning();
-      updatedProfile = emp;
-
-      await syncEmployeeAccommodationLifecycle({
-        tenantDb,
-        propertyId,
-        profile,
-        previousStatus: "VACATION",
-        newStatus: "ACTIVE",
-        autoVacationSync: true,
-        req,
-      });
-    } else {
-      // Start vacation -> status VACATION
-      const [emp] = await tenantDb
-        .update(profilesTable)
-        .set({
-          status: "VACATION",
-          vacationStartDate:
-            startDate || new Date().toISOString().split("T")[0],
-          vacationEndDate: endDate || null,
-          vacationNotes: notes || "إجازة مسجلة من HR",
-        })
-        .where(eq(profilesTable.id, profile.id))
-        .returning();
-      updatedProfile = emp;
-
-      await syncEmployeeAccommodationLifecycle({
-        tenantDb,
-        propertyId,
-        profile,
-        previousStatus: profile.status,
-        newStatus: "VACATION",
-        autoVacationSync: true,
-        vacationStartDate: startDate || new Date().toISOString().split("T")[0],
-        vacationEndDate: endDate || null,
-        vacationNotes: notes || "إجازة مسجلة من HR",
-        req,
-      });
-    }
-  });
-
-  if (res.headersSent) return;
-
-  const s = su(req);
-  await logActivity({
-    req,
-    propertyId,
-    username: s?.username || "hr-sync",
-    userId: s?.userId || 0,
-    userRole: s?.userRole || "system",
-    action: isReturn
-      ? `عودة موظف #${targetId} من الإجازة عبر HR`
-      : `خروج موظف #${targetId} في إجازة عبر HR`,
-    actionType: "UPDATE",
-    module: "hr_sync",
-    entityType: "profile",
-    entityId: targetId,
-  });
-
-  res.json({
-    success: true,
-    message: isReturn
-      ? "Employee returned from vacation successfully"
-      : "Employee vacation recorded successfully",
-    profile: updatedProfile,
-  });
-});
-
-// ============================================================================
-// POST /api/hr-sync/notify-departure — HR system notifies termination/departure
-// Body: { propertyId, profileId, departureDate?, reason? }
-// ============================================================================
-router.post("/notify-departure", validate({ query: CommonListQuery }),
-  validate({ body: HrNotifyDepartureBody }),
-  async (req, res): Promise<void> => {
-  try {
     const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
     const providedKey = String(req.headers["x-api-key"] || "").trim();
     if (expectedKey) {
       if (providedKey !== expectedKey) {
-        console.warn("[HR_SYNC_AUTH_FAIL_DEP]", { expectedKey, providedKey });
+        console.warn("[HR_SYNC_AUTH_FAIL_VACATION]", {
+          expectedKey,
+          providedKey,
+        });
         res.status(401).json({ success: false, error: "Unauthorized" });
         return;
       }
     } else if (process.env.NODE_ENV === "production") {
       res.status(403).json({
-        error: "HR_SYNC_API_KEY not configured — webhook access denied in production",
+        error:
+          "HR_SYNC_API_KEY not configured — webhook access denied in production",
       });
       return;
     }
@@ -868,8 +831,10 @@ router.post("/notify-departure", validate({ query: CommonListQuery }),
     const {
       profileId,
       employeeId,
-      departureDate,
-      reason = "Resigned / Terminated from HR",
+      type = "START",
+      startDate,
+      endDate,
+      notes,
     } = req.body as any;
 
     const targetId = profileId || employeeId;
@@ -878,7 +843,10 @@ router.post("/notify-departure", validate({ query: CommonListQuery }),
       return;
     }
 
-    let checkoutResult: any = null;
+    const isReturn =
+      String(type).toUpperCase() === "RETURN" ||
+      String(type).toUpperCase() === "END";
+
     let updatedProfile: any = null;
 
     await withTenant(propertyId, async (tenantDb) => {
@@ -892,31 +860,62 @@ router.post("/notify-departure", validate({ query: CommonListQuery }),
         return;
       }
 
-      // Update profile status to departed
-      const [emp] = await tenantDb
-        .update(profilesTable)
-        .set({ status: "DEPARTED" })
-        .where(eq(profilesTable.profileId, String(targetId)))
-        .returning();
-      updatedProfile = emp;
+      if (isReturn) {
+        // Return from vacation -> status ACTIVE
+        const [emp] = await tenantDb
+          .update(profilesTable)
+          .set({
+            status: "ACTIVE",
+            vacationStartDate: null,
+            vacationEndDate: null,
+            vacationNotes: "",
+          })
+          .where(eq(profilesTable.id, profile.id))
+          .returning();
+        updatedProfile = emp;
 
-      // Run accommodation checkout & room status transition
-      checkoutResult = await syncEmployeeAccommodationLifecycle({
-        tenantDb,
-        propertyId,
-        profile,
-        previousStatus: profile.status,
-        newStatus: "DEPARTED",
-        autoCheckoutOnDeparture: true,
-        departureDate,
-        departureReason: reason,
-        req,
-      });
+        await syncEmployeeAccommodationLifecycle({
+          tenantDb,
+          propertyId,
+          profile,
+          previousStatus: "VACATION",
+          newStatus: "ACTIVE",
+          autoVacationSync: true,
+          req,
+        });
+      } else {
+        // Start vacation -> status VACATION
+        const [emp] = await tenantDb
+          .update(profilesTable)
+          .set({
+            status: "VACATION",
+            vacationStartDate:
+              startDate || new Date().toISOString().split("T")[0],
+            vacationEndDate: endDate || null,
+            vacationNotes: notes || "إجازة مسجلة من HR",
+          })
+          .where(eq(profilesTable.id, profile.id))
+          .returning();
+        updatedProfile = emp;
+
+        await syncEmployeeAccommodationLifecycle({
+          tenantDb,
+          propertyId,
+          profile,
+          previousStatus: profile.status,
+          newStatus: "VACATION",
+          autoVacationSync: true,
+          vacationStartDate:
+            startDate || new Date().toISOString().split("T")[0],
+          vacationEndDate: endDate || null,
+          vacationNotes: notes || "إجازة مسجلة من HR",
+          req,
+        });
+      }
     });
 
     if (res.headersSent) return;
 
-    // Log activity
     const s = su(req);
     await logActivity({
       req,
@@ -924,41 +923,155 @@ router.post("/notify-departure", validate({ query: CommonListQuery }),
       username: s?.username || "hr-sync",
       userId: s?.userId || 0,
       userRole: s?.userRole || "system",
-      action:
-        `تصفية ومغادرة تلقائية للموظف #${targetId} من HR` +
-        (checkoutResult
-          ? ` — تم إنهاء السكن وإخلاء الغرفة ${checkoutResult.roomNumber}`
-          : ""),
+      action: isReturn
+        ? `عودة موظف #${targetId} من الإجازة عبر HR`
+        : `خروج موظف #${targetId} في إجازة عبر HR`,
       actionType: "UPDATE",
       module: "hr_sync",
       entityType: "profile",
-      entityId: typeof targetId === "number" ? targetId : undefined,
+      entityId: targetId,
     });
-
-    // Sync log
-    await pool.query(
-      `INSERT INTO public.hr_sync_log (property_id, sync_type, status, records_processed, records_created, records_updated, errors, started_at, completed_at)
-       VALUES ($1, 'departure', 'completed', 1, 0, 1, NULL, NOW() - interval '1 second', NOW())`,
-      [propertyId],
-    );
 
     res.json({
       success: true,
-      message:
-        "Profile marked as departed" +
-        (checkoutResult
-          ? ` and automatically checked out from Room ${checkoutResult.roomNumber}`
-          : ""),
+      message: isReturn
+        ? "Employee returned from vacation successfully"
+        : "Employee vacation recorded successfully",
       profile: updatedProfile,
-      autoCheckout: checkoutResult,
     });
-  } catch (err: any) {
-    console.error("[NOTIFY_DEPARTURE_ERROR]", err);
-    if (!res.headersSent) {
-      res.status(500).json({ success: false, error: err.message, stack: err.stack });
+  },
+);
+
+// ============================================================================
+// POST /api/hr-sync/notify-departure — HR system notifies termination/departure
+// Body: { propertyId, profileId, departureDate?, reason? }
+// ============================================================================
+router.post(
+  "/notify-departure",
+  validate({ query: CommonListQuery }),
+  validate({ body: HrNotifyDepartureBody }),
+  async (req, res): Promise<void> => {
+    try {
+      const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
+      const providedKey = String(req.headers["x-api-key"] || "").trim();
+      if (expectedKey) {
+        if (providedKey !== expectedKey) {
+          console.warn("[HR_SYNC_AUTH_FAIL_DEP]", { expectedKey, providedKey });
+          res.status(401).json({ success: false, error: "Unauthorized" });
+          return;
+        }
+      } else if (process.env.NODE_ENV === "production") {
+        res.status(403).json({
+          error:
+            "HR_SYNC_API_KEY not configured — webhook access denied in production",
+        });
+        return;
+      }
+
+      const propertyId =
+        Number(req.body?.propertyId) || Number(req.query?.propertyId);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId required" });
+        return;
+      }
+
+      const {
+        profileId,
+        employeeId,
+        departureDate,
+        reason = "Resigned / Terminated from HR",
+      } = req.body as any;
+
+      const targetId = profileId || employeeId;
+      if (!targetId) {
+        res.status(400).json({ error: "profileId or employeeId required" });
+        return;
+      }
+
+      let checkoutResult: any = null;
+      let updatedProfile: any = null;
+
+      await withTenant(propertyId, async (tenantDb) => {
+        const [profile] = await tenantDb
+          .select()
+          .from(profilesTable)
+          .where(eq(profilesTable.profileId, String(targetId)));
+
+        if (!profile) {
+          res.status(404).json({ success: false, error: "Profile not found" });
+          return;
+        }
+
+        // Update profile status to departed
+        const [emp] = await tenantDb
+          .update(profilesTable)
+          .set({ status: "DEPARTED" })
+          .where(eq(profilesTable.profileId, String(targetId)))
+          .returning();
+        updatedProfile = emp;
+
+        // Run accommodation checkout & room status transition
+        checkoutResult = await syncEmployeeAccommodationLifecycle({
+          tenantDb,
+          propertyId,
+          profile,
+          previousStatus: profile.status,
+          newStatus: "DEPARTED",
+          autoCheckoutOnDeparture: true,
+          departureDate,
+          departureReason: reason,
+          req,
+        });
+      });
+
+      if (res.headersSent) return;
+
+      // Log activity
+      const s = su(req);
+      await logActivity({
+        req,
+        propertyId,
+        username: s?.username || "hr-sync",
+        userId: s?.userId || 0,
+        userRole: s?.userRole || "system",
+        action:
+          `تصفية ومغادرة تلقائية للموظف #${targetId} من HR` +
+          (checkoutResult
+            ? ` — تم إنهاء السكن وإخلاء الغرفة ${checkoutResult.roomNumber}`
+            : ""),
+        actionType: "UPDATE",
+        module: "hr_sync",
+        entityType: "profile",
+        entityId: typeof targetId === "number" ? targetId : undefined,
+      });
+
+      // Sync log
+      await pool.query(
+        `INSERT INTO public.hr_sync_log (property_id, sync_type, status, records_processed, records_created, records_updated, errors, started_at, completed_at)
+       VALUES ($1, 'departure', 'completed', 1, 0, 1, NULL, NOW() - interval '1 second', NOW())`,
+        [propertyId],
+      );
+
+      res.json({
+        success: true,
+        message:
+          "Profile marked as departed" +
+          (checkoutResult
+            ? ` and automatically checked out from Room ${checkoutResult.roomNumber}`
+            : ""),
+        profile: updatedProfile,
+        autoCheckout: checkoutResult,
+      });
+    } catch (err: any) {
+      console.error("[NOTIFY_DEPARTURE_ERROR]", err);
+      if (!res.headersSent) {
+        res
+          .status(500)
+          .json({ success: false, error: err.message, stack: err.stack });
+      }
     }
-  }
-});
+  },
+);
 
 // ============================================================================
 // GET /api/hr-sync/logs — Get sync history for current property
@@ -978,7 +1091,7 @@ router.get(
     const result = await pool.query(
       `SELECT * FROM public.hr_sync_log WHERE property_id = $1 ORDER BY started_at DESC LIMIT $2`,
       [propertyId],
-      );
+    );
 
     res.json({ success: true, logs: result?.rows || [] });
   },
@@ -987,85 +1100,96 @@ router.get(
 // ============================================================================
 // GET /api/hr-sync/profiles/:profileId — Full profile data for HR system
 // ============================================================================
-router.get("/profiles/:profileId", validate({ params: ProfileCodeParams }),
+router.get(
+  "/profiles/:profileId",
+  validate({ params: ProfileCodeParams }),
   async (req, res): Promise<void> => {
-  const expectedKey = process.env["HR_SYNC_API_KEY"];
-  const providedKey = req.headers["x-api-key"];
-  const isAdmin = Boolean((req as any).session?.userId);
-  if (isAdmin) {
-    const authUser = await loadAuthUser(req, res);
-    if (!authUser || (!authUser.isSystemAdmin && !hasPermission(authUser, "hr_sync", "view") && !hasPermission(authUser, "profiles", "view"))) {
-      res.status(403).json({ success: false, error: "Permission denied. Requires hr_sync.view or profiles.view" });
-      return;
-    }
-  } else {
-    if (expectedKey) {
-      if (providedKey !== expectedKey) {
-        res.status(401).json({ success: false, error: "Unauthorized" });
+    const expectedKey = process.env["HR_SYNC_API_KEY"];
+    const providedKey = req.headers["x-api-key"];
+    const isAdmin = Boolean((req as any).session?.userId);
+    if (isAdmin) {
+      const authUser = await loadAuthUser(req, res);
+      if (
+        !authUser ||
+        (!authUser.isSystemAdmin &&
+          !hasPermission(authUser, "hr_sync", "view") &&
+          !hasPermission(authUser, "profiles", "view"))
+      ) {
+        res.status(403).json({
+          success: false,
+          error: "Permission denied. Requires hr_sync.view or profiles.view",
+        });
         return;
       }
-    } else if (process.env.NODE_ENV === "production") {
-      res.status(403).json({
-        error: "HR_SYNC_API_KEY not configured — access denied in production",
+    } else {
+      if (expectedKey) {
+        if (providedKey !== expectedKey) {
+          res.status(401).json({ success: false, error: "Unauthorized" });
+          return;
+        }
+      } else if (process.env.NODE_ENV === "production") {
+        res.status(403).json({
+          error: "HR_SYNC_API_KEY not configured — access denied in production",
+        });
+        return;
+      }
+    }
+
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId required" });
+      return;
+    }
+
+    const { profileId } = req.params;
+    if (!profileId) {
+      res.status(400).json({ error: "profileId required" });
+      return;
+    }
+
+    await withTenant(propertyId, async (tenantDb) => {
+      const [profile] = await tenantDb
+        .select()
+        .from(profilesTable)
+        .where(eq(profilesTable.profileId, String(profileId)));
+
+      if (!profile) {
+        res.status(404).json({ success: false, error: "Profile not found" });
+        return;
+      }
+
+      const [assignment] = await tenantDb
+        .select({
+          id: assignmentsTable.id,
+          bedNumber: assignmentsTable.bedNumber,
+          checkInDate: assignmentsTable.checkInDate,
+          expectedCheckOutDate: assignmentsTable.expectedCheckOutDate,
+          checkOutDate: assignmentsTable.checkOutDate,
+          notes: assignmentsTable.notes,
+          status: assignmentsTable.status,
+          roomNumber: roomsTable.roomNumber,
+          roomType: roomsTable.roomType,
+          capacity: roomsTable.capacity,
+          buildingName: buildingsTable.name,
+        })
+        .from(assignmentsTable)
+        .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
+        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+        .where(
+          and(
+            eq(assignmentsTable.profileId, profile.id),
+            eq(assignmentsTable.status, "ACTIVE"),
+          ),
+        );
+
+      res.json({
+        success: true,
+        profile,
+        currentAssignment: assignment || null,
       });
-      return;
-    }
-  }
-
-  const propertyId = getTenantId(req);
-  if (!propertyId) {
-    res.status(400).json({ error: "propertyId required" });
-    return;
-  }
-
-  const { profileId } = req.params;
-  if (!profileId) {
-    res.status(400).json({ error: "profileId required" });
-    return;
-  }
-
-  await withTenant(propertyId, async (tenantDb) => {
-    const [profile] = await tenantDb
-      .select()
-      .from(profilesTable)
-      .where(eq(profilesTable.profileId, String(profileId)));
-
-    if (!profile) {
-      res.status(404).json({ success: false, error: "Profile not found" });
-      return;
-    }
-
-    const [assignment] = await tenantDb
-      .select({
-        id: assignmentsTable.id,
-        bedNumber: assignmentsTable.bedNumber,
-        checkInDate: assignmentsTable.checkInDate,
-        expectedCheckOutDate: assignmentsTable.expectedCheckOutDate,
-        checkOutDate: assignmentsTable.checkOutDate,
-        notes: assignmentsTable.notes,
-        status: assignmentsTable.status,
-        roomNumber: roomsTable.roomNumber,
-        roomType: roomsTable.roomType,
-        capacity: roomsTable.capacity,
-        buildingName: buildingsTable.name,
-      })
-      .from(assignmentsTable)
-      .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
-      .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
-      .where(
-        and(
-          eq(assignmentsTable.profileId, profile.id),
-          eq(assignmentsTable.status, "ACTIVE"),
-        ),
-      );
-
-    res.json({
-      success: true,
-      profile,
-      currentAssignment: assignment || null,
     });
-  });
-});
+  },
+);
 
 // ============================================================================
 // Sunrise e-Signature Integration Endpoints (Zero-Hardcode HR Synchronization)
@@ -1074,7 +1198,11 @@ router.get("/profiles/:profileId", validate({ params: ProfileCodeParams }),
 // POST /api/hr-sync/esign/test — Test credentials and connectivity
 router.post(
   "/esign/test",
-  requireAnyPermission(["hr_sync", "view"], ["hr_sync", "edit"], ["settings", "edit"]),
+  requireAnyPermission(
+    ["hr_sync", "view"],
+    ["hr_sync", "edit"],
+    ["settings", "edit"],
+  ),
   validate({ body: EsignTestBody }),
   async (req, res): Promise<void> => {
     try {
@@ -1082,7 +1210,11 @@ router.post(
       const incoming = req.body || {};
       let config: SunriseEsignConfig | null = null;
 
-      if (incoming.username && incoming.password && incoming.password !== "••••••••") {
+      if (
+        incoming.username &&
+        incoming.password &&
+        incoming.password !== "••••••••"
+      ) {
         config = {
           baseUrl: incoming.baseUrl,
           username: incoming.username,
@@ -1094,17 +1226,26 @@ router.post(
         config = {
           baseUrl: incoming.baseUrl || saved?.baseUrl,
           username: incoming.username || saved?.username,
-          password: (incoming.password && incoming.password !== "••••••••") ? incoming.password : saved?.password,
+          password:
+            incoming.password && incoming.password !== "••••••••"
+              ? incoming.password
+              : saved?.password,
           hotelCode: incoming.hotelCode || saved?.hotelCode,
         };
       }
 
       if (!config?.username || !config?.password) {
-        res.status(400).json({ success: false, error: "بيانات تسجيل الدخول (اسم المستخدم وكلمة المرور) غير متوفرة" });
+        res.status(400).json({
+          success: false,
+          error: "بيانات تسجيل الدخول (اسم المستخدم وكلمة المرور) غير متوفرة",
+        });
         return;
       }
       if (!config?.hotelCode) {
-        res.status(400).json({ success: false, error: "كود الفندق (Hotel Code) مطلوب لاختبار الاتصال" });
+        res.status(400).json({
+          success: false,
+          error: "كود الفندق (Hotel Code) مطلوب لاختبار الاتصال",
+        });
         return;
       }
 
@@ -1112,7 +1253,10 @@ router.post(
       res.json(result);
     } catch (err: any) {
       console.error("[Esign Test Error]", err);
-      res.status(400).json({ success: false, error: err?.message || "فشل الاتصال بسيرفر Sunrise e-Signature" });
+      res.status(400).json({
+        success: false,
+        error: err?.message || "فشل الاتصال بسيرفر Sunrise e-Signature",
+      });
     }
   },
 );
@@ -1133,14 +1277,21 @@ router.get(
     try {
       const propertyId = getTenantId(req);
       const clockNo = String(req.query.clockNo || req.query.code || "").trim();
-      const hotelCodeOverride = req.query.hotelCode ? String(req.query.hotelCode).trim() : undefined;
+      const hotelCodeOverride = req.query.hotelCode
+        ? String(req.query.hotelCode).trim()
+        : undefined;
 
       if (!clockNo) {
-        res.status(400).json({ success: false, error: "يرجى إدخال الرقم الوظيفي / كود الموظف (clock number)" });
+        res.status(400).json({
+          success: false,
+          error: "يرجى إدخال الرقم الوظيفي / كود الموظف (clock number)",
+        });
         return;
       }
 
-      const sourceId = req.query.sourceId ? String(req.query.sourceId).trim() : undefined;
+      const sourceId = req.query.sourceId
+        ? String(req.query.sourceId).trim()
+        : undefined;
 
       if (sourceId) {
         // Specific source requested
@@ -1152,7 +1303,11 @@ router.get(
           });
           return;
         }
-        const employee = await fetchEmployeeByCode(config, clockNo, hotelCodeOverride);
+        const employee = await fetchEmployeeByCode(
+          config,
+          clockNo,
+          hotelCodeOverride,
+        );
         if (!employee) {
           res.json({
             success: false,
@@ -1164,7 +1319,8 @@ router.get(
         res.json({ success: true, employee, sourceId });
       } else {
         // Search ALL active sources
-        const { employee, sourceId: foundSourceId } = await fetchEmployeeFromAllSources(propertyId!, clockNo);
+        const { employee, sourceId: foundSourceId } =
+          await fetchEmployeeFromAllSources(propertyId!, clockNo);
         if (!employee) {
           res.json({
             success: false,
@@ -1177,7 +1333,10 @@ router.get(
       }
     } catch (err: any) {
       console.error("[Esign Lookup Error]", err);
-      res.status(400).json({ success: false, error: err?.message || "فشل جلب بيانات الموظف من HR" });
+      res.status(400).json({
+        success: false,
+        error: err?.message || "فشل جلب بيانات الموظف من HR",
+      });
     }
   },
 );
@@ -1195,17 +1354,31 @@ router.post(
         return;
       }
 
-      const fromClockNo = parseInt(String(req.body.fromClockNo || req.body.from || ""), 10);
-      const toClockNo = parseInt(String(req.body.toClockNo || req.body.to || ""), 10);
-      const hotelCodeOverride = req.body.hotelCode ? String(req.body.hotelCode).trim() : undefined;
+      const fromClockNo = parseInt(
+        String(req.body.fromClockNo || req.body.from || ""),
+        10,
+      );
+      const toClockNo = parseInt(
+        String(req.body.toClockNo || req.body.to || ""),
+        10,
+      );
+      const hotelCodeOverride = req.body.hotelCode
+        ? String(req.body.hotelCode).trim()
+        : undefined;
 
       if (isNaN(fromClockNo) || isNaN(toClockNo)) {
-        res.status(400).json({ success: false, error: "يرجى إدخال نطاق أرقام وظيفية صالح (من كود إلى كود)" });
+        res.status(400).json({
+          success: false,
+          error: "يرجى إدخال نطاق أرقام وظيفية صالح (من كود إلى كود)",
+        });
         return;
       }
 
       if (fromClockNo > toClockNo) {
-        res.status(400).json({ success: false, error: "بداية النطاق يجب أن تكون أقل من أو تساوي نهاية النطاق" });
+        res.status(400).json({
+          success: false,
+          error: "بداية النطاق يجب أن تكون أقل من أو تساوي نهاية النطاق",
+        });
         return;
       }
 
@@ -1213,18 +1386,24 @@ router.post(
       if (count > 2000) {
         res.status(400).json({
           success: false,
-          error: "الحد الأقصى للنطاق في المرة الواحدة هو 2000 موظف لمنع الضغط الزائد على الخادم",
+          error:
+            "الحد الأقصى للنطاق في المرة الواحدة هو 2000 موظف لمنع الضغط الزائد على الخادم",
         });
         return;
       }
 
-      const sourceId = req.body.sourceId ? String(req.body.sourceId).trim() : undefined;
+      const sourceId = req.body.sourceId
+        ? String(req.body.sourceId).trim()
+        : undefined;
 
       let config: SunriseEsignConfig | null = null;
       if (sourceId) {
         config = await getEsignConfigById(propertyId, sourceId);
         if (!config) {
-          res.status(400).json({ success: false, error: `مصدر الربط "${sourceId}" غير موجود` });
+          res.status(400).json({
+            success: false,
+            error: `مصدر الربط "${sourceId}" غير موجود`,
+          });
           return;
         }
       } else {
@@ -1233,7 +1412,8 @@ router.post(
       if (!config || !config.username || !config.password) {
         res.status(400).json({
           success: false,
-          error: "إعدادات الربط مع سيرفر الموارد البشرية غير مهيأة. يرجى إدخال بيانات الربط وحفظها أولاً.",
+          error:
+            "إعدادات الربط مع سيرفر الموارد البشرية غير مهيأة. يرجى إدخال بيانات الربط وحفظها أولاً.",
         });
         return;
       }
@@ -1243,14 +1423,21 @@ router.post(
 
       for (let code = fromClockNo; code <= toClockNo; code++) {
         try {
-          const emp = await fetchEmployeeByCode(config, code, hotelCodeOverride);
+          const emp = await fetchEmployeeByCode(
+            config,
+            code,
+            hotelCodeOverride,
+          );
           if (emp) {
             foundEmployees.push(emp);
           } else {
             notFoundCodes.push(code);
           }
         } catch (fetchErr: any) {
-          console.warn(`[Esign Range Sync] Error fetching code ${code}:`, fetchErr?.message);
+          console.warn(
+            `[Esign Range Sync] Error fetching code ${code}:`,
+            fetchErr?.message,
+          );
         }
         if (count > 10) {
           await new Promise((r) => setTimeout(r, 30));
@@ -1258,13 +1445,28 @@ router.post(
       }
 
       let syncResult: any = {
-        stats: { totalReceived: 0, received: 0, created: 0, updated: 0, departedAutoCheckouts: 0, casualUpgrades: 0, lookupsAdded: 0, errors: 0 },
+        stats: {
+          totalReceived: 0,
+          received: 0,
+          created: 0,
+          updated: 0,
+          departedAutoCheckouts: 0,
+          casualUpgrades: 0,
+          lookupsAdded: 0,
+          errors: 0,
+        },
       };
 
       if (foundEmployees.length > 0) {
-        syncResult = await processReceive(propertyId, foundEmployees, req, {}, {
-          sourceName: "Sunrise e-Signature Range Sync",
-        });
+        syncResult = await processReceive(
+          propertyId,
+          foundEmployees,
+          req,
+          {},
+          {
+            sourceName: "Sunrise e-Signature Range Sync",
+          },
+        );
       }
 
       const s = su(req);
@@ -1290,7 +1492,10 @@ router.post(
       });
     } catch (err: any) {
       console.error("[Esign Range Sync Error]", err);
-      res.status(500).json({ success: false, error: err?.message || "حدث خطأ أثناء الاستيراد بالنطاق" });
+      res.status(500).json({
+        success: false,
+        error: err?.message || "حدث خطأ أثناء الاستيراد بالنطاق",
+      });
     }
   },
 );
@@ -1308,22 +1513,30 @@ router.post(
         return;
       }
 
-      const sourceId = req.body.sourceId ? String(req.body.sourceId).trim() : undefined;
+      const sourceId = req.body.sourceId
+        ? String(req.body.sourceId).trim()
+        : undefined;
 
       let config: SunriseEsignConfig | null = null;
       if (sourceId && sourceId !== "all") {
         config = await getEsignConfigById(propertyId, sourceId);
         if (!config) {
-          res.status(400).json({ success: false, error: `مصدر الربط "${sourceId}" غير موجود` });
+          res.status(400).json({
+            success: false,
+            error: `مصدر الربط "${sourceId}" غير موجود`,
+          });
           return;
         }
       } else {
         const allConfigs = await getEsignConfigs(propertyId);
-        const activeConfigs = allConfigs.filter((c) => c.isActive !== false && c.username && c.password);
+        const activeConfigs = allConfigs.filter(
+          (c) => c.isActive !== false && c.username && c.password,
+        );
         if (activeConfigs.length === 0) {
           res.status(400).json({
             success: false,
-            error: "إعدادات الربط مع سيرفر الموارد البشرية غير مهيأة. يرجى تهيئتها أولاً.",
+            error:
+              "إعدادات الربط مع سيرفر الموارد البشرية غير مهيأة. يرجى تهيئتها أولاً.",
           });
           return;
         }
@@ -1342,7 +1555,9 @@ router.post(
           .from(profilesTable);
       });
 
-      const validProfiles = existingProfiles.filter((p) => p.profileId && String(p.profileId).trim() !== "");
+      const validProfiles = existingProfiles.filter(
+        (p) => p.profileId && String(p.profileId).trim() !== "",
+      );
       const foundEmployees: any[] = [];
       let checked = 0;
       let notFoundInHr = 0;
@@ -1354,7 +1569,10 @@ router.post(
           if (config) {
             emp = await fetchEmployeeByCode(config, p.profileId);
           } else {
-            const multiRes = await fetchEmployeeFromAllSources(propertyId, p.profileId);
+            const multiRes = await fetchEmployeeFromAllSources(
+              propertyId,
+              p.profileId,
+            );
             emp = multiRes.employee;
           }
 
@@ -1364,7 +1582,10 @@ router.post(
             notFoundInHr++;
           }
         } catch (fetchErr: any) {
-          console.warn(`[Esign Batch Refresh] Error checking profile ${p.profileId}:`, fetchErr?.message);
+          console.warn(
+            `[Esign Batch Refresh] Error checking profile ${p.profileId}:`,
+            fetchErr?.message,
+          );
         }
         if (validProfiles.length > 20) {
           await new Promise((r) => setTimeout(r, 30));
@@ -1372,13 +1593,28 @@ router.post(
       }
 
       let syncResult: any = {
-        stats: { totalReceived: 0, received: 0, created: 0, updated: 0, departedAutoCheckouts: 0, casualUpgrades: 0, lookupsAdded: 0, errors: 0 },
+        stats: {
+          totalReceived: 0,
+          received: 0,
+          created: 0,
+          updated: 0,
+          departedAutoCheckouts: 0,
+          casualUpgrades: 0,
+          lookupsAdded: 0,
+          errors: 0,
+        },
       };
 
       if (foundEmployees.length > 0) {
-        syncResult = await processReceive(propertyId, foundEmployees, req, {}, {
-          sourceName: "Sunrise e-Signature Batch Refresh",
-        });
+        syncResult = await processReceive(
+          propertyId,
+          foundEmployees,
+          req,
+          {},
+          {
+            sourceName: "Sunrise e-Signature Batch Refresh",
+          },
+        );
       }
 
       const s = su(req);
@@ -1404,7 +1640,10 @@ router.post(
       });
     } catch (err: any) {
       console.error("[Esign Batch Refresh Error]", err);
-      res.status(500).json({ success: false, error: err?.message || "حدث خطأ أثناء تحديث بيانات الموظفين" });
+      res.status(500).json({
+        success: false,
+        error: err?.message || "حدث خطأ أثناء تحديث بيانات الموظفين",
+      });
     }
   },
 );

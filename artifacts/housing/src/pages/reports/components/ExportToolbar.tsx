@@ -34,14 +34,20 @@ interface ExportToolbarProps {
     exportPDF?: () => void;
   };
   customExportRef?:
-    | MutableRefObject<{
-        exportExcel?: () => void;
-        exportPDF?: () => void;
-      } | undefined>
-    | RefObject<{
-        exportExcel?: () => void;
-        exportPDF?: () => void;
-      } | undefined>;
+    | MutableRefObject<
+        | {
+            exportExcel?: () => void;
+            exportPDF?: () => void;
+          }
+        | undefined
+      >
+    | RefObject<
+        | {
+            exportExcel?: () => void;
+            exportPDF?: () => void;
+          }
+        | undefined
+      >;
 }
 
 export function ExportToolbar({
@@ -66,16 +72,17 @@ export function ExportToolbar({
 }: ExportToolbarProps) {
   if (!canExportReports) return null;
 
-  const columnChooserElement = cols && cols.length > 0 && visible && onToggle ? (
-    <ColumnChooser
-      cols={cols}
-      visible={visible}
-      onToggle={onToggle}
-      onShowAll={onShowAll}
-      onHideAll={onHideAll}
-      ar={ar}
-    />
-  ) : null;
+  const columnChooserElement =
+    cols && cols.length > 0 && visible && onToggle ? (
+      <ColumnChooser
+        cols={cols}
+        visible={visible}
+        onToggle={onToggle}
+        onShowAll={onShowAll}
+        onHideAll={onHideAll}
+        ar={ar}
+      />
+    ) : null;
 
   const handleExcelClick = (scope: "all" | "page" = "all") => {
     const custom = customExportRef?.current || customExportActions;
@@ -111,13 +118,21 @@ export function ExportToolbar({
           onClick={() => handleExcelClick("all")}
           disabled={isSmartExportingXlsx}
           className="gap-2 bg-background hover:bg-[#2AA8AB]/10 text-[#1F7F81] dark:text-[#59B7A8] text-xs font-bold h-9 px-3.5 rounded-l-lg rtl:rounded-l-none rtl:rounded-r-lg rounded-r-none rtl:rounded-l-none border-0 transition-all cursor-pointer"
-          title={ar ? "تصدير جميع النتائج كملف Excel (الافتراضي)" : "Export all results to Excel (.xlsx)"}
+          title={
+            ar
+              ? "تصدير جميع النتائج كملف Excel (الافتراضي)"
+              : "Export all results to Excel (.xlsx)"
+          }
         >
           <FileSpreadsheet className="w-4 h-4 text-[#41645A] dark:text-[#59B7A8] shrink-0" />
           <span>
             {isSmartExportingXlsx
-              ? (ar ? "جاري التصدير..." : "Exporting...")
-              : (ar ? "تصدير Excel" : "Export Excel")}
+              ? ar
+                ? "جاري التصدير..."
+                : "Exporting..."
+              : ar
+                ? "تصدير Excel"
+                : "Export Excel"}
           </span>
         </Button>
         <DropdownMenu>
@@ -138,14 +153,20 @@ export function ExportToolbar({
               className="text-xs font-medium cursor-pointer"
             >
               <FileSpreadsheet className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-[#41645A]" />
-              <span>{ar ? "تصدير جميع النتائج (الافتراضي)" : "Export All Results (Default)"}</span>
+              <span>
+                {ar
+                  ? "تصدير جميع النتائج (الافتراضي)"
+                  : "Export All Results (Default)"}
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleExcelClick("page")}
               className="text-xs font-medium cursor-pointer"
             >
               <FileSpreadsheet className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-[#41645A]" />
-              <span>{ar ? "تصدير الصفحة الحالية فقط" : "Export Current Page Only"}</span>
+              <span>
+                {ar ? "تصدير الصفحة الحالية فقط" : "Export Current Page Only"}
+              </span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -164,7 +185,9 @@ export function ExportToolbar({
           <Download className="w-4 h-4 shrink-0" />
           <span>
             {isSmartExportingCsv
-              ? (ar ? "جاري التصدير..." : "Exporting...")
+              ? ar
+                ? "جاري التصدير..."
+                : "Exporting..."
               : "CSV"}
           </span>
         </Button>
@@ -177,19 +200,21 @@ export function ExportToolbar({
           size="sm"
           onClick={() => handlePdfClick("all")}
           className="gap-2 bg-[#2AA8AB] hover:bg-[#1F7F81] active:bg-[#1F7F81] text-white text-xs font-bold h-9 px-3.5 rounded-l-lg rtl:rounded-l-none rtl:rounded-r-lg rounded-r-none rtl:rounded-l-none border-0 transition-all cursor-pointer"
-          title={ar ? "طباعة التقرير كاملاً بصيغة PDF (الافتراضي)" : "Print complete report as PDF"}
+          title={
+            ar
+              ? "طباعة التقرير كاملاً بصيغة PDF (الافتراضي)"
+              : "Print complete report as PDF"
+          }
         >
           <Printer className="w-4 h-4 text-white shrink-0" />
-          <span>
-            {ar ? "طباعة تقرير PDF" : "Print PDF Report"}
-          </span>
+          <span>{ar ? "طباعة تقرير PDF" : "Print PDF Report"}</span>
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="default"
               size="sm"
-                  className="bg-[#1F7F81] hover:bg-[#196a6c] text-white h-9 px-1.5 rounded-r-lg rtl:rounded-r-none rtl:rounded-l-lg rounded-l-none rtl:rounded-r-none border-0 border-l rtl:border-l-0 rtl:border-r border-white/30 transition-all cursor-pointer"
+              className="bg-[#1F7F81] hover:bg-[#196a6c] text-white h-9 px-1.5 rounded-r-lg rtl:rounded-r-none rtl:rounded-l-lg rounded-l-none rtl:rounded-r-none border-0 border-l rtl:border-l-0 rtl:border-r border-white/30 transition-all cursor-pointer"
               title={ar ? "خيارات الطباعة" : "Print options"}
             >
               <ChevronDown className="w-3.5 h-3.5" />
@@ -201,14 +226,20 @@ export function ExportToolbar({
               className="text-xs font-medium cursor-pointer"
             >
               <Printer className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-[#2AA8AB]" />
-              <span>{ar ? "طباعة جميع النتائج (الافتراضي)" : "Print All Results (Default)"}</span>
+              <span>
+                {ar
+                  ? "طباعة جميع النتائج (الافتراضي)"
+                  : "Print All Results (Default)"}
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handlePdfClick("page")}
               className="text-xs font-medium cursor-pointer"
             >
               <Printer className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-[#2AA8AB]" />
-              <span>{ar ? "طباعة الصفحة الحالية فقط" : "Print Current Page Only"}</span>
+              <span>
+                {ar ? "طباعة الصفحة الحالية فقط" : "Print Current Page Only"}
+              </span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

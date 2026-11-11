@@ -8,7 +8,10 @@ interface BiometricLockScreenProps {
   onFailed: () => void;
 }
 
-export default function BiometricLockScreen({ onUnlocked, onFailed }: BiometricLockScreenProps) {
+export default function BiometricLockScreen({
+  onUnlocked,
+  onFailed,
+}: BiometricLockScreenProps) {
   const { lang } = useTheme();
   const ar = lang === "ar";
   const biometric = useBiometric();
@@ -19,7 +22,7 @@ export default function BiometricLockScreen({ onUnlocked, onFailed }: BiometricL
   const runBiometric = async (isAuto = false) => {
     setStatus("checking");
     const success = await biometric.authenticate(
-      ar ? "تحقق من هويتك للمتابعة" : "Verify your identity to continue"
+      ar ? "تحقق من هويتك للمتابعة" : "Verify your identity to continue",
     );
     if (success) {
       onUnlocked();
@@ -59,12 +62,36 @@ export default function BiometricLockScreen({ onUnlocked, onFailed }: BiometricL
           <svg viewBox="0 0 100 100" width="52" height="52" fill="none">
             {/* Sunrise icon */}
             <circle cx="50" cy="52" r="22" fill="#18B0BB" opacity="0.9" />
-            <line x1="15" y1="70" x2="85" y2="70" stroke="#18B0BB" strokeWidth="3.5" strokeLinecap="round" />
-            <path d="M50 30 Q50 10 72 22" stroke="#18B0BB" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.6" />
-            <path d="M50 30 Q50 10 28 22" stroke="#18B0BB" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.6" />
+            <line
+              x1="15"
+              y1="70"
+              x2="85"
+              y2="70"
+              stroke="#18B0BB"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+            />
+            <path
+              d="M50 30 Q50 10 72 22"
+              stroke="#18B0BB"
+              strokeWidth="2.5"
+              fill="none"
+              strokeLinecap="round"
+              opacity="0.6"
+            />
+            <path
+              d="M50 30 Q50 10 28 22"
+              stroke="#18B0BB"
+              strokeWidth="2.5"
+              fill="none"
+              strokeLinecap="round"
+              opacity="0.6"
+            />
           </svg>
         </div>
-        <p className="text-white/90 text-xl font-bold tracking-widest uppercase">SUNRISE</p>
+        <p className="text-white/90 text-xl font-bold tracking-widest uppercase">
+          SUNRISE
+        </p>
         <p className="text-white/50 text-xs tracking-wider">
           {ar ? "بوابة المقيمين" : "Resident Portal"}
         </p>

@@ -1,46 +1,63 @@
-import { pgTable, text, serial, integer, boolean, timestamp, date, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  boolean,
+  timestamp,
+  date,
+  index,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const portalFoodMenuTable = pgTable("portal_food_menu", {
-  id: serial("id").primaryKey(),
-  propertyId: integer("property_id").notNull(),
-  name: text("name").notNull(),
-  nameAr: text("name_ar"),
-  description: text("description"),
-  descriptionAr: text("description_ar"),
-  price: text("price").default("0"),
-  mealType: text("meal_type").notNull().default("daily"), // daily | weekly | special
-  category: text("category").notNull().default("main"), // main | side | drink | dessert
-  date: date("date"),
-  available: boolean("available").notNull().default(true),
-  imageUrl: text("image_url"),
-  createdBy: integer("created_by"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-}, (table) => [
-  index("idx_portal_food_menu_property_id").on(table.propertyId),
-  index("idx_portal_food_menu_meal_type").on(table.mealType),
-]);
+export const portalFoodMenuTable = pgTable(
+  "portal_food_menu",
+  {
+    id: serial("id").primaryKey(),
+    propertyId: integer("property_id").notNull(),
+    name: text("name").notNull(),
+    nameAr: text("name_ar"),
+    description: text("description"),
+    descriptionAr: text("description_ar"),
+    price: text("price").default("0"),
+    mealType: text("meal_type").notNull().default("daily"), // daily | weekly | special
+    category: text("category").notNull().default("main"), // main | side | drink | dessert
+    date: date("date"),
+    available: boolean("available").notNull().default(true),
+    imageUrl: text("image_url"),
+    createdBy: integer("created_by"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_portal_food_menu_property_id").on(table.propertyId),
+    index("idx_portal_food_menu_meal_type").on(table.mealType),
+  ],
+);
 
-export const portalMealOrdersTable = pgTable("portal_meal_orders", {
-  id: serial("id").primaryKey(),
-  propertyId: integer("property_id").notNull(),
-  profileId: integer("profile_id").notNull(),
-  menuItemId: integer("menu_item_id").notNull(),
-  quantity: integer("quantity").notNull().default(1),
-  orderDate: date("order_date").notNull(),
-  status: text("status").notNull().default("confirmed"), // confirmed | prepared | served | cancelled
-  notes: text("notes"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-}, (table) => [
-  index("idx_portal_meal_orders_property_id").on(table.propertyId),
-  index("idx_portal_meal_orders_profile_id").on(table.profileId),
-  index("idx_portal_meal_orders_order_date").on(table.orderDate),
-]);
+export const portalMealOrdersTable = pgTable(
+  "portal_meal_orders",
+  {
+    id: serial("id").primaryKey(),
+    propertyId: integer("property_id").notNull(),
+    profileId: integer("profile_id").notNull(),
+    menuItemId: integer("menu_item_id").notNull(),
+    quantity: integer("quantity").notNull().default(1),
+    orderDate: date("order_date").notNull(),
+    status: text("status").notNull().default("confirmed"), // confirmed | prepared | served | cancelled
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_portal_meal_orders_property_id").on(table.propertyId),
+    index("idx_portal_meal_orders_profile_id").on(table.profileId),
+    index("idx_portal_meal_orders_order_date").on(table.orderDate),
+  ],
+);
 
 export const portalTransportSchedulesTable = pgTable(
   "portal_transport_schedules",
@@ -66,7 +83,7 @@ export const portalTransportSchedulesTable = pgTable(
   },
   (table) => [
     index("idx_portal_transport_schedules_property_id").on(table.propertyId),
-  ]
+  ],
 );
 
 export const portalTransportBookingsTable = pgTable(
@@ -86,7 +103,7 @@ export const portalTransportBookingsTable = pgTable(
     index("idx_portal_transport_bookings_property_id").on(table.propertyId),
     index("idx_portal_transport_bookings_profile_id").on(table.profileId),
     index("idx_portal_transport_bookings_booking_date").on(table.bookingDate),
-  ]
+  ],
 );
 
 export const insertFoodMenuSchema = createInsertSchema(

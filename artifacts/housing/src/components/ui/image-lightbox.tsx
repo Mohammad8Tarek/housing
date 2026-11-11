@@ -57,8 +57,8 @@ export function ImageLightbox({
       const mime = isPdf
         ? "application/pdf"
         : isImage
-        ? "image/jpeg"
-        : "application/octet-stream";
+          ? "image/jpeg"
+          : "application/octet-stream";
       const blob = dataUriToBlob(src, mime);
       if (blob.size > 0) {
         const url = URL.createObjectURL(blob);
@@ -264,11 +264,7 @@ export function ImageLightbox({
                 <Button size="sm" onClick={handleDownload}>
                   <Download className="w-3.5 h-3.5 mr-1" /> Download
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleOpenNewTab}
-                >
+                <Button size="sm" variant="outline" onClick={handleOpenNewTab}>
                   <ExternalLink className="w-3.5 h-3.5 mr-1" /> Open
                 </Button>
               </div>

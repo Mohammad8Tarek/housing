@@ -15,7 +15,10 @@ import {
 } from "../config/customReportConfig";
 import { exportExcel } from "../utils/export";
 import { formatDate } from "@/lib/date-utils";
-import type { ReportColumnConfig, ReportKpiItem } from "../components/PrintableReportDocument";
+import type {
+  ReportColumnConfig,
+  ReportKpiItem,
+} from "../components/PrintableReportDocument";
 
 export function useReportConfigurationPageState() {
   const { propertySlug, properties, activePropertyId } = useProperty();
@@ -28,21 +31,26 @@ export function useReportConfigurationPageState() {
   const canExport = can("reports", "export");
   const canEdit = can("reports", "edit") || can("reports", "create");
 
-
-
   const effectivePropId = useMemo(() => {
-    if (activePropertyId && activePropertyId !== "all") return Number(activePropertyId);
+    if (activePropertyId && activePropertyId !== "all")
+      return Number(activePropertyId);
     if (properties && properties.length > 0) return properties[0].id;
     return undefined;
   }, [activePropertyId, properties]);
 
   const { data: settings } = useGetSettings(
     { propertyId: effectivePropId },
-    { query: { queryKey: ["settings", effectivePropId], enabled: !!effectivePropId } },
+    {
+      query: {
+        queryKey: ["settings", effectivePropId],
+        enabled: !!effectivePropId,
+      },
+    },
   );
 
   // ─── 1. State: Data Source & Columns ──────────────────────────────────────
-  const [selectedSource, setSelectedSource] = useState<DataSourceType>("in_house");
+  const [selectedSource, setSelectedSource] =
+    useState<DataSourceType>("in_house");
 
   // Initialize selected columns to default columns of selected data source
   const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[]>(() => {
@@ -76,7 +84,9 @@ export function useReportConfigurationPageState() {
   const [dateTo, setDateTo] = useState<string>("");
 
   // ─── 3. State: Presentation & Layout ──────────────────────────────────────
-  const [orientation, setOrientation] = useState<"landscape" | "portrait">("landscape");
+  const [orientation, setOrientation] = useState<"landscape" | "portrait">(
+    "landscape",
+  );
   const [showStats, setShowStats] = useState<boolean>(true);
   const [showSignatures, setShowSignatures] = useState<boolean>(true);
   const [customReportTitleAr, setCustomReportTitleAr] = useState<string>("");
@@ -97,7 +107,9 @@ export function useReportConfigurationPageState() {
   const { data: buildings = [] } = useQuery<any[]>({
     queryKey: ["buildings", effectivePropId],
     queryFn: async () => {
-      const res = await fetch(`/api/buildings?propertyId=${effectivePropId}`, { credentials: "include" });
+      const res = await fetch(`/api/buildings?propertyId=${effectivePropId}`, {
+        credentials: "include",
+      });
       if (!res.ok) return [];
       const json = await res.json();
       return Array.isArray(json) ? json : json.data || [];
@@ -108,7 +120,9 @@ export function useReportConfigurationPageState() {
   const { data: floors = [] } = useQuery<any[]>({
     queryKey: ["floors", effectivePropId],
     queryFn: async () => {
-      const res = await fetch(`/api/floors?propertyId=${effectivePropId}`, { credentials: "include" });
+      const res = await fetch(`/api/floors?propertyId=${effectivePropId}`, {
+        credentials: "include",
+      });
       if (!res.ok) return [];
       const json = await res.json();
       return Array.isArray(json) ? json : json.data || [];
@@ -125,7 +139,10 @@ export function useReportConfigurationPageState() {
   const { data: departments = [] } = useQuery<string[]>({
     queryKey: ["lookup_departments", effectivePropId],
     queryFn: async () => {
-      const res = await fetch(`/api/lookup-values?propertyId=${effectivePropId}&category=department`, { credentials: "include" });
+      const res = await fetch(
+        `/api/lookup-values?propertyId=${effectivePropId}&category=department`,
+        { credentials: "include" },
+      );
       if (!res.ok) return [];
       const json = await res.json();
       return (json.data || json || []).map((v: any) => v.value || v);
@@ -175,19 +192,22 @@ export function useReportConfigurationPageState() {
     ],
     queryFn: async () => {
       if (!effectivePropId) return { data: [], total: 0, stats: {} };
-      const res = await fetch(`/api/reports/custom/query?propertyId=${effectivePropId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          dataSource: selectedSource,
-          columns: selectedColumnKeys,
-          filters: currentFilters,
-          page,
-          limit,
-          fetchAll: false,
-        }),
-      });
+      const res = await fetch(
+        `/api/reports/custom/query?propertyId=${effectivePropId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            dataSource: selectedSource,
+            columns: selectedColumnKeys,
+            filters: currentFilters,
+            page,
+            limit,
+            fetchAll: false,
+          }),
+        },
+      );
       if (!res.ok) throw new Error("Failed to fetch report data");
       return await res.json();
     },
@@ -203,9 +223,12 @@ export function useReportConfigurationPageState() {
     queryKey: ["custom-report-templates", effectivePropId],
     queryFn: async () => {
       if (!effectivePropId) return [];
-      const res = await fetch(`/api/reports/custom/templates?propertyId=${effectivePropId}`, {
-        credentials: "include",
-      });
+      const res = await fetch(
+        `/api/reports/custom/templates?propertyId=${effectivePropId}`,
+        {
+          credentials: "include",
+        },
+      );
       if (!res.ok) return [];
       const json = await res.json();
       return json.templates || [];
@@ -216,39 +239,51 @@ export function useReportConfigurationPageState() {
   // ─── Mutation: Save Template ──────────────────────────────────────────────
   const saveTemplateMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const res = await fetch(`/api/reports/custom/templates?propertyId=${effectivePropId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        `/api/reports/custom/templates?propertyId=${effectivePropId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        },
+      );
       if (!res.ok) throw new Error("Failed to save template");
       return await res.json();
     },
     onSuccess: () => {
-      toast.success(ar ? "تم حفظ نموذج التقرير بنجاح" : "Template saved successfully");
+      toast.success(
+        ar ? "تم حفظ نموذج التقرير بنجاح" : "Template saved successfully",
+      );
       setIsSaveModalOpen(false);
       setTemplateName("");
       setTemplateNameEn("");
       refetchTemplates();
     },
     onError: (err: any) => {
-      toast.error(err.message || (ar ? "فشل حفظ النموذج" : "Failed to save template"));
+      toast.error(
+        err.message || (ar ? "فشل حفظ النموذج" : "Failed to save template"),
+      );
     },
   });
 
   // ─── Mutation: Delete Template ────────────────────────────────────────────
   const deleteTemplateMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/reports/custom/templates/${id}?propertyId=${effectivePropId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      const res = await fetch(
+        `/api/reports/custom/templates/${id}?propertyId=${effectivePropId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
       if (!res.ok) throw new Error("Failed to delete template");
       return await res.json();
     },
     onSuccess: () => {
-      toast.success(ar ? "تم حذف النموذج بنجاح" : "Template deleted successfully");
+      toast.success(
+        ar ? "تم حذف النموذج بنجاح" : "Template deleted successfully",
+      );
       refetchTemplates();
     },
   });
@@ -274,24 +309,37 @@ export function useReportConfigurationPageState() {
         if (tmpl.filters.search) setSearchTerm(tmpl.filters.search);
       }
       if (tmpl.layoutOptions) {
-        if (tmpl.layoutOptions.orientation) setOrientation(tmpl.layoutOptions.orientation);
-        if (tmpl.layoutOptions.showStats !== undefined) setShowStats(tmpl.layoutOptions.showStats);
-        if (tmpl.layoutOptions.showSignatures !== undefined) setShowSignatures(tmpl.layoutOptions.showSignatures);
-        if (tmpl.layoutOptions.titleAr) setCustomReportTitleAr(tmpl.layoutOptions.titleAr);
-        if (tmpl.layoutOptions.titleEn) setCustomReportTitleEn(tmpl.layoutOptions.titleEn);
+        if (tmpl.layoutOptions.orientation)
+          setOrientation(tmpl.layoutOptions.orientation);
+        if (tmpl.layoutOptions.showStats !== undefined)
+          setShowStats(tmpl.layoutOptions.showStats);
+        if (tmpl.layoutOptions.showSignatures !== undefined)
+          setShowSignatures(tmpl.layoutOptions.showSignatures);
+        if (tmpl.layoutOptions.titleAr)
+          setCustomReportTitleAr(tmpl.layoutOptions.titleAr);
+        if (tmpl.layoutOptions.titleEn)
+          setCustomReportTitleEn(tmpl.layoutOptions.titleEn);
         if (tmpl.layoutOptions.notes) setCustomNotes(tmpl.layoutOptions.notes);
       }
       setPage(1);
       setIsLoadModalOpen(false);
-      toast.success(ar ? `تم استرجاع النموذج: ${tmpl.name}` : `Loaded template: ${tmpl.name}`);
+      toast.success(
+        ar
+          ? `تم استرجاع النموذج: ${tmpl.name}`
+          : `Loaded template: ${tmpl.name}`,
+      );
     } catch (e: any) {
-      toast.error(ar ? "حدث خطأ أثناء تحميل النموذج" : "Failed to load template");
+      toast.error(
+        ar ? "حدث خطأ أثناء تحميل النموذج" : "Failed to load template",
+      );
     }
   };
 
   const handleSaveCurrentAsTemplate = () => {
     if (!templateName.trim()) {
-      toast.error(ar ? "يرجى كتابة اسم النموذج" : "Please provide a template name");
+      toast.error(
+        ar ? "يرجى كتابة اسم النموذج" : "Please provide a template name",
+      );
       return;
     }
     saveTemplateMutation.mutate({
@@ -318,7 +366,10 @@ export function useReportConfigurationPageState() {
 
   // Group columns by category
   const categorizedColumns = useMemo(() => {
-    const map = new Map<string, { title: string; titleAr: string; cols: CustomColumnDef[] }>();
+    const map = new Map<
+      string,
+      { title: string; titleAr: string; cols: CustomColumnDef[] }
+    >();
     allColumnsForSource.forEach((col) => {
       const catKey = col.category;
       if (!map.has(catKey)) {
@@ -334,13 +385,17 @@ export function useReportConfigurationPageState() {
   }, [allColumnsForSource]);
 
   const activeColumns = useMemo(() => {
-    return allColumnsForSource.filter((c) => selectedColumnKeys.includes(c.key));
+    return allColumnsForSource.filter((c) =>
+      selectedColumnKeys.includes(c.key),
+    );
   }, [allColumnsForSource, selectedColumnKeys]);
 
   const toggleColumn = (key: string) => {
     if (selectedColumnKeys.includes(key)) {
       if (selectedColumnKeys.length <= 1) {
-        toast.warning(ar ? "يجب اختيار عمود واحد على الأقل" : "Select at least one column");
+        toast.warning(
+          ar ? "يجب اختيار عمود واحد على الأقل" : "Select at least one column",
+        );
         return;
       }
       setSelectedColumnKeys(selectedColumnKeys.filter((k) => k !== key));
@@ -374,17 +429,20 @@ export function useReportConfigurationPageState() {
 
   // ─── Export: Fetch All Filtered Rows for Export ────────────────────────────
   const fetchAllRowsForExport = async (): Promise<any[]> => {
-    const res = await fetch(`/api/reports/custom/query?propertyId=${effectivePropId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        dataSource: selectedSource,
-        columns: selectedColumnKeys,
-        filters: currentFilters,
-        fetchAll: true,
-      }),
-    });
+    const res = await fetch(
+      `/api/reports/custom/query?propertyId=${effectivePropId}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          dataSource: selectedSource,
+          columns: selectedColumnKeys,
+          filters: currentFilters,
+          fetchAll: true,
+        }),
+      },
+    );
     if (!res.ok) throw new Error("Failed to fetch export data");
     const json = await res.json();
     return json.data || [];
@@ -410,7 +468,11 @@ export function useReportConfigurationPageState() {
         activeColumns.forEach((col) => {
           const headerName = ar ? col.labelAr : col.label;
           let val = r[col.key];
-          if ((col.type === "date" || (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val))) && val) {
+          if (
+            (col.type === "date" ||
+              (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val))) &&
+            val
+          ) {
             val = formatDate(val);
           } else if (val === true) {
             val = ar ? "نعم" : "Yes";
@@ -430,10 +492,14 @@ export function useReportConfigurationPageState() {
         : `${selectedSource}_custom_report`;
 
       exportExcel(filename, exportData);
-      toast.success(ar ? "تم تصدير ملف Excel بنجاح" : "Excel exported successfully");
+      toast.success(
+        ar ? "تم تصدير ملف Excel بنجاح" : "Excel exported successfully",
+      );
     } catch (err: any) {
       toast.dismiss();
-      toast.error(err.message || (ar ? "فشل تصدير Excel" : "Failed to export Excel"));
+      toast.error(
+        err.message || (ar ? "فشل تصدير Excel" : "Failed to export Excel"),
+      );
     }
   };
 
@@ -443,7 +509,9 @@ export function useReportConfigurationPageState() {
   const [isFetchingStudio, setIsFetchingStudio] = useState(false);
 
   const activePropObj = useMemo(() => {
-    return properties?.find((p: any) => p.id === effectivePropId) || properties?.[0];
+    return (
+      properties?.find((p: any) => p.id === effectivePropId) || properties?.[0]
+    );
   }, [properties, effectivePropId]);
 
   const studioColumns: ReportColumnConfig[] = useMemo(() => {
@@ -504,7 +572,11 @@ export function useReportConfigurationPageState() {
       const obj: Record<string, any> = { "#": idx + 1 };
       activeColumns.forEach((col) => {
         let val = r[col.key];
-        if ((col.type === "date" || (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val))) && val) {
+        if (
+          (col.type === "date" ||
+            (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val))) &&
+          val
+        ) {
           val = formatDate(val);
         } else if (val === true) {
           val = ar ? "نعم" : "Yes";
@@ -524,7 +596,11 @@ export function useReportConfigurationPageState() {
       const obj: Record<string, any> = { "#": (page - 1) * limit + idx + 1 };
       activeColumns.forEach((col) => {
         let val = r[col.key];
-        if ((col.type === "date" || (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val))) && val) {
+        if (
+          (col.type === "date" ||
+            (typeof val === "string" && /^\d{4}-\d{2}-\d{2}/.test(val))) &&
+          val
+        ) {
           val = formatDate(val);
         } else if (val === true) {
           val = ar ? "نعم" : "Yes";
@@ -588,7 +664,9 @@ export function useReportConfigurationPageState() {
   const handleExportPDF = async () => {
     try {
       setIsFetchingStudio(true);
-      toast.loading(ar ? "جاري تحضير استوديو الطباعة..." : "Preparing Print Studio...");
+      toast.loading(
+        ar ? "جاري تحضير استوديو الطباعة..." : "Preparing Print Studio...",
+      );
       const fullRows = await fetchAllRowsForExport();
       toast.dismiss();
 
@@ -601,13 +679,16 @@ export function useReportConfigurationPageState() {
       setIsStudioOpen(true);
     } catch (err: any) {
       toast.dismiss();
-      toast.error(err.message || (ar ? "فشل تجهيز التقرير" : "Failed to prepare report"));
+      toast.error(
+        err.message || (ar ? "فشل تجهيز التقرير" : "Failed to prepare report"),
+      );
     } finally {
       setIsFetchingStudio(false);
     }
   };
 
-  const currentSourceDef = DATA_SOURCES.find((s) => s.id === selectedSource) || DATA_SOURCES[0];
+  const currentSourceDef =
+    DATA_SOURCES.find((s) => s.id === selectedSource) || DATA_SOURCES[0];
   return {
     propertySlug,
     properties,
@@ -712,4 +793,6 @@ export function useReportConfigurationPageState() {
   };
 }
 
-export type ReportConfigurationPageState = ReturnType<typeof useReportConfigurationPageState>;
+export type ReportConfigurationPageState = ReturnType<
+  typeof useReportConfigurationPageState
+>;

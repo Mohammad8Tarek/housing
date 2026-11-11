@@ -29,15 +29,21 @@ export function FullLockToggle({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className={`p-2.5 rounded-lg flex-shrink-0 transition-colors ${
-            isEntireRoom ? "bg-purple-600 text-white shadow-xs" : "bg-muted text-muted-foreground"
-          }`}>
+          <div
+            className={`p-2.5 rounded-lg flex-shrink-0 transition-colors ${
+              isEntireRoom
+                ? "bg-purple-600 text-white shadow-xs"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
             <Lock className="w-5 h-5" />
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-sm text-foreground">
-                {ar ? "قفل الغرفة بالكامل (Full Lock / غرفة خاصة لموظف واحد)" : "Full Lock / Private Room (Single Resident)"}
+                {ar
+                  ? "قفل الغرفة بالكامل (Full Lock / غرفة خاصة لموظف واحد)"
+                  : "Full Lock / Private Room (Single Resident)"}
               </span>
               {isEntireRoom && (
                 <Badge className="bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-extrabold px-2 py-0.5 shadow-2xs">
@@ -67,13 +73,16 @@ export function FullLockToggle({
               type="checkbox"
               id="entire-room-toggle"
               checked={isEntireRoom}
-              disabled={selectedRoom.currentOccupancy > 0 || (!canOverrideSingleOccupancy && selectedRoom.capacity > 1)}
+              disabled={
+                selectedRoom.currentOccupancy > 0 ||
+                (!canOverrideSingleOccupancy && selectedRoom.capacity > 1)
+              }
               onChange={(e) => {
                 if (!canOverrideSingleOccupancy && selectedRoom.capacity > 1) {
                   toast.error(
                     ar
                       ? "حجز الغرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية (override_single_occupancy)."
-                      : "Reserving an entire multi-bed room for a single person requires administrative permission."
+                      : "Reserving an entire multi-bed room for a single person requires administrative permission.",
                   );
                   return;
                 }

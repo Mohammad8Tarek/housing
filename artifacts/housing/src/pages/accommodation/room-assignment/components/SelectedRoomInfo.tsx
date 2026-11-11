@@ -19,8 +19,7 @@ export function SelectedRoomInfo({
   entireRoomOccupiedSet: Set<number>;
   singleOccupantRoomsMap: Map<number, OccupantInfo>;
 }) {
-  const roomFull =
-    selectedRoom.currentOccupancy >= selectedRoom.capacity;
+  const roomFull = selectedRoom.currentOccupancy >= selectedRoom.capacity;
   return (
     <>
       <div
@@ -74,11 +73,7 @@ export function SelectedRoomInfo({
             }
             className="capitalize"
           >
-            {roomFull
-              ? ar
-                ? "ممتلئة"
-                : "Full"
-              : selectedRoom.status}
+            {roomFull ? (ar ? "ممتلئة" : "Full") : selectedRoom.status}
           </Badge>
         </div>
         {selectedRoom.gender && (
@@ -117,7 +112,9 @@ export function SelectedRoomInfo({
           <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
           <div>
             <span className="font-bold block">
-              {ar ? "تنبيه: غرفة يشغلها نزيل بمفرده" : "Notice: Room Occupied by Single Resident"}
+              {ar
+                ? "تنبيه: غرفة يشغلها نزيل بمفرده"
+                : "Notice: Room Occupied by Single Resident"}
             </span>
             <span>
               {ar

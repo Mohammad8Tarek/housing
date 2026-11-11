@@ -374,16 +374,24 @@ function normalize(value: unknown): string {
     .trim()
     .toLowerCase();
   // Legacy aliases: employees -> profiles
-  if (val.startsWith("employees.")) val = val.replace("employees.", "profiles.");
-  if (val.startsWith("employees:")) val = val.replace("employees:", "profiles:");
-  if (val.startsWith("communications.")) val = val.replace("communications.", "whatsapp.");
-  if (val.startsWith("communications:")) val = val.replace("communications:", "whatsapp:");
+  if (val.startsWith("employees."))
+    val = val.replace("employees.", "profiles.");
+  if (val.startsWith("employees:"))
+    val = val.replace("employees:", "profiles:");
+  if (val.startsWith("communications."))
+    val = val.replace("communications.", "whatsapp.");
+  if (val.startsWith("communications:"))
+    val = val.replace("communications:", "whatsapp:");
   if (val.startsWith("surveys.")) val = val.replace("surveys.", "evaluations.");
   if (val.startsWith("surveys:")) val = val.replace("surveys:", "evaluations:");
-  if (val.endsWith(".bulk_export")) val = val.replace(".bulk_export", ".export");
-  if (val.endsWith(":bulk_export")) val = val.replace(":bulk_export", ":export");
-  if (val.endsWith(".bulk_delete")) val = val.replace(".bulk_delete", ".delete");
-  if (val.endsWith(":bulk_delete")) val = val.replace(":bulk_delete", ":delete");
+  if (val.endsWith(".bulk_export"))
+    val = val.replace(".bulk_export", ".export");
+  if (val.endsWith(":bulk_export"))
+    val = val.replace(":bulk_export", ":export");
+  if (val.endsWith(".bulk_delete"))
+    val = val.replace(".bulk_delete", ".delete");
+  if (val.endsWith(":bulk_delete"))
+    val = val.replace(":bulk_delete", ":delete");
   if (val.endsWith(".archive")) val = val.replace(".archive", ".checkout");
   if (val.endsWith(":archive")) val = val.replace(":archive", ":checkout");
   return val;
@@ -392,10 +400,7 @@ function normalize(value: unknown): string {
 function normalizeRoles(roles: unknown): string[] {
   if (Array.isArray(roles)) return roles.map(normalize).filter(Boolean);
   if (typeof roles === "string")
-    return roles
-      .split(",")
-      .map(normalize)
-      .filter(Boolean);
+    return roles.split(",").map(normalize).filter(Boolean);
   return [];
 }
 
@@ -592,7 +597,9 @@ export async function loadAuthUser(
     try {
       const redis = getRedisConnection();
       if (redis) {
-        redis.setex(`auth:user:${userId}`, 300, JSON.stringify(cached)).catch(() => {});
+        redis
+          .setex(`auth:user:${userId}`, 300, JSON.stringify(cached))
+          .catch(() => {});
       }
     } catch {}
   }
@@ -724,7 +731,8 @@ export function requireSuperAdmin(): RequestHandler {
 
       if (!isSuper) {
         res.status(403).json({
-          error: "This operation is strictly restricted to System Super Admin only",
+          error:
+            "This operation is strictly restricted to System Super Admin only",
           code: "SUPER_ADMIN_REQUIRED",
         });
         return;
@@ -736,4 +744,3 @@ export function requireSuperAdmin(): RequestHandler {
     }
   };
 }
-

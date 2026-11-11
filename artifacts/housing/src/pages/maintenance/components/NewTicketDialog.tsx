@@ -92,7 +92,11 @@ export function NewTicketDialog({
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      toast.error(ar ? "حجم الصورة كبير جداً (أقصى حد 5 ميجابايت)" : "Image too large (max 5MB)");
+      toast.error(
+        ar
+          ? "حجم الصورة كبير جداً (أقصى حد 5 ميجابايت)"
+          : "Image too large (max 5MB)",
+      );
       return;
     }
     const reader = new FileReader();
@@ -120,7 +124,8 @@ export function NewTicketDialog({
           {properties.length > 1 && (
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">
-                {ar ? "الـ Resident" : "Resident"} <span className="text-red-500">*</span>
+                {ar ? "الـ Resident" : "Resident"}{" "}
+                <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formPropertyId}
@@ -130,7 +135,9 @@ export function NewTicketDialog({
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={ar ? "اختر الـ Resident" : "Select Resident"} />
+                  <SelectValue
+                    placeholder={ar ? "اختر الـ Resident" : "Select Resident"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {properties.map((p) => (
@@ -146,7 +153,8 @@ export function NewTicketDialog({
           {/* Category Selector (if multiple allowed) */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">
-              {ar ? "نوع الطلب والقسم المختص" : "Ticket Category & Department"} <span className="text-red-500">*</span>
+              {ar ? "نوع الطلب والقسم المختص" : "Ticket Category & Department"}{" "}
+              <span className="text-red-500">*</span>
             </Label>
             {allowedCreateCategories.length > 1 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -212,12 +220,16 @@ export function NewTicketDialog({
                 {form.category === "housekeeping" ? (
                   <>
                     <Sparkles className="w-4 h-4 text-sky-600" />
-                    <span>{ar ? "طلب هاوس كيبنج ونظافة" : "Housekeeping Order"}</span>
+                    <span>
+                      {ar ? "طلب هاوس كيبنج ونظافة" : "Housekeeping Order"}
+                    </span>
                   </>
                 ) : (
                   <>
                     <Wrench className="w-4 h-4 text-amber-600" />
-                    <span>{ar ? "بلاغ صيانة وعطل فني" : "Maintenance Work Order"}</span>
+                    <span>
+                      {ar ? "بلاغ صيانة وعطل فني" : "Maintenance Work Order"}
+                    </span>
                   </>
                 )}
               </div>
@@ -228,10 +240,16 @@ export function NewTicketDialog({
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">
               {form.category === "housekeeping"
-                ? (ar ? "نوع خدمة النظافة" : "Housekeeping Service Type")
+                ? ar
+                  ? "نوع خدمة النظافة"
+                  : "Housekeeping Service Type"
                 : form.category === "maintenance"
-                  ? (ar ? "نوع المشكلة والعطل" : "Issue / Problem Type")
-                  : (ar ? "التصنيف" : "Classification")}{" "}
+                  ? ar
+                    ? "نوع المشكلة والعطل"
+                    : "Issue / Problem Type"
+                  : ar
+                    ? "التصنيف"
+                    : "Classification"}{" "}
               <span className="text-red-500">*</span>
             </Label>
             <Select
@@ -239,9 +257,15 @@ export function NewTicketDialog({
               onValueChange={(v) => setForm((f) => ({ ...f, problemType: v }))}
             >
               <SelectTrigger>
-                <SelectValue placeholder={ar ? "اختر النوع..." : "Select type..."} />
+                <SelectValue
+                  placeholder={ar ? "اختر النوع..." : "Select type..."}
+                />
               </SelectTrigger>
-              <SelectContent position="popper" sideOffset={4} className="max-h-64 overflow-y-auto">
+              <SelectContent
+                position="popper"
+                sideOffset={4}
+                className="max-h-64 overflow-y-auto"
+              >
                 {(form.category === "housekeeping"
                   ? HOUSEKEEPING_ORDER_TYPES
                   : form.category === "maintenance"
@@ -266,13 +290,21 @@ export function NewTicketDialog({
               onValueChange={(v) => setForm((f) => ({ ...f, roomId: v }))}
             >
               <SelectTrigger>
-                <SelectValue placeholder={ar ? "اختر الغرفة..." : "Select room..."} />
+                <SelectValue
+                  placeholder={ar ? "اختر الغرفة..." : "Select room..."}
+                />
               </SelectTrigger>
-              <SelectContent position="popper" sideOffset={4} className="max-h-64 overflow-y-auto">
+              <SelectContent
+                position="popper"
+                sideOffset={4}
+                className="max-h-64 overflow-y-auto"
+              >
                 {(modalRooms.length > 0 ? modalRooms : rooms)?.map((r: any) => (
                   <SelectItem key={r.id} value={String(r.id)}>
                     <span className="flex items-center justify-between w-full gap-3">
-                      <span>{ar ? "الغرفة" : "Room"} {r.roomNumber}</span>
+                      <span>
+                        {ar ? "الغرفة" : "Room"} {r.roomNumber}
+                      </span>
                       {roomOccupantMap[r.id] && (
                         <span className="text-[11px] text-muted-foreground font-normal">
                           ({roomOccupantMap[r.id]})
@@ -286,14 +318,19 @@ export function NewTicketDialog({
             {form.roomId && roomOccupantMap[Number(form.roomId)] && (
               <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
                 <User className="w-3.5 h-3.5 text-primary" />
-                <span>{ar ? "النزيل المقيم:" : "Current Occupant:"} <strong>{roomOccupantMap[Number(form.roomId)]}</strong></span>
+                <span>
+                  {ar ? "النزيل المقيم:" : "Current Occupant:"}{" "}
+                  <strong>{roomOccupantMap[Number(form.roomId)]}</strong>
+                </span>
               </p>
             )}
           </div>
 
           {/* Priority */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">{ar ? "الأولوية" : "Priority"}</Label>
+            <Label className="text-xs font-semibold">
+              {ar ? "الأولوية" : "Priority"}
+            </Label>
             <Select
               value={form.priority}
               onValueChange={(v) => setForm((f) => ({ ...f, priority: v }))}
@@ -305,11 +342,17 @@ export function NewTicketDialog({
                 {PRIORITIES.map((p) => (
                   <SelectItem key={p} value={p}>
                     <span className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${
-                        p === "URGENT" ? "bg-red-500" :
-                        p === "HIGH" ? "bg-orange-500" :
-                        p === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
-                      }`} />
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          p === "URGENT"
+                            ? "bg-red-500"
+                            : p === "HIGH"
+                              ? "bg-orange-500"
+                              : p === "MEDIUM"
+                                ? "bg-yellow-500"
+                                : "bg-slate-400"
+                        }`}
+                      />
                       <span>{ar ? PRIORITY_AR[p] : p}</span>
                     </span>
                   </SelectItem>
@@ -325,24 +368,41 @@ export function NewTicketDialog({
                 <HardHat className="w-3.5 h-3.5 text-primary" />
                 <span>
                   {form.category === "housekeeping"
-                    ? (ar ? "تعيين موظف نظافة (اختياري)" : "Assign Cleaner (Optional)")
-                    : (ar ? "تعيين فني من فريق العمل (اختياري)" : "Assign Technician (Optional)")}
+                    ? ar
+                      ? "تعيين موظف نظافة (اختياري)"
+                      : "Assign Cleaner (Optional)"
+                    : ar
+                      ? "تعيين فني من فريق العمل (اختياري)"
+                      : "Assign Technician (Optional)"}
                 </span>
               </Label>
               <Select
                 value={form.workerId || "unassigned"}
-                onValueChange={(v) => setForm((f) => ({ ...f, workerId: v === "unassigned" ? "" : v }))}
+                onValueChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    workerId: v === "unassigned" ? "" : v,
+                  }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue
                     placeholder={
                       form.category === "housekeeping"
-                        ? (ar ? "اختر موظف النظافة..." : "Select cleaner...")
-                        : (ar ? "اختر الفني..." : "Select worker...")
+                        ? ar
+                          ? "اختر موظف النظافة..."
+                          : "Select cleaner..."
+                        : ar
+                          ? "اختر الفني..."
+                          : "Select worker..."
                     }
                   />
                 </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4} className="max-h-56 overflow-y-auto">
+                <SelectContent
+                  position="popper"
+                  sideOffset={4}
+                  className="max-h-56 overflow-y-auto"
+                >
                   <SelectItem value="unassigned">
                     — {ar ? "بدون تعيين حالياً" : "None / Unassigned"} —
                   </SelectItem>
@@ -370,8 +430,12 @@ export function NewTicketDialog({
             <Textarea
               placeholder={
                 form.category === "housekeeping"
-                  ? (ar ? "اكتب تفاصيل طلب النظافة أو المستلزمات المطلوبة..." : "Describe cleaning or amenities requested...")
-                  : (ar ? "صف المشكلة أو العطل بدقة..." : "Describe the maintenance issue...")
+                  ? ar
+                    ? "اكتب تفاصيل طلب النظافة أو المستلزمات المطلوبة..."
+                    : "Describe cleaning or amenities requested..."
+                  : ar
+                    ? "صف المشكلة أو العطل بدقة..."
+                    : "Describe the maintenance issue..."
               }
               value={form.description}
               onChange={(e) =>
@@ -383,7 +447,9 @@ export function NewTicketDialog({
 
           {/* Photo Upload */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">{ar ? "صورة مرفقة (اختياري)" : "Attach Photo (Optional)"}</Label>
+            <Label className="text-xs font-semibold">
+              {ar ? "صورة مرفقة (اختياري)" : "Attach Photo (Optional)"}
+            </Label>
             <div className="flex items-center gap-3">
               {formPhotoUrl ? (
                 <div className="relative w-20 h-20 rounded-lg overflow-hidden border">

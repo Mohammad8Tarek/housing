@@ -1,7 +1,13 @@
 // State, effects and handlers of WhatsAppSettingsSection (moved verbatim).
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
-import { WhatsAppSettingsSectionProps, DEFAULT_TEMPLATE_AR, DEFAULT_TEMPLATE_EN, DEFAULT_RES_TEMPLATE_AR, DEFAULT_RES_TEMPLATE_EN } from "./WhatsAppSettingsSection.constants";
+import {
+  WhatsAppSettingsSectionProps,
+  DEFAULT_TEMPLATE_AR,
+  DEFAULT_TEMPLATE_EN,
+  DEFAULT_RES_TEMPLATE_AR,
+  DEFAULT_RES_TEMPLATE_EN,
+} from "./WhatsAppSettingsSection.constants";
 
 export function useWhatsAppSettingsSectionState({
   propertyId,
@@ -14,7 +20,9 @@ export function useWhatsAppSettingsSectionState({
   const [testing, setTesting] = useState(false);
 
   // Provider: Meta Cloud API vs UltraMsg vs Custom Gateway vs Direct Baileys
-  const [provider, setProvider] = useState<"meta_cloud" | "baileys" | "ultramsg" | "custom_gateway">("meta_cloud");
+  const [provider, setProvider] = useState<
+    "meta_cloud" | "baileys" | "ultramsg" | "custom_gateway"
+  >("meta_cloud");
   const [metaPhoneNumberId, setMetaPhoneNumberId] = useState("");
   const [metaWabaId, setMetaWabaId] = useState("");
   const [metaAccessToken, setMetaAccessToken] = useState("");
@@ -31,13 +39,17 @@ export function useWhatsAppSettingsSectionState({
   const [customGatewayToken, setCustomGatewayToken] = useState("");
   const [hasCustomGatewayToken, setHasCustomGatewayToken] = useState(false);
   const [customGatewayMethod, setCustomGatewayMethod] = useState("POST");
-  const [customGatewayPayloadType, setCustomGatewayPayloadType] = useState("json");
+  const [customGatewayPayloadType, setCustomGatewayPayloadType] =
+    useState("json");
   const [customGatewayPhoneField, setCustomGatewayPhoneField] = useState("to");
-  const [customGatewayMessageField, setCustomGatewayMessageField] = useState("body");
+  const [customGatewayMessageField, setCustomGatewayMessageField] =
+    useState("body");
   const [customGatewayHeaders, setCustomGatewayHeaders] = useState("");
 
   // Status & Connection (Baileys)
-  const [status, setStatus] = useState<"disconnected" | "pairing" | "connected">("disconnected");
+  const [status, setStatus] = useState<
+    "disconnected" | "pairing" | "connected"
+  >("disconnected");
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
@@ -49,13 +61,22 @@ export function useWhatsAppSettingsSectionState({
 
   // Config Form
   const [isAutoSendEnabled, setIsAutoSendEnabled] = useState(true);
-  const [isReservationSendEnabled, setIsReservationSendEnabled] = useState(true);
-  const [welcomeTemplateAr, setWelcomeTemplateAr] = useState(DEFAULT_TEMPLATE_AR);
-  const [welcomeTemplateEn, setWelcomeTemplateEn] = useState(DEFAULT_TEMPLATE_EN);
-  const [reservationTemplateAr, setReservationTemplateAr] = useState(DEFAULT_RES_TEMPLATE_AR);
-  const [reservationTemplateEn, setReservationTemplateEn] = useState(DEFAULT_RES_TEMPLATE_EN);
+  const [isReservationSendEnabled, setIsReservationSendEnabled] =
+    useState(true);
+  const [welcomeTemplateAr, setWelcomeTemplateAr] =
+    useState(DEFAULT_TEMPLATE_AR);
+  const [welcomeTemplateEn, setWelcomeTemplateEn] =
+    useState(DEFAULT_TEMPLATE_EN);
+  const [reservationTemplateAr, setReservationTemplateAr] = useState(
+    DEFAULT_RES_TEMPLATE_AR,
+  );
+  const [reservationTemplateEn, setReservationTemplateEn] = useState(
+    DEFAULT_RES_TEMPLATE_EN,
+  );
   const [supervisorContact, setSupervisorContact] = useState("");
-  const [templateCategory, setTemplateCategory] = useState<"checkin" | "reservation">("checkin");
+  const [templateCategory, setTemplateCategory] = useState<
+    "checkin" | "reservation"
+  >("checkin");
   const [activeTemplateTab, setActiveTemplateTab] = useState<"ar" | "en">("ar");
   const [broadcastOpen, setBroadcastOpen] = useState(false);
 
@@ -73,9 +94,15 @@ export function useWhatsAppSettingsSectionState({
     if (!propertyId) return;
     try {
       const [statusRes, configRes, logsRes] = await Promise.all([
-        fetch(`/api/whatsapp/status?propertyId=${propertyId}`, { credentials: "include" }),
-        fetch(`/api/whatsapp/config?propertyId=${propertyId}`, { credentials: "include" }),
-        fetch(`/api/whatsapp/logs?propertyId=${propertyId}&limit=5`, { credentials: "include" }),
+        fetch(`/api/whatsapp/status?propertyId=${propertyId}`, {
+          credentials: "include",
+        }),
+        fetch(`/api/whatsapp/config?propertyId=${propertyId}`, {
+          credentials: "include",
+        }),
+        fetch(`/api/whatsapp/logs?propertyId=${propertyId}&limit=5`, {
+          credentials: "include",
+        }),
       ]);
 
       if (statusRes.ok) {
@@ -137,18 +164,28 @@ export function useWhatsAppSettingsSectionState({
             setProvider(cData.config.provider);
           }
           setIsAutoSendEnabled(cData.config.isAutoSendEnabled ?? true);
-          setIsReservationSendEnabled(cData.config.isReservationSendEnabled ?? true);
+          setIsReservationSendEnabled(
+            cData.config.isReservationSendEnabled ?? true,
+          );
           const rawWelcomeAr = cData.config.welcomeTemplateAr || "";
           setWelcomeTemplateAr(
-            rawWelcomeAr && !rawWelcomeAr.includes("???") ? rawWelcomeAr : DEFAULT_TEMPLATE_AR
+            rawWelcomeAr && !rawWelcomeAr.includes("???")
+              ? rawWelcomeAr
+              : DEFAULT_TEMPLATE_AR,
           );
-          setWelcomeTemplateEn(cData.config.welcomeTemplateEn || DEFAULT_TEMPLATE_EN);
+          setWelcomeTemplateEn(
+            cData.config.welcomeTemplateEn || DEFAULT_TEMPLATE_EN,
+          );
 
           const rawResAr = cData.config.reservationTemplateAr || "";
           setReservationTemplateAr(
-            rawResAr && !rawResAr.includes("???") ? rawResAr : DEFAULT_RES_TEMPLATE_AR
+            rawResAr && !rawResAr.includes("???")
+              ? rawResAr
+              : DEFAULT_RES_TEMPLATE_AR,
           );
-          setReservationTemplateEn(cData.config.reservationTemplateEn || DEFAULT_RES_TEMPLATE_EN);
+          setReservationTemplateEn(
+            cData.config.reservationTemplateEn || DEFAULT_RES_TEMPLATE_EN,
+          );
           setSupervisorContact(cData.config.supervisorContact || "");
 
           if (cData.config.metaPhoneNumberId !== undefined) {
@@ -170,7 +207,9 @@ export function useWhatsAppSettingsSectionState({
             setCustomGatewayUrl(cData.config.customGatewayUrl || "");
           }
           if (cData.config.hasCustomGatewayToken !== undefined) {
-            setHasCustomGatewayToken(Boolean(cData.config.hasCustomGatewayToken));
+            setHasCustomGatewayToken(
+              Boolean(cData.config.hasCustomGatewayToken),
+            );
           }
           if (cData.config.customGatewayMethod) {
             setCustomGatewayMethod(cData.config.customGatewayMethod);
@@ -182,7 +221,9 @@ export function useWhatsAppSettingsSectionState({
             setCustomGatewayPhoneField(cData.config.customGatewayPhoneField);
           }
           if (cData.config.customGatewayMessageField) {
-            setCustomGatewayMessageField(cData.config.customGatewayMessageField);
+            setCustomGatewayMessageField(
+              cData.config.customGatewayMessageField,
+            );
           }
           if (cData.config.customGatewayHeaders !== undefined) {
             setCustomGatewayHeaders(cData.config.customGatewayHeaders || "");
@@ -206,20 +247,25 @@ export function useWhatsAppSettingsSectionState({
     if (!propertyId) return;
     setProcessingQueue(true);
     try {
-      const res = await fetch(`/api/whatsapp/queue/process?propertyId=${propertyId}`, {
-        method: "POST",
-        credentials: "include",
-      });
+      const res = await fetch(
+        `/api/whatsapp/queue/process?propertyId=${propertyId}`,
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
       const data = await res.json();
       if (data.success) {
         toast.success(
           ar
             ? `تمت معالجة الطابور بنجاح: تم إرسال ${data.processed || 0} رسالة، المتبقي: ${data.pendingRemaining ?? 0}`
-            : `Queue processed: ${data.processed || 0} sent, ${data.pendingRemaining ?? 0} pending`
+            : `Queue processed: ${data.processed || 0} sent, ${data.pendingRemaining ?? 0} pending`,
         );
         fetchStatusAndConfig();
       } else {
-        toast.error(data.error || (ar ? "فشل معالجة الطابور" : "Failed to process queue"));
+        toast.error(
+          data.error || (ar ? "فشل معالجة الطابور" : "Failed to process queue"),
+        );
       }
     } catch {
       toast.error(ar ? "خطأ في الاتصال بالخادم" : "Server error");
@@ -244,15 +290,21 @@ export function useWhatsAppSettingsSectionState({
     if (!propertyId) return;
     setConnecting(true);
     try {
-      const safePhone = typeof phoneForCode === "string" && phoneForCode.trim().length > 0 ? phoneForCode.trim() : undefined;
-      const res = await fetch(`/api/whatsapp/connect?propertyId=${propertyId}`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phoneNumber: safePhone,
-        }),
-      });
+      const safePhone =
+        typeof phoneForCode === "string" && phoneForCode.trim().length > 0
+          ? phoneForCode.trim()
+          : undefined;
+      const res = await fetch(
+        `/api/whatsapp/connect?propertyId=${propertyId}`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phoneNumber: safePhone,
+          }),
+        },
+      );
       const data = await res.json();
       if (data.success) {
         setStatus(data.status);
@@ -261,11 +313,17 @@ export function useWhatsAppSettingsSectionState({
         setPhoneNumber(data.phoneNumber);
         toast.success(
           data.pairingCode
-            ? (ar ? "تم إنشاء كود الاقتران بنجاح، أدخله في هاتفك" : "Pairing code generated, enter it on your phone")
-            : (ar ? "تم توليد رمز QR بنجاح، قم بمسحه من هاتفك" : "QR Code generated, scan with your phone")
+            ? ar
+              ? "تم إنشاء كود الاقتران بنجاح، أدخله في هاتفك"
+              : "Pairing code generated, enter it on your phone"
+            : ar
+              ? "تم توليد رمز QR بنجاح، قم بمسحه من هاتفك"
+              : "QR Code generated, scan with your phone",
         );
       } else {
-        toast.error(data.error || (ar ? "فشل بدء الاتصال" : "Connection failed"));
+        toast.error(
+          data.error || (ar ? "فشل بدء الاتصال" : "Connection failed"),
+        );
       }
     } catch {
       toast.error(ar ? "خطأ في الاتصال بالخادم" : "Server communication error");
@@ -276,7 +334,11 @@ export function useWhatsAppSettingsSectionState({
 
   const handleRequestPairingCode = async () => {
     if (!pairingPhone.trim()) {
-      toast.error(ar ? "يرجى إدخال رقم هاتف الواتساب" : "Please enter WhatsApp phone number");
+      toast.error(
+        ar
+          ? "يرجى إدخال رقم هاتف الواتساب"
+          : "Please enter WhatsApp phone number",
+      );
       return;
     }
     setRequestingCode(true);
@@ -291,10 +353,13 @@ export function useWhatsAppSettingsSectionState({
   const handleDisconnect = async () => {
     if (!propertyId) return;
     try {
-      const res = await fetch(`/api/whatsapp/disconnect?propertyId=${propertyId}`, {
-        method: "POST",
-        credentials: "include",
-      });
+      const res = await fetch(
+        `/api/whatsapp/disconnect?propertyId=${propertyId}`,
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
       if (res.ok) {
         setStatus("disconnected");
         setQrCode(null);
@@ -307,7 +372,9 @@ export function useWhatsAppSettingsSectionState({
   };
 
   // Save config
-  const handleSaveConfig = async (overrideProvider?: "meta_cloud" | "baileys" | "ultramsg" | "custom_gateway") => {
+  const handleSaveConfig = async (
+    overrideProvider?: "meta_cloud" | "baileys" | "ultramsg" | "custom_gateway",
+  ) => {
     if (!propertyId) return;
     setSaving(true);
     try {
@@ -320,11 +387,17 @@ export function useWhatsAppSettingsSectionState({
           provider: activeProv,
           metaPhoneNumberId: metaPhoneNumberId.trim(),
           metaWabaId: metaWabaId.trim(),
-          metaAccessToken: metaAccessToken.trim() ? metaAccessToken.trim() : undefined,
+          metaAccessToken: metaAccessToken.trim()
+            ? metaAccessToken.trim()
+            : undefined,
           ultramsgInstanceId: ultramsgInstanceId.trim(),
-          ultramsgToken: ultramsgToken.trim() ? ultramsgToken.trim() : undefined,
+          ultramsgToken: ultramsgToken.trim()
+            ? ultramsgToken.trim()
+            : undefined,
           customGatewayUrl: customGatewayUrl.trim(),
-          customGatewayToken: customGatewayToken.trim() ? customGatewayToken.trim() : undefined,
+          customGatewayToken: customGatewayToken.trim()
+            ? customGatewayToken.trim()
+            : undefined,
           customGatewayMethod,
           customGatewayPayloadType,
           customGatewayPhoneField: customGatewayPhoneField.trim() || "to",
@@ -355,7 +428,7 @@ export function useWhatsAppSettingsSectionState({
         toast.success(
           ar
             ? "تم حفظ إعدادات وقوالب الواتساب بنجاح"
-            : "WhatsApp templates & settings saved successfully"
+            : "WhatsApp templates & settings saved successfully",
         );
         fetchStatusAndConfig();
       } else {
@@ -371,7 +444,9 @@ export function useWhatsAppSettingsSectionState({
   // Send Test Message
   const handleSendTest = async () => {
     if (!propertyId || !testPhone.trim()) {
-      toast.error(ar ? "يرجى كتابة رقم الهاتف للتجربة" : "Please enter a phone number");
+      toast.error(
+        ar ? "يرجى كتابة رقم الهاتف للتجربة" : "Please enter a phone number",
+      );
       return;
     }
     setTesting(true);
@@ -390,11 +465,14 @@ export function useWhatsAppSettingsSectionState({
         toast.success(
           ar
             ? `تم إرسال الرسالة التجريبية بنجاح إلى ${testPhone}`
-            : `Test message sent successfully to ${testPhone}`
+            : `Test message sent successfully to ${testPhone}`,
         );
         fetchStatusAndConfig();
       } else {
-        toast.error(d.error || (ar ? "فشل إرسال الرسالة التجريبية" : "Test message failed"));
+        toast.error(
+          d.error ||
+            (ar ? "فشل إرسال الرسالة التجريبية" : "Test message failed"),
+        );
       }
     } catch {
       toast.error(ar ? "فشل الاتصال بالخادم" : "Server error");
@@ -402,8 +480,6 @@ export function useWhatsAppSettingsSectionState({
       setTesting(false);
     }
   };
-
-
 
   // Insert tag into active textarea
   const handleInsertTag = (tag: string) => {
@@ -439,30 +515,52 @@ export function useWhatsAppSettingsSectionState({
         ? welcomeTemplateAr
         : welcomeTemplateEn
       : activeTemplateTab === "ar"
-      ? reservationTemplateAr
-      : reservationTemplateEn;
+        ? reservationTemplateAr
+        : reservationTemplateEn;
 
   const mockVars =
     templateCategory === "checkin"
       ? {
-          employee_name: activeTemplateTab === "ar" ? "أحمد مصطفى كامل" : "Ahmed Mostafa Kamel",
+          employee_name:
+            activeTemplateTab === "ar"
+              ? "أحمد مصطفى كامل"
+              : "Ahmed Mostafa Kamel",
           profile_id: "10575",
           employee_id: "10575",
-          property_name: activeTemplateTab === "ar" ? "سكن منتجع صن رايز" : "Sunrise Resort Housing",
-          building_name: activeTemplateTab === "ar" ? "المبنى ب (Building B)" : "Building B",
+          property_name:
+            activeTemplateTab === "ar"
+              ? "سكن منتجع صن رايز"
+              : "Sunrise Resort Housing",
+          building_name:
+            activeTemplateTab === "ar" ? "المبنى ب (Building B)" : "Building B",
           floor_name: activeTemplateTab === "ar" ? "الدور الثاني" : "2nd Floor",
           room_number: "204",
-          bed_label: activeTemplateTab === "ar" ? "سرير A (يمين النافذة)" : "Bed A (Right Window)",
-          checkin_date: new Date().toLocaleDateString(activeTemplateTab === "ar" ? "ar-EG" : "en-US"),
+          bed_label:
+            activeTemplateTab === "ar"
+              ? "سرير A (يمين النافذة)"
+              : "Bed A (Right Window)",
+          checkin_date: new Date().toLocaleDateString(
+            activeTemplateTab === "ar" ? "ar-EG" : "en-US",
+          ),
           portal_url: "https://resident.sunrise-resorts.com/portal/",
           supervisor_contact: supervisorContact || "+201012345678",
         }
       : {
-          guest_name: activeTemplateTab === "ar" ? "محمود عبد العزيز" : "Mahmoud Abdelaziz",
-          property_name: activeTemplateTab === "ar" ? "سكن منتجع صن رايز" : "Sunrise Resort Housing",
+          guest_name:
+            activeTemplateTab === "ar"
+              ? "محمود عبد العزيز"
+              : "Mahmoud Abdelaziz",
+          property_name:
+            activeTemplateTab === "ar"
+              ? "سكن منتجع صن رايز"
+              : "Sunrise Resort Housing",
           reservation_id: "8421",
-          room_info: activeTemplateTab === "ar" ? "مبنى الفيروز - الغرفة 302" : "Al Fayrouz - Room 302",
-          bed_info: activeTemplateTab === "ar" ? "سرير B (مفرد)" : "Bed B (Single)",
+          room_info:
+            activeTemplateTab === "ar"
+              ? "مبنى الفيروز - الغرفة 302"
+              : "Al Fayrouz - Room 302",
+          bed_info:
+            activeTemplateTab === "ar" ? "سرير B (مفرد)" : "Bed B (Single)",
           checkin_date: "2026/09/20",
           checkout_date: "2026/09/30",
           portal_url: "https://resident.sunrise-resorts.com/portal/",
@@ -577,4 +675,6 @@ export function useWhatsAppSettingsSectionState({
   };
 }
 
-export type WhatsAppSettingsSectionState = ReturnType<typeof useWhatsAppSettingsSectionState>;
+export type WhatsAppSettingsSectionState = ReturnType<
+  typeof useWhatsAppSettingsSectionState
+>;

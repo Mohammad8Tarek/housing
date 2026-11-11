@@ -1,8 +1,32 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import { Loader2, Moon, Sun, Languages, Fingerprint, AlertCircle, Check, ArrowRight, Eye, EyeOff, User, Lock, ShieldCheck, Sparkles, HelpCircle, X, Wrench, Home } from "lucide-react";
+import {
+  Loader2,
+  Moon,
+  Sun,
+  Languages,
+  Fingerprint,
+  AlertCircle,
+  Check,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  User,
+  Lock,
+  ShieldCheck,
+  Sparkles,
+  HelpCircle,
+  X,
+  Wrench,
+  Home,
+} from "lucide-react";
 import { useTheme } from "../lib/theme";
-import { apiFetch, saveSessionId, setCachedSessionId, clearSessionCache } from "../lib/api";
+import {
+  apiFetch,
+  saveSessionId,
+  setCachedSessionId,
+  clearSessionCache,
+} from "../lib/api";
 import { useBiometric } from "../hooks/useBiometric";
 import { Preferences } from "@capacitor/preferences";
 import { Capacitor } from "@capacitor/core";
@@ -39,8 +63,12 @@ export default function Login() {
   const loadCheckboxDefaults = useCallback(async () => {
     try {
       if (isNative) {
-        const { value: rm } = await Preferences.get({ key: "login_remember_me" });
-        const { value: uf } = await Preferences.get({ key: "login_use_fingerprint" });
+        const { value: rm } = await Preferences.get({
+          key: "login_remember_me",
+        });
+        const { value: uf } = await Preferences.get({
+          key: "login_use_fingerprint",
+        });
         if (rm !== null) setRememberMe(rm === "true");
         if (uf !== null) setUseFingerprint(uf === "true");
         else setUseFingerprint(true);
@@ -56,7 +84,9 @@ export default function Login() {
   const checkSavedSession = useCallback(async () => {
     try {
       if (isNative) {
-        const { value: sessionOnly } = await Preferences.get({ key: "login_session_only" });
+        const { value: sessionOnly } = await Preferences.get({
+          key: "login_session_only",
+        });
         if (sessionOnly === "true") {
           await Preferences.remove({ key: "portal_employee" });
           await Preferences.remove({ key: "session_id" });
@@ -65,7 +95,9 @@ export default function Login() {
           setCheckingSession(false);
           return;
         }
-        const { value: empJson } = await Preferences.get({ key: "portal_employee" });
+        const { value: empJson } = await Preferences.get({
+          key: "portal_employee",
+        });
         if (!empJson) {
           setCheckingSession(false);
           return;
@@ -120,7 +152,8 @@ export default function Login() {
       await saveSessionId(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || t("login.failed"));
-      const empObj = data.employee || data.profile || { profileId: empId.trim() };
+      const empObj = data.employee ||
+        data.profile || { profileId: empId.trim() };
       const empJson = JSON.stringify(empObj);
       sessionStorage.setItem("portal_employee", empJson);
       if (rememberMe) {
@@ -200,12 +233,17 @@ export default function Login() {
         } else if (!useFingerprint) {
           await biometric.deleteCredentials();
         }
-        await Preferences.set({ key: "login_session_only", value: String(!rememberMe) });
+        await Preferences.set({
+          key: "login_session_only",
+          value: String(!rememberMe),
+        });
       }
 
       await hapticFeedback("medium");
       toast.success(
-        isRtl ? "أهلاً بك! تم تسجيل الدخول بنجاح" : "Welcome back! Signed in successfully",
+        isRtl
+          ? "أهلاً بك! تم تسجيل الدخول بنجاح"
+          : "Welcome back! Signed in successfully",
       );
 
       if (data.mustChangePassword) {
@@ -228,7 +266,9 @@ export default function Login() {
       return;
     }
     const email = "hr-support@sunrise-resorts.com";
-    const subject = isRtl ? "طلب تفعيل دخول لبوابة سكن الموظفين" : "Housing Portal Access Request";
+    const subject = isRtl
+      ? "طلب تفعيل دخول لبوابة سكن الموظفين"
+      : "Housing Portal Access Request";
     const body = isRtl
       ? `أرغب في الحصول على صلاحيات الدخول للبوابة.\nمعرف الموظف: ${employeeId || "—"}`
       : `I would like to request access to the resident portal.\nEmployee ID: ${employeeId || "—"}`;
@@ -240,7 +280,9 @@ export default function Login() {
     setError("");
     try {
       const success = await biometric.authenticate(
-        isRtl ? "تسجيل الدخول ببصمة الإصبع أو الوجه" : "Login with Fingerprint or Face ID",
+        isRtl
+          ? "تسجيل الدخول ببصمة الإصبع أو الوجه"
+          : "Login with Fingerprint or Face ID",
       );
       if (!success) {
         setIsLoading(false);
@@ -284,8 +326,12 @@ export default function Login() {
             </div>
           </div>
           <div className="space-y-1">
-            <h3 className="font-bold text-white text-lg tracking-wider">SUNRISE</h3>
-            <p className="text-xs text-white/50">{isRtl ? "جاري التحقق من الجلسة..." : "Checking session..."}</p>
+            <h3 className="font-bold text-white text-lg tracking-wider">
+              SUNRISE
+            </h3>
+            <p className="text-xs text-white/50">
+              {isRtl ? "جاري التحقق من الجلسة..." : "Checking session..."}
+            </p>
           </div>
         </div>
       </div>
@@ -321,9 +367,7 @@ export default function Login() {
             </div>
           </div>
           <div>
-            <span
-              className="text-xl sm:text-2xl font-black tracking-[0.18em] text-white block leading-none font-serif"
-            >
+            <span className="text-xl sm:text-2xl font-black tracking-[0.18em] text-white block leading-none font-serif">
               SUNRISE
             </span>
             <span className="text-[10px] text-[#C9A24D] font-semibold tracking-wider uppercase block mt-1">
@@ -366,7 +410,11 @@ export default function Login() {
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-[#E5CA85] backdrop-blur-md">
               <Sparkles className="w-3.5 h-3.5 text-[#C9A24D]" />
-              <span>{isRtl ? "المنظومة السكنية الذكية الموحدة" : "Unified Smart Staff Housing Portal"}</span>
+              <span>
+                {isRtl
+                  ? "المنظومة السكنية الذكية الموحدة"
+                  : "Unified Smart Staff Housing Portal"}
+              </span>
             </div>
 
             <h1 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.2] tracking-tight">
@@ -405,7 +453,9 @@ export default function Login() {
                 {isRtl ? "صيانة ونظافة فورية" : "Fast Service"}
               </h4>
               <p className="text-xs text-white/60 leading-normal">
-                {isRtl ? "متابعة مسار طلباتك لحظة بلحظة مع التقييم" : "Instant order tracking and live feedback"}
+                {isRtl
+                  ? "متابعة مسار طلباتك لحظة بلحظة مع التقييم"
+                  : "Instant order tracking and live feedback"}
               </p>
             </div>
 
@@ -417,7 +467,9 @@ export default function Login() {
                 {isRtl ? "سكن واستضافات" : "Housing & Guests"}
               </h4>
               <p className="text-xs text-white/60 leading-normal">
-                {isRtl ? "تصاريح الاستضافة وعهدة الغرف والنزلاء" : "Room inventory and guest pass permits"}
+                {isRtl
+                  ? "تصاريح الاستضافة وعهدة الغرف والنزلاء"
+                  : "Room inventory and guest pass permits"}
               </p>
             </div>
 
@@ -429,7 +481,9 @@ export default function Login() {
                 {isRtl ? "أمان وخصوصية" : "Secure Access"}
               </h4>
               <p className="text-xs text-white/60 leading-normal">
-                {isRtl ? "دخول بيومتري مشفر وحفظ آمن للبيانات" : "Encrypted biometric login & personal info"}
+                {isRtl
+                  ? "دخول بيومتري مشفر وحفظ آمن للبيانات"
+                  : "Encrypted biometric login & personal info"}
               </p>
             </div>
           </div>
@@ -475,7 +529,11 @@ export default function Login() {
                 >
                   <span className="flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-[#C9A24D]" />
-                    <span>{isRtl ? "كود الموظف / رقم البروفايل" : "Employee ID / Profile ID"}</span>
+                    <span>
+                      {isRtl
+                        ? "كود الموظف / رقم البروفايل"
+                        : "Employee ID / Profile ID"}
+                    </span>
                   </span>
                   <span className="text-[10px] text-white/40">Required</span>
                 </label>
@@ -492,7 +550,9 @@ export default function Login() {
                     spellCheck={false}
                     value={employeeId}
                     onChange={(e) => setEmployeeId(e.target.value)}
-                    placeholder={isRtl ? "مثال: EMP-001 أو 1024" : "e.g. EMP-001 or 1024"}
+                    placeholder={
+                      isRtl ? "مثال: EMP-001 أو 1024" : "e.g. EMP-001 or 1024"
+                    }
                     className="w-full bg-black/40 hover:bg-black/50 focus:bg-black/60 border border-white/15 focus:border-[#C9A24D] text-white rounded-2xl py-3.5 ps-3.5 pe-10 focus:ring-2 focus:ring-[#C9A24D]/25 outline-none transition-all text-sm placeholder:text-white/30"
                     required
                     disabled={isLoading}
@@ -537,7 +597,11 @@ export default function Login() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={isRtl ? "أدخل كلمة المرور الخاصة بك" : "Enter your password"}
+                    placeholder={
+                      isRtl
+                        ? "أدخل كلمة المرور الخاصة بك"
+                        : "Enter your password"
+                    }
                     className="w-full bg-black/40 hover:bg-black/50 focus:bg-black/60 border border-white/15 focus:border-[#C9A24D] text-white rounded-2xl py-3.5 ps-3.5 pe-11 focus:ring-2 focus:ring-[#C9A24D]/25 outline-none transition-all text-sm placeholder:text-white/30 font-mono tracking-wider"
                     required
                     disabled={isLoading}
@@ -546,7 +610,15 @@ export default function Login() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute end-3 text-white/50 hover:text-white transition-colors p-1.5 flex items-center justify-center rounded-lg cursor-pointer"
-                    title={showPassword ? (isRtl ? "إخفاء" : "Hide") : (isRtl ? "إظهار" : "Show")}
+                    title={
+                      showPassword
+                        ? isRtl
+                          ? "إخفاء"
+                          : "Hide"
+                        : isRtl
+                          ? "إظهار"
+                          : "Show"
+                    }
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4 text-[#C9A24D]" />
@@ -575,7 +647,9 @@ export default function Login() {
                 {showDefaultPwHint && (
                   <div className="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs space-y-1">
                     <p className="font-semibold">
-                      {isRtl ? "💡 كلمة المرور الافتراضية لأول مرة هي: 1234" : "💡 Default initial password is: 1234"}
+                      {isRtl
+                        ? "💡 كلمة المرور الافتراضية لأول مرة هي: 1234"
+                        : "💡 Default initial password is: 1234"}
                     </p>
                     <p className="text-[11px] text-amber-300/80">
                       {isRtl
@@ -610,7 +684,9 @@ export default function Login() {
                     </div>
                   </div>
                   <span className="text-xs text-white/75 group-hover:text-white transition-colors font-medium">
-                    {isRtl ? "تذكر تسجيل الدخول على هذا الجهاز" : "Remember login on this device"}
+                    {isRtl
+                      ? "تذكر تسجيل الدخول على هذا الجهاز"
+                      : "Remember login on this device"}
                   </span>
                 </label>
 
@@ -639,7 +715,9 @@ export default function Login() {
                     <div className="flex items-center gap-1.5 text-xs text-white/75 group-hover:text-white transition-colors">
                       <Fingerprint className="w-3.5 h-3.5 text-teal-400" />
                       <span>
-                        {isRtl ? "تفعيل الدخول بالبصمة / Face ID" : "Enable Biometric / Face ID Login"}
+                        {isRtl
+                          ? "تفعيل الدخول بالبصمة / Face ID"
+                          : "Enable Biometric / Face ID Login"}
                       </span>
                     </div>
                   </label>
@@ -656,46 +734,57 @@ export default function Login() {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>{isRtl ? "جارٍ التحقق والدخول..." : "Authenticating..."}</span>
+                    <span>
+                      {isRtl ? "جارٍ التحقق والدخول..." : "Authenticating..."}
+                    </span>
                   </>
                 ) : (
                   <>
                     <span>{isRtl ? "تسجيل الدخول" : "Sign In"}</span>
-                    <ArrowRight className={`w-4 h-4 ${isRtl ? "rotate-180" : ""}`} />
+                    <ArrowRight
+                      className={`w-4 h-4 ${isRtl ? "rotate-180" : ""}`}
+                    />
                   </>
                 )}
               </MotionButton>
             </form>
 
             {/* Quick Biometric Shortcut Button (if saved credentials exist on Native) */}
-            {isNative && useFingerprint && biometric.isAvailable && showBiometricBtn && (
-              <div className="mt-5">
-                <div className="relative mb-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-white/10" />
+            {isNative &&
+              useFingerprint &&
+              biometric.isAvailable &&
+              showBiometricBtn && (
+                <div className="mt-5">
+                  <div className="relative mb-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-white/10" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-[#12131A] px-3 text-[11px] text-white/40 uppercase tracking-wider rounded-full border border-white/5">
+                        {isRtl ? "أو الدخول السريع" : "Or Quick Biometric"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="relative flex justify-center">
-                    <span className="bg-[#12131A] px-3 text-[11px] text-white/40 uppercase tracking-wider rounded-full border border-white/5">
-                      {isRtl ? "أو الدخول السريع" : "Or Quick Biometric"}
-                    </span>
-                  </div>
-                </div>
 
-                <button
-                  type="button"
-                  onClick={handleBiometricLogin}
-                  disabled={isLoading}
-                  className="w-full bg-white/5 border border-white/15 text-white font-semibold py-3 rounded-2xl hover:bg-white/10 active:bg-white/5 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-xs cursor-pointer"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Fingerprint className="w-4 h-4 text-[#C9A24D]" />
-                  )}
-                  <span>{isRtl ? "تسجيل الدخول بالبصمة / Face ID" : "Sign In with Biometric"}</span>
-                </button>
-              </div>
-            )}
+                  <button
+                    type="button"
+                    onClick={handleBiometricLogin}
+                    disabled={isLoading}
+                    className="w-full bg-white/5 border border-white/15 text-white font-semibold py-3 rounded-2xl hover:bg-white/10 active:bg-white/5 transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-xs cursor-pointer"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Fingerprint className="w-4 h-4 text-[#C9A24D]" />
+                    )}
+                    <span>
+                      {isRtl
+                        ? "تسجيل الدخول بالبصمة / Face ID"
+                        : "Sign In with Biometric"}
+                    </span>
+                  </button>
+                </div>
+              )}
 
             {/* Help / Contact Support Link */}
             <div className="mt-5 pt-4 border-t border-white/10 text-center">

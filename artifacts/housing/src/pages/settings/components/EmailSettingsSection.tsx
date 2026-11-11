@@ -105,7 +105,9 @@ export function EmailSettingsSection({
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings", propertyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/settings", propertyId],
+      });
       setHasExistingPass(Boolean(data.hasSmtpPass));
       setSmtpPass(data.smtpPass || "");
       toast.success(
@@ -115,7 +117,9 @@ export function EmailSettingsSection({
       );
     },
     onError: (err: any) => {
-      toast.error(err.message || (ar ? "فشل حفظ الإعدادات" : "Failed to save settings"));
+      toast.error(
+        err.message || (ar ? "فشل حفظ الإعدادات" : "Failed to save settings"),
+      );
     },
   });
 
@@ -153,19 +157,23 @@ export function EmailSettingsSection({
     onSuccess: () => {
       setTestResult({
         success: true,
-        message:
-          ar
-            ? "تم إرسال البريد التجريبي بنجاح! تحقق من صندوق الوارد (أو مجلد Spam)"
-            : "Test email sent successfully! Please check your inbox or spam folder",
+        message: ar
+          ? "تم إرسال البريد التجريبي بنجاح! تحقق من صندوق الوارد (أو مجلد Spam)"
+          : "Test email sent successfully! Please check your inbox or spam folder",
       });
-      toast.success(ar ? "نجح اختبار إرسال البريد!" : "Test email sent successfully!");
+      toast.success(
+        ar ? "نجح اختبار إرسال البريد!" : "Test email sent successfully!",
+      );
     },
     onError: (err: any) => {
       setTestResult({
         success: false,
         error: err.message,
       });
-      toast.error(err.message || (ar ? "فشل إرسال البريد التجريبي" : "Failed to send test email"));
+      toast.error(
+        err.message ||
+          (ar ? "فشل إرسال البريد التجريبي" : "Failed to send test email"),
+      );
     },
   });
 
@@ -206,7 +214,9 @@ export function EmailSettingsSection({
     return (
       <div className="p-8 flex items-center justify-center gap-2 text-muted-foreground">
         <RefreshCw className="w-5 h-5 animate-spin" />
-        <span>{ar ? "جاري تحميل إعدادات البريد..." : "Loading email settings..."}</span>
+        <span>
+          {ar ? "جاري تحميل إعدادات البريد..." : "Loading email settings..."}
+        </span>
       </div>
     );
   }
@@ -223,7 +233,9 @@ export function EmailSettingsSection({
               </div>
               <div>
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  {ar ? "إعدادات البريد الإلكتروني (SMTP)" : "Email & SMTP Server Settings"}
+                  {ar
+                    ? "إعدادات البريد الإلكتروني (SMTP)"
+                    : "Email & SMTP Server Settings"}
                   <Badge variant="outline" className="text-[11px] font-normal">
                     {hasExistingPass
                       ? ar
@@ -295,7 +307,9 @@ export function EmailSettingsSection({
                 dir="ltr"
               />
               <p className="text-[11px] text-muted-foreground">
-                {ar ? "مثال: smtp.gmail.com أو mail.sunrise-resorts.com" : "e.g. smtp.gmail.com or mail.sunrise-resorts.com"}
+                {ar
+                  ? "مثال: smtp.gmail.com أو mail.sunrise-resorts.com"
+                  : "e.g. smtp.gmail.com or mail.sunrise-resorts.com"}
               </p>
             </div>
 
@@ -314,11 +328,20 @@ export function EmailSettingsSection({
                   dir="ltr"
                 />
                 <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                  <span className="cursor-pointer underline" onClick={() => setSmtpPort(587)}>
+                  <span
+                    className="cursor-pointer underline"
+                    onClick={() => setSmtpPort(587)}
+                  >
                     587 (TLS)
                   </span>
                   <span>/</span>
-                  <span className="cursor-pointer underline" onClick={() => { setSmtpPort(465); setSmtpSecure(true); }}>
+                  <span
+                    className="cursor-pointer underline"
+                    onClick={() => {
+                      setSmtpPort(465);
+                      setSmtpSecure(true);
+                    }}
+                  >
                     465 (SSL)
                   </span>
                 </div>
@@ -334,13 +357,14 @@ export function EmailSettingsSection({
               <div className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/30">
                 <span className="text-xs font-medium">
                   {smtpSecure
-                    ? (ar ? "مفعل (Port 465 SSL)" : "Enabled (SSL)")
-                    : (ar ? "STARTTLS (Port 587)" : "STARTTLS (TLS)")}
+                    ? ar
+                      ? "مفعل (Port 465 SSL)"
+                      : "Enabled (SSL)"
+                    : ar
+                      ? "STARTTLS (Port 587)"
+                      : "STARTTLS (TLS)"}
                 </span>
-                <Switch
-                  checked={smtpSecure}
-                  onCheckedChange={setSmtpSecure}
-                />
+                <Switch checked={smtpSecure} onCheckedChange={setSmtpSecure} />
               </div>
             </div>
 
@@ -365,7 +389,9 @@ export function EmailSettingsSection({
               <Label className="text-xs font-semibold flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Key className="w-3.5 h-3.5 text-muted-foreground" />
-                  {ar ? "كلمة المرور (App Password)" : "Password / App Password"}
+                  {ar
+                    ? "كلمة المرور (App Password)"
+                    : "Password / App Password"}
                 </span>
                 {hasExistingPass && (
                   <span className="text-[10px] text-emerald-600 font-normal">
@@ -376,7 +402,9 @@ export function EmailSettingsSection({
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder={hasExistingPass ? "•••••••• (غير معدلة)" : "Password"}
+                  placeholder={
+                    hasExistingPass ? "•••••••• (غير معدلة)" : "Password"
+                  }
                   value={smtpPass}
                   onChange={(e) => setSmtpPass(e.target.value)}
                   className="text-xs pr-9 pl-9"
@@ -387,7 +415,11 @@ export function EmailSettingsSection({
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
               <p className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -401,7 +433,9 @@ export function EmailSettingsSection({
             {/* From Address / Display Name */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold">
-                {ar ? "عنوان واسم المرسل (From Header)" : "Sender Display Name & Address"}
+                {ar
+                  ? "عنوان واسم المرسل (From Header)"
+                  : "Sender Display Name & Address"}
               </Label>
               <Input
                 type="text"
@@ -412,14 +446,21 @@ export function EmailSettingsSection({
                 dir="ltr"
               />
               <p className="text-[11px] text-muted-foreground">
-                {ar ? "الاسم الذي يظهر للموظف عند استلام الإيميل" : "The display name and sender email shown in recipient inbox"}
+                {ar
+                  ? "الاسم الذي يظهر للموظف عند استلام الإيميل"
+                  : "The display name and sender email shown in recipient inbox"}
               </p>
             </div>
           </div>
 
           {/* Action Footer */}
           <div className="flex justify-end pt-2 border-t">
-            <PermissionGate anyPermission={[["settings", "manage_email"], ["settings", "edit"]]}>
+            <PermissionGate
+              anyPermission={[
+                ["settings", "manage_email"],
+                ["settings", "edit"],
+              ]}
+            >
               <Button
                 type="button"
                 onClick={() => saveMutation.mutate()}
@@ -434,7 +475,9 @@ export function EmailSettingsSection({
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    <span>{ar ? "حفظ إعدادات البريد" : "Save Email Settings"}</span>
+                    <span>
+                      {ar ? "حفظ إعدادات البريد" : "Save Email Settings"}
+                    </span>
                   </>
                 )}
               </Button>
@@ -448,7 +491,9 @@ export function EmailSettingsSection({
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-bold flex items-center gap-2">
             <Send className="w-4 h-4 text-primary" />
-            {ar ? "اختبار الإرسال المباشر (Send Test Email)" : "Live SMTP Test Verification"}
+            {ar
+              ? "اختبار الإرسال المباشر (Send Test Email)"
+              : "Live SMTP Test Verification"}
           </CardTitle>
           <CardDescription className="text-xs">
             {ar
@@ -461,14 +506,23 @@ export function EmailSettingsSection({
             <div className="relative flex-1 w-full">
               <Input
                 type="email"
-                placeholder={ar ? "أدخل بريدك الإلكتروني (مثل name@domain.com)" : "Enter recipient email (e.g. name@domain.com)"}
+                placeholder={
+                  ar
+                    ? "أدخل بريدك الإلكتروني (مثل name@domain.com)"
+                    : "Enter recipient email (e.g. name@domain.com)"
+                }
                 value={testRecipient}
                 onChange={(e) => setTestRecipient(e.target.value)}
                 className="text-xs"
                 dir="ltr"
               />
             </div>
-            <PermissionGate anyPermission={[["settings", "manage_email"], ["settings", "edit"]]}>
+            <PermissionGate
+              anyPermission={[
+                ["settings", "manage_email"],
+                ["settings", "edit"],
+              ]}
+            >
               <Button
                 type="button"
                 variant="secondary"
@@ -479,12 +533,16 @@ export function EmailSettingsSection({
                 {testEmailMutation.isPending ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin text-primary" />
-                    <span>{ar ? "جاري الفحص والإرسال..." : "Testing Connection..."}</span>
+                    <span>
+                      {ar ? "جاري الفحص والإرسال..." : "Testing Connection..."}
+                    </span>
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4 text-primary" />
-                    <span>{ar ? "إرسال بريد تجريبي الآن" : "Send Test Email Now"}</span>
+                    <span>
+                      {ar ? "إرسال بريد تجريبي الآن" : "Send Test Email Now"}
+                    </span>
                   </>
                 )}
               </Button>
@@ -508,8 +566,12 @@ export function EmailSettingsSection({
               <div className="space-y-1">
                 <p className="font-semibold">
                   {testResult.success
-                    ? (ar ? "نجح الاتصال والإرسال بنجاح!" : "Connection and Email Delivery Succeeded!")
-                    : (ar ? "فشل الاتصال بسيرفر البريد" : "SMTP Connection Failed")}
+                    ? ar
+                      ? "نجح الاتصال والإرسال بنجاح!"
+                      : "Connection and Email Delivery Succeeded!"
+                    : ar
+                      ? "فشل الاتصال بسيرفر البريد"
+                      : "SMTP Connection Failed"}
                 </p>
                 <p className="text-[11px] opacity-90">
                   {testResult.success ? testResult.message : testResult.error}

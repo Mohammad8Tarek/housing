@@ -3,8 +3,10 @@ import { pool } from "@workspace/db";
 async function run() {
   const client = await pool.connect();
   try {
-    const schemasRes = await client.query(`SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT LIKE 'pg_%' AND schema_name != 'information_schema'`);
-    const schemas = schemasRes.rows.map(r => r.schema_name);
+    const schemasRes = await client.query(
+      `SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT LIKE 'pg_%' AND schema_name != 'information_schema'`,
+    );
+    const schemas = schemasRes.rows.map((r) => r.schema_name);
 
     for (const schema of schemas) {
       console.log(`Creating table in ${schema}...`);

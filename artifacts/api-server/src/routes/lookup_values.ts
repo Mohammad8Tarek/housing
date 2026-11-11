@@ -2,39 +2,52 @@ import { Router } from "express";
 import { withTenant, lookupValuesTable } from "@workspace/db";
 import { eq, and, inArray } from "drizzle-orm";
 import { getTenantId } from "../lib/request-utils.js";
-import { requireAuth, requireAnyPermission } from "../middlewares/permissions.js";
+import {
+  requireAuth,
+  requireAnyPermission,
+} from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams } from "../validation/common.js";
-import { BulkLookupBody, CreateLookupBody, ListLookupQuery, UpdateLookupBody } from "../validation/schemas.js";
+import {
+  BulkLookupBody,
+  CreateLookupBody,
+  ListLookupQuery,
+  UpdateLookupBody,
+} from "../validation/schemas.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { translateLookup, hasArabic } from "../lib/bilingual-translator.js";
 
 const router: Router = Router();
 
 // ─── GET /lookup-values & /lookup_values ─────────────────────────────────────
-router.get(["/lookup-values", "/lookup_values"], requireAuth, validate({ query: ListLookupQuery }), async (req, res): Promise<void> => {
-  const propertyId = getTenantId(req);
-  const category = req.query.category as string | undefined;
-  if (!propertyId) {
-    res.status(400).json({ error: "propertyId required" });
-    return;
-  }
+router.get(
+  ["/lookup-values", "/lookup_values"],
+  requireAuth,
+  validate({ query: ListLookupQuery }),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    const category = req.query.category as string | undefined;
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId required" });
+      return;
+    }
 
-  const values = await withTenant(propertyId, async (tenantDb) => {
-    const conditions: any[] = [];
-    if (category) conditions.push(eq(lookupValuesTable.category, category));
+    const values = await withTenant(propertyId, async (tenantDb) => {
+      const conditions: any[] = [];
+      if (category) conditions.push(eq(lookupValuesTable.category, category));
 
-    let results = await tenantDb
-      .select()
-      .from(lookupValuesTable)
-      .where(conditions.length ? and(...conditions) : undefined)
-      .orderBy(lookupValuesTable.sortOrder, lookupValuesTable.value);
+      let results = await tenantDb
+        .select()
+        .from(lookupValuesTable)
+        .where(conditions.length ? and(...conditions) : undefined)
+        .orderBy(lookupValuesTable.sortOrder, lookupValuesTable.value);
 
-    return results;
-  });
+      return results;
+    });
 
-  res.json(values.map((v) => ({ ...v, propertyId })));
-});
+    res.json(values.map((v) => ({ ...v, propertyId })));
+  },
+);
 
 // ─── POST /lookup-values & /lookup_values ────────────────────────────────────
 router.post(
@@ -47,7 +60,8 @@ router.post(
   validate({ body: CreateLookupBody }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
-    let { category, value, valueAr, parentValue, extraValue, sortOrder } = req.body;
+    let { category, value, valueAr, parentValue, extraValue, sortOrder } =
+      req.body;
     if (!propertyId || !category || (!value && !valueAr)) {
       res.status(400).json({ error: "Missing fields" });
       return;
@@ -97,13 +111,21 @@ router.post(
     const propertyId = getTenantId(req);
     const { items } = req.body;
     if (!propertyId || !Array.isArray(items) || items.length === 0) {
-      res.status(400).json({ error: "propertyId and non-empty items array required" });
+      res
+        .status(400)
+        .json({ error: "propertyId and non-empty items array required" });
       return;
     }
 
     try {
       const result = await withTenant(propertyId, async (tenantDb) => {
-        const categories = Array.from(new Set(items.map((i: any) => String(i.category || "").trim()).filter(Boolean)));
+        const categories = Array.from(
+          new Set(
+            items
+              .map((i: any) => String(i.category || "").trim())
+              .filter(Boolean),
+          ),
+        );
         const existing = categories.length
           ? await tenantDb
               .select()
@@ -126,9 +148,14 @@ router.post(
           const category = String(item.category || "").trim();
           let value = String(item.value || "").trim();
           let valueAr = String(item.valueAr || "").trim();
-          const parentValue = item.parentValue ? String(item.parentValue).trim() : null;
-          const extraValue = item.extraValue ? String(item.extraValue).trim() : null;
-          const sortOrder = typeof item.sortOrder === "number" ? item.sortOrder : 0;
+          const parentValue = item.parentValue
+            ? String(item.parentValue).trim()
+            : null;
+          const extraValue = item.extraValue
+            ? String(item.extraValue).trim()
+            : null;
+          const sortOrder =
+            typeof item.sortOrder === "number" ? item.sortOrder : 0;
 
           if (!category || (!value && !valueAr)) {
             skippedCount++;
@@ -152,13 +179,18 @@ router.post(
           if (existingRow) {
             let needsUpdate = false;
             const updatePayload: Record<string, any> = {};
-            const normExistingExtra = existingRow.extraValue ? String(existingRow.extraValue).trim() : null;
+            const normExistingExtra = existingRow.extraValue
+              ? String(existingRow.extraValue).trim()
+              : null;
 
             if (normExtra !== null && normExtra !== normExistingExtra) {
               updatePayload.extraValue = normExtra;
               needsUpdate = true;
             }
-            if (valueAr && (!existingRow.valueAr || existingRow.valueAr.trim() !== valueAr)) {
+            if (
+              valueAr &&
+              (!existingRow.valueAr || existingRow.valueAr.trim() !== valueAr)
+            ) {
               updatePayload.valueAr = valueAr;
               needsUpdate = true;
             }
@@ -207,11 +239,16 @@ router.post(
         };
       });
 
-      broadcastToProperty(propertyId, { module: "settings", action: "updated" });
+      broadcastToProperty(propertyId, {
+        module: "settings",
+        action: "updated",
+      });
       res.json(result);
     } catch (err: any) {
       console.error("Error in /lookup-values/bulk:", err);
-      res.status(500).json({ error: err.message || "Failed to bulk import lookup values" });
+      res
+        .status(500)
+        .json({ error: err.message || "Failed to bulk import lookup values" });
     }
   },
 );
@@ -238,7 +275,8 @@ router.patch(
       return;
     }
 
-    const { value, valueAr, parentValue, extraValue, disabled, sortOrder } = req.body;
+    const { value, valueAr, parentValue, extraValue, disabled, sortOrder } =
+      req.body;
     const updateData: Record<string, any> = {};
 
     if (value !== undefined) updateData.value = String(value).trim();
@@ -246,7 +284,8 @@ router.patch(
     if (sortOrder !== undefined)
       updateData.sortOrder = parseInt(String(sortOrder));
     if (extraValue !== undefined) {
-      updateData.extraValue = (extraValue === null || extraValue === "") ? null : String(extraValue);
+      updateData.extraValue =
+        extraValue === null || extraValue === "" ? null : String(extraValue);
     }
     if (parentValue !== undefined) {
       if (

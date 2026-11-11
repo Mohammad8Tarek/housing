@@ -9,8 +9,37 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Users, Building2, BedDouble, Wrench, CalendarCheck, Sparkles, TrendingUp, ShieldCheck, RefreshCw, BarChart3, CheckCircle2, AlertTriangle, DoorOpen, FileSpreadsheet, Layers, Activity, Compass, ArrowUpRight, ChevronRight } from "lucide-react";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
+import {
+  Users,
+  Building2,
+  BedDouble,
+  Wrench,
+  CalendarCheck,
+  Sparkles,
+  TrendingUp,
+  ShieldCheck,
+  RefreshCw,
+  BarChart3,
+  CheckCircle2,
+  AlertTriangle,
+  DoorOpen,
+  FileSpreadsheet,
+  Layers,
+  Activity,
+  Compass,
+  ArrowUpRight,
+  ChevronRight,
+} from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 import { DashboardKpiCard } from "./DashboardKpiCard";
 import { formatDate } from "@/lib/date-utils";
 import { Link, useLocation } from "wouter";
@@ -40,7 +69,9 @@ export function DashboardLiveAllProperty({
   properties = [],
 }: DashboardLiveAllPropertyProps) {
   const [, setLocation] = useLocation();
-  const [activeOpsTab, setActiveOpsTab] = React.useState<"arrivals" | "tickets">("arrivals");
+  const [activeOpsTab, setActiveOpsTab] = React.useState<
+    "arrivals" | "tickets"
+  >("arrivals");
 
   // Chart data for comparing properties
   const propertyChartData = React.useMemo(() => {
@@ -58,16 +89,24 @@ export function DashboardLiveAllProperty({
   // Executive Reports Matrix
   const reportCards = [
     {
-      title: ar ? "تقرير الإشغال العام الموحد" : "Executive Portfolio Occupancy",
-      desc: ar ? "إشغال الفنادق والمباني وتوزيع الأسرة" : "All properties & buildings occupancy",
+      title: ar
+        ? "تقرير الإشغال العام الموحد"
+        : "Executive Portfolio Occupancy",
+      desc: ar
+        ? "إشغال الفنادق والمباني وتوزيع الأسرة"
+        : "All properties & buildings occupancy",
       icon: BarChart3,
       tab: "manager_flash",
       color: "text-blue-600 dark:text-blue-400",
       bg: "bg-blue-500/10 hover:bg-blue-500/15",
     },
     {
-      title: ar ? "استثناءات ومخالفات السياسة" : "Policy Exceptions & Level Audit",
-      desc: ar ? "سجل التجاوزات واعتمادات الإدارة" : "Policy violations & manager overrides",
+      title: ar
+        ? "استثناءات ومخالفات السياسة"
+        : "Policy Exceptions & Level Audit",
+      desc: ar
+        ? "سجل التجاوزات واعتمادات الإدارة"
+        : "Policy violations & manager overrides",
       icon: ShieldCheck,
       tab: "policy_exceptions",
       color: "text-rose-600 dark:text-rose-400",
@@ -75,7 +114,9 @@ export function DashboardLiveAllProperty({
     },
     {
       title: ar ? "بيان الغرف الشاغرة الجاهزة" : "Vacant Ready Rooms Manifest",
-      desc: ar ? "غرف نظيفة وجاهزة للتسكين الفوري" : "Clean rooms ready for immediate check-in",
+      desc: ar
+        ? "غرف نظيفة وجاهزة للتسكين الفوري"
+        : "Clean rooms ready for immediate check-in",
       icon: DoorOpen,
       tab: "vacant_rooms",
       color: "text-emerald-600 dark:text-emerald-400",
@@ -83,7 +124,9 @@ export function DashboardLiveAllProperty({
     },
     {
       title: ar ? "حركة التسكين اليومية" : "Daily Operations Movement",
-      desc: ar ? "الوصول والمغادرة وحركات اليوم" : "Today arrivals, check-outs & transfers",
+      desc: ar
+        ? "الوصول والمغادرة وحركات اليوم"
+        : "Today arrivals, check-outs & transfers",
       icon: CalendarCheck,
       tab: "daily_movement",
       color: "text-purple-600 dark:text-purple-400",
@@ -91,7 +134,9 @@ export function DashboardLiveAllProperty({
     },
     {
       title: ar ? "نظافة وتجهيز الغرف" : "Housekeeping & Turnover",
-      desc: ar ? "معدل الجاهزية وقوائم التنظيف" : "Room turnover health & cleaning queue",
+      desc: ar
+        ? "معدل الجاهزية وقوائم التنظيف"
+        : "Room turnover health & cleaning queue",
       icon: Sparkles,
       tab: "housekeeping_sheet",
       color: "text-amber-600 dark:text-amber-400",
@@ -99,7 +144,9 @@ export function DashboardLiveAllProperty({
     },
     {
       title: ar ? "سجل الصيانة والأعطال" : "Maintenance & Asset Health",
-      desc: ar ? "الأعطال المفتوحة وأداء الفنيين" : "Active tickets & service ratings",
+      desc: ar
+        ? "الأعطال المفتوحة وأداء الفنيين"
+        : "Active tickets & service ratings",
       icon: Wrench,
       tab: "maintenance",
       color: "text-orange-600 dark:text-orange-400",
@@ -107,7 +154,9 @@ export function DashboardLiveAllProperty({
     },
     {
       title: ar ? "العقود والإقامات المنتهية" : "Expiring Contracts & Overstay",
-      desc: ar ? "عقود منتهية مستمرة في السكن" : "Staff with expired HR contracts",
+      desc: ar
+        ? "عقود منتهية مستمرة في السكن"
+        : "Staff with expired HR contracts",
       icon: AlertTriangle,
       tab: "expiring_contracts",
       color: "text-red-600 dark:text-red-400",
@@ -115,7 +164,9 @@ export function DashboardLiveAllProperty({
     },
     {
       title: ar ? "تقييمات وجودة السكن" : "Housing Pulse & Satisfaction",
-      desc: ar ? "استطلاعات رضا المقيمين والخدمات" : "Resident ratings & survey scores",
+      desc: ar
+        ? "استطلاعات رضا المقيمين والخدمات"
+        : "Resident ratings & survey scores",
       icon: TrendingUp,
       tab: "housing_ratings",
       color: "text-indigo-600 dark:text-indigo-400",
@@ -138,17 +189,27 @@ export function DashboardLiveAllProperty({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                {ar ? "مركز القيادة الموحد — بث مباشر" : "LIVE ALL-PROPERTIES COMMAND CENTER"}
+                {ar
+                  ? "مركز القيادة الموحد — بث مباشر"
+                  : "LIVE ALL-PROPERTIES COMMAND CENTER"}
               </Badge>
               <Badge variant="secondary" className="text-xs">
-                {perProperty.length} {ar ? "فنادق وفروع تحت الإشراف" : "Properties Under Management"}
+                {perProperty.length}{" "}
+                {ar ? "فنادق وفروع تحت الإشراف" : "Properties Under Management"}
               </Badge>
-              <Badge variant="outline" className="text-[11px] font-mono text-muted-foreground">
-                {ar ? "صلاحيات Super Admin كاملة" : "Super Admin Full Authority"}
+              <Badge
+                variant="outline"
+                className="text-[11px] font-mono text-muted-foreground"
+              >
+                {ar
+                  ? "صلاحيات Super Admin كاملة"
+                  : "Super Admin Full Authority"}
               </Badge>
             </div>
             <h2 className="text-xl font-bold tracking-tight text-foreground">
-              {ar ? "نظرة شمولية موحدة على سكن العاملين بكافة الفروع" : "Unified Staff Housing Overview Across All Properties"}
+              {ar
+                ? "نظرة شمولية موحدة على سكن العاملين بكافة الفروع"
+                : "Unified Staff Housing Overview Across All Properties"}
             </h2>
             <p className="text-xs text-muted-foreground">
               {ar
@@ -165,7 +226,9 @@ export function DashboardLiveAllProperty({
               disabled={allStatsLoading}
               className="gap-2 text-xs font-semibold h-9"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${allStatsLoading ? "animate-spin text-primary" : ""}`} />
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${allStatsLoading ? "animate-spin text-primary" : ""}`}
+              />
               {ar ? "تحديث مباشر" : "Live Refresh"}
             </Button>
             <Button
@@ -194,7 +257,14 @@ export function DashboardLiveAllProperty({
           href="/profiles"
           color="text-blue-600 dark:text-blue-400"
           bg="bg-blue-500/10"
-          sparklineData={[120, 125, 128, 130, 135, totals?.totalProfiles ?? 140]}
+          sparklineData={[
+            120,
+            125,
+            128,
+            130,
+            135,
+            totals?.totalProfiles ?? 140,
+          ]}
         />
 
         {/* Global Bed Occupancy */}
@@ -266,8 +336,12 @@ export function DashboardLiveAllProperty({
             <Building2 className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold text-muted-foreground">{ar ? "إجمالي الغرف" : "Total Rooms"}</p>
-            <p className="text-base font-bold font-mono text-foreground">{totals?.totalRooms ?? 0}</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              {ar ? "إجمالي الغرف" : "Total Rooms"}
+            </p>
+            <p className="text-base font-bold font-mono text-foreground">
+              {totals?.totalRooms ?? 0}
+            </p>
           </div>
         </div>
 
@@ -276,8 +350,12 @@ export function DashboardLiveAllProperty({
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold text-muted-foreground">{ar ? "غرف جاهزة ونظيفة" : "Clean & Ready"}</p>
-            <p className="text-base font-bold font-mono text-emerald-600 dark:text-emerald-400">{totals?.availableRooms ?? 0}</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              {ar ? "غرف جاهزة ونظيفة" : "Clean & Ready"}
+            </p>
+            <p className="text-base font-bold font-mono text-emerald-600 dark:text-emerald-400">
+              {totals?.availableRooms ?? 0}
+            </p>
           </div>
         </div>
 
@@ -286,8 +364,12 @@ export function DashboardLiveAllProperty({
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold text-muted-foreground">{ar ? "بحاجة لنظافة" : "Dirty / Cleaning"}</p>
-            <p className="text-base font-bold font-mono text-amber-600 dark:text-amber-400">{totals?.dirtyRooms ?? 0}</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              {ar ? "بحاجة لنظافة" : "Dirty / Cleaning"}
+            </p>
+            <p className="text-base font-bold font-mono text-amber-600 dark:text-amber-400">
+              {totals?.dirtyRooms ?? 0}
+            </p>
           </div>
         </div>
 
@@ -296,8 +378,12 @@ export function DashboardLiveAllProperty({
             <Wrench className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold text-muted-foreground">{ar ? "صيانة / خارج الخدمة" : "OOO Maintenance"}</p>
-            <p className="text-base font-bold font-mono text-rose-600 dark:text-rose-400">{totals?.oooRooms ?? 0}</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              {ar ? "صيانة / خارج الخدمة" : "OOO Maintenance"}
+            </p>
+            <p className="text-base font-bold font-mono text-rose-600 dark:text-rose-400">
+              {totals?.oooRooms ?? 0}
+            </p>
           </div>
         </div>
 
@@ -306,8 +392,12 @@ export function DashboardLiveAllProperty({
             <Layers className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold text-muted-foreground">{ar ? "إجمالي المباني" : "Total Buildings"}</p>
-            <p className="text-base font-bold font-mono text-foreground">{totals?.totalBuildings ?? 0}</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              {ar ? "إجمالي المباني" : "Total Buildings"}
+            </p>
+            <p className="text-base font-bold font-mono text-foreground">
+              {totals?.totalBuildings ?? 0}
+            </p>
           </div>
         </div>
 
@@ -316,8 +406,12 @@ export function DashboardLiveAllProperty({
             <TrendingUp className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold text-muted-foreground">{ar ? "معدل الجاهزية العام" : "Clean Readiness"}</p>
-            <p className="text-base font-bold font-mono text-indigo-600 dark:text-indigo-400">{totals?.cleanRate ?? 100}%</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">
+              {ar ? "معدل الجاهزية العام" : "Clean Readiness"}
+            </p>
+            <p className="text-base font-bold font-mono text-indigo-600 dark:text-indigo-400">
+              {totals?.cleanRate ?? 100}%
+            </p>
           </div>
         </div>
       </div>
@@ -328,7 +422,9 @@ export function DashboardLiveAllProperty({
           <div>
             <CardTitle className="text-base font-bold flex items-center gap-2">
               <Compass className="w-4 h-4 text-primary" />
-              {ar ? "مصفوفة مقارنة الفنادق والفروع (Live Branch Performance Matrix)" : "Branch Performance & Occupancy Matrix"}
+              {ar
+                ? "مصفوفة مقارنة الفنادق والفروع (Live Branch Performance Matrix)"
+                : "Branch Performance & Occupancy Matrix"}
             </CardTitle>
             <CardDescription className="text-xs">
               {ar
@@ -336,7 +432,10 @@ export function DashboardLiveAllProperty({
                 : "Comparative view across all hotels with one-click direct jump to any branch dashboard."}
             </CardDescription>
           </div>
-          <Badge variant="outline" className="font-mono text-xs self-start sm:self-auto">
+          <Badge
+            variant="outline"
+            className="font-mono text-xs self-start sm:self-auto"
+          >
             {perProperty.length} {ar ? "فروع نشطة" : "Active Branches"}
           </Badge>
         </CardHeader>
@@ -345,15 +444,33 @@ export function DashboardLiveAllProperty({
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
-                  <th className="text-start py-3 px-4">{ar ? "الفندق / الفرع" : "Hotel Branch"}</th>
-                  <th className="text-center py-3 px-3">{ar ? "إشغال الأسرة" : "Bed Occupancy"}</th>
-                  <th className="text-center py-3 px-3">{ar ? "إشغال الغرف" : "Room Occupancy"}</th>
-                  <th className="text-center py-3 px-3">{ar ? "الموظفون" : "Staff"}</th>
-                  <th className="text-center py-3 px-3">{ar ? "الأسرة (مشغول/إجمالي)" : "Beds (Occ/Tot)"}</th>
-                  <th className="text-center py-3 px-3">{ar ? "غرف تحتاج نظافة" : "Dirty Rooms"}</th>
-                  <th className="text-center py-3 px-3">{ar ? "البلاغات" : "Tickets"}</th>
-                  <th className="text-center py-3 px-3">{ar ? "الوصول" : "Arrivals"}</th>
-                  <th className="text-end py-3 px-4">{ar ? "إجراء" : "Action"}</th>
+                  <th className="text-start py-3 px-4">
+                    {ar ? "الفندق / الفرع" : "Hotel Branch"}
+                  </th>
+                  <th className="text-center py-3 px-3">
+                    {ar ? "إشغال الأسرة" : "Bed Occupancy"}
+                  </th>
+                  <th className="text-center py-3 px-3">
+                    {ar ? "إشغال الغرف" : "Room Occupancy"}
+                  </th>
+                  <th className="text-center py-3 px-3">
+                    {ar ? "الموظفون" : "Staff"}
+                  </th>
+                  <th className="text-center py-3 px-3">
+                    {ar ? "الأسرة (مشغول/إجمالي)" : "Beds (Occ/Tot)"}
+                  </th>
+                  <th className="text-center py-3 px-3">
+                    {ar ? "غرف تحتاج نظافة" : "Dirty Rooms"}
+                  </th>
+                  <th className="text-center py-3 px-3">
+                    {ar ? "البلاغات" : "Tickets"}
+                  </th>
+                  <th className="text-center py-3 px-3">
+                    {ar ? "الوصول" : "Arrivals"}
+                  </th>
+                  <th className="text-end py-3 px-4">
+                    {ar ? "إجراء" : "Action"}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -381,7 +498,9 @@ export function DashboardLiveAllProperty({
                               {p.name || p.displayName}
                             </p>
                             <p className="text-[11px] text-muted-foreground font-mono">
-                              {p.code ? `[${p.code}]` : ""} • {p.totalBuildings || 0} {ar ? "مباني" : "buildings"}
+                              {p.code ? `[${p.code}]` : ""} •{" "}
+                              {p.totalBuildings || 0}{" "}
+                              {ar ? "مباني" : "buildings"}
                             </p>
                           </div>
                         </div>
@@ -394,13 +513,16 @@ export function DashboardLiveAllProperty({
                               bedRate >= 85
                                 ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
                                 : bedRate >= 65
-                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                  : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                             }`}
                           >
                             {bedRate}%
                           </span>
-                          <Progress value={bedRate} className="h-1.5 w-full bg-muted" />
+                          <Progress
+                            value={bedRate}
+                            className="h-1.5 w-full bg-muted"
+                          />
                         </div>
                       </td>
 
@@ -415,37 +537,57 @@ export function DashboardLiveAllProperty({
                       </td>
 
                       <td className="py-3 px-3 text-center font-mono text-[11px]">
-                        <span className="font-bold text-foreground">{p.occupiedBeds ?? 0}</span>
-                        <span className="text-muted-foreground"> / {p.totalBeds ?? 0}</span>
+                        <span className="font-bold text-foreground">
+                          {p.occupiedBeds ?? 0}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          / {p.totalBeds ?? 0}
+                        </span>
                       </td>
 
                       <td className="py-3 px-3 text-center">
                         {(p.dirtyRooms ?? 0) > 0 ? (
-                          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-300 text-[10px] font-mono">
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-500/10 text-amber-600 border-amber-300 text-[10px] font-mono"
+                          >
                             {p.dirtyRooms} {ar ? "متسخة" : "dirty"}
                           </Badge>
                         ) : (
-                          <span className="text-emerald-600 text-[11px]">✓ {ar ? "جاهز" : "Clean"}</span>
+                          <span className="text-emerald-600 text-[11px]">
+                            ✓ {ar ? "جاهز" : "Clean"}
+                          </span>
                         )}
                       </td>
 
                       <td className="py-3 px-3 text-center">
                         {(p.openMaintenance ?? 0) > 0 ? (
-                          <Badge variant="outline" className="bg-rose-500/10 text-rose-600 border-rose-300 text-[10px] font-mono">
+                          <Badge
+                            variant="outline"
+                            className="bg-rose-500/10 text-rose-600 border-rose-300 text-[10px] font-mono"
+                          >
                             {p.openMaintenance}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground font-mono">0</span>
+                          <span className="text-muted-foreground font-mono">
+                            0
+                          </span>
                         )}
                       </td>
 
                       <td className="py-3 px-3 text-center">
                         {(p.upcomingReservations ?? 0) > 0 ? (
-                          <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-300 text-[10px] font-mono">
+                          <Badge
+                            variant="outline"
+                            className="bg-purple-500/10 text-purple-600 border-purple-300 text-[10px] font-mono"
+                          >
                             +{p.upcomingReservations}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground font-mono">0</span>
+                          <span className="text-muted-foreground font-mono">
+                            0
+                          </span>
                         )}
                       </td>
 
@@ -475,37 +617,84 @@ export function DashboardLiveAllProperty({
           <CardHeader className="pb-3 border-b border-border/50">
             <CardTitle className="text-base font-bold flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-primary" />
-              {ar ? "مقارنة نسب الإشغال بين كافة الفروع" : "Comparative Hotel Occupancy Rates"}
+              {ar
+                ? "مقارنة نسب الإشغال بين كافة الفروع"
+                : "Comparative Hotel Occupancy Rates"}
             </CardTitle>
             <CardDescription className="text-xs">
-              {ar ? "نسبة إشغال الأسرة مقابل الغرف لكل فندق" : "Bed occupancy vs Room occupancy by property"}
+              {ar
+                ? "نسبة إشغال الأسرة مقابل الغرف لكل فندق"
+                : "Bed occupancy vs Room occupancy by property"}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4">
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={propertyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.5} />
-                  <XAxis dataKey="code" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                <BarChart
+                  data={propertyChartData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 20 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--border))"
+                    opacity={0.5}
+                  />
+                  <XAxis
+                    dataKey="code"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={11}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={11}
+                    domain={[0, 100]}
+                    tickFormatter={(v) => `${v}%`}
+                  />
                   <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const d = payload[0].payload;
                         return (
                           <div className="bg-card border border-border rounded-xl p-3 shadow-lg text-xs space-y-1">
-                            <p className="font-bold text-foreground">{d.name}</p>
-                            <p className="text-amber-600">{ar ? "إشغال الأسرة:" : "Bed Occupancy:"} <strong className="font-mono">{d.bedOccupancy}%</strong> ({d.occupiedBeds}/{d.totalBeds})</p>
-                            <p className="text-emerald-600">{ar ? "إشغال الغرف:" : "Room Occupancy:"} <strong className="font-mono">{d.roomOccupancy}%</strong></p>
+                            <p className="font-bold text-foreground">
+                              {d.name}
+                            </p>
+                            <p className="text-amber-600">
+                              {ar ? "إشغال الأسرة:" : "Bed Occupancy:"}{" "}
+                              <strong className="font-mono">
+                                {d.bedOccupancy}%
+                              </strong>{" "}
+                              ({d.occupiedBeds}/{d.totalBeds})
+                            </p>
+                            <p className="text-emerald-600">
+                              {ar ? "إشغال الغرف:" : "Room Occupancy:"}{" "}
+                              <strong className="font-mono">
+                                {d.roomOccupancy}%
+                              </strong>
+                            </p>
                           </div>
                         );
                       }
                       return null;
                     }}
                   />
-                  <Bar dataKey="bedOccupancy" name={ar ? "إشغال الأسرة %" : "Bed %"} fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="roomOccupancy" name={ar ? "إشغال الغرف %" : "Room %"} fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
+                  <Bar
+                    dataKey="bedOccupancy"
+                    name={ar ? "إشغال الأسرة %" : "Bed %"}
+                    fill="#f59e0b"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="roomOccupancy"
+                    name={ar ? "إشغال الغرف %" : "Room %"}
+                    fill="#10b981"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -517,26 +706,36 @@ export function DashboardLiveAllProperty({
           <CardHeader className="pb-3 border-b border-border/50">
             <CardTitle className="text-base font-bold flex items-center gap-2">
               <Users className="w-4 h-4 text-primary" />
-              {ar ? "توزيع المقيمين حسب الأقسام العامة" : "Workforce Distribution by Department"}
+              {ar
+                ? "توزيع المقيمين حسب الأقسام العامة"
+                : "Workforce Distribution by Department"}
             </CardTitle>
             <CardDescription className="text-xs">
-              {ar ? "أكبر الأقسام إشغالاً للسكن عبر كافة الفنادق" : "Top departments housed across all hotels"}
+              {ar
+                ? "أكبر الأقسام إشغالاً للسكن عبر كافة الفنادق"
+                : "Top departments housed across all hotels"}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 space-y-3">
-            {(analytics?.departmentBreakdown || []).slice(0, 6).map((dept: any, idx: number) => {
-              const count = dept.count || 0;
-              const percent = dept.percent || 0;
-              return (
-                <div key={idx} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-foreground truncate max-w-[200px]">{dept.name}</span>
-                    <span className="font-mono text-muted-foreground text-[11px]">{count} {ar ? "موظف" : "staff"} ({percent}%)</span>
+            {(analytics?.departmentBreakdown || [])
+              .slice(0, 6)
+              .map((dept: any, idx: number) => {
+                const count = dept.count || 0;
+                const percent = dept.percent || 0;
+                return (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-foreground truncate max-w-[200px]">
+                        {dept.name}
+                      </span>
+                      <span className="font-mono text-muted-foreground text-[11px]">
+                        {count} {ar ? "موظف" : "staff"} ({percent}%)
+                      </span>
+                    </div>
+                    <Progress value={percent} className="h-1.5" />
                   </div>
-                  <Progress value={percent} className="h-1.5" />
-                </div>
-              );
-            })}
+                );
+              })}
           </CardContent>
         </Card>
       </div>
@@ -546,7 +745,9 @@ export function DashboardLiveAllProperty({
         <CardHeader className="pb-3 border-b border-border/50">
           <CardTitle className="text-base font-bold flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4 text-primary" />
-            {ar ? "مركز التقارير والتدقيق الشامل لكافة الفنادق (Executive Cross-Property Audit)" : "Consolidated Reports & Audit Center"}
+            {ar
+              ? "مركز التقارير والتدقيق الشامل لكافة الفنادق (Executive Cross-Property Audit)"
+              : "Consolidated Reports & Audit Center"}
           </CardTitle>
           <CardDescription className="text-xs">
             {ar
@@ -573,12 +774,16 @@ export function DashboardLiveAllProperty({
                         {rc.desc}
                       </p>
                     </div>
-                    <div className={`w-8 h-8 rounded-lg bg-background/80 flex items-center justify-center shrink-0 ${rc.color} shadow-xs`}>
+                    <div
+                      className={`w-8 h-8 rounded-lg bg-background/80 flex items-center justify-center shrink-0 ${rc.color} shadow-xs`}
+                    >
                       <Icon className="w-4 h-4" />
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-[11px] font-semibold text-primary pt-2 border-t border-border/40">
-                    <span>{ar ? "فتح التقرير الشامل" : "Open Audit Report"}</span>
+                    <span>
+                      {ar ? "فتح التقرير الشامل" : "Open Audit Report"}
+                    </span>
                     <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform rtl:group-hover:-translate-x-0.5" />
                   </div>
                 </Link>
@@ -594,7 +799,9 @@ export function DashboardLiveAllProperty({
           <div>
             <CardTitle className="text-base font-bold flex items-center gap-2">
               <Activity className="w-4 h-4 text-primary" />
-              {ar ? "غرفة العمليات المركزية الحية (Live Central Operations Stream)" : "Central Operations Stream"}
+              {ar
+                ? "غرفة العمليات المركزية الحية (Live Central Operations Stream)"
+                : "Central Operations Stream"}
             </CardTitle>
             <CardDescription className="text-xs">
               {ar
@@ -639,26 +846,38 @@ export function DashboardLiveAllProperty({
             <div className="divide-y divide-border/40">
               {(operations?.checkIns || []).length > 0 ? (
                 operations.checkIns.map((arr: any) => (
-                  <div key={arr.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors">
+                  <div
+                    key={arr.id}
+                    className="p-3.5 flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-600 shrink-0">
                         <CalendarCheck className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="font-bold text-xs text-foreground">{arr.guestName || "—"}</p>
+                        <p className="font-bold text-xs text-foreground">
+                          {arr.guestName || "—"}
+                        </p>
                         <p className="text-[11px] text-muted-foreground font-mono">
-                          {ar ? "غرفة" : "Room"} {arr.roomNumber || "—"} • {ar ? "الوصول:" : "Check-in:"} {formatDate(arr.checkInDate)}
+                          {ar ? "غرفة" : "Room"} {arr.roomNumber || "—"} •{" "}
+                          {ar ? "الوصول:" : "Check-in:"}{" "}
+                          {formatDate(arr.checkInDate)}
                         </p>
                       </div>
                     </div>
-                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-xs font-semibold">
+                    <Badge
+                      variant="outline"
+                      className="bg-primary/5 text-primary border-primary/20 text-xs font-semibold"
+                    >
                       {arr.propertyName}
                     </Badge>
                   </div>
                 ))
               ) : (
                 <div className="p-8 text-center text-xs text-muted-foreground">
-                  {ar ? "لا توجد حجوزات وصول مؤكدة قيد الانتظار حالياً." : "No upcoming confirmed arrivals pending."}
+                  {ar
+                    ? "لا توجد حجوزات وصول مؤكدة قيد الانتظار حالياً."
+                    : "No upcoming confirmed arrivals pending."}
                 </div>
               )}
             </div>
@@ -666,17 +885,24 @@ export function DashboardLiveAllProperty({
             <div className="divide-y divide-border/40">
               {(operations?.maintenanceRequests || []).length > 0 ? (
                 operations.maintenanceRequests.map((t: any) => (
-                  <div key={t.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors">
+                  <div
+                    key={t.id}
+                    className="p-3.5 flex items-center justify-between gap-3 hover:bg-muted/40 transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0">
                         <Wrench className="w-4 h-4" />
                       </div>
                       <div>
                         <p className="font-bold text-xs text-foreground">
-                          {t.problemType || (ar ? "بلاغ صيانة" : "Service Order")} #{t.id}
+                          {t.problemType ||
+                            (ar ? "بلاغ صيانة" : "Service Order")}{" "}
+                          #{t.id}
                         </p>
                         <p className="text-[11px] text-muted-foreground font-mono">
-                          {ar ? "فئة:" : "Category:"} {t.category || "maintenance"} • {ar ? "غرفة" : "Room"} {t.roomNumber || "—"}
+                          {ar ? "فئة:" : "Category:"}{" "}
+                          {t.category || "maintenance"} • {ar ? "غرفة" : "Room"}{" "}
+                          {t.roomNumber || "—"}
                         </p>
                       </div>
                     </div>
@@ -691,7 +917,10 @@ export function DashboardLiveAllProperty({
                       >
                         {t.priority || "medium"}
                       </Badge>
-                      <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-xs font-semibold">
+                      <Badge
+                        variant="outline"
+                        className="bg-primary/5 text-primary border-primary/20 text-xs font-semibold"
+                      >
                         {t.propertyName}
                       </Badge>
                     </div>
@@ -699,7 +928,9 @@ export function DashboardLiveAllProperty({
                 ))
               ) : (
                 <div className="p-8 text-center text-xs text-muted-foreground">
-                  {ar ? "لا توجد بلاغات صيانة أو نظافة مفتوحة حالياً." : "No active service tickets."}
+                  {ar
+                    ? "لا توجد بلاغات صيانة أو نظافة مفتوحة حالياً."
+                    : "No active service tickets."}
                 </div>
               )}
             </div>

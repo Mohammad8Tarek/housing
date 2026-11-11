@@ -103,23 +103,39 @@ export function ProfileSearchCard({
             >
               <SelectTrigger className="h-8 w-full sm:w-64 text-xs font-semibold">
                 <SelectValue
-                  placeholder={ar ? "🌐 كل الفنادق والفروع (بحث شامل)" : "All Properties"}
+                  placeholder={
+                    ar ? "🌐 كل الفنادق والفروع (بحث شامل)" : "All Properties"
+                  }
                 />
               </SelectTrigger>
               <SelectContent position="popper" sideOffset={4}>
-                <SelectItem value="all" className="text-xs font-bold text-primary">
+                <SelectItem
+                  value="all"
+                  className="text-xs font-bold text-primary"
+                >
                   <div className="flex items-center gap-1.5">
                     <span>🌐</span>
-                    <span>{ar ? "كل الفنادق والفروع (بحث شامل)" : "All Properties (Global Search)"}</span>
+                    <span>
+                      {ar
+                        ? "كل الفنادق والفروع (بحث شامل)"
+                        : "All Properties (Global Search)"}
+                    </span>
                   </div>
                 </SelectItem>
                 {allProperties.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)} className="text-xs">
+                  <SelectItem
+                    key={p.id}
+                    value={String(p.id)}
+                    className="text-xs"
+                  >
                     <div className="flex items-center gap-1.5">
                       <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
                       <span>{p.displayName || p.name}</span>
                       {p.id === activePropertyId && (
-                        <Badge variant="secondary" className="text-[9px] py-0 px-1 ml-1 rtl:mr-1">
+                        <Badge
+                          variant="secondary"
+                          className="text-[9px] py-0 px-1 ml-1 rtl:mr-1"
+                        >
                           {ar ? "الحالي" : "Active"}
                         </Badge>
                       )}

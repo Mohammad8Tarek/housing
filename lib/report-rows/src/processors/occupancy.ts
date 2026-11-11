@@ -47,7 +47,11 @@ export function processOccupancyForecast(ctx: ReportProcessorContext): any[] {
   for (let i = 0; i < horizon; i++) {
     // Calendar day i after today in the user's zone (the browser's own zone
     // when timeZone is omitted), matching the label shown for the row.
-    const { iso: dIso, display: dateDisplay, dayName } = calendarDay(i, ar, timeZone);
+    const {
+      iso: dIso,
+      display: dateDisplay,
+      dayName,
+    } = calendarDay(i, ar, timeZone);
 
     const dayArrivals = reservations.filter((r: any) => {
       if (r.status?.toUpperCase() === "CANCELLED") return false;

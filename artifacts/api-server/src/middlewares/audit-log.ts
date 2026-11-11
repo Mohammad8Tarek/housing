@@ -64,9 +64,11 @@ function extractPropertyId(req: Request, resBody: any): number | null {
 
 function inferModule(path: string): string {
   const p = path.toLowerCase();
-  if (p.includes("assignments") || p.includes("in-house")) return "accommodation";
+  if (p.includes("assignments") || p.includes("in-house"))
+    return "accommodation";
   if (p.includes("reservations")) return "reservations";
-  if (p.includes("hostings") || p.includes("hosting-requests")) return "accommodation";
+  if (p.includes("hostings") || p.includes("hosting-requests"))
+    return "accommodation";
   if (p.includes("profiles") || p.includes("employees")) return "profiles";
   if (p.includes("rooms")) return "housing";
   if (p.includes("buildings")) return "housing";
@@ -80,13 +82,19 @@ function inferModule(path: string): string {
   if (p.includes("documents")) return "documents";
   if (p.includes("evaluations")) return "evaluations";
   if (p.includes("surveys")) return "evaluations";
-  if (p.includes("smart-locks") || p.includes("keys") || p.includes("room-keys")) return "smart_locks";
+  if (
+    p.includes("smart-locks") ||
+    p.includes("keys") ||
+    p.includes("room-keys")
+  )
+    return "smart_locks";
   if (p.includes("auth")) return "auth";
   if (p.includes("hr-sync")) return "hr_sync";
   if (p.includes("inventory")) return "inventory";
   if (p.includes("whatsapp")) return "whatsapp";
   if (p.includes("activities")) return "activities";
-  if (p.includes("portal-notifications") || p.includes("push-notifications")) return "portal_notifications";
+  if (p.includes("portal-notifications") || p.includes("push-notifications"))
+    return "portal_notifications";
   return "system";
 }
 
@@ -95,7 +103,7 @@ function analyzeMutation(
   path: string,
   reqBody: any,
   resBody: any,
-  params: any
+  params: any,
 ): {
   action: string;
   actionType: string;
@@ -106,7 +114,8 @@ function analyzeMutation(
 } {
   const module = inferModule(path);
   const p = path.toLowerCase();
-  const idFromUrl = Number(params?.id || p.match(/\/(\d+)(?:\/|$)/)?.[1]) || undefined;
+  const idFromUrl =
+    Number(params?.id || p.match(/\/(\d+)(?:\/|$)/)?.[1]) || undefined;
   const entityId = resBody?.id ? Number(resBody.id) : idFromUrl;
 
   let actionType = "UPDATE";
@@ -123,7 +132,11 @@ function analyzeMutation(
     reqBody?.toRoomNumber ||
     params?.roomNumber ||
     "";
-  const roomDisplay = roomNum ? `الغرفة رقم ${roomNum}` : (entityId ? `الغرفة #${entityId}` : "الغرفة");
+  const roomDisplay = roomNum
+    ? `الغرفة رقم ${roomNum}`
+    : entityId
+      ? `الغرفة #${entityId}`
+      : "الغرفة";
 
   if (p.includes("/checkout")) {
     actionType = "CHECKOUT";
@@ -139,7 +152,8 @@ function analyzeMutation(
     actionType = "TRANSFER";
     entityType = "assignment";
     const toRoom = reqBody?.toRoomNumber || resBody?.newRoom?.roomNumber || "";
-    const fromRoom = reqBody?.fromRoomNumber || resBody?.oldRoom?.roomNumber || "";
+    const fromRoom =
+      reqBody?.fromRoomNumber || resBody?.oldRoom?.roomNumber || "";
     action = `نقل غرفة (Room Transfer)${fromRoom ? ` من الغرفة ${fromRoom}` : ""}${toRoom ? ` إلى الغرفة ${toRoom}` : ""} للتسكين #${entityId || ""}`;
     summary = `تم نقل المقيم للتسكين #${entityId || ""}${fromRoom ? ` من الغرفة ${fromRoom}` : ""}${toRoom ? ` إلى الغرفة ${toRoom}` : ""}`;
   } else if (p.includes("/issue") || p.includes("/keys")) {
@@ -174,12 +188,14 @@ function analyzeMutation(
       summary = `تم إنشاء ${roomDisplay} بسعة ${reqBody?.capacity || 1} ونوع ${reqBody?.roomType || "STANDARD"}`;
     } else if (module === "profiles") {
       entityType = "profile";
-      const name = `${reqBody?.firstName || ""} ${reqBody?.lastName || ""}`.trim();
+      const name =
+        `${reqBody?.firstName || ""} ${reqBody?.lastName || ""}`.trim();
       action = `إضافة موظف/بروفايل جديد: ${name}`;
       summary = `تم تسجيل ملف موظف جديد: ${name} برقم وظيفي: ${reqBody?.employeeId || ""}`;
     } else if (module === "reservations") {
       entityType = "reservation";
-      const name = `${reqBody?.firstName || ""} ${reqBody?.lastName || ""}`.trim();
+      const name =
+        `${reqBody?.firstName || ""} ${reqBody?.lastName || ""}`.trim();
       action = `إنشاء حجز جديد: ${name}${roomNum ? ` في الغرفة رقم ${roomNum}` : ""}`;
       summary = `تم إنشاء حجز جديد للضيف ${name}${roomNum ? ` في الغرفة رقم ${roomNum}` : ""} من ${reqBody?.checkInDate || ""} إلى ${reqBody?.checkOutDate || ""}`;
     } else if (module === "maintenance") {
@@ -201,7 +217,10 @@ function analyzeMutation(
       entityType = "user";
       action = `تعديل صلاحيات المستخدم #${entityId || ""}`;
       summary = `تم تحديث مصفوفة الصلاحيات للمستخدم #${entityId || ""} وإعادة ضبط ${reqBody.permissions.length} صلاحية`;
-    } else if (module === "housing" && (p.includes("room") || p.includes("rooms") || reqBody?.status)) {
+    } else if (
+      module === "housing" &&
+      (p.includes("room") || p.includes("rooms") || reqBody?.status)
+    ) {
       entityType = "room";
       if (reqBody?.status) {
         actionType = "STATUS_CHANGE";
@@ -218,7 +237,7 @@ function analyzeMutation(
     } else {
       action = `تعديل في ${module} #${entityId || ""}`;
       const changedKeys = Object.keys(reqBody || {}).filter(
-        (k) => !["id", "createdAt", "updatedAt"].includes(k)
+        (k) => !["id", "createdAt", "updatedAt"].includes(k),
       );
       summary = `تم تعديل الحقول: [${changedKeys.join(", ")}] في السجل #${entityId || ""}`;
     }
@@ -249,17 +268,25 @@ export function auditLogMiddleware(
         const authUser = (req as any).authUser;
         const session = req.session as any;
         const portal = session?.portal;
-        const userId = authUser?.id ?? portal?.profileDbId ?? session?.userId ?? undefined;
-        const username = authUser?.username ?? (portal ? `الموظف: ${portal.fullName}` : session?.username) ?? "system";
-        const userRole = (authUser?.roles && authUser.roles[0]) ?? (portal ? "portal_employee" : session?.userRole) ?? undefined;
-        const propertyId = extractPropertyId(req, body) ?? portal?.propertyId ?? null;
+        const userId =
+          authUser?.id ?? portal?.profileDbId ?? session?.userId ?? undefined;
+        const username =
+          authUser?.username ??
+          (portal ? `الموظف: ${portal.fullName}` : session?.username) ??
+          "system";
+        const userRole =
+          (authUser?.roles && authUser.roles[0]) ??
+          (portal ? "portal_employee" : session?.userRole) ??
+          undefined;
+        const propertyId =
+          extractPropertyId(req, body) ?? portal?.propertyId ?? null;
 
         const analysis = analyzeMutation(
           req.method,
           req.originalUrl || req.path,
           req.body,
           body,
-          req.params
+          req.params,
         );
 
         const sanitizedReqBody = sanitize(req.body);
@@ -282,7 +309,10 @@ export function auditLogMiddleware(
           query: req.query,
           requestPayload: sanitizedReqBody,
           responsePayload: sanitizedResBody,
-          changedFields: req.body && typeof req.body === "object" ? Object.keys(req.body) : [],
+          changedFields:
+            req.body && typeof req.body === "object"
+              ? Object.keys(req.body)
+              : [],
         };
 
         logActivity({
@@ -301,8 +331,8 @@ export function auditLogMiddleware(
             analysis.actionType === "DELETE"
               ? "warning"
               : analysis.actionType === "PERMISSIONS_CHANGE"
-              ? "warning"
-              : "info",
+                ? "warning"
+                : "info",
         }).catch((err) => {
           console.error("[auditLogMiddleware] Error logging activity:", err);
         });

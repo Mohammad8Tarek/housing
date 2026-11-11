@@ -8,14 +8,36 @@ import type { ReportSort } from "./useReportSort";
 
 /** Reports served page-by-page from the API (biggest, ever-growing lists first). */
 export const SERVER_ROW_TABS = new Set([
-  "manager_flash", "occupancy_forecast", "housing_map", "arrivals_manifest", "departures_manifest", "housekeeping_sheet", "room_discrepancy",
-  "daily_movement", "assignments", "vacant_rooms", "housing", "department_occupancy",
-  "profiles", "expiring_contracts", "hostings", "vacations", "maintenance",
-  "equipment_inventory", "water_distribution", "gate_logs", "police_report", "policy_exceptions",
+  "manager_flash",
+  "occupancy_forecast",
+  "housing_map",
+  "arrivals_manifest",
+  "departures_manifest",
+  "housekeeping_sheet",
+  "room_discrepancy",
+  "daily_movement",
+  "assignments",
+  "vacant_rooms",
+  "housing",
+  "department_occupancy",
+  "profiles",
+  "expiring_contracts",
+  "hostings",
+  "vacations",
+  "maintenance",
+  "equipment_inventory",
+  "water_distribution",
+  "gate_logs",
+  "police_report",
+  "policy_exceptions",
 ]);
 
 /** Server-row tabs that render their own view instead of the report table. */
-export const OWN_VIEW_TABS = new Set(["manager_flash", "occupancy_forecast", "housing_map"]);
+export const OWN_VIEW_TABS = new Set([
+  "manager_flash",
+  "occupancy_forecast",
+  "housing_map",
+]);
 
 const BROWSER_TIME_ZONE = (() => {
   try {
@@ -28,13 +50,28 @@ const BROWSER_TIME_ZONE = (() => {
 type RowsPage = {
   data: any[];
   totalRows: number;
-  pagination?: { page: number; limit: number; total: number; totalPages: number };
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
 const FILTER_KEYS = [
-  "filterBuilding", "filterFloor", "filterStatus", "filterCategory", "filterDepartment",
-  "filterGender", "filterNationality", "filterRoomType", "filterEmploymentType",
-  "dateFrom", "dateTo", "inventoryViewMode", "waterSortMode",
+  "filterBuilding",
+  "filterFloor",
+  "filterStatus",
+  "filterCategory",
+  "filterDepartment",
+  "filterGender",
+  "filterNationality",
+  "filterRoomType",
+  "filterEmploymentType",
+  "dateFrom",
+  "dateTo",
+  "inventoryViewMode",
+  "waterSortMode",
 ] as const;
 
 export function useServerReportRows({
@@ -62,7 +99,10 @@ export function useServerReportRows({
 }) {
   // Everything but the page: identifies the full row set.
   const baseQuery = useMemo(() => {
-    const qs = new URLSearchParams({ propertyId: String(propId ?? ""), lang: ar ? "ar" : "en" });
+    const qs = new URLSearchParams({
+      propertyId: String(propId ?? ""),
+      lang: ar ? "ar" : "en",
+    });
     for (const k of FILTER_KEYS) {
       const v = filters[k];
       if (v && v !== "all") qs.set(k, String(v));
@@ -76,12 +116,21 @@ export function useServerReportRows({
     if (BROWSER_TIME_ZONE) qs.set("tz", BROWSER_TIME_ZONE);
     return qs.toString();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propId, ar, search, sort, groupByRoom, ...FILTER_KEYS.map((k) => filters[k])]);
+  }, [
+    propId,
+    ar,
+    search,
+    sort,
+    groupByRoom,
+    ...FILTER_KEYS.map((k) => filters[k]),
+  ]);
 
   const pageQuery = useQuery({
     queryKey: ["report-rows", report, baseQuery, page, pageSize],
     queryFn: () =>
-      customFetch<RowsPage>(`/api/reports/rows/${report}?${baseQuery}&page=${page}&limit=${pageSize}`),
+      customFetch<RowsPage>(
+        `/api/reports/rows/${report}?${baseQuery}&page=${page}&limit=${pageSize}`,
+      ),
     enabled: enabled && !!propId,
     placeholderData: keepPreviousData,
   });
@@ -93,7 +142,9 @@ export function useServerReportRows({
 
   // Always fetched fresh: exports must reflect the latest data.
   const loadAllRows = useCallback(async (): Promise<any[]> => {
-    const res = await customFetch<RowsPage>(`/api/reports/rows/${report}?${baseQuery}&all=1`);
+    const res = await customFetch<RowsPage>(
+      `/api/reports/rows/${report}?${baseQuery}&all=1`,
+    );
     const rows = res.data ?? [];
     fullRowsRef.current = { key: fullKey, rows };
     setFullRowsVersion((v) => v + 1);
@@ -101,7 +152,8 @@ export function useServerReportRows({
   }, [report, baseQuery, fullKey]);
 
   const allRows = useCallback(
-    () => (fullRowsRef.current?.key === fullKey ? fullRowsRef.current.rows : []),
+    () =>
+      fullRowsRef.current?.key === fullKey ? fullRowsRef.current.rows : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [fullKey, fullRowsVersion],
   );

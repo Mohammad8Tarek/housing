@@ -46,8 +46,14 @@ import {
   Sparkles,
   Languages,
 } from "lucide-react";
-import { transliterateToken, splitCompoundName } from "@/lib/bilingual-name-engine";
-import { translateDepartment, translateJobTitle } from "@/lib/bilingual-hospitality-dict";
+import {
+  transliterateToken,
+  splitCompoundName,
+} from "@/lib/bilingual-name-engine";
+import {
+  translateDepartment,
+  translateJobTitle,
+} from "@/lib/bilingual-hospitality-dict";
 import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
 import {
   DocumentPreviewModal,
@@ -69,7 +75,9 @@ export function EditProfileDialog({
   const fileRef = useRef<HTMLInputElement>(null);
   const docsRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [previewDoc, setPreviewDoc] = useState<PreviewableDocument | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<PreviewableDocument | null>(
+    null,
+  );
 
   const effectivePropertyId =
     typeof propertyId === "number" && propertyId > 0
@@ -107,7 +115,7 @@ export function EditProfileDialog({
   const handleNameChange = (
     field: "firstName" | "lastName" | "thirdName" | "fourthName",
     value: string,
-    lang: "en" | "ar"
+    lang: "en" | "ar",
   ) => {
     if (lang === "en") {
       const arKey = `${field}Ar` as keyof EditEmpForm;
@@ -116,7 +124,9 @@ export function EditProfileDialog({
         return {
           ...p,
           [field]: value,
-          ...(shouldTransliterate ? { [arKey]: transliterateToken(value, "ar") } : {}),
+          ...(shouldTransliterate
+            ? { [arKey]: transliterateToken(value, "ar") }
+            : {}),
         };
       });
     } else {
@@ -127,7 +137,9 @@ export function EditProfileDialog({
         return {
           ...p,
           [arKey]: value,
-          ...(shouldTransliterate ? { [enKey]: transliterateToken(value, "en") } : {}),
+          ...(shouldTransliterate
+            ? { [enKey]: transliterateToken(value, "en") }
+            : {}),
         };
       });
     }
@@ -164,15 +176,35 @@ export function EditProfileDialog({
   };
 
   const handleAutoTranslateNames = () => {
-    const fnAr = form.firstName ? transliterateToken(form.firstName, "ar") : form.firstNameAr;
-    const lnAr = form.lastName ? transliterateToken(form.lastName, "ar") : form.lastNameAr;
-    const tnAr = form.thirdName ? transliterateToken(form.thirdName, "ar") : form.thirdNameAr;
-    const foAr = form.fourthName ? transliterateToken(form.fourthName, "ar") : form.fourthNameAr;
+    const fnAr = form.firstName
+      ? transliterateToken(form.firstName, "ar")
+      : form.firstNameAr;
+    const lnAr = form.lastName
+      ? transliterateToken(form.lastName, "ar")
+      : form.lastNameAr;
+    const tnAr = form.thirdName
+      ? transliterateToken(form.thirdName, "ar")
+      : form.thirdNameAr;
+    const foAr = form.fourthName
+      ? transliterateToken(form.fourthName, "ar")
+      : form.fourthNameAr;
 
-    const fnEn = !form.firstName && form.firstNameAr ? transliterateToken(form.firstNameAr, "en") : form.firstName;
-    const lnEn = !form.lastName && form.lastNameAr ? transliterateToken(form.lastNameAr, "en") : form.lastName;
-    const tnEn = !form.thirdName && form.thirdNameAr ? transliterateToken(form.thirdNameAr, "en") : form.thirdName;
-    const foEn = !form.fourthName && form.fourthNameAr ? transliterateToken(form.fourthNameAr, "en") : form.fourthName;
+    const fnEn =
+      !form.firstName && form.firstNameAr
+        ? transliterateToken(form.firstNameAr, "en")
+        : form.firstName;
+    const lnEn =
+      !form.lastName && form.lastNameAr
+        ? transliterateToken(form.lastNameAr, "en")
+        : form.lastName;
+    const tnEn =
+      !form.thirdName && form.thirdNameAr
+        ? transliterateToken(form.thirdNameAr, "en")
+        : form.thirdName;
+    const foEn =
+      !form.fourthName && form.fourthNameAr
+        ? transliterateToken(form.fourthNameAr, "en")
+        : form.fourthName;
 
     setForm((p) => ({
       ...p,
@@ -185,7 +217,11 @@ export function EditProfileDialog({
       thirdNameAr: tnAr || p.thirdNameAr,
       fourthNameAr: foAr || p.fourthNameAr,
     }));
-    toast.success(ar ? "تمت الترجمة والتعريب الصوتي للأسماء تلقائياً" : "Names auto-transliterated successfully");
+    toast.success(
+      ar
+        ? "تمت الترجمة والتعريب الصوتي للأسماء تلقائياً"
+        : "Names auto-transliterated successfully",
+    );
   };
 
   const handleDocSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -256,7 +292,6 @@ export function EditProfileDialog({
         (jt) => !jt.parentValue || jt.parentValue === form.department,
       )
     : allJobTitles;
-
 
   const invalidate = () => {
     queryClient.invalidateQueries({
@@ -342,7 +377,9 @@ export function EditProfileDialog({
       return;
     }
     if (!form.profileId?.trim()) {
-      toast.error(ar ? "كود الموظف مطلوب" : "Profile ID / Clock Number is required");
+      toast.error(
+        ar ? "كود الموظف مطلوب" : "Profile ID / Clock Number is required",
+      );
       return;
     }
     if (!form.firstName?.trim()) {
@@ -358,10 +395,26 @@ export function EditProfileDialog({
       return;
     }
     const { status: _omittedStatus, ...cleanData } = form;
-    const finalDept = form.employmentType === "THIRD_PARTY" ? "Third Party" : (form.department?.trim() || translateDepartment(form.departmentAr || "", "en"));
-    const finalDeptAr = form.employmentType === "THIRD_PARTY" ? "طرف ثالث" : (form.departmentAr?.trim() || translateDepartment(form.department || "", "ar"));
-    const finalTitle = form.employmentType === "THIRD_PARTY" ? (form.jobTitle?.trim() || "Third Party Staff") : (form.jobTitle?.trim() || translateJobTitle(form.jobTitleAr || "", "en"));
-    const finalTitleAr = form.employmentType === "THIRD_PARTY" ? (form.jobTitleAr?.trim() || "عمالة طرف ثالث") : (form.jobTitleAr?.trim() || translateJobTitle(form.jobTitle || "", "ar"));
+    const finalDept =
+      form.employmentType === "THIRD_PARTY"
+        ? "Third Party"
+        : form.department?.trim() ||
+          translateDepartment(form.departmentAr || "", "en");
+    const finalDeptAr =
+      form.employmentType === "THIRD_PARTY"
+        ? "طرف ثالث"
+        : form.departmentAr?.trim() ||
+          translateDepartment(form.department || "", "ar");
+    const finalTitle =
+      form.employmentType === "THIRD_PARTY"
+        ? form.jobTitle?.trim() || "Third Party Staff"
+        : form.jobTitle?.trim() ||
+          translateJobTitle(form.jobTitleAr || "", "en");
+    const finalTitleAr =
+      form.employmentType === "THIRD_PARTY"
+        ? form.jobTitleAr?.trim() || "عمالة طرف ثالث"
+        : form.jobTitleAr?.trim() ||
+          translateJobTitle(form.jobTitle || "", "ar");
 
     updateMutation.mutate({
       id: profile.id,
@@ -383,422 +436,483 @@ export function EditProfileDialog({
   return (
     <>
       <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-6">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-            <Pencil className="w-5 h-5 text-amber-500" />
-            {ar ? "تعديل البروفايل" : "Edit Profile"}
-          </DialogTitle>
-          <p className="text-xs text-muted-foreground">
-            {ar
-              ? `تعديل بيانات الملف الشخصي (${profile.profileId})`
-              : `Edit profile information (${profile.profileId})`}
-          </p>
-        </DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <Pencil className="w-5 h-5 text-amber-500" />
+              {ar ? "تعديل البروفايل" : "Edit Profile"}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              {ar
+                ? `تعديل بيانات الملف الشخصي (${profile.profileId})`
+                : `Edit profile information (${profile.profileId})`}
+            </p>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 pt-2">
-          {/* Top Avatar Row */}
-          <div className="flex items-center justify-between p-3.5 bg-muted/40 rounded-xl border">
-            <div className="flex items-center gap-3.5">
-              <ProfileAvatar
-                firstName={profile.firstName}
-                lastName={profile.lastName}
-                photoUrl={profile.photoUrl}
-                size="md"
-              />
-              <div>
-                <p className="font-bold text-base leading-tight">
-                  {profile.firstName} {profile.lastName}
-                </p>
-                <p className="text-xs text-muted-foreground font-mono mt-0.5">
-                  {profile.profileId} • {profile.department || "—"}
-                </p>
-              </div>
-            </div>
-            <div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handlePhotoFile}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="gap-2 text-xs h-9"
-              >
-                <Camera className="w-4 h-4 text-primary" />
-                {uploading
-                  ? ar
-                    ? "جاري الرفع..."
-                    : "Uploading..."
-                  : ar
-                    ? "تغيير الصورة"
-                    : "Change Photo"}
-              </Button>
-            </div>
-          </div>
-
-          {/* Section 1: Employment Type */}
-          <div className="space-y-2">
-            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              {ar ? "نوع التوظيف" : "Employment Type"} <span className="text-destructive">*</span>
-            </Label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() =>
-                  setForm((f) => ({
-                    ...f,
-                    employmentType: "INTERNAL",
-                    companyName: "",
-                  }))
-                }
-                className={`flex items-center gap-2.5 p-3.5 border-2 rounded-xl text-sm transition-all ${
-                  form.employmentType === "INTERNAL"
-                    ? "border-blue-500 bg-blue-50/70 dark:bg-blue-950/30 text-blue-800 dark:text-blue-300 ring-2 ring-blue-500/20"
-                    : "border-border hover:border-muted-foreground bg-card"
-                }`}
-              >
-                <Building className="w-4 h-4 text-blue-600" />
-                <span className="font-semibold">
-                  {ar ? "تعيين داخلي (موظف فندق)" : "Internal (Hotel Employee)"}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setForm((f) => ({
-                    ...f,
-                    employmentType: "THIRD_PARTY",
-                    contractEndDate: "",
-                  }))
-                }
-                className={`flex items-center gap-2.5 p-3.5 border-2 rounded-xl text-sm transition-all ${
-                  form.employmentType === "THIRD_PARTY"
-                    ? "border-purple-500 bg-purple-50/70 dark:bg-purple-950/30 text-purple-800 dark:text-purple-300 ring-2 ring-purple-500/20"
-                    : "border-border hover:border-muted-foreground bg-card"
-                }`}
-              >
-                <Users className="w-4 h-4 text-purple-600" />
-                <span className="font-semibold">
-                  {ar ? "طرف ثالث" : "Third-Party"}
-                </span>
-              </button>
-            </div>
-          </div>
-
-          {/* Section 2: Personal Information */}
-          <div className="rounded-xl border bg-muted/20 p-4 space-y-4 shadow-2xs">
-            <div className="flex items-center justify-between border-b pb-2">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                {ar ? "1. البيانات الشخصية الأساسية" : "1. Personal Information"}
-              </p>
-              <span className="text-xs text-muted-foreground font-mono">
-                {form.profileId}
-              </span>
-            </div>
-
-            {/* Profile ID / Clock Number Row */}
-            <div className="p-3.5 bg-background border rounded-xl shadow-2xs">
-              <FormRow label={ar ? "كود الموظف / رقم الساعة (Clock Number / ID) *" : "Profile ID / Clock Number *"}>
-                <Input
-                  value={form.profileId}
-                  onChange={(e) => set("profileId", e.target.value)}
-                  placeholder={ar ? "مثال: EMP-001 أو رقم البصمة..." : "e.g. EMP-001, Clock No..."}
-                  className={`h-9 font-mono font-semibold ${
-                    duplicates.profileId
-                      ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
-                      : ""
-                  }`}
-                  required
+          <form onSubmit={handleSubmit} className="space-y-6 pt-2">
+            {/* Top Avatar Row */}
+            <div className="flex items-center justify-between p-3.5 bg-muted/40 rounded-xl border">
+              <div className="flex items-center gap-3.5">
+                <ProfileAvatar
+                  firstName={profile.firstName}
+                  lastName={profile.lastName}
+                  photoUrl={profile.photoUrl}
+                  size="md"
                 />
-                {duplicates.profileId && (
-                  <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>
-                      {ar
-                        ? `كود الموظف مسجل مسبقاً باسم: ${duplicates.profileId.name}`
-                        : `Code already registered to: ${duplicates.profileId.name}`}
-                    </span>
-                  </div>
-                )}
-              </FormRow>
-            </div>
-
-            {/* Bilingual Name Inputs with Realtime Auto-Translation */}
-            <div className="p-3.5 bg-background border rounded-xl space-y-3.5 shadow-2xs">
-              <div className="flex items-center justify-between border-b pb-2">
-                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <Languages className="w-3.5 h-3.5 text-primary" />
-                  {ar ? "اسم الموظف باللغتين (English & العربية)" : "Employee Name (English & Arabic)"}
-                </span>
+                <div>
+                  <p className="font-bold text-base leading-tight">
+                    {profile.firstName} {profile.lastName}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                    {profile.profileId} • {profile.department || "—"}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoFile}
+                />
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={handleAutoTranslateNames}
-                  className="h-7 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="gap-2 text-xs h-9"
                 >
-                  <Sparkles className="w-3 h-3 text-amber-500" />
-                  {ar ? "تعريب وترجمة تلقائية" : "Auto-Transliterate"}
+                  <Camera className="w-4 h-4 text-primary" />
+                  {uploading
+                    ? ar
+                      ? "جاري الرفع..."
+                      : "Uploading..."
+                    : ar
+                      ? "تغيير الصورة"
+                      : "Change Photo"}
                 </Button>
               </div>
-
-              {/* Full Arabic Name Single-Field Entry with Auto Transliteration */}
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-primary flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    {ar ? "إدخال الاسم الرباعي كاملاً بالعربية (ترجمة وتوزيع فوري للإنجليزية)" : "Full Arabic Name (Instant Auto-Translate to English)"}
-                  </Label>
-                  <span className="text-[10px] text-muted-foreground">
-                    {ar ? "اكتب أو الصق الاسم كاملاً وسيتم توزيعه وترجمته تلقائياً" : "Type or paste full Arabic name to auto-fill both languages"}
-                  </span>
-                </div>
-                <Input
-                  value={fullArabicInput}
-                  onChange={(e) => handleFullArabicNameChange(e.target.value)}
-                  placeholder={ar ? "اكتب الاسم الرباعي كاملاً هنا (مثال: محمد طارق أحمد محمود)..." : "Type full Arabic name here..."}
-                  dir="rtl"
-                  className="h-9 bg-background border-primary/30 font-medium"
-                />
-              </div>
-
-              {/* English Names */}
-              <div>
-                <div className="text-[11px] font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
-                  {ar ? "الاسم باللغة الإنجليزية (English Name)" : "English Name (Passport / System)"}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
-                  <FormRow label={ar ? "الاسم الأول *" : "First Name *"}>
-                    <Input
-                      value={form.firstName}
-                      onChange={(e) => handleNameChange("firstName", e.target.value, "en")}
-                      placeholder="e.g. Mohamed"
-                      dir="ltr"
-                      required
-                      className="h-9"
-                    />
-                  </FormRow>
-                  <FormRow label={ar ? "الاسم الثاني *" : "Second Name *"}>
-                    <Input
-                      value={form.lastName}
-                      onChange={(e) => handleNameChange("lastName", e.target.value, "en")}
-                      placeholder="e.g. Ahmed"
-                      dir="ltr"
-                      required
-                      className="h-9"
-                    />
-                  </FormRow>
-                  <FormRow label={ar ? "الاسم الثالث" : "Third Name"}>
-                    <Input
-                      value={form.thirdName}
-                      onChange={(e) => handleNameChange("thirdName", e.target.value, "en")}
-                      placeholder="e.g. Mahmoud"
-                      dir="ltr"
-                      className="h-9"
-                    />
-                  </FormRow>
-                  <FormRow label={ar ? "الاسم الرابع" : "Fourth Name"}>
-                    <Input
-                      value={form.fourthName}
-                      onChange={(e) => handleNameChange("fourthName", e.target.value, "en")}
-                      placeholder="e.g. Ali"
-                      dir="ltr"
-                      className="h-9"
-                    />
-                  </FormRow>
-                </div>
-              </div>
-
-              {/* Arabic Names */}
-              <div>
-                <div className="text-[11px] font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                  {ar ? "الاسم باللغة العربية (Arabic Name)" : "Arabic Name (Official ID)"}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
-                  <FormRow label={ar ? "الاسم الأول (عربي)" : "First Name (Ar)"}>
-                    <Input
-                      value={form.firstNameAr || ""}
-                      onChange={(e) => handleNameChange("firstName", e.target.value, "ar")}
-                      placeholder="مثال: محمد"
-                      dir="rtl"
-                      className="h-9"
-                    />
-                  </FormRow>
-                  <FormRow label={ar ? "الاسم الثاني (عربي)" : "Second Name (Ar)"}>
-                    <Input
-                      value={form.lastNameAr || ""}
-                      onChange={(e) => handleNameChange("lastName", e.target.value, "ar")}
-                      placeholder="مثال: أحمد"
-                      dir="rtl"
-                      className="h-9"
-                    />
-                  </FormRow>
-                  <FormRow label={ar ? "الاسم الثالث (عربي)" : "Third Name (Ar)"}>
-                    <Input
-                      value={form.thirdNameAr || ""}
-                      onChange={(e) => handleNameChange("thirdName", e.target.value, "ar")}
-                      placeholder="مثال: محمود"
-                      dir="rtl"
-                      className="h-9"
-                    />
-                  </FormRow>
-                  <FormRow label={ar ? "الاسم الرابع (عربي)" : "Fourth Name (Ar)"}>
-                    <Input
-                      value={form.fourthNameAr || ""}
-                      onChange={(e) => handleNameChange("fourthName", e.target.value, "ar")}
-                      placeholder="مثال: علي"
-                      dir="rtl"
-                      className="h-9"
-                    />
-                  </FormRow>
-                </div>
-              </div>
             </div>
 
-            {/* National ID, Nationality, Phone, Gender, DOB */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <FormRow label={ar ? "رقم الهوية / جواز السفر *" : "National ID / Passport *"}>
-                <Input
-                  value={form.nationalId}
-                  onChange={(e) => set("nationalId", e.target.value)}
-                  placeholder={ar ? "الرقم القومي (14 رقم) أو رقم الجواز..." : "14-digit National ID or Passport..."}
-                  className={
-                    duplicates.nationalId
-                      ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
-                      : ""
+            {/* Section 1: Employment Type */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                {ar ? "نوع التوظيف" : "Employment Type"}{" "}
+                <span className="text-destructive">*</span>
+              </Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      employmentType: "INTERNAL",
+                      companyName: "",
+                    }))
                   }
-                  required
-                />
-                {duplicates.nationalId && (
-                  <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>
-                      {ar
-                        ? `رقم الهوية مسجل مسبقاً للموظف: ${duplicates.nationalId.name} (كود: ${duplicates.nationalId.profileId})`
-                        : `ID already registered to: ${duplicates.nationalId.name} (Code: ${duplicates.nationalId.profileId})`}
-                    </span>
-                  </div>
-                )}
-              </FormRow>
-              <FormRow label={ar ? "الجنسية" : "Nationality"}>
-                <NationalitySelect
-                  value={form.nationality}
-                  onChange={(v) => set("nationality", v)}
-                  propertyId={effectivePropertyId}
-                  placeholder={ar ? "اختر الجنسية..." : "Select nationality..."}
-                />
-              </FormRow>
-              <FormRow label={ar ? "الهاتف" : "Phone"}>
-                <Input
-                  value={form.phone}
-                  onChange={(e) => set("phone", e.target.value)}
-                  type="tel"
-                  className={`h-9 ${
-                    duplicates.phone
-                      ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
-                      : ""
+                  className={`flex items-center gap-2.5 p-3.5 border-2 rounded-xl text-sm transition-all ${
+                    form.employmentType === "INTERNAL"
+                      ? "border-blue-500 bg-blue-50/70 dark:bg-blue-950/30 text-blue-800 dark:text-blue-300 ring-2 ring-blue-500/20"
+                      : "border-border hover:border-muted-foreground bg-card"
                   }`}
-                />
-                {duplicates.phone && (
-                  <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>
-                      {ar
-                        ? `رقم الهاتف مسجل مسبقاً للموظف: ${duplicates.phone.name} (كود: ${duplicates.phone.profileId})`
-                        : `Phone already registered to: ${duplicates.phone.name} (Code: ${duplicates.phone.profileId})`}
-                    </span>
-                  </div>
-                )}
-              </FormRow>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormRow label={ar ? "الجنس" : "Gender"}>
-                <Select
-                  value={form.gender}
-                  onValueChange={(v) => set("gender", v)}
                 >
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M">{ar ? "ذكر" : "Male"}</SelectItem>
-                    <SelectItem value="F">{ar ? "أنثى" : "Female"}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormRow>
-              <FormRow label={ar ? "تاريخ الميلاد" : "Date of Birth"}>
-                <DateInput
-                  value={form.dateOfBirth}
-                  onChange={(iso) => set("dateOfBirth", iso)}
-                  className="h-9"
-                />
-              </FormRow>
+                  <Building className="w-4 h-4 text-blue-600" />
+                  <span className="font-semibold">
+                    {ar
+                      ? "تعيين داخلي (موظف فندق)"
+                      : "Internal (Hotel Employee)"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      employmentType: "THIRD_PARTY",
+                      contractEndDate: "",
+                    }))
+                  }
+                  className={`flex items-center gap-2.5 p-3.5 border-2 rounded-xl text-sm transition-all ${
+                    form.employmentType === "THIRD_PARTY"
+                      ? "border-purple-500 bg-purple-50/70 dark:bg-purple-950/30 text-purple-800 dark:text-purple-300 ring-2 ring-purple-500/20"
+                      : "border-border hover:border-muted-foreground bg-card"
+                  }`}
+                >
+                  <Users className="w-4 h-4 text-purple-600" />
+                  <span className="font-semibold">
+                    {ar ? "طرف ثالث" : "Third-Party"}
+                  </span>
+                </button>
+              </div>
             </div>
 
-            {/* Address */}
-            <FormRow label={ar ? "العنوان بالكامل" : "Full Address"}>
-              <Input
-                value={form.address}
-                onChange={(e) => set("address", e.target.value)}
-                placeholder={ar ? "أدخل العنوان بالتفصيل..." : "Full address..."}
-              />
-            </FormRow>
-          </div>
+            {/* Section 2: Personal Information */}
+            <div className="rounded-xl border bg-muted/20 p-4 space-y-4 shadow-2xs">
+              <div className="flex items-center justify-between border-b pb-2">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                  {ar
+                    ? "1. البيانات الشخصية الأساسية"
+                    : "1. Personal Information"}
+                </p>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {form.profileId}
+                </span>
+              </div>
 
-          {/* Section 3: Work & Job Information */}
-          <div className="rounded-xl border bg-muted/20 p-4 space-y-4 shadow-2xs">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider border-b pb-2 flex items-center gap-1.5">
-              <Building className="w-3.5 h-3.5 text-primary" />
-              {ar ? "2. بيانات العمل والوظيفة" : "2. Work & Job Information"}
-            </p>
-
-            {form.employmentType === "THIRD_PARTY" ? (
-              /* Third-Party Simplified Work Information */
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <FormRow label={ar ? "اسم الشركة *" : "Company Name *"}>
+              {/* Profile ID / Clock Number Row */}
+              <div className="p-3.5 bg-background border rounded-xl shadow-2xs">
+                <FormRow
+                  label={
+                    ar
+                      ? "كود الموظف / رقم الساعة (Clock Number / ID) *"
+                      : "Profile ID / Clock Number *"
+                  }
+                >
                   <Input
-                    value={form.companyName}
-                    onChange={(e) => set("companyName", e.target.value)}
-                    placeholder={ar ? "أدخل اسم شركة المقاول أو المورد..." : "Enter company name..."}
+                    value={form.profileId}
+                    onChange={(e) => set("profileId", e.target.value)}
+                    placeholder={
+                      ar
+                        ? "مثال: EMP-001 أو رقم البصمة..."
+                        : "e.g. EMP-001, Clock No..."
+                    }
+                    className={`h-9 font-mono font-semibold ${
+                      duplicates.profileId
+                        ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
+                        : ""
+                    }`}
                     required
                   />
-                </FormRow>
-
-                <FormRow label={ar ? "الوظيفة / المهنة *" : "Job / Occupation *"}>
-                  <Input
-                    value={form.jobTitle}
-                    onChange={(e) => set("jobTitle", e.target.value)}
-                    placeholder={ar ? "مثال: أمن وحراسة، فني، نظافة، سائق..." : "e.g. Security, Tech, Cleaner..."}
-                    required
-                  />
-                </FormRow>
-
-                <FormRow label={ar ? "حالة التسكين" : "Housing Status"}>
-                  <div className="h-9 flex items-center">
-                    <StatusBadge status={form.status} />
-                  </div>
+                  {duplicates.profileId && (
+                    <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>
+                        {ar
+                          ? `كود الموظف مسجل مسبقاً باسم: ${duplicates.profileId.name}`
+                          : `Code already registered to: ${duplicates.profileId.name}`}
+                      </span>
+                    </div>
+                  )}
                 </FormRow>
               </div>
-            ) : (
-              /* Internal Employee Standard Work Information */
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <FormRow label={ar ? "أين يعمل / الفندق" : "Works At / Hotel"}>
+
+              {/* Bilingual Name Inputs with Realtime Auto-Translation */}
+              <div className="p-3.5 bg-background border rounded-xl space-y-3.5 shadow-2xs">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Languages className="w-3.5 h-3.5 text-primary" />
+                    {ar
+                      ? "اسم الموظف باللغتين (English & العربية)"
+                      : "Employee Name (English & Arabic)"}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAutoTranslateNames}
+                    className="h-7 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    {ar ? "تعريب وترجمة تلقائية" : "Auto-Transliterate"}
+                  </Button>
+                </div>
+
+                {/* Full Arabic Name Single-Field Entry with Auto Transliteration */}
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-primary flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      {ar
+                        ? "إدخال الاسم الرباعي كاملاً بالعربية (ترجمة وتوزيع فوري للإنجليزية)"
+                        : "Full Arabic Name (Instant Auto-Translate to English)"}
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground">
+                      {ar
+                        ? "اكتب أو الصق الاسم كاملاً وسيتم توزيعه وترجمته تلقائياً"
+                        : "Type or paste full Arabic name to auto-fill both languages"}
+                    </span>
+                  </div>
+                  <Input
+                    value={fullArabicInput}
+                    onChange={(e) => handleFullArabicNameChange(e.target.value)}
+                    placeholder={
+                      ar
+                        ? "اكتب الاسم الرباعي كاملاً هنا (مثال: محمد طارق أحمد محمود)..."
+                        : "Type full Arabic name here..."
+                    }
+                    dir="rtl"
+                    className="h-9 bg-background border-primary/30 font-medium"
+                  />
+                </div>
+
+                {/* English Names */}
+                <div>
+                  <div className="text-[11px] font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+                    {ar
+                      ? "الاسم باللغة الإنجليزية (English Name)"
+                      : "English Name (Passport / System)"}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                    <FormRow label={ar ? "الاسم الأول *" : "First Name *"}>
+                      <Input
+                        value={form.firstName}
+                        onChange={(e) =>
+                          handleNameChange("firstName", e.target.value, "en")
+                        }
+                        placeholder="e.g. Mohamed"
+                        dir="ltr"
+                        required
+                        className="h-9"
+                      />
+                    </FormRow>
+                    <FormRow label={ar ? "الاسم الثاني *" : "Second Name *"}>
+                      <Input
+                        value={form.lastName}
+                        onChange={(e) =>
+                          handleNameChange("lastName", e.target.value, "en")
+                        }
+                        placeholder="e.g. Ahmed"
+                        dir="ltr"
+                        required
+                        className="h-9"
+                      />
+                    </FormRow>
+                    <FormRow label={ar ? "الاسم الثالث" : "Third Name"}>
+                      <Input
+                        value={form.thirdName}
+                        onChange={(e) =>
+                          handleNameChange("thirdName", e.target.value, "en")
+                        }
+                        placeholder="e.g. Mahmoud"
+                        dir="ltr"
+                        className="h-9"
+                      />
+                    </FormRow>
+                    <FormRow label={ar ? "الاسم الرابع" : "Fourth Name"}>
+                      <Input
+                        value={form.fourthName}
+                        onChange={(e) =>
+                          handleNameChange("fourthName", e.target.value, "en")
+                        }
+                        placeholder="e.g. Ali"
+                        dir="ltr"
+                        className="h-9"
+                      />
+                    </FormRow>
+                  </div>
+                </div>
+
+                {/* Arabic Names */}
+                <div>
+                  <div className="text-[11px] font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                    {ar
+                      ? "الاسم باللغة العربية (Arabic Name)"
+                      : "Arabic Name (Official ID)"}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                    <FormRow
+                      label={ar ? "الاسم الأول (عربي)" : "First Name (Ar)"}
+                    >
+                      <Input
+                        value={form.firstNameAr || ""}
+                        onChange={(e) =>
+                          handleNameChange("firstName", e.target.value, "ar")
+                        }
+                        placeholder="مثال: محمد"
+                        dir="rtl"
+                        className="h-9"
+                      />
+                    </FormRow>
+                    <FormRow
+                      label={ar ? "الاسم الثاني (عربي)" : "Second Name (Ar)"}
+                    >
+                      <Input
+                        value={form.lastNameAr || ""}
+                        onChange={(e) =>
+                          handleNameChange("lastName", e.target.value, "ar")
+                        }
+                        placeholder="مثال: أحمد"
+                        dir="rtl"
+                        className="h-9"
+                      />
+                    </FormRow>
+                    <FormRow
+                      label={ar ? "الاسم الثالث (عربي)" : "Third Name (Ar)"}
+                    >
+                      <Input
+                        value={form.thirdNameAr || ""}
+                        onChange={(e) =>
+                          handleNameChange("thirdName", e.target.value, "ar")
+                        }
+                        placeholder="مثال: محمود"
+                        dir="rtl"
+                        className="h-9"
+                      />
+                    </FormRow>
+                    <FormRow
+                      label={ar ? "الاسم الرابع (عربي)" : "Fourth Name (Ar)"}
+                    >
+                      <Input
+                        value={form.fourthNameAr || ""}
+                        onChange={(e) =>
+                          handleNameChange("fourthName", e.target.value, "ar")
+                        }
+                        placeholder="مثال: علي"
+                        dir="rtl"
+                        className="h-9"
+                      />
+                    </FormRow>
+                  </div>
+                </div>
+              </div>
+
+              {/* National ID, Nationality, Phone, Gender, DOB */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <FormRow
+                  label={
+                    ar
+                      ? "رقم الهوية / جواز السفر *"
+                      : "National ID / Passport *"
+                  }
+                >
+                  <Input
+                    value={form.nationalId}
+                    onChange={(e) => set("nationalId", e.target.value)}
+                    placeholder={
+                      ar
+                        ? "الرقم القومي (14 رقم) أو رقم الجواز..."
+                        : "14-digit National ID or Passport..."
+                    }
+                    className={
+                      duplicates.nationalId
+                        ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
+                        : ""
+                    }
+                    required
+                  />
+                  {duplicates.nationalId && (
+                    <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>
+                        {ar
+                          ? `رقم الهوية مسجل مسبقاً للموظف: ${duplicates.nationalId.name} (كود: ${duplicates.nationalId.profileId})`
+                          : `ID already registered to: ${duplicates.nationalId.name} (Code: ${duplicates.nationalId.profileId})`}
+                      </span>
+                    </div>
+                  )}
+                </FormRow>
+                <FormRow label={ar ? "الجنسية" : "Nationality"}>
+                  <NationalitySelect
+                    value={form.nationality}
+                    onChange={(v) => set("nationality", v)}
+                    propertyId={effectivePropertyId}
+                    placeholder={
+                      ar ? "اختر الجنسية..." : "Select nationality..."
+                    }
+                  />
+                </FormRow>
+                <FormRow label={ar ? "الهاتف" : "Phone"}>
+                  <Input
+                    value={form.phone}
+                    onChange={(e) => set("phone", e.target.value)}
+                    type="tel"
+                    className={`h-9 ${
+                      duplicates.phone
+                        ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
+                        : ""
+                    }`}
+                  />
+                  {duplicates.phone && (
+                    <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>
+                        {ar
+                          ? `رقم الهاتف مسجل مسبقاً للموظف: ${duplicates.phone.name} (كود: ${duplicates.phone.profileId})`
+                          : `Phone already registered to: ${duplicates.phone.name} (Code: ${duplicates.phone.profileId})`}
+                      </span>
+                    </div>
+                  )}
+                </FormRow>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <FormRow label={ar ? "الجنس" : "Gender"}>
+                  <Select
+                    value={form.gender}
+                    onValueChange={(v) => set("gender", v)}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="M">{ar ? "ذكر" : "Male"}</SelectItem>
+                      <SelectItem value="F">
+                        {ar ? "أنثى" : "Female"}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormRow>
+                <FormRow label={ar ? "تاريخ الميلاد" : "Date of Birth"}>
+                  <DateInput
+                    value={form.dateOfBirth}
+                    onChange={(iso) => set("dateOfBirth", iso)}
+                    className="h-9"
+                  />
+                </FormRow>
+              </div>
+
+              {/* Address */}
+              <FormRow label={ar ? "العنوان بالكامل" : "Full Address"}>
+                <Input
+                  value={form.address}
+                  onChange={(e) => set("address", e.target.value)}
+                  placeholder={
+                    ar ? "أدخل العنوان بالتفصيل..." : "Full address..."
+                  }
+                />
+              </FormRow>
+            </div>
+
+            {/* Section 3: Work & Job Information */}
+            <div className="rounded-xl border bg-muted/20 p-4 space-y-4 shadow-2xs">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider border-b pb-2 flex items-center gap-1.5">
+                <Building className="w-3.5 h-3.5 text-primary" />
+                {ar ? "2. بيانات العمل والوظيفة" : "2. Work & Job Information"}
+              </p>
+
+              {form.employmentType === "THIRD_PARTY" ? (
+                /* Third-Party Simplified Work Information */
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <FormRow label={ar ? "اسم الشركة *" : "Company Name *"}>
                     <Input
                       value={form.companyName}
                       onChange={(e) => set("companyName", e.target.value)}
-                      placeholder={ar ? "اسم الفندق التابع له الموظف..." : "Enter hotel or workplace..."}
+                      placeholder={
+                        ar
+                          ? "أدخل اسم شركة المقاول أو المورد..."
+                          : "Enter company name..."
+                      }
+                      required
+                    />
+                  </FormRow>
+
+                  <FormRow
+                    label={ar ? "الوظيفة / المهنة *" : "Job / Occupation *"}
+                  >
+                    <Input
+                      value={form.jobTitle}
+                      onChange={(e) => set("jobTitle", e.target.value)}
+                      placeholder={
+                        ar
+                          ? "مثال: أمن وحراسة، فني، نظافة، سائق..."
+                          : "e.g. Security, Tech, Cleaner..."
+                      }
+                      required
                     />
                   </FormRow>
 
@@ -808,374 +922,464 @@ export function EditProfileDialog({
                     </div>
                   </FormRow>
                 </div>
+              ) : (
+                /* Internal Employee Standard Work Information */
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <FormRow
+                      label={ar ? "أين يعمل / الفندق" : "Works At / Hotel"}
+                    >
+                      <Input
+                        value={form.companyName}
+                        onChange={(e) => set("companyName", e.target.value)}
+                        placeholder={
+                          ar
+                            ? "اسم الفندق التابع له الموظف..."
+                            : "Enter hotel or workplace..."
+                        }
+                      />
+                    </FormRow>
 
-                {/* Contract End Date - Special Highlight Card for Internal Employees */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/50 rounded-lg">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-amber-600" />
-                      {ar
-                        ? "تاريخ انتهاء العقد (خاص بالموظفين الداخليين)"
-                        : "Contract End Date (Internal Employee)"}
-                    </Label>
-                    <DateInput
-                      value={form.contractEndDate || ""}
-                      onChange={(iso) => set("contractEndDate", iso)}
-                      className="bg-background border-amber-300 dark:border-amber-700 h-9"
-                    />
+                    <FormRow label={ar ? "حالة التسكين" : "Housing Status"}>
+                      <div className="h-9 flex items-center">
+                        <StatusBadge status={form.status} />
+                      </div>
+                    </FormRow>
                   </div>
-                  <div className="flex items-center text-xs text-muted-foreground pt-3 sm:pt-0">
-                    <p className="leading-relaxed">
-                      ⚡{" "}
-                      {ar
-                        ? "يُستخدم تلقائياً كتاريخ مغادرة الغرفة وانتهاء صلاحية كارت المفتاح عند التسكين."
-                        : "Auto-populates room check-out date & smart key card expiry date upon assignment."}
-                    </p>
-                  </div>
-                </div>
 
-                {/* Department (EN & AR) + Level */}
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-                    <div className="sm:col-span-2">
+                  {/* Contract End Date - Special Highlight Card for Internal Employees */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/50 rounded-lg">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-amber-600" />
+                        {ar
+                          ? "تاريخ انتهاء العقد (خاص بالموظفين الداخليين)"
+                          : "Contract End Date (Internal Employee)"}
+                      </Label>
+                      <DateInput
+                        value={form.contractEndDate || ""}
+                        onChange={(iso) => set("contractEndDate", iso)}
+                        className="bg-background border-amber-300 dark:border-amber-700 h-9"
+                      />
+                    </div>
+                    <div className="flex items-center text-xs text-muted-foreground pt-3 sm:pt-0">
+                      <p className="leading-relaxed">
+                        ⚡{" "}
+                        {ar
+                          ? "يُستخدم تلقائياً كتاريخ مغادرة الغرفة وانتهاء صلاحية كارت المفتاح عند التسكين."
+                          : "Auto-populates room check-out date & smart key card expiry date upon assignment."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Department (EN & AR) + Level */}
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                      <div className="sm:col-span-2">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium">
+                              {ar ? "القسم (إنجليزي)" : "Department (English)"}
+                            </Label>
+                            {departments.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setIsManualDept(!isManualDept)}
+                                className="text-[11px] text-primary hover:underline font-medium"
+                              >
+                                {isManualDept
+                                  ? ar
+                                    ? "اختيار من القائمة"
+                                    : "Select from list"
+                                  : ar
+                                    ? "كتابة يدوية"
+                                    : "Type manual"}
+                              </button>
+                            )}
+                          </div>
+                          {departments.length > 0 && !isManualDept ? (
+                            <Select
+                              value={form.department}
+                              onValueChange={(v) => {
+                                const matched = departments.find(
+                                  (d) => d.value === v,
+                                );
+                                const arDept =
+                                  matched?.valueAr ||
+                                  translateDepartment(v, "ar");
+                                setForm((p) => ({
+                                  ...p,
+                                  department: v,
+                                  departmentAr: arDept || p.departmentAr || "",
+                                  jobTitle: "",
+                                  jobTitleAr: "",
+                                  level: p.level || profile.level || "",
+                                }));
+                              }}
+                            >
+                              <SelectTrigger className="h-9 w-full">
+                                <SelectValue
+                                  placeholder={
+                                    ar ? "اختر القسم..." : "Select dept..."
+                                  }
+                                />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {departments.map((d) => (
+                                  <SelectItem key={d.id} value={d.value}>
+                                    {ar && d.valueAr
+                                      ? `${d.valueAr} (${d.value})`
+                                      : d.value}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input
+                              value={form.department}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                set("department", v);
+                                if (!form.departmentAr) {
+                                  set(
+                                    "departmentAr",
+                                    translateDepartment(v, "ar"),
+                                  );
+                                }
+                              }}
+                              placeholder={
+                                ar ? "القسم بالإنجليزي" : "Department (EN)"
+                              }
+                              className="h-9 w-full"
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <FormRow
+                          label={ar ? "القسم (عربي)" : "Department (Arabic)"}
+                        >
+                          <Input
+                            value={form.departmentAr || ""}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              set("departmentAr", v);
+                              if (!form.department) {
+                                set("department", translateDepartment(v, "en"));
+                              }
+                            }}
+                            placeholder={
+                              ar
+                                ? "مثال: المكاتب الأمامية"
+                                : "e.g. المكاتب الأمامية"
+                            }
+                            dir="rtl"
+                            className="h-9"
+                          />
+                        </FormRow>
+                      </div>
+
+                      <div className="sm:col-span-1">
+                        <FormRow label={ar ? "الدرجة / المستوى" : "Level"}>
+                          <div className="space-y-1 w-full">
+                            <div className="relative">
+                              <Input
+                                value={form.level || ""}
+                                readOnly
+                                disabled
+                                placeholder={ar ? "غير محدد" : "Not specified"}
+                                className={`h-9 bg-muted/60 font-semibold text-primary cursor-not-allowed select-none ${ar ? "pl-7 pr-3" : "pr-7 pl-3"}`}
+                              />
+                              <Lock
+                                className={`w-3.5 h-3.5 text-amber-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${ar ? "left-2.5" : "right-2.5"}`}
+                              />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
+                              <Lock className="w-3 h-3 text-amber-500 shrink-0" />
+                              {ar
+                                ? "يُسحب تلقائياً (غير قابل للتعديل)"
+                                : "Direct level (read-only)"}
+                            </p>
+                          </div>
+                        </FormRow>
+                      </div>
+                    </div>
+
+                    {/* Job Title (EN & AR) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <Label className="text-sm font-medium">{ar ? "القسم (إنجليزي)" : "Department (English)"}</Label>
-                          {departments.length > 0 && (
+                          <Label className="text-sm font-medium">
+                            {ar
+                              ? "المسمى الوظيفي (إنجليزي)"
+                              : "Job Title (English)"}
+                          </Label>
+                          {allJobTitles.length > 0 && (
                             <button
                               type="button"
-                              onClick={() => setIsManualDept(!isManualDept)}
+                              onClick={() =>
+                                setIsManualJobTitle(!isManualJobTitle)
+                              }
                               className="text-[11px] text-primary hover:underline font-medium"
                             >
-                              {isManualDept ? (ar ? "اختيار من القائمة" : "Select from list") : (ar ? "كتابة يدوية" : "Type manual")}
+                              {isManualJobTitle
+                                ? ar
+                                  ? "اختيار من القائمة"
+                                  : "Select from list"
+                                : ar
+                                  ? "كتابة يدوية"
+                                  : "Type manual"}
                             </button>
                           )}
                         </div>
-                        {departments.length > 0 && !isManualDept ? (
+                        {allJobTitles.length > 0 && !isManualJobTitle ? (
                           <Select
-                            value={form.department}
+                            value={form.jobTitle}
                             onValueChange={(v) => {
-                              const matched = departments.find((d) => d.value === v);
-                              const arDept = matched?.valueAr || translateDepartment(v, "ar");
+                              const jt = allJobTitles.find(
+                                (t) => t.value === v,
+                              );
+                              const arTitle =
+                                jt?.valueAr || translateJobTitle(v, "ar");
                               setForm((p) => ({
                                 ...p,
-                                department: v,
-                                departmentAr: arDept || p.departmentAr || "",
-                                jobTitle: "",
-                                jobTitleAr: "",
-                                level: p.level || profile.level || "",
+                                jobTitle: v,
+                                jobTitleAr: arTitle || p.jobTitleAr || "",
+                                level: jt?.extraValue || p.level,
                               }));
                             }}
+                            disabled={
+                              !form.department && departments.length > 0
+                            }
                           >
                             <SelectTrigger className="h-9 w-full">
-                              <SelectValue placeholder={ar ? "اختر القسم..." : "Select dept..."} />
+                              <SelectValue
+                                placeholder={
+                                  ar ? "اختر المسمى..." : "Select title..."
+                                }
+                              />
                             </SelectTrigger>
                             <SelectContent>
-                              {departments.map((d) => (
-                                <SelectItem key={d.id} value={d.value}>
-                                  {ar && d.valueAr ? `${d.valueAr} (${d.value})` : d.value}
+                              {filteredJobTitles.map((j) => (
+                                <SelectItem key={j.id} value={j.value}>
+                                  {ar && j.valueAr
+                                    ? `${j.valueAr} (${j.value})`
+                                    : j.value}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         ) : (
                           <Input
-                            value={form.department}
+                            value={form.jobTitle}
                             onChange={(e) => {
                               const v = e.target.value;
-                              set("department", v);
-                              if (!form.departmentAr) {
-                                set("departmentAr", translateDepartment(v, "ar"));
+                              set("jobTitle", v);
+                              if (!form.jobTitleAr) {
+                                set("jobTitleAr", translateJobTitle(v, "ar"));
                               }
                             }}
-                            placeholder={ar ? "القسم بالإنجليزي" : "Department (EN)"}
+                            placeholder={
+                              ar ? "المسمى بالإنجليزي" : "Job Title (EN)"
+                            }
                             className="h-9 w-full"
                           />
                         )}
                       </div>
-                    </div>
 
-                    <div className="sm:col-span-2">
-                      <FormRow label={ar ? "القسم (عربي)" : "Department (Arabic)"}>
+                      <FormRow
+                        label={
+                          ar ? "المسمى الوظيفي (عربي)" : "Job Title (Arabic)"
+                        }
+                      >
                         <Input
-                          value={form.departmentAr || ""}
+                          value={form.jobTitleAr || ""}
                           onChange={(e) => {
                             const v = e.target.value;
-                            set("departmentAr", v);
-                            if (!form.department) {
-                              set("department", translateDepartment(v, "en"));
+                            set("jobTitleAr", v);
+                            if (!form.jobTitle) {
+                              set("jobTitle", translateJobTitle(v, "en"));
                             }
                           }}
-                          placeholder={ar ? "مثال: المكاتب الأمامية" : "e.g. المكاتب الأمامية"}
+                          placeholder={
+                            ar ? "مثال: موظف استقبال" : "e.g. موظف استقبال"
+                          }
                           dir="rtl"
                           className="h-9"
                         />
                       </FormRow>
                     </div>
-
-                    <div className="sm:col-span-1">
-                      <FormRow label={ar ? "الدرجة / المستوى" : "Level"}>
-                        <div className="space-y-1 w-full">
-                          <div className="relative">
-                            <Input
-                              value={form.level || ""}
-                              readOnly
-                              disabled
-                              placeholder={ar ? "غير محدد" : "Not specified"}
-                              className={`h-9 bg-muted/60 font-semibold text-primary cursor-not-allowed select-none ${ar ? "pl-7 pr-3" : "pr-7 pl-3"}`}
-                            />
-                            <Lock className={`w-3.5 h-3.5 text-amber-500 absolute top-1/2 -translate-y-1/2 pointer-events-none ${ar ? "left-2.5" : "right-2.5"}`} />
-                          </div>
-                          <p className="text-[10px] text-muted-foreground flex items-center gap-1 font-medium">
-                            <Lock className="w-3 h-3 text-amber-500 shrink-0" />
-                            {ar ? "يُسحب تلقائياً (غير قابل للتعديل)" : "Direct level (read-only)"}
-                          </p>
-                        </div>
-                      </FormRow>
-                    </div>
                   </div>
-
-                  {/* Job Title (EN & AR) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">{ar ? "المسمى الوظيفي (إنجليزي)" : "Job Title (English)"}</Label>
-                        {allJobTitles.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setIsManualJobTitle(!isManualJobTitle)}
-                            className="text-[11px] text-primary hover:underline font-medium"
-                          >
-                            {isManualJobTitle ? (ar ? "اختيار من القائمة" : "Select from list") : (ar ? "كتابة يدوية" : "Type manual")}
-                          </button>
-                        )}
-                      </div>
-                      {allJobTitles.length > 0 && !isManualJobTitle ? (
-                        <Select
-                          value={form.jobTitle}
-                          onValueChange={(v) => {
-                            const jt = allJobTitles.find((t) => t.value === v);
-                            const arTitle = jt?.valueAr || translateJobTitle(v, "ar");
-                            setForm((p) => ({
-                              ...p,
-                              jobTitle: v,
-                              jobTitleAr: arTitle || p.jobTitleAr || "",
-                              level: jt?.extraValue || p.level,
-                            }));
-                          }}
-                          disabled={!form.department && departments.length > 0}
-                        >
-                          <SelectTrigger className="h-9 w-full">
-                            <SelectValue placeholder={ar ? "اختر المسمى..." : "Select title..."} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {filteredJobTitles.map((j) => (
-                              <SelectItem key={j.id} value={j.value}>
-                                {ar && j.valueAr ? `${j.valueAr} (${j.value})` : j.value}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input
-                          value={form.jobTitle}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            set("jobTitle", v);
-                            if (!form.jobTitleAr) {
-                              set("jobTitleAr", translateJobTitle(v, "ar"));
-                            }
-                          }}
-                          placeholder={ar ? "المسمى بالإنجليزي" : "Job Title (EN)"}
-                          className="h-9 w-full"
-                        />
-                      )}
-                    </div>
-
-                    <FormRow label={ar ? "المسمى الوظيفي (عربي)" : "Job Title (Arabic)"}>
-                      <Input
-                        value={form.jobTitleAr || ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          set("jobTitleAr", v);
-                          if (!form.jobTitle) {
-                            set("jobTitle", translateJobTitle(v, "en"));
-                          }
-                        }}
-                        placeholder={ar ? "مثال: موظف استقبال" : "e.g. موظف استقبال"}
-                        dir="rtl"
-                        className="h-9"
-                      />
-                    </FormRow>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Section 4: Documents & Attachments */}
-          <div className="rounded-xl border bg-muted/20 p-4 space-y-3 shadow-2xs">
-            <div className="flex items-center justify-between border-b pb-2">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-primary" />
-                {ar
-                  ? "3. صور الهوية وجواز السفر والمستندات"
-                  : "3. ID Documents & Passport Attachments"}
-              </p>
-              <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                {(form.idDocuments || []).length} {ar ? "مرفقات" : "files"}
-              </span>
+                </>
+              )}
             </div>
 
-            <input
-              ref={docsRef}
-              type="file"
-              multiple
-              accept="image/*,.pdf"
-              className="hidden"
-              onChange={handleDocSelect}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => docsRef.current?.click()}
-              className="w-full border-dashed h-11 gap-2 bg-background hover:bg-muted font-medium"
-            >
-              <FileText className="w-4 h-4 text-primary" />
-              {ar
-                ? "+ إضافة صور البطاقة أو جواز السفر أو عقود العمل"
-                : "+ Add ID Cards, Passports or Contract Documents"}
-            </Button>
+            {/* Section 4: Documents & Attachments */}
+            <div className="rounded-xl border bg-muted/20 p-4 space-y-3 shadow-2xs">
+              <div className="flex items-center justify-between border-b pb-2">
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-primary" />
+                  {ar
+                    ? "3. صور الهوية وجواز السفر والمستندات"
+                    : "3. ID Documents & Passport Attachments"}
+                </p>
+                <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  {(form.idDocuments || []).length} {ar ? "مرفقات" : "files"}
+                </span>
+              </div>
 
-            {form.idDocuments && form.idDocuments.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
-                {form.idDocuments.map((doc, i) => (
-                  <div
-                    key={i}
-                    className="relative group border rounded-lg overflow-hidden h-28 flex flex-col justify-between bg-card shadow-xs"
-                  >
+              <input
+                ref={docsRef}
+                type="file"
+                multiple
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={handleDocSelect}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => docsRef.current?.click()}
+                className="w-full border-dashed h-11 gap-2 bg-background hover:bg-muted font-medium"
+              >
+                <FileText className="w-4 h-4 text-primary" />
+                {ar
+                  ? "+ إضافة صور البطاقة أو جواز السفر أو عقود العمل"
+                  : "+ Add ID Cards, Passports or Contract Documents"}
+              </Button>
+
+              {form.idDocuments && form.idDocuments.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                  {form.idDocuments.map((doc, i) => (
                     <div
-                      className="relative h-20 w-full bg-muted/30 overflow-hidden flex items-center justify-center cursor-pointer group/thumb"
-                      onClick={() =>
-                        setPreviewDoc({
-                          fileName: doc.fileName,
-                          fileType: doc.fileType,
-                          fileData: doc.fileData,
-                          title: doc.fileName,
-                        })
-                      }
-                      title={ar ? "انقر للمعاينة" : "Click to preview"}
+                      key={i}
+                      className="relative group border rounded-lg overflow-hidden h-28 flex flex-col justify-between bg-card shadow-xs"
                     >
-                      {doc.fileData?.startsWith("data:image") ? (
-                        <img
-                          src={doc.fileData}
-                          alt={doc.fileName}
-                          className="absolute inset-0 w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-muted-foreground group-hover/thumb:text-primary transition-colors">
-                          <span className="text-xs font-mono font-bold">PDF</span>
+                      <div
+                        className="relative h-20 w-full bg-muted/30 overflow-hidden flex items-center justify-center cursor-pointer group/thumb"
+                        onClick={() =>
+                          setPreviewDoc({
+                            fileName: doc.fileName,
+                            fileType: doc.fileType,
+                            fileData: doc.fileData,
+                            title: doc.fileName,
+                          })
+                        }
+                        title={ar ? "انقر للمعاينة" : "Click to preview"}
+                      >
+                        {doc.fileData?.startsWith("data:image") ? (
+                          <img
+                            src={doc.fileData}
+                            alt={doc.fileName}
+                            className="absolute inset-0 w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-muted-foreground group-hover/thumb:text-primary transition-colors">
+                            <span className="text-xs font-mono font-bold">
+                              PDF
+                            </span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                          <Eye className="w-5 h-5 text-white drop-shadow" />
                         </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                        <Eye className="w-5 h-5 text-white drop-shadow" />
-                      </div>
-                      <div className="absolute top-1 right-1 flex items-center gap-1 z-20">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPreviewDoc({
-                              fileName: doc.fileName,
-                              fileType: doc.fileType,
-                              fileData: doc.fileData,
-                              title: doc.fileName,
-                            });
-                          }}
-                          className="w-6 h-6 bg-background/80 hover:bg-background text-foreground rounded-full flex items-center justify-center shadow text-xs"
-                          title={ar ? "معاينة" : "Preview"}
-                        >
-                          <Eye className="w-3 h-3" />
-                        </button>
-                        {doc.fileData && (
+                        <div className="absolute top-1 right-1 flex items-center gap-1 z-20">
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              downloadDoc(doc);
+                              setPreviewDoc({
+                                fileName: doc.fileName,
+                                fileType: doc.fileType,
+                                fileData: doc.fileData,
+                                title: doc.fileName,
+                              });
                             }}
                             className="w-6 h-6 bg-background/80 hover:bg-background text-foreground rounded-full flex items-center justify-center shadow text-xs"
-                            title={ar ? "تحميل" : "Download"}
+                            title={ar ? "معاينة" : "Preview"}
                           >
-                            <Download className="w-3 h-3" />
+                            <Eye className="w-3 h-3" />
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeDoc(i);
-                          }}
-                          className="w-6 h-6 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full flex items-center justify-center shadow text-xs transition-transform active:scale-90"
-                          title={ar ? "حذف" : "Remove"}
+                          {doc.fileData && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                downloadDoc(doc);
+                              }}
+                              className="w-6 h-6 bg-background/80 hover:bg-background text-foreground rounded-full flex items-center justify-center shadow text-xs"
+                              title={ar ? "تحميل" : "Download"}
+                            >
+                              <Download className="w-3 h-3" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeDoc(i);
+                            }}
+                            className="w-6 h-6 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full flex items-center justify-center shadow text-xs transition-transform active:scale-90"
+                            title={ar ? "حذف" : "Remove"}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <div
+                        className="p-1.5 bg-background border-t cursor-pointer hover:bg-muted/50"
+                        onClick={() =>
+                          setPreviewDoc({
+                            fileName: doc.fileName,
+                            fileType: doc.fileType,
+                            fileData: doc.fileData,
+                            title: doc.fileName,
+                          })
+                        }
+                      >
+                        <span
+                          className="text-[11px] font-medium truncate block"
+                          title={doc.fileName}
                         >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                          {doc.fileName}
+                        </span>
                       </div>
                     </div>
-                    <div
-                      className="p-1.5 bg-background border-t cursor-pointer hover:bg-muted/50"
-                      onClick={() =>
-                        setPreviewDoc({
-                          fileName: doc.fileName,
-                          fileType: doc.fileType,
-                          fileData: doc.fileData,
-                          title: doc.fileName,
-                        })
-                      }
-                    >
-                      <span
-                        className="text-[11px] font-medium truncate block"
-                        title={doc.fileName}
-                      >
-                        {doc.fileName}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {ar ? "إلغاء" : "Cancel"}
-            </Button>
-            <PermissionGate module="profiles" action="edit">
-              <Button
-                type="submit"
-                disabled={updateMutation.isPending || hasDuplicates}
-                className="font-semibold"
-              >
-                {updateMutation.isPending
-                  ? ar
-                    ? "جاري الحفظ..."
-                    : "Saving..."
-                  : ar
-                    ? "حفظ التعديلات"
-                    : "Save Changes"}
+            <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                {ar ? "إلغاء" : "Cancel"}
               </Button>
-            </PermissionGate>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+              <PermissionGate module="profiles" action="edit">
+                <Button
+                  type="submit"
+                  disabled={updateMutation.isPending || hasDuplicates}
+                  className="font-semibold"
+                >
+                  {updateMutation.isPending
+                    ? ar
+                      ? "جاري الحفظ..."
+                      : "Saving..."
+                    : ar
+                      ? "حفظ التعديلات"
+                      : "Save Changes"}
+                </Button>
+              </PermissionGate>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-    <DocumentPreviewModal
-      doc={previewDoc}
-      isOpen={!!previewDoc}
-      onClose={() => setPreviewDoc(null)}
-    />
+      <DocumentPreviewModal
+        doc={previewDoc}
+        isOpen={!!previewDoc}
+        onClose={() => setPreviewDoc(null)}
+      />
     </>
   );
 }

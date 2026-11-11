@@ -10,7 +10,19 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Printer, FileSpreadsheet, Columns3, ZoomIn, ZoomOut, Maximize2, RotateCw, FileText, PenTool, BarChart2, X } from "lucide-react";
+import {
+  Printer,
+  FileSpreadsheet,
+  Columns3,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  RotateCw,
+  FileText,
+  PenTool,
+  BarChart2,
+  X,
+} from "lucide-react";
 import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { getExportFileName, formatDate } from "@/lib/date-utils";
 import {
@@ -59,8 +71,11 @@ export function ReportPrintStudioModal({
   initialLanguage = "ar",
 }: ReportPrintStudioModalProps) {
   // Document orientation
-  const autoOrientation = availableColumns.length > 7 ? "landscape" : "portrait";
-  const [orientation, setOrientation] = useState<"portrait" | "landscape">(autoOrientation);
+  const autoOrientation =
+    availableColumns.length > 7 ? "landscape" : "portrait";
+  const [orientation, setOrientation] = useState<"portrait" | "landscape">(
+    autoOrientation,
+  );
 
   // Document language
   const [language, setLanguage] = useState<"ar" | "en">(initialLanguage);
@@ -68,7 +83,7 @@ export function ReportPrintStudioModal({
 
   // Typography scale
   const [fontSize, setFontSize] = useState<"compact" | "standard" | "large">(
-    availableColumns.length > 9 ? "compact" : "standard"
+    availableColumns.length > 9 ? "compact" : "standard",
   );
 
   // Section visibility toggles
@@ -80,7 +95,7 @@ export function ReportPrintStudioModal({
 
   // Column visibility
   const [visibleColumnKeys, setVisibleColumnKeys] = useState<Set<string>>(
-    () => new Set(availableColumns.map((c) => c.key))
+    () => new Set(availableColumns.map((c) => c.key)),
   );
 
   // The modal stays mounted across report tabs, so the initial state above can
@@ -156,16 +171,22 @@ export function ReportPrintStudioModal({
       activeColumns.forEach((col) => {
         const header = isAr ? col.headerAr || col.header : col.header;
         obj[header] =
-          col.type === "index" ? rIdx + 1 : row[col.key] ?? row[col.header] ?? "";
+          col.type === "index"
+            ? rIdx + 1
+            : (row[col.key] ?? row[col.header] ?? "");
       });
       return obj;
     });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    const cleanSheetName = (isAr ? titleAr || title : title).slice(0, 31).replace(/[\\/?*[\]]/g, "_");
+    const cleanSheetName = (isAr ? titleAr || title : title)
+      .slice(0, 31)
+      .replace(/[\\/?*[\]]/g, "_");
     XLSX.utils.book_append_sheet(wb, ws, cleanSheetName);
-    writeSunriseWorkbook(wb, getExportFileName(`${docTitle}_Report`, "xlsx"), { rtl: isAr });
+    writeSunriseWorkbook(wb, getExportFileName(`${docTitle}_Report`, "xlsx"), {
+      rtl: isAr,
+    });
   };
 
   return (
@@ -181,13 +202,28 @@ export function ReportPrintStudioModal({
               </div>
               <div>
                 <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-                  <span>{isAr ? "استوديو الطباعة والتقارير الفندقية" : "Sunrise Report Print Studio"}</span>
-                  <Badge variant="outline" className="text-[10px] font-mono border-[#2AA8AB]/30 text-[#59B7A8] bg-[#2AA8AB]/5">
-                    A4 {orientation === "landscape" ? (isAr ? "أفقي" : "Landscape") : (isAr ? "رأسي" : "Portrait")}
+                  <span>
+                    {isAr
+                      ? "استوديو الطباعة والتقارير الفندقية"
+                      : "Sunrise Report Print Studio"}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-mono border-[#2AA8AB]/30 text-[#59B7A8] bg-[#2AA8AB]/5"
+                  >
+                    A4{" "}
+                    {orientation === "landscape"
+                      ? isAr
+                        ? "أفقي"
+                        : "Landscape"
+                      : isAr
+                        ? "رأسي"
+                        : "Portrait"}
                   </Badge>
                 </DialogTitle>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {isAr ? titleAr || title : title} • {activeRows.length} {isAr ? "سجل جاهز" : "records ready"}
+                  {isAr ? titleAr || title : title} • {activeRows.length}{" "}
+                  {isAr ? "سجل جاهز" : "records ready"}
                 </p>
               </div>
             </div>
@@ -299,7 +335,9 @@ export function ReportPrintStudioModal({
                       ? "bg-slate-700 text-white font-bold"
                       : "text-slate-400 hover:text-white"
                   }`}
-                  title={isAr ? "خط مدمج (يناسب الجداول العريضة)" : "Compact Font"}
+                  title={
+                    isAr ? "خط مدمج (يناسب الجداول العريضة)" : "Compact Font"
+                  }
                 >
                   {isAr ? "مدمج" : "Compact"}
                 </Button>
@@ -431,7 +469,9 @@ export function ReportPrintStudioModal({
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
-                    {isAr ? `الكل (${allRows.length})` : `All (${allRows.length})`}
+                    {isAr
+                      ? `الكل (${allRows.length})`
+                      : `All (${allRows.length})`}
                   </Button>
                   <Button
                     variant="ghost"

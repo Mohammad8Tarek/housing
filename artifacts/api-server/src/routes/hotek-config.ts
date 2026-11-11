@@ -6,7 +6,11 @@ import { getTenantId, su } from "../lib/request-utils.js";
 import { requireAnyPermission } from "../middlewares/permissions.js";
 import { getHotekStatus } from "../lib/pms-server.js";
 import { validate } from "../middlewares/validate.js";
-import { IdParams, CommonListQuery, PropertyScopedBody } from "../validation/schemas.js";
+import {
+  IdParams,
+  CommonListQuery,
+  PropertyScopedBody,
+} from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -84,7 +88,11 @@ router.get(
 
 router.post(
   "/servers",
-  requireAnyPermission(["smart_locks", "create"], ["smart_locks", "edit"], ["settings", "edit"]),
+  requireAnyPermission(
+    ["smart_locks", "create"],
+    ["smart_locks", "edit"],
+    ["settings", "edit"],
+  ),
   async (req, res): Promise<void> => {
     const parsed = HotekServerBody.safeParse(req.body);
     if (!parsed.success) {
@@ -284,7 +292,11 @@ router.post(
 
 router.delete(
   "/servers/:id",
-  requireAnyPermission(["smart_locks", "delete"], ["smart_locks", "edit"], ["settings", "edit"]),
+  requireAnyPermission(
+    ["smart_locks", "delete"],
+    ["smart_locks", "edit"],
+    ["settings", "edit"],
+  ),
   validate({ params: IdParams, query: CommonListQuery }),
   validate({ body: PropertyScopedBody }),
   async (req, res): Promise<void> => {

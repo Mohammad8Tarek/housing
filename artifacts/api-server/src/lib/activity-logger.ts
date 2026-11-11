@@ -51,7 +51,10 @@ async function writeLogToDb(
   try {
     await db.insert(activityLogsTable).values(logRecord);
   } catch (pubErr) {
-    console.error("[ActivityLogger] Failed to write to public master log:", pubErr);
+    console.error(
+      "[ActivityLogger] Failed to write to public master log:",
+      pubErr,
+    );
   }
 
   // 2. If propertyId is a valid tenant property, also record in property tenant schema
@@ -61,7 +64,10 @@ async function writeLogToDb(
         await tenantDb.insert(activityLogsTable).values(logRecord);
       });
     } catch (tenantErr) {
-      console.error(`[ActivityLogger] Failed to write to tenant ${targetPropertyId} log:`, tenantErr);
+      console.error(
+        `[ActivityLogger] Failed to write to tenant ${targetPropertyId} log:`,
+        tenantErr,
+      );
     }
   }
 }

@@ -1,13 +1,30 @@
 import { Router } from "express";
-import { db, withTenant, profilesTable, profileDocumentsTable, assignmentsTable, roomsTable, buildingsTable, floorsTable, propertiesTable } from "@workspace/db";
+import {
+  db,
+  withTenant,
+  profilesTable,
+  profileDocumentsTable,
+  assignmentsTable,
+  roomsTable,
+  buildingsTable,
+  floorsTable,
+  propertiesTable,
+} from "@workspace/db";
 import { eq, and, or, sql, SQL, asc, desc } from "drizzle-orm";
-import { GetProfileParams, ListProfilesQueryParams, GetProfileResponse } from "@workspace/api-zod";
+import {
+  GetProfileParams,
+  ListProfilesQueryParams,
+  GetProfileResponse,
+} from "@workspace/api-zod";
 import {
   requirePermission,
   hasPermission,
 } from "../../middlewares/permissions.js";
 import { getTenantId } from "../../lib/request-utils.js";
-import { buildProfileSearchConditions, buildAssignmentSearchConditions } from "../../lib/search-helper.js";
+import {
+  buildProfileSearchConditions,
+  buildAssignmentSearchConditions,
+} from "../../lib/search-helper.js";
 import { resolveProfileTenant, filterSensitive } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
 import { CommonListQuery, IdParams } from "../../validation/schemas.js";
@@ -70,7 +87,10 @@ router.get(
 
     if (query.success) {
       if (query.data.search) {
-        const searchCond = buildProfileSearchConditions(query.data.search, profilesTable);
+        const searchCond = buildProfileSearchConditions(
+          query.data.search,
+          profilesTable,
+        );
         if (searchCond) {
           conditions.push(searchCond);
         }
@@ -231,7 +251,10 @@ router.get(
               ),
             )
             .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
-            .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+            .leftJoin(
+              buildingsTable,
+              eq(roomsTable.buildingId, buildingsTable.id),
+            )
             .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
             .where(and(...conditions))
             .limit(30 - aggregated.length);
@@ -269,14 +292,26 @@ router.get(
       return;
     }
 
-    const { profileId, nationalId, phone, excludeId } = req.query as Record<string, string>;
+    const { profileId, nationalId, phone, excludeId } = req.query as Record<
+      string,
+      string
+    >;
     const excludeIdNum = excludeId ? Number(excludeId) : null;
 
     const trimmedProfileId = profileId?.trim();
     const trimmedNationalId = nationalId?.trim();
     const trimmedPhone = phone?.trim();
 
-    const duplicates: Record<string, { exists: boolean; name: string; profileId: string; nationalId?: string; phone?: string }> = {};
+    const duplicates: Record<
+      string,
+      {
+        exists: boolean;
+        name: string;
+        profileId: string;
+        nationalId?: string;
+        phone?: string;
+      }
+    > = {};
 
     if (!trimmedProfileId && !trimmedNationalId && !trimmedPhone) {
       res.json({ duplicates });
@@ -314,22 +349,46 @@ router.get(
       for (const row of rows) {
         if (excludeIdNum && row.id === excludeIdNum) continue;
 
-        const name = [row.firstName, row.lastName, row.thirdName, row.fourthName].filter(Boolean).join(" ");
+        const name = [
+          row.firstName,
+          row.lastName,
+          row.thirdName,
+          row.fourthName,
+        ]
+          .filter(Boolean)
+          .join(" ");
 
-        if (trimmedProfileId && row.profileId?.trim().toLowerCase() === trimmedProfileId.toLowerCase()) {
-          duplicates.profileId = { exists: true, name, profileId: row.profileId };
+        if (
+          trimmedProfileId &&
+          row.profileId?.trim().toLowerCase() === trimmedProfileId.toLowerCase()
+        ) {
+          duplicates.profileId = {
+            exists: true,
+            name,
+            profileId: row.profileId,
+          };
         }
         if (trimmedNationalId && row.nationalId?.trim() === trimmedNationalId) {
-          duplicates.nationalId = { exists: true, name, profileId: row.profileId, nationalId: row.nationalId };
+          duplicates.nationalId = {
+            exists: true,
+            name,
+            profileId: row.profileId,
+            nationalId: row.nationalId,
+          };
         }
         if (trimmedPhone && row.phone?.trim() === trimmedPhone) {
-          duplicates.phone = { exists: true, name, profileId: row.profileId, phone: row.phone };
+          duplicates.phone = {
+            exists: true,
+            name,
+            profileId: row.profileId,
+            phone: row.phone,
+          };
         }
       }
     });
 
     res.json({ duplicates });
-  }
+  },
 );
 
 /* Fast existing identifiers endpoint for Excel import duplicate & update detection */
@@ -408,9 +467,11 @@ router.get(
         })),
       });
     } catch (err: any) {
-      res.status(500).json({ error: err?.message || "Failed to fetch existing identifiers" });
+      res.status(500).json({
+        error: err?.message || "Failed to fetch existing identifiers",
+      });
     }
-  }
+  },
 );
 
 router.get(
@@ -449,10 +510,14 @@ router.get(
         );
       const allowedPids: number[] = Array.isArray(authUser?.propertyIds)
         ? authUser.propertyIds.map(Number).filter(Boolean)
-        : (authUser?.propertyId ? [Number(authUser.propertyId)] : []);
+        : authUser?.propertyId
+          ? [Number(authUser.propertyId)]
+          : [];
 
       try {
-        const props = await db.select({ id: propertiesTable.id }).from(propertiesTable);
+        const props = await db
+          .select({ id: propertiesTable.id })
+          .from(propertiesTable);
         for (const p of props) {
           if (p.id === propertyId) continue;
           if (!isSysAdmin && !allowedPids.includes(p.id)) continue;
@@ -488,7 +553,10 @@ router.get(
     });
 
     const docRows = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb.select().from(profileDocumentsTable).where(eq(profileDocumentsTable.profileId, params.data.id));
+      return await tenantDb
+        .select()
+        .from(profileDocumentsTable)
+        .where(eq(profileDocumentsTable.profileId, params.data.id));
     });
 
     const safeProfile = {
@@ -519,7 +587,7 @@ router.get(
     const parsed = {
       ...(parsedResult.success ? parsedResult.data : safeProfile),
       photoUrl: photoRows?.photoUrl ?? null,
-      idDocuments: docRows.map(d => ({
+      idDocuments: docRows.map((d) => ({
         id: d.id,
         fileName: d.fileName,
         fileType: d.fileType,

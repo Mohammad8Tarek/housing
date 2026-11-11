@@ -11,6 +11,7 @@ description: >-
 # Sunrise Staff Housing Management - Official Skill & Runbook
 
 ## 1. Project Context & Stack
+
 - **Application Name:** Sunrise Staff Housing Management System
 - **Frontend (`artifacts/housing`):** React 18, Vite, TypeScript, TailwindCSS, Shadcn UI, TanStack Query v5, Lucide React, Sonner.
 - **Backend (`artifacts/api-server`):** Node.js (ESM), Express, Drizzle ORM, `pg-pool`, WebSocket server, BullMQ/Queue workers.
@@ -23,6 +24,7 @@ description: >-
 ## 2. Core Architectural Invariants (Must Never Be Broken)
 
 ### Rule 1: Zero Data Loss Database Migrations
+
 - **Never** write destructive queries (`DROP TABLE`, `DROP COLUMN`, `TRUNCATE`).
 - All migrations must be idempotent:
   - `CREATE TABLE IF NOT EXISTS`
@@ -36,11 +38,13 @@ description: >-
 - **Seeder Safety:** `artifacts/api-server/src/lib/seeder.ts` contains a safety guard that aborts if records exist in `properties` or `users`. Never remove this guard.
 
 ### Rule 2: Dual-Layer Role & Permission Enforcement (RBAC)
+
 - **Layer 1 (Frontend):** Wrap all interactive buttons, action bars, and edit modals with `<PermissionGate module="module_name" action="action_name">`.
 - **Layer 2 (Backend API):** Protect all Express routes with `requirePermission('module_name', 'action_name')` from `../middlewares/permissions.js`.
 - Sensitive global endpoints (`/api/properties`) are strictly restricted to `super_admin`.
 
 ### Rule 3: Server-Side Pagination & Debounced Search
+
 - Any view or table that can grow beyond 10 items (Profiles, In-House, Reservations, Maintenance, Activity Logs, Settings Lookups) must implement:
   1. Server-side `page`, `limit`, `search`, and status query parameters.
   2. Frontend `useDebounce(searchQuery, 300)` hook to prevent search spamming.
@@ -48,6 +52,7 @@ description: >-
   4. Avoid client-side `.slice()` on large datasets.
 
 ### Rule 4: Bilingual (Arabic RTL / English LTR) & No Overflow Tables
+
 - Tables must maintain visual balance:
   - Use `table-fixed` layouts.
   - Truncate long strings with badges or tooltips.
@@ -55,6 +60,7 @@ description: >-
   - All labels, dialog titles, placeholders, and toasts must have bilingual support using `const ar = language === "ar";`.
 
 ### Rule 5: State Synchronization & Room Lifecycle
+
 - Room status cycle:
   - Vacant: `available`
   - Occupied: `occupied`
@@ -95,6 +101,7 @@ git push origin main
 ---
 
 ## 4. Key Directory & File Map
+
 - `artifacts/housing/src/pages/`:
   - `housing/`: Room, building, floor, availability, and housekeeping tabs.
   - `profiles/`: Employee directory, vacation management, ID images.

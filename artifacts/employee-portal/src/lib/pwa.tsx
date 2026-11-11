@@ -61,7 +61,9 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const handleInstall = async () => {
-    const promptEvent = installPrompt || (typeof window !== "undefined" ? window.deferredPrompt : null);
+    const promptEvent =
+      installPrompt ||
+      (typeof window !== "undefined" ? window.deferredPrompt : null);
     if (!promptEvent) return;
     try {
       if (typeof promptEvent.prompt === "function") {

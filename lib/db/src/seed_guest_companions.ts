@@ -1,4 +1,9 @@
-import { pool, hostingsTable, hostingCompanionsTable, withTenant } from "./index.js";
+import {
+  pool,
+  hostingsTable,
+  hostingCompanionsTable,
+  withTenant,
+} from "./index.js";
 import { eq } from "drizzle-orm";
 
 /**

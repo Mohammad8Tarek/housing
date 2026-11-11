@@ -1,5 +1,13 @@
 import { useMemo } from "react";
-import { Bed, Phone, Calendar, Briefcase, Building, CheckCircle, ShieldCheck } from "lucide-react";
+import {
+  Bed,
+  Phone,
+  Calendar,
+  Briefcase,
+  Building,
+  CheckCircle,
+  ShieldCheck,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface InHouseGroupedRoomsViewProps {
@@ -36,7 +44,8 @@ export function InHouseGroupedRoomsView({
         map.set(rId, {
           roomInfo: {
             ...roomObj,
-            buildingName: a.buildingName || buildingMap[roomObj.buildingId] || "—",
+            buildingName:
+              a.buildingName || buildingMap[roomObj.buildingId] || "—",
             floorName: a.floorName || floorMap[roomObj.floorId] || "—",
             roomType: a.roomType || roomObj.roomType || "—",
             capacity: Number(a.capacity || roomObj.capacity || 1),
@@ -59,16 +68,28 @@ export function InHouseGroupedRoomsView({
 
     // Sort rooms by Building -> Floor -> Room Number natural sort
     list.sort((a, b) => {
-      const bCompare = String(a.roomInfo.buildingName || "").localeCompare(String(b.roomInfo.buildingName || ""), undefined, { numeric: true, sensitivity: "base" });
+      const bCompare = String(a.roomInfo.buildingName || "").localeCompare(
+        String(b.roomInfo.buildingName || ""),
+        undefined,
+        { numeric: true, sensitivity: "base" },
+      );
       if (bCompare !== 0) return bCompare;
 
-      const fCompare = String(a.roomInfo.floorName || "").localeCompare(String(b.roomInfo.floorName || ""), undefined, { numeric: true, sensitivity: "base" });
+      const fCompare = String(a.roomInfo.floorName || "").localeCompare(
+        String(b.roomInfo.floorName || ""),
+        undefined,
+        { numeric: true, sensitivity: "base" },
+      );
       if (fCompare !== 0) return fCompare;
 
-      return String(a.roomInfo.roomNumber).localeCompare(String(b.roomInfo.roomNumber), undefined, {
-        numeric: true,
-        sensitivity: "base",
-      });
+      return String(a.roomInfo.roomNumber).localeCompare(
+        String(b.roomInfo.roomNumber),
+        undefined,
+        {
+          numeric: true,
+          sensitivity: "base",
+        },
+      );
     });
 
     return list;
@@ -79,7 +100,9 @@ export function InHouseGroupedRoomsView({
       <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
         <Building className="w-10 h-10 mb-3 opacity-30" />
         <p className="font-semibold text-base">
-          {ar ? "لا توجد غرف أو نزلاء مطابقين للفلاتر المحددة" : "No rooms or occupants matching the filters"}
+          {ar
+            ? "لا توجد غرف أو نزلاء مطابقين للفلاتر المحددة"
+            : "No rooms or occupants matching the filters"}
         </p>
       </div>
     );
@@ -99,7 +122,12 @@ export function InHouseGroupedRoomsView({
 
         occupants.forEach((occ: any) => {
           const num = Number(occ.bedNumber);
-          if (!isNaN(num) && num >= 1 && num <= capacity && !occupiedBedMap.has(num)) {
+          if (
+            !isNaN(num) &&
+            num >= 1 &&
+            num <= capacity &&
+            !occupiedBedMap.has(num)
+          ) {
             occupiedBedMap.set(num, occ);
           } else {
             unnumberedOccupants.push(occ);
@@ -107,19 +135,35 @@ export function InHouseGroupedRoomsView({
         });
 
         // Fill remaining slots
-        const bedSlots: { bedNum: number; occupant?: any; isVacant: boolean }[] = [];
+        const bedSlots: {
+          bedNum: number;
+          occupant?: any;
+          isVacant: boolean;
+        }[] = [];
         for (let b = 1; b <= capacity; b++) {
           if (occupiedBedMap.has(b)) {
-            bedSlots.push({ bedNum: b, occupant: occupiedBedMap.get(b), isVacant: false });
+            bedSlots.push({
+              bedNum: b,
+              occupant: occupiedBedMap.get(b),
+              isVacant: false,
+            });
           } else if (unnumberedOccupants.length > 0) {
-            bedSlots.push({ bedNum: b, occupant: unnumberedOccupants.shift(), isVacant: false });
+            bedSlots.push({
+              bedNum: b,
+              occupant: unnumberedOccupants.shift(),
+              isVacant: false,
+            });
           } else {
             bedSlots.push({ bedNum: b, isVacant: true });
           }
         }
         // Any remaining overflow occupants
         while (unnumberedOccupants.length > 0) {
-          bedSlots.push({ bedNum: bedSlots.length + 1, occupant: unnumberedOccupants.shift(), isVacant: false });
+          bedSlots.push({
+            bedNum: bedSlots.length + 1,
+            occupant: unnumberedOccupants.shift(),
+            isVacant: false,
+          });
         }
 
         return (
@@ -135,14 +179,22 @@ export function InHouseGroupedRoomsView({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs bg-background font-semibold text-foreground border-border/80">
+                    <Badge
+                      variant="outline"
+                      className="text-xs bg-background font-semibold text-foreground border-border/80"
+                    >
                       {roomInfo.buildingName} • {roomInfo.floorName}
                     </Badge>
                     <span className="font-bold text-base text-primary">
-                      {ar ? `غرفة ${roomInfo.roomNumber}` : `Room ${roomInfo.roomNumber}`}
+                      {ar
+                        ? `غرفة ${roomInfo.roomNumber}`
+                        : `Room ${roomInfo.roomNumber}`}
                     </span>
                     {roomInfo.roomType && roomInfo.roomType !== "—" && (
-                      <Badge variant="secondary" className="text-xs font-semibold">
+                      <Badge
+                        variant="secondary"
+                        className="text-xs font-semibold"
+                      >
                         {roomInfo.roomType}
                       </Badge>
                     )}
@@ -169,8 +221,8 @@ export function InHouseGroupedRoomsView({
                       ? `مشغولة بالكامل (${occupiedCount}/${capacity})`
                       : `Fully Occupied (${occupiedCount}/${capacity})`
                     : ar
-                    ? `يتوفر ${vacantCount} سرير شاغر (${occupiedCount}/${capacity})`
-                    : `${vacantCount} Vacant Beds Available (${occupiedCount}/${capacity})`}
+                      ? `يتوفر ${vacantCount} سرير شاغر (${occupiedCount}/${capacity})`
+                      : `${vacantCount} Vacant Beds Available (${occupiedCount}/${capacity})`}
                 </Badge>
               </div>
             </div>
@@ -202,7 +254,9 @@ export function InHouseGroupedRoomsView({
                           {ar ? "سرير فارغ متاح للتسكين" : "Available Bed Slot"}
                         </p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {ar ? "يمكن تسكين موظف جديد في هذا السرير" : "Ready for check-in or transfer"}
+                          {ar
+                            ? "يمكن تسكين موظف جديد في هذا السرير"
+                            : "Ready for check-in or transfer"}
                         </p>
                       </div>
                     </div>
@@ -220,23 +274,37 @@ export function InHouseGroupedRoomsView({
                     {/* Bed & Status Badge */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <Badge variant="secondary" className="font-bold text-xs">
+                        <Badge
+                          variant="secondary"
+                          className="font-bold text-xs"
+                        >
                           <Bed className="w-3.5 h-3.5 mr-1 ml-1 text-primary" />
-                          {ar ? `سرير ${occupant.bedNumber && occupant.bedNumber !== "—" ? occupant.bedNumber : bedNum}` : `Bed ${occupant.bedNumber && occupant.bedNumber !== "—" ? occupant.bedNumber : bedNum}`}
+                          {ar
+                            ? `سرير ${occupant.bedNumber && occupant.bedNumber !== "—" ? occupant.bedNumber : bedNum}`
+                            : `Bed ${occupant.bedNumber && occupant.bedNumber !== "—" ? occupant.bedNumber : bedNum}`}
                         </Badge>
                         {isEntire && (
-                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 text-[10px] px-1.5 py-0 font-medium">
+                          <Badge
+                            variant="outline"
+                            className="bg-purple-50 text-purple-700 border-purple-300 text-[10px] px-1.5 py-0 font-medium"
+                          >
                             {ar ? "غرفة كاملة" : "Full Room"}
                           </Badge>
                         )}
                       </div>
 
                       {isVacation ? (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 text-[11px] font-bold">
+                        <Badge
+                          variant="outline"
+                          className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 text-[11px] font-bold"
+                        >
                           {ar ? "في إجازة" : "On Vacation"}
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 text-[11px] font-bold">
+                        <Badge
+                          variant="outline"
+                          className="bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 text-[11px] font-bold"
+                        >
                           {ar ? "مقيم بالسكن" : "In-House"}
                         </Badge>
                       )}
@@ -253,7 +321,10 @@ export function InHouseGroupedRoomsView({
                         <span>{occupant.profileCode}</span>
                         {occupant.employmentType === "THIRD_PARTY" ? (
                           <span className="text-purple-600 font-sans font-medium">
-                            ({occupant.companyName || (ar ? "طرف ثالث" : "Third Party")})
+                            (
+                            {occupant.companyName ||
+                              (ar ? "طرف ثالث" : "Third Party")}
+                            )
                           </span>
                         ) : (
                           <span className="text-blue-600 font-sans font-medium">
@@ -267,7 +338,9 @@ export function InHouseGroupedRoomsView({
                     <div className="space-y-1 text-xs text-muted-foreground pt-1 border-t border-dashed">
                       <div className="flex items-center gap-1.5">
                         <Briefcase className="w-3.5 h-3.5 shrink-0 text-muted-foreground/70" />
-                        <span className="truncate font-medium text-foreground">{occupant.department}</span>
+                        <span className="truncate font-medium text-foreground">
+                          {occupant.department}
+                        </span>
                         <span className="text-muted-foreground/60">•</span>
                         <span className="truncate">{occupant.jobTitle}</span>
                       </div>
@@ -284,15 +357,20 @@ export function InHouseGroupedRoomsView({
                       <div className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         <span>{ar ? "تسكين:" : "In:"}</span>
-                        <span className="font-medium text-foreground">{occupant.checkInDate}</span>
+                        <span className="font-medium text-foreground">
+                          {occupant.checkInDate}
+                        </span>
                       </div>
-                      {occupant.contractEndDate && occupant.contractEndDate !== "—" && (
-                        <div className="flex items-center gap-1 text-amber-700 dark:text-amber-400">
-                          <ShieldCheck className="w-3 h-3" />
-                          <span>{ar ? "عقد:" : "Contract:"}</span>
-                          <span className="font-medium">{occupant.contractEndDate}</span>
-                        </div>
-                      )}
+                      {occupant.contractEndDate &&
+                        occupant.contractEndDate !== "—" && (
+                          <div className="flex items-center gap-1 text-amber-700 dark:text-amber-400">
+                            <ShieldCheck className="w-3 h-3" />
+                            <span>{ar ? "عقد:" : "Contract:"}</span>
+                            <span className="font-medium">
+                              {occupant.contractEndDate}
+                            </span>
+                          </div>
+                        )}
                     </div>
                   </div>
                 );

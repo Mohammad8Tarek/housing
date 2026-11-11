@@ -408,11 +408,11 @@ export const NAME_EN_TO_AR: Record<string, string> = {
   "abd el aty": "عبد العاطي",
   "abd elatay": "عبد العاطي",
   "abd el atay": "عبد العاطي",
-  "abdelatay": "عبد العاطي",
+  abdelatay: "عبد العاطي",
   "el atay": "العاطي",
   "el-atay": "العاطي",
-  "elatye": "العاطي",
-  "elaty": "العاطي",
+  elatye: "العاطي",
+  elaty: "العاطي",
   bahansow: "بهنساوي",
   bahnasawy: "بهنساوي",
   bahnasy: "بهنسي",
@@ -540,7 +540,10 @@ export const DEPT_EN_TO_AR: Record<string, string> = {
 export const DEPT_AR_TO_EN: Record<string, string> = {};
 for (const [en, ar] of Object.entries(DEPT_EN_TO_AR)) {
   if (!DEPT_AR_TO_EN[ar]) {
-    DEPT_AR_TO_EN[ar] = en.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    DEPT_AR_TO_EN[ar] = en
+      .split(" ")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
   }
 }
 
@@ -568,7 +571,8 @@ export const TITLE_EN_TO_AR: Record<string, string> = {
   "housing attendant": "عامل سكن العاملين",
   "logistics manager": "مدير الخدمات اللوجستية",
   "taal avenue operation manager": "مدير تشغيل تال أفينيو",
-  "area hygiene and sustainability ssh manager": "مدير الصحة والاستدامة بالمنطقة",
+  "area hygiene and sustainability ssh manager":
+    "مدير الصحة والاستدامة بالمنطقة",
   "central laundry manager": "مدير المغسلة المركزية",
 
   // HR & Administration
@@ -746,7 +750,10 @@ export const TITLE_EN_TO_AR: Record<string, string> = {
 export const TITLE_AR_TO_EN: Record<string, string> = {};
 for (const [en, ar] of Object.entries(TITLE_EN_TO_AR)) {
   if (!TITLE_AR_TO_EN[ar]) {
-    TITLE_AR_TO_EN[ar] = en.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    TITLE_AR_TO_EN[ar] = en
+      .split(" ")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
   }
 }
 
@@ -838,7 +845,10 @@ export function phoneticLatinToAr(word: string): string {
   for (let i = 0; i < w.length; i++) {
     const ch = w[i];
     if (charMap[ch]) {
-      if (result === "" && (ch === "e" || ch === "i" || ch === "a" || ch === "o" || ch === "u")) {
+      if (
+        result === "" &&
+        (ch === "e" || ch === "i" || ch === "a" || ch === "o" || ch === "u")
+      ) {
         result += "ا";
       } else if (result.endsWith("ا") && ch === "a") {
         // Skip duplicate 'a'
@@ -894,42 +904,42 @@ export function phoneticArToEn(word: string): string {
   }
 
   const arCharMap: Record<string, string> = {
-    "ا": "A",
-    "أ": "A",
-    "إ": "E",
-    "آ": "A",
-    "ء": "",
-    "ئ": "E",
-    "ؤ": "O",
-    "ب": "b",
-    "ت": "t",
-    "ث": "th",
-    "ج": "g",
-    "ح": "h",
-    "خ": "kh",
-    "د": "d",
-    "ذ": "z",
-    "ر": "r",
-    "ز": "z",
-    "س": "s",
-    "ش": "sh",
-    "ص": "s",
-    "ض": "d",
-    "ط": "t",
-    "ظ": "z",
-    "ع": "a",
-    "غ": "gh",
-    "ف": "f",
-    "ق": "q",
-    "ك": "k",
-    "ل": "l",
-    "م": "m",
-    "ن": "n",
-    "ه": "h",
-    "و": "w",
-    "ي": "y",
-    "ى": "a",
-    "ة": "a",
+    ا: "A",
+    أ: "A",
+    إ: "E",
+    آ: "A",
+    ء: "",
+    ئ: "E",
+    ؤ: "O",
+    ب: "b",
+    ت: "t",
+    ث: "th",
+    ج: "g",
+    ح: "h",
+    خ: "kh",
+    د: "d",
+    ذ: "z",
+    ر: "r",
+    ز: "z",
+    س: "s",
+    ش: "sh",
+    ص: "s",
+    ض: "d",
+    ط: "t",
+    ظ: "z",
+    ع: "a",
+    غ: "gh",
+    ف: "f",
+    ق: "q",
+    ك: "k",
+    ل: "l",
+    م: "m",
+    ن: "n",
+    ه: "h",
+    و: "w",
+    ي: "y",
+    ى: "a",
+    ة: "a",
   };
 
   let out = "";
@@ -947,7 +957,10 @@ export interface NameParts {
   fourth: string;
 }
 
-export function splitCompoundName(fullName: string, isArabic?: boolean): NameParts {
+export function splitCompoundName(
+  fullName: string,
+  isArabic?: boolean,
+): NameParts {
   if (!fullName || !fullName.trim()) {
     return { first: "", second: "", third: "", fourth: "" };
   }
@@ -964,11 +977,47 @@ export function splitCompoundName(fullName: string, isArabic?: boolean): NamePar
 
   if (arabic) {
     const RELIGIOUS_FIRSTS = new Set([
-      "سيف", "نور", "صلاح", "علاء", "حسام", "شمس", "بهاء", "عماد", "جمال", "كمال",
-      "جلال", "بدر", "ضياء", "نجم", "محي", "محيي", "تقي", "سراج", "نصر", "خير", "تاج", "شرف", "زين", "عز"
+      "سيف",
+      "نور",
+      "صلاح",
+      "علاء",
+      "حسام",
+      "شمس",
+      "بهاء",
+      "عماد",
+      "جمال",
+      "كمال",
+      "جلال",
+      "بدر",
+      "ضياء",
+      "نجم",
+      "محي",
+      "محيي",
+      "تقي",
+      "سراج",
+      "نصر",
+      "خير",
+      "تاج",
+      "شرف",
+      "زين",
+      "عز",
     ]);
     const ALLAH_FIRSTS = new Set([
-      "نصر", "فتح", "عطاء", "جاد", "فضل", "ضيف", "خير", "جار", "هبة", "رحمة", "نعمة", "حفظ", "أمر", "سعد", "كرم"
+      "نصر",
+      "فتح",
+      "عطاء",
+      "جاد",
+      "فضل",
+      "ضيف",
+      "خير",
+      "جار",
+      "هبة",
+      "رحمة",
+      "نعمة",
+      "حفظ",
+      "أمر",
+      "سعد",
+      "كرم",
     ]);
 
     for (let i = 0; i < raw.length; i++) {
@@ -1000,13 +1049,21 @@ export function splitCompoundName(fullName: string, isArabic?: boolean): NamePar
         }
       }
 
-      if (next && (next === "الدين" || next === "دين") && RELIGIOUS_FIRSTS.has(cur)) {
+      if (
+        next &&
+        (next === "الدين" || next === "دين") &&
+        RELIGIOUS_FIRSTS.has(cur)
+      ) {
         merged.push(`${cur} الدين`);
         i += 1;
         continue;
       }
 
-      if (next && (next === "الله" || next === "اللة") && ALLAH_FIRSTS.has(cur)) {
+      if (
+        next &&
+        (next === "الله" || next === "اللة") &&
+        ALLAH_FIRSTS.has(cur)
+      ) {
         merged.push(`${cur} الله`);
         i += 1;
         continue;
@@ -1080,7 +1137,10 @@ export function splitCompoundName(fullName: string, isArabic?: boolean): NamePar
         i += 2;
         continue;
       }
-      if (next && (nextLow === "eldin" || nextLow === "el-din" || nextLow === "al-din")) {
+      if (
+        next &&
+        (nextLow === "eldin" || nextLow === "el-din" || nextLow === "al-din")
+      ) {
         merged.push(`${cur} ${next}`);
         i += 1;
         continue;
@@ -1103,10 +1163,20 @@ export function splitCompoundName(fullName: string, isArabic?: boolean): NamePar
     return { first: merged[0], second: merged[1], third: "", fourth: "" };
   }
   if (merged.length === 3) {
-    return { first: merged[0], second: merged[1], third: merged[2], fourth: "" };
+    return {
+      first: merged[0],
+      second: merged[1],
+      third: merged[2],
+      fourth: "",
+    };
   }
   if (merged.length === 4) {
-    return { first: merged[0], second: merged[1], third: merged[2], fourth: merged[3] };
+    return {
+      first: merged[0],
+      second: merged[1],
+      third: merged[2],
+      fourth: merged[3],
+    };
   }
 
   return {
@@ -1117,7 +1187,10 @@ export function splitCompoundName(fullName: string, isArabic?: boolean): NamePar
   };
 }
 
-export function transliterateNameToken(token: string, targetLang: "ar" | "en"): string {
+export function transliterateNameToken(
+  token: string,
+  targetLang: "ar" | "en",
+): string {
   if (!token || !token.trim()) return "";
   const cleaned = token.trim();
 
@@ -1137,15 +1210,23 @@ export function transliterateNameToken(token: string, targetLang: "ar" | "en"): 
   }
 }
 
-export function transliterateName(fullName: string | null | undefined, targetLang: "ar" | "en"): string {
+export function transliterateName(
+  fullName: string | null | undefined,
+  targetLang: "ar" | "en",
+): string {
   if (!fullName || !fullName.trim()) return "";
   const cleaned = fullName.trim();
   const parts = splitCompoundName(cleaned, targetLang === "en");
-  const tokens = [parts.first, parts.second, parts.third, parts.fourth].filter(Boolean);
+  const tokens = [parts.first, parts.second, parts.third, parts.fourth].filter(
+    Boolean,
+  );
   return tokens.map((t) => transliterateNameToken(t, targetLang)).join(" ");
 }
 
-export function translateDepartment(dept: string | null | undefined, targetLang: "ar" | "en"): string {
+export function translateDepartment(
+  dept: string | null | undefined,
+  targetLang: "ar" | "en",
+): string {
   if (!dept || !dept.trim()) return "";
   const cleaned = dept.trim();
   const lower = cleaned.toLowerCase();
@@ -1166,7 +1247,10 @@ export function translateDepartment(dept: string | null | undefined, targetLang:
   }
 }
 
-export function translateJobTitle(title: string | null | undefined, targetLang: "ar" | "en"): string {
+export function translateJobTitle(
+  title: string | null | undefined,
+  targetLang: "ar" | "en",
+): string {
   if (!title || !title.trim()) return "";
   const cleaned = title.trim();
   const lower = cleaned.toLowerCase();
@@ -1248,9 +1332,13 @@ export const ROOM_CLASSIFICATION_EN_TO_AR: Record<string, string> = {
   executive: "تنفيذي",
   vip: "كبار الشخصيات VIP",
 };
-export const ROOM_CLASSIFICATION_AR_TO_EN: Record<string, string> = Object.fromEntries(
-  Object.entries(ROOM_CLASSIFICATION_EN_TO_AR).map(([en, ar]) => [ar, en.charAt(0).toUpperCase() + en.slice(1)])
-);
+export const ROOM_CLASSIFICATION_AR_TO_EN: Record<string, string> =
+  Object.fromEntries(
+    Object.entries(ROOM_CLASSIFICATION_EN_TO_AR).map(([en, ar]) => [
+      ar,
+      en.charAt(0).toUpperCase() + en.slice(1),
+    ]),
+  );
 
 export const ROOM_TYPE_EN_TO_AR: Record<string, string> = {
   single: "غرفة مفردة",
@@ -1267,7 +1355,10 @@ export const ROOM_TYPE_EN_TO_AR: Record<string, string> = {
   dorm: "سكن جماعي",
 };
 export const ROOM_TYPE_AR_TO_EN: Record<string, string> = Object.fromEntries(
-  Object.entries(ROOM_TYPE_EN_TO_AR).map(([en, ar]) => [ar, en.charAt(0).toUpperCase() + en.slice(1)])
+  Object.entries(ROOM_TYPE_EN_TO_AR).map(([en, ar]) => [
+    ar,
+    en.charAt(0).toUpperCase() + en.slice(1),
+  ]),
 );
 
 export const BED_TYPE_EN_TO_AR: Record<string, string> = {
@@ -1283,7 +1374,10 @@ export const BED_TYPE_EN_TO_AR: Record<string, string> = {
   bunk: "سرير بطابقين",
 };
 export const BED_TYPE_AR_TO_EN: Record<string, string> = Object.fromEntries(
-  Object.entries(BED_TYPE_EN_TO_AR).map(([en, ar]) => [ar, en.charAt(0).toUpperCase() + en.slice(1)])
+  Object.entries(BED_TYPE_EN_TO_AR).map(([en, ar]) => [
+    ar,
+    en.charAt(0).toUpperCase() + en.slice(1),
+  ]),
 );
 
 export const ROOM_VIEW_EN_TO_AR: Record<string, string> = {
@@ -1299,19 +1393,23 @@ export const ROOM_VIEW_EN_TO_AR: Record<string, string> = {
   "lake view": "إطلالة على البحيرة",
 };
 export const ROOM_VIEW_AR_TO_EN: Record<string, string> = Object.fromEntries(
-  Object.entries(ROOM_VIEW_EN_TO_AR).map(([en, ar]) => [ar, en.charAt(0).toUpperCase() + en.slice(1)])
+  Object.entries(ROOM_VIEW_EN_TO_AR).map(([en, ar]) => [
+    ar,
+    en.charAt(0).toUpperCase() + en.slice(1),
+  ]),
 );
 
 export function translateLookup(
   category: string,
   value: string | null | undefined,
-  targetLang: "ar" | "en"
+  targetLang: "ar" | "en",
 ): string {
   if (!value || !value.trim()) return "";
   const cleaned = value.trim();
   const lower = cleaned.toLowerCase();
 
-  if (category === "department") return translateDepartment(cleaned, targetLang);
+  if (category === "department")
+    return translateDepartment(cleaned, targetLang);
   if (category === "job_title") return translateJobTitle(cleaned, targetLang);
 
   if (category === "room_classification") {
@@ -1355,7 +1453,9 @@ export function translateLookup(
  * - Fills missing Arabic job title
  * - Fills missing Arabic department
  */
-export function enrichProfileBilingual(profile: Record<string, any>): Record<string, any> {
+export function enrichProfileBilingual(
+  profile: Record<string, any>,
+): Record<string, any> {
   const p = { ...profile };
 
   const fnEn = String(p.firstName || "").trim();

@@ -18,7 +18,13 @@ import {
 import { getTenantId } from "../lib/request-utils.js";
 import { sendPushToProfiles } from "./push-notifications.js";
 import { validate } from "../middlewares/validate.js";
-import { IdParams, CommonListQuery, CreateConversationBody, ChatMessageBody, AdminChatMessageBody } from "../validation/schemas.js";
+import {
+  IdParams,
+  CommonListQuery,
+  CreateConversationBody,
+  ChatMessageBody,
+  AdminChatMessageBody,
+} from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -58,10 +64,7 @@ router.get("/conversations", requirePortalAuth, async (req, res, next) => {
           })
           .from(portalConversationParticipantsTable)
           .where(
-            eq(
-              portalConversationParticipantsTable.profileId,
-              sess.profileDbId,
-            ),
+            eq(portalConversationParticipantsTable.profileId, sess.profileDbId),
           );
 
         if (participantRows.length === 0) return [];
@@ -136,7 +139,9 @@ router.get("/conversations", requirePortalAuth, async (req, res, next) => {
             if (
               safeLastMsg.contentType !== "image" &&
               (safeLastMsg.content.startsWith("data:image/") ||
-                (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(safeLastMsg.content) &&
+                (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(
+                  safeLastMsg.content,
+                ) &&
                   safeLastMsg.content.length > 50))
             ) {
               safeLastMsg.contentType = "image";
@@ -168,55 +173,59 @@ router.get("/conversations", requirePortalAuth, async (req, res, next) => {
 });
 
 // POST /portal-chat/conversations — إنشاء محادثة جديدة
-router.post("/conversations", requirePortalAuth, validate({ body: CreateConversationBody }),
+router.post(
+  "/conversations",
+  requirePortalAuth,
+  validate({ body: CreateConversationBody }),
   async (req, res, next): Promise<any> => {
-  try {
-    const sess = portalSession(req)!;
-    const { participantIds, subject } = req.body;
-    if (
-      !participantIds ||
-      !Array.isArray(participantIds) ||
-      participantIds.length === 0
-    ) {
-      return res
-        .status(400)
-        .json({ success: false, message: "participantIds required" });
-    }
+    try {
+      const sess = portalSession(req)!;
+      const { participantIds, subject } = req.body;
+      if (
+        !participantIds ||
+        !Array.isArray(participantIds) ||
+        participantIds.length === 0
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, message: "participantIds required" });
+      }
 
-    const allParticipantIds = [
-      ...new Set([sess.profileDbId, ...participantIds]),
-    ];
-    const isGroup = allParticipantIds.length > 2;
+      const allParticipantIds = [
+        ...new Set([sess.profileDbId, ...participantIds]),
+      ];
+      const isGroup = allParticipantIds.length > 2;
 
-    const [conversation] = await withTenant(
-      sess.propertyId,
-      async (tenantDb) => {
-        return await tenantDb
-          .insert(portalConversationsTable)
-          .values({
-            propertyId: sess.propertyId,
-            subject: subject || null,
-            isGroup,
-            createdBy: sess.profileDbId,
-          })
-          .returning();
-      },
-    );
-
-    await withTenant(sess.propertyId, async (tenantDb) => {
-      await tenantDb.insert(portalConversationParticipantsTable).values(
-        allParticipantIds.map((empId) => ({
-          conversationId: conversation.id,
-          profileId: empId,
-        })),
+      const [conversation] = await withTenant(
+        sess.propertyId,
+        async (tenantDb) => {
+          return await tenantDb
+            .insert(portalConversationsTable)
+            .values({
+              propertyId: sess.propertyId,
+              subject: subject || null,
+              isGroup,
+              createdBy: sess.profileDbId,
+            })
+            .returning();
+        },
       );
-    });
 
-    res.json({ success: true, conversation });
-  } catch (err) {
-    next(err);
-  }
-});
+      await withTenant(sess.propertyId, async (tenantDb) => {
+        await tenantDb.insert(portalConversationParticipantsTable).values(
+          allParticipantIds.map((empId) => ({
+            conversationId: conversation.id,
+            profileId: empId,
+          })),
+        );
+      });
+
+      res.json({ success: true, conversation });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ─── Typing State Tracking (In-Memory) ──────────────────────────
 const typingState = new Map<number, Set<number>>(); // convId -> Set of profileIds
@@ -374,15 +383,16 @@ router.post(
             trimmedContent.length > 50)
             ? "image"
             : contentType === "audio" || trimmedContent.startsWith("[AUDIO]:")
-            ? "audio"
-            : contentType === "file" || trimmedContent.startsWith("[FILE]:")
-            ? "file"
-            : contentType === "location" ||
-              trimmedContent.startsWith("[LOCATION]:")
-            ? "location"
-            : contentType === "call" || trimmedContent.startsWith("[CALL]:")
-            ? "call"
-            : "text";
+              ? "audio"
+              : contentType === "file" || trimmedContent.startsWith("[FILE]:")
+                ? "file"
+                : contentType === "location" ||
+                    trimmedContent.startsWith("[LOCATION]:")
+                  ? "location"
+                  : contentType === "call" ||
+                      trimmedContent.startsWith("[CALL]:")
+                    ? "call"
+                    : "text";
 
         return await tenantDb
           .insert(portalMessagesTable)
@@ -410,7 +420,12 @@ router.post(
           .where(
             and(
               eq(portalConversationParticipantsTable.conversationId, convId),
-              not(eq(portalConversationParticipantsTable.profileId, sess.profileDbId)),
+              not(
+                eq(
+                  portalConversationParticipantsTable.profileId,
+                  sess.profileDbId,
+                ),
+              ),
             ),
           );
         const recipientIds = otherParticipants.map((p) => p.profileId);
@@ -419,10 +434,10 @@ router.post(
             message.contentType === "image"
               ? "📷 أرسل صورة"
               : message.contentType === "audio"
-              ? "🎵 رسالة صوتية"
-              : message.contentType === "file"
-              ? "📎 ملف مرفق"
-              : message.content.slice(0, 80);
+                ? "🎵 رسالة صوتية"
+                : message.contentType === "file"
+                  ? "📎 ملف مرفق"
+                  : message.content.slice(0, 80);
 
           await sendPushToProfiles(sess.propertyId, recipientIds, {
             title: sess.fullName || "رسالة جديدة",
@@ -538,25 +553,29 @@ router.post(
 // ─── ADMIN: Moderation ──────────────────────────────────────────
 
 // GET /portal-chat/admin/conversations — قائمة المحادثات (أدمن)
-router.get("/admin/conversations", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
-    const conversations = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .select()
-        .from(portalConversationsTable)
-        .where(eq(portalConversationsTable.propertyId, propertyId))
-        .orderBy(desc(portalConversationsTable.updatedAt));
-    });
-    res.json({ success: true, conversations });
-  } catch (err) {
-    next(err);
-  }
-});
+router.get(
+  "/admin/conversations",
+  requirePermission("portal_content", "view"),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+      const conversations = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select()
+          .from(portalConversationsTable)
+          .where(eq(portalConversationsTable.propertyId, propertyId))
+          .orderBy(desc(portalConversationsTable.updatedAt));
+      });
+      res.json({ success: true, conversations });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // GET /portal-chat/admin/conversations/:id/messages — رسائل محادثة (أدمن)
 router.get(
@@ -576,8 +595,8 @@ router.get(
           .where(
             and(
               eq(portalMessagesTable.conversationId, convId),
-              eq(portalMessagesTable.isDeleted, false)
-            )
+              eq(portalMessagesTable.isDeleted, false),
+            ),
           )
           .orderBy(asc(portalMessagesTable.createdAt));
 
@@ -628,9 +647,7 @@ router.post(
       const { content } = req.body;
 
       if (!content || !content.trim()) {
-        res
-          .status(400)
-          .json({ success: false, message: "Content required" });
+        res.status(400).json({ success: false, message: "Content required" });
         return;
       }
 
@@ -666,106 +683,118 @@ router.post(
 );
 
 // DELETE /portal-chat/admin/messages/:id — حذف رسالة (moderation)
-router.delete("/admin/messages/:id", requirePermission("portal_content", "delete"), validate({ params: IdParams }),
+router.delete(
+  "/admin/messages/:id",
+  requirePermission("portal_content", "delete"),
+  validate({ params: IdParams }),
   async (req, res, next) => {
-  try {
-    const propertyId = getTenantId(req);
-    const id = Number(req.params.id);
-    await withTenant(propertyId, async (tenantDb) => {
-      await tenantDb
-        .update(portalMessagesTable)
-        .set({ isDeleted: true, deletedAt: new Date() })
-        .where(eq(portalMessagesTable.id, id));
-    });
-    res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-});
+    try {
+      const propertyId = getTenantId(req);
+      const id = Number(req.params.id);
+      await withTenant(propertyId, async (tenantDb) => {
+        await tenantDb
+          .update(portalMessagesTable)
+          .set({ isDeleted: true, deletedAt: new Date() })
+          .where(eq(portalMessagesTable.id, id));
+      });
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // GET /portal-chat/admin/stats — إحصائيات
-router.get("/admin/stats", requirePermission("portal_content", "view"), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
-    const stats = await withTenant(propertyId, async (tenantDb) => {
-      const [convCount] = await tenantDb
-        .select({ count: sql`COUNT(*)` })
-        .from(portalConversationsTable)
-        .where(eq(portalConversationsTable.propertyId, propertyId));
-      const [msgCount] = await tenantDb
-        .select({ count: sql`COUNT(*)` })
-        .from(portalMessagesTable);
-      return {
-        conversations: Number(convCount?.count || 0),
-        totalMessages: Number(msgCount?.count || 0),
-      };
-    });
-    res.json({ success: true, ...stats });
-  } catch (err) {
-    next(err);
-  }
-});
+router.get(
+  "/admin/stats",
+  requirePermission("portal_content", "view"),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+      const stats = await withTenant(propertyId, async (tenantDb) => {
+        const [convCount] = await tenantDb
+          .select({ count: sql`COUNT(*)` })
+          .from(portalConversationsTable)
+          .where(eq(portalConversationsTable.propertyId, propertyId));
+        const [msgCount] = await tenantDb
+          .select({ count: sql`COUNT(*)` })
+          .from(portalMessagesTable);
+        return {
+          conversations: Number(convCount?.count || 0),
+          totalMessages: Number(msgCount?.count || 0),
+        };
+      });
+      res.json({ success: true, ...stats });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // GET /portal-chat/employees — بحث زملاء العمل للشات
-router.get("/employees", requirePortalAuth, validate({ query: CommonListQuery }),
+router.get(
+  "/employees",
+  requirePortalAuth,
+  validate({ query: CommonListQuery }),
   async (req, res, next) => {
-  try {
-    const sess = portalSession(req)!;
-    const search = ((req.query.search as string) || "").trim();
+    try {
+      const sess = portalSession(req)!;
+      const search = ((req.query.search as string) || "").trim();
 
-    const employees = await withTenant(sess.propertyId, async (tenantDb) => {
-      const baseSelect = tenantDb
-        .select({
-          id: profilesTable.id,
-          firstName: profilesTable.firstName,
-          lastName: profilesTable.lastName,
-          department: profilesTable.department,
-          jobTitle: profilesTable.jobTitle,
-          photoUrl: profilesTable.photoUrl,
-          profileId: profilesTable.profileId,
-          status: profilesTable.status,
-        })
-        .from(profilesTable);
+      const employees = await withTenant(sess.propertyId, async (tenantDb) => {
+        const baseSelect = tenantDb
+          .select({
+            id: profilesTable.id,
+            firstName: profilesTable.firstName,
+            lastName: profilesTable.lastName,
+            department: profilesTable.department,
+            jobTitle: profilesTable.jobTitle,
+            photoUrl: profilesTable.photoUrl,
+            profileId: profilesTable.profileId,
+            status: profilesTable.status,
+          })
+          .from(profilesTable);
 
-      const excludeSelfAndLeft = and(
-        not(eq(profilesTable.id, sess.profileDbId)),
-        not(sql`UPPER(${profilesTable.status}) IN ('LEFT', 'TERMINATED', 'DEPARTED')`),
-      );
+        const excludeSelfAndLeft = and(
+          not(eq(profilesTable.id, sess.profileDbId)),
+          not(
+            sql`UPPER(${profilesTable.status}) IN ('LEFT', 'TERMINATED', 'DEPARTED')`,
+          ),
+        );
 
-      if (search) {
-        const term = `%${search}%`;
-        return await baseSelect
-          .where(
-            and(
-              excludeSelfAndLeft,
-              or(
-                ilike(profilesTable.firstName, term),
-                ilike(profilesTable.lastName, term),
-                ilike(profilesTable.profileId, term),
-                ilike(profilesTable.nationalId, term),
-                ilike(profilesTable.department, term),
-                ilike(profilesTable.jobTitle, term),
-                sql`CONCAT(${profilesTable.firstName}, ' ', ${profilesTable.lastName}) ILIKE ${term}`,
-                sql`CONCAT(${profilesTable.firstName}, ' ', ${profilesTable.thirdName}, ' ', ${profilesTable.lastName}) ILIKE ${term}`,
+        if (search) {
+          const term = `%${search}%`;
+          return await baseSelect
+            .where(
+              and(
+                excludeSelfAndLeft,
+                or(
+                  ilike(profilesTable.firstName, term),
+                  ilike(profilesTable.lastName, term),
+                  ilike(profilesTable.profileId, term),
+                  ilike(profilesTable.nationalId, term),
+                  ilike(profilesTable.department, term),
+                  ilike(profilesTable.jobTitle, term),
+                  sql`CONCAT(${profilesTable.firstName}, ' ', ${profilesTable.lastName}) ILIKE ${term}`,
+                  sql`CONCAT(${profilesTable.firstName}, ' ', ${profilesTable.thirdName}, ' ', ${profilesTable.lastName}) ILIKE ${term}`,
+                ),
               ),
-            ),
-          )
-          .limit(50);
-      }
+            )
+            .limit(50);
+        }
 
-      return await baseSelect
-        .where(excludeSelfAndLeft)
-        .limit(50);
-    });
+        return await baseSelect.where(excludeSelfAndLeft).limit(50);
+      });
 
-    res.json({ success: true, employees });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({ success: true, employees });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 export default router;

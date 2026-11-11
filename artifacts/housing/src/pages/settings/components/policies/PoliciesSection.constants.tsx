@@ -42,8 +42,16 @@ export const DEFAULT_SIGNATURE_POLICY: SignatureStepItem[] = [
 
 export const PREDEFINED_ROLES = [
   { key: "housing_manager", ar: "مدير السكن", en: "Housing Manager" },
-  { key: "hr_manager", ar: "مدير الموارد البشرية", en: "Human Resources Manager" },
-  { key: "accounts_manager", ar: "المدير المالي / الحسابات", en: "Accounts / Finance Manager" },
+  {
+    key: "hr_manager",
+    ar: "مدير الموارد البشرية",
+    en: "Human Resources Manager",
+  },
+  {
+    key: "accounts_manager",
+    ar: "المدير المالي / الحسابات",
+    en: "Accounts / Finance Manager",
+  },
   { key: "general_manager", ar: "المدير العام", en: "General Manager" },
   { key: "security_manager", ar: "مدير الأمن", en: "Security Manager" },
   { key: "super_admin", ar: "مسؤول النظام", en: "System Administrator" },

@@ -13,7 +13,15 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useProperty } from "@/context/PropertyContext";
 import { usePermission } from "@/hooks/use-permission";
 import { WORKFLOW_ROLES } from "../utils";
-import { MODULE_ACTIONS, MODULE_LABELS, ACTION_LABELS, PERMISSION_GROUPS, ROLE_DEFAULT_PERMISSIONS, permKey, type Action } from "@/lib/permissions";
+import {
+  MODULE_ACTIONS,
+  MODULE_LABELS,
+  ACTION_LABELS,
+  PERMISSION_GROUPS,
+  ROLE_DEFAULT_PERMISSIONS,
+  permKey,
+  type Action,
+} from "@/lib/permissions";
 import { evaluatePassword } from "../components/PasswordStrengthMeter";
 import { toast } from "sonner";
 import { ALL_ROLES, ActiveTab } from "./detail.constants";
@@ -26,7 +34,11 @@ export function useUserDetailPageState() {
   const ar = language === "ar";
   const { user: currentUser, isSystemAdmin } = useAuth();
   const { can, isAdmin, perms: actorPerms } = usePermission();
-  const { properties: contextProperties, isSuperAdmin, buildNavHref } = useProperty();
+  const {
+    properties: contextProperties,
+    isSuperAdmin,
+    buildNavHref,
+  } = useProperty();
   const canGrantAnything = isSuperAdmin || isSystemAdmin || actorPerms.has("*");
 
   const actorCanGrant = (mod: string, act: string) => {
@@ -38,9 +50,15 @@ export function useUserDetailPageState() {
   // Read tab from query string or default to 'profile'
   const searchParams = new URLSearchParams(window.location.search);
   const initialTabParam = searchParams.get("tab") as ActiveTab;
-  const validTabs: ActiveTab[] = ["profile", "permissions", "properties", "signature", "audit"];
+  const validTabs: ActiveTab[] = [
+    "profile",
+    "permissions",
+    "properties",
+    "signature",
+    "audit",
+  ];
   const [activeTab, setActiveTab] = useState<ActiveTab>(
-    validTabs.includes(initialTabParam) ? initialTabParam : "profile"
+    validTabs.includes(initialTabParam) ? initialTabParam : "profile",
   );
 
   // Sync tab change to URL query param
@@ -93,7 +111,9 @@ export function useUserDetailPageState() {
       return Array.isArray(data) ? data : data.data || [];
     },
   });
-  const properties = propertiesRes?.length ? propertiesRes : contextProperties || [];
+  const properties = propertiesRes?.length
+    ? propertiesRes
+    : contextProperties || [];
 
   // Form Edit State
   const [name, setName] = useState("");
@@ -105,7 +125,9 @@ export function useUserDetailPageState() {
   const [primaryRole, setPrimaryRole] = useState("user");
   const [isActive, setIsActive] = useState(true);
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<number[]>([]);
-  const [primaryPropertyId, setPrimaryPropertyId] = useState<number | null>(null);
+  const [primaryPropertyId, setPrimaryPropertyId] = useState<number | null>(
+    null,
+  );
 
   // Password Management State
   const [changePassword, setChangePassword] = useState(false);
@@ -121,7 +143,9 @@ export function useUserDetailPageState() {
 
   // Permissions Matrix State
   const [perms, setPerms] = useState<Set<string>>(new Set());
-  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
+  const [expandedModules, setExpandedModules] = useState<
+    Record<string, boolean>
+  >({});
   const [permSearch, setPermSearch] = useState("");
   const [selectedGroupFilter, setSelectedGroupFilter] = useState<string>("all");
   const [showOverridesOnly, setShowOverridesOnly] = useState(false);
@@ -157,8 +181,8 @@ export function useUserDetailPageState() {
     const pids = user.propertyIds?.length
       ? user.propertyIds
       : user.propertyId
-      ? [user.propertyId]
-      : [];
+        ? [user.propertyId]
+        : [];
     setSelectedPropertyIds(pids);
     setPrimaryPropertyId(user.propertyId || (pids[0] ?? null));
 
@@ -183,15 +207,19 @@ export function useUserDetailPageState() {
         .filter((p) => p && p !== "none")
         .map((p) => {
           let s = String(p).trim().toLowerCase();
-          if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
-          if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
+          if (s.startsWith("employees."))
+            s = s.replace("employees.", "profiles.");
+          if (s.startsWith("employees:"))
+            s = s.replace("employees:", "profiles:");
           return s;
         });
-      const allowed = canGrantAnything ? normalized : normalized.filter((p: string) => {
-        const parts = p.split(".");
-        if (parts.length === 2) return actorCanGrant(parts[0], parts[1]);
-        return actorPerms.has(p);
-      });
+      const allowed = canGrantAnything
+        ? normalized
+        : normalized.filter((p: string) => {
+            const parts = p.split(".");
+            if (parts.length === 2) return actorCanGrant(parts[0], parts[1]);
+            return actorPerms.has(p);
+          });
       setPerms(new Set(allowed));
     }
   }, [user]);
@@ -206,7 +234,10 @@ export function useUserDetailPageState() {
 
   const lockoutRemainingMinutes = useMemo(() => {
     if (!isLocked || !user?.lockedUntil) return 0;
-    return Math.max(1, Math.ceil((new Date(user.lockedUntil).getTime() - Date.now()) / 60000));
+    return Math.max(
+      1,
+      Math.ceil((new Date(user.lockedUntil).getTime() - Date.now()) / 60000),
+    );
   }, [isLocked, user?.lockedUntil]);
 
   // Actions for the selected simulator module
@@ -224,17 +255,21 @@ export function useUserDetailPageState() {
   const defaultPermsForRole = useMemo(() => {
     const raw = ROLE_DEFAULT_PERMISSIONS[primaryRole] || [];
     if (canGrantAnything) return new Set(raw);
-    return new Set(raw.filter((p: string) => {
-      const parts = p.split(".");
-      if (parts.length === 2) return actorCanGrant(parts[0], parts[1]);
-      return actorPerms.has(p);
-    }));
+    return new Set(
+      raw.filter((p: string) => {
+        const parts = p.split(".");
+        if (parts.length === 2) return actorCanGrant(parts[0], parts[1]);
+        return actorPerms.has(p);
+      }),
+    );
   }, [primaryRole, canGrantAnything, actorPerms]);
 
   // Diff stats calculation (comparison against role template)
   const diffStats = useMemo(() => {
     const added = Array.from(perms).filter((p) => !defaultPermsForRole.has(p));
-    const revoked = Array.from(defaultPermsForRole).filter((p) => !perms.has(p));
+    const revoked = Array.from(defaultPermsForRole).filter(
+      (p) => !perms.has(p),
+    );
     return {
       added: added.length,
       revoked: revoked.length,
@@ -255,7 +290,8 @@ export function useUserDetailPageState() {
   // Password Generator
   const handleGeneratePassword = () => {
     setChangePassword(true);
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*";
+    const chars =
+      "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*";
     let pwd = "";
     pwd += "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random() * 24)];
     pwd += "abcdefghijkmnpqrstuvwxyz"[Math.floor(Math.random() * 24)];
@@ -264,30 +300,51 @@ export function useUserDetailPageState() {
     for (let i = 0; i < 8; i++) {
       pwd += chars[Math.floor(Math.random() * chars.length)];
     }
-    const shuffled = pwd.split("").sort(() => 0.5 - Math.random()).join("");
+    const shuffled = pwd
+      .split("")
+      .sort(() => 0.5 - Math.random())
+      .join("");
     setNewPassword(shuffled);
     setConfirmPassword(shuffled);
     setShowPasswordText(true);
-    toast.success(ar ? "تم توليد كلمة مرور معقدة وقوية عشوائياً" : "Strong password generated");
+    toast.success(
+      ar
+        ? "تم توليد كلمة مرور معقدة وقوية عشوائياً"
+        : "Strong password generated",
+    );
   };
 
   const handleCopyCredentials = () => {
     if (!newPassword) {
-      toast.error(ar ? "يرجى كتابة أو توليد كلمة المرور أولاً" : "Please generate or enter password first");
+      toast.error(
+        ar
+          ? "يرجى كتابة أو توليد كلمة المرور أولاً"
+          : "Please generate or enter password first",
+      );
       return;
     }
     const text = `${ar ? "اسم المستخدم" : "Username"}: ${user?.username}\n${ar ? "كلمة المرور" : "Password"}: ${newPassword}\n${ar ? "رابط النظام" : "System URL"}: ${window.location.origin}`;
     navigator.clipboard.writeText(text);
-    toast.success(ar ? "تم نسخ بيانات الدخول إلى الحافظة بنجاح" : "Credentials copied to clipboard");
+    toast.success(
+      ar
+        ? "تم نسخ بيانات الدخول إلى الحافظة بنجاح"
+        : "Credentials copied to clipboard",
+    );
   };
 
   // Clone Permissions Handler
   const handleClonePermissions = () => {
     if (!cloneSourceUserId) {
-      toast.error(ar ? "يرجى اختيار المستخدم أولاً" : "Please select a user to clone from");
+      toast.error(
+        ar
+          ? "يرجى اختيار المستخدم أولاً"
+          : "Please select a user to clone from",
+      );
       return;
     }
-    const source = allUsers?.find((u: any) => String(u.id) === String(cloneSourceUserId));
+    const source = allUsers?.find(
+      (u: any) => String(u.id) === String(cloneSourceUserId),
+    );
     if (!source) return;
 
     const sourceExplicit = (source.permissions as string[] | undefined) ?? [];
@@ -302,8 +359,10 @@ export function useUserDetailPageState() {
         .filter((p) => p && p !== "none")
         .map((p: string) => {
           let s = String(p).trim().toLowerCase();
-          if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
-          if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
+          if (s.startsWith("employees."))
+            s = s.replace("employees.", "profiles.");
+          if (s.startsWith("employees:"))
+            s = s.replace("employees:", "profiles:");
           return s;
         });
       setPerms(new Set(normalized));
@@ -322,7 +381,9 @@ export function useUserDetailPageState() {
     if (isSuper) {
       return {
         allowed: true,
-        reason: ar ? "مسموح بالكامل (سوبر أدمن مدير النظام العام)" : "Fully allowed (Super Admin)",
+        reason: ar
+          ? "مسموح بالكامل (سوبر أدمن مدير النظام العام)"
+          : "Fully allowed (Super Admin)",
         type: "super",
       };
     }
@@ -351,12 +412,18 @@ export function useUserDetailPageState() {
     if (!user?.id || isUnlocking) return;
     setIsUnlocking(true);
     try {
-      const res = await fetch(`/api/users/${user.id}/unlock`, { method: "POST" });
+      const res = await fetch(`/api/users/${user.id}/unlock`, {
+        method: "POST",
+      });
       if (!res.ok) {
         const d = await res.json();
         throw new Error(d.error || "Failed to unlock");
       }
-      toast.success(ar ? "تم فتح قفل الحساب بنجاح ومسح المحاولات الفاشلة" : "Account unlocked successfully");
+      toast.success(
+        ar
+          ? "تم فتح قفل الحساب بنجاح ومسح المحاولات الفاشلة"
+          : "Account unlocked successfully",
+      );
       queryClient.invalidateQueries({ queryKey: ["user-detail", userId] });
       queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
       refetchUser();
@@ -373,11 +440,15 @@ export function useUserDetailPageState() {
     if (!file) return;
 
     if (!["image/png", "image/jpeg"].includes(file.type)) {
-      toast.error(ar ? "يرجى اختيار صورة بتنسيق PNG أو JPEG" : "Only PNG or JPEG allowed");
+      toast.error(
+        ar ? "يرجى اختيار صورة بتنسيق PNG أو JPEG" : "Only PNG or JPEG allowed",
+      );
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      toast.error(ar ? "الحد الأقصى لحجم صورة التوقيع 2 ميجابايت" : "Max 2MB allowed");
+      toast.error(
+        ar ? "الحد الأقصى لحجم صورة التوقيع 2 ميجابايت" : "Max 2MB allowed",
+      );
       return;
     }
 
@@ -396,14 +467,19 @@ export function useUserDetailPageState() {
         body: JSON.stringify({ signatureImage: base64 }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to upload signature");
+      if (!res.ok)
+        throw new Error(data.message || "Failed to upload signature");
 
       setSignaturePreview(base64);
-      toast.success(ar ? "تم حفظ التوقيع الرقمي بنجاح" : "Digital signature saved");
+      toast.success(
+        ar ? "تم حفظ التوقيع الرقمي بنجاح" : "Digital signature saved",
+      );
       queryClient.invalidateQueries({ queryKey: ["user-detail", userId] });
       queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
     } catch (e: any) {
-      toast.error(e.message || (ar ? "فشل حفظ التوقيع" : "Failed to save signature"));
+      toast.error(
+        e.message || (ar ? "فشل حفظ التوقيع" : "Failed to save signature"),
+      );
     } finally {
       setIsUploadingSig(false);
       if (sigFileInputRef.current) sigFileInputRef.current.value = "";
@@ -415,17 +491,23 @@ export function useUserDetailPageState() {
     if (!user?.id || isDeletingSig) return;
     setIsDeletingSig(true);
     try {
-      const res = await fetch(`/api/users/${user.id}/signature`, { method: "DELETE" });
+      const res = await fetch(`/api/users/${user.id}/signature`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const d = await res.json();
         throw new Error(d.message || "Failed to delete signature");
       }
       setSignaturePreview(null);
-      toast.success(ar ? "تم حذف التوقيع الرقمي بنجاح" : "Digital signature deleted");
+      toast.success(
+        ar ? "تم حذف التوقيع الرقمي بنجاح" : "Digital signature deleted",
+      );
       queryClient.invalidateQueries({ queryKey: ["user-detail", userId] });
       queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
     } catch (e: any) {
-      toast.error(e.message || (ar ? "فشل حذف التوقيع" : "Failed to delete signature"));
+      toast.error(
+        e.message || (ar ? "فشل حذف التوقيع" : "Failed to delete signature"),
+      );
     } finally {
       setIsDeletingSig(false);
     }
@@ -438,14 +520,20 @@ export function useUserDetailPageState() {
         queryClient.invalidateQueries({ queryKey: ["user-detail", userId] });
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        toast.success(ar ? "تم حفظ كافة تعديلات المستخدم بنجاح" : "User updated successfully");
+        toast.success(
+          ar
+            ? "تم حفظ كافة تعديلات المستخدم بنجاح"
+            : "User updated successfully",
+        );
         setChangePassword(false);
         setNewPassword("");
         setConfirmPassword("");
         refetchUser();
       },
       onError: (err: any) => {
-        toast.error(err.message || (ar ? "فشل حفظ التغييرات" : "Failed to save changes"));
+        toast.error(
+          err.message || (ar ? "فشل حفظ التغييرات" : "Failed to save changes"),
+        );
       },
     },
   });
@@ -458,11 +546,17 @@ export function useUserDetailPageState() {
     if (changePassword && newPassword.trim()) {
       const evalResult = evaluatePassword(newPassword.trim());
       if (evalResult.score < 2) {
-        toast.error(ar ? "كلمة المرور ضعيفة جداً، يرجى اختيار كلمة مرور أقوى" : "Password is too weak");
+        toast.error(
+          ar
+            ? "كلمة المرور ضعيفة جداً، يرجى اختيار كلمة مرور أقوى"
+            : "Password is too weak",
+        );
         return;
       }
       if (newPassword !== confirmPassword) {
-        toast.error(ar ? "كلمتا المرور غير متطابقتين" : "Passwords do not match");
+        toast.error(
+          ar ? "كلمتا المرور غير متطابقتين" : "Passwords do not match",
+        );
         return;
       }
     }
@@ -498,11 +592,15 @@ export function useUserDetailPageState() {
     mutation: {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
-        toast.success(ar ? "تم حذف حساب المستخدم بنجاح" : "User account deleted");
+        toast.success(
+          ar ? "تم حذف حساب المستخدم بنجاح" : "User account deleted",
+        );
         setLocation(buildNavHref("/users"));
       },
       onError: (err: any) => {
-        toast.error(err.message || (ar ? "فشل حذف المستخدم" : "Failed to delete user"));
+        toast.error(
+          err.message || (ar ? "فشل حذف المستخدم" : "Failed to delete user"),
+        );
       },
     },
   });
@@ -516,8 +614,16 @@ export function useUserDetailPageState() {
   // Permission Toggle Helpers
   const togglePerm = (pKey: string) => {
     const parts = pKey.split(".");
-    if (parts.length === 2 && !perms.has(pKey) && !actorCanGrant(parts[0], parts[1])) {
-      toast.error(ar ? "لا يمكنك منح صلاحية لا تملكها" : "Cannot grant unowned permission");
+    if (
+      parts.length === 2 &&
+      !perms.has(pKey) &&
+      !actorCanGrant(parts[0], parts[1])
+    ) {
+      toast.error(
+        ar
+          ? "لا يمكنك منح صلاحية لا تملكها"
+          : "Cannot grant unowned permission",
+      );
       return;
     }
     setPerms((prev) => {
@@ -586,12 +692,19 @@ export function useUserDetailPageState() {
         const q = permSearch.toLowerCase();
         const modLabelAr = MODULE_LABELS[mod]?.ar.toLowerCase() || "";
         const modLabelEn = MODULE_LABELS[mod]?.en.toLowerCase() || "";
-        const matchMod = mod.toLowerCase().includes(q) || modLabelAr.includes(q) || modLabelEn.includes(q);
+        const matchMod =
+          mod.toLowerCase().includes(q) ||
+          modLabelAr.includes(q) ||
+          modLabelEn.includes(q);
         if (matchMod) return true;
         return (MODULE_ACTIONS[mod] || []).some((act) => {
           const actAr = ACTION_LABELS[act]?.ar.toLowerCase() || "";
           const actEn = ACTION_LABELS[act]?.en.toLowerCase() || "";
-          return act.toLowerCase().includes(q) || actAr.includes(q) || actEn.includes(q);
+          return (
+            act.toLowerCase().includes(q) ||
+            actAr.includes(q) ||
+            actEn.includes(q)
+          );
         });
       });
       if (filteredMods.length === 0) return null;
@@ -600,12 +713,18 @@ export function useUserDetailPageState() {
   }, [selectedGroupFilter, permSearch, showOverridesOnly, diffStats]);
 
   // Fetch Activity Logs for this User (Audit Tab)
-  const { data: auditLogsData, isLoading: isAuditLoading, refetch: refetchAudit } = useQuery({
+  const {
+    data: auditLogsData,
+    isLoading: isAuditLoading,
+    refetch: refetchAudit,
+  } = useQuery({
     queryKey: ["user-audit-logs", user?.username],
     queryFn: async () => {
       if (!user?.username) return [];
       const propId = contextProperties?.[0]?.id || 1;
-      const res = await fetch(`/api/activity-logs?propertyId=${propId}&search=${encodeURIComponent(user.username)}&limit=30`);
+      const res = await fetch(
+        `/api/activity-logs?propertyId=${propId}&search=${encodeURIComponent(user.username)}&limit=30`,
+      );
       if (!res.ok) return [];
       const data = await res.json();
       return Array.isArray(data) ? data : data.data || [];

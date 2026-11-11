@@ -19,9 +19,7 @@ function pad(n: number): string {
 }
 
 function isRealDate(d: unknown): d is Date {
-  return (
-    d instanceof Date && !isNaN(d.getTime()) && isFinite(d.getTime())
-  );
+  return d instanceof Date && !isNaN(d.getTime()) && isFinite(d.getTime());
 }
 
 export function toAsciiDigits(str: string): string {
@@ -71,10 +69,7 @@ export function toDate(value: DateInput): Date | null {
 }
 
 /** Format any date value as "DD/MM/YYYY" (fallback when empty/invalid). */
-export function formatDMY(
-  value: DateInput,
-  fallback: string = "—",
-): string {
+export function formatDMY(value: DateInput, fallback: string = "—"): string {
   const d = toDate(value);
   if (!d) return fallback;
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;

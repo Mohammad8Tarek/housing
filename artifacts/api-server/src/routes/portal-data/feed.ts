@@ -1,6 +1,12 @@
 import { Router } from "express";
 import { db, withTenant } from "@workspace/db";
-import { maintenanceTable, propertiesTable, settingsTable, portalDocumentsTable, portalContactsTable } from "@workspace/db";
+import {
+  maintenanceTable,
+  propertiesTable,
+  settingsTable,
+  portalDocumentsTable,
+  portalContactsTable,
+} from "@workspace/db";
 import { eq, and, desc, inArray } from "drizzle-orm";
 import {
   getActivityStatuses,

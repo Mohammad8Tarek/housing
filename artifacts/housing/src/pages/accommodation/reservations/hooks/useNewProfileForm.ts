@@ -36,7 +36,11 @@ export function useNewProfileForm(ar: boolean) {
     if (!files.length) return;
     files.forEach((file) => {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error(ar ? `${file.name} كبير جداً (الأقصى 5 ميجا)` : `${file.name} is too large (max 5MB)`);
+        toast.error(
+          ar
+            ? `${file.name} كبير جداً (الأقصى 5 ميجا)`
+            : `${file.name} is too large (max 5MB)`,
+        );
         return;
       }
       const reader = new FileReader();
@@ -45,7 +49,11 @@ export function useNewProfileForm(ar: boolean) {
           ...prev,
           idDocuments: [
             ...(prev.idDocuments || []),
-            { fileName: file.name, fileType: file.type || "image/jpeg", fileData: reader.result as string },
+            {
+              fileName: file.name,
+              fileType: file.type || "image/jpeg",
+              fileData: reader.result as string,
+            },
           ],
         }));
       };
@@ -63,8 +71,15 @@ export function useNewProfileForm(ar: boolean) {
   };
 
   return {
-    newForm, setNewForm,
-    photoPreview, photoData, photoRef, docsRef,
-    handlePhotoSelect, clearPhoto, handleDocSelect, removeDoc,
+    newForm,
+    setNewForm,
+    photoPreview,
+    photoData,
+    photoRef,
+    docsRef,
+    handlePhotoSelect,
+    clearPhoto,
+    handleDocSelect,
+    removeDoc,
   };
 }

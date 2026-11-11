@@ -89,7 +89,9 @@ export function HousekeepingTab({
 
   // OOS/OOO Modal State
   const [oosRoom, setOosRoom] = useState<any | null>(null);
-  const [oosType, setOosType] = useState<"out_of_service" | "out_of_order">("out_of_service");
+  const [oosType, setOosType] = useState<"out_of_service" | "out_of_order">(
+    "out_of_service",
+  );
   const [oosReason, setOosReason] = useState("");
   const [oosStartDate, setOosStartDate] = useState("");
   const [oosEndDate, setOosEndDate] = useState("");
@@ -157,7 +159,12 @@ export function HousekeepingTab({
   const oosCount = useMemo(() => {
     return rooms.filter((r) => {
       const s = (r.status || "").toLowerCase().trim();
-      return s === "out_of_service" || s === "oos" || s === "maintenance" || s === "out_of_order";
+      return (
+        s === "out_of_service" ||
+        s === "oos" ||
+        s === "maintenance" ||
+        s === "out_of_order"
+      );
     }).length;
   }, [rooms]);
 
@@ -168,11 +175,24 @@ export function HousekeepingTab({
 
       // Status filter
       if (statusFilter === "clean") {
-        if (s !== "available" && s !== "clean" && s !== "vacant" && s !== "inspected") return false;
+        if (
+          s !== "available" &&
+          s !== "clean" &&
+          s !== "vacant" &&
+          s !== "inspected"
+        )
+          return false;
       } else if (statusFilter === "occupied") {
         if (s !== "occupied" && s !== "occupied_clean") return false;
       } else if (statusFilter === "needs_cleaning") {
-        if (s !== "dirty" && s !== "vacant_dirty" && s !== "occupied_dirty" && s !== "in_cleaning" && s !== "cleaning") return false;
+        if (
+          s !== "dirty" &&
+          s !== "vacant_dirty" &&
+          s !== "occupied_dirty" &&
+          s !== "in_cleaning" &&
+          s !== "cleaning"
+        )
+          return false;
       } else if (statusFilter === "dirty") {
         if (s !== "dirty" && s !== "vacant_dirty") return false;
       } else if (statusFilter === "occupied_dirty") {
@@ -182,7 +202,12 @@ export function HousekeepingTab({
       } else if (statusFilter === "in_cleaning") {
         if (s !== "in_cleaning" && s !== "cleaning") return false;
       } else if (statusFilter === "out_of_service") {
-        if (s !== "out_of_service" && s !== "oos" && s !== "maintenance" && s !== "out_of_order")
+        if (
+          s !== "out_of_service" &&
+          s !== "oos" &&
+          s !== "maintenance" &&
+          s !== "out_of_order"
+        )
           return false;
       }
 
@@ -206,20 +231,16 @@ export function HousekeepingTab({
 
       return true;
     });
-  }, [
-    rooms,
-    statusFilter,
-    buildingFilter,
-    floorFilter,
-    debouncedSearch,
-  ]);
+  }, [rooms, statusFilter, buildingFilter, floorFilter, debouncedSearch]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
 
   // Bulk actions state
-  const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(new Set());
+  const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(
+    new Set(),
+  );
   const [isBulkLoading, setIsBulkLoading] = useState(false);
 
   // Reset page & selection when filters change
@@ -279,18 +300,19 @@ export function HousekeepingTab({
       await Promise.all(
         targetRooms.map((r) => {
           const norm = (r.status || "").toLowerCase().trim();
-          const nextStatus = norm === "occupied_dirty" ? "occupied" : "available";
+          const nextStatus =
+            norm === "occupied_dirty" ? "occupied" : "available";
           return fetch(`/api/rooms/${r.id}/status`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ propertyId, status: nextStatus }),
           });
-        })
+        }),
       );
       toast.success(
         ar
           ? `تم تنظيف وتحديث ${targetRooms.length} غرف بنجاح`
-          : `Successfully marked ${targetRooms.length} rooms as clean`
+          : `Successfully marked ${targetRooms.length} rooms as clean`,
       );
       setSelectedRoomIds(new Set());
       await refreshHousekeepingData();
@@ -312,13 +334,13 @@ export function HousekeepingTab({
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ propertyId, status: "dirty" }),
-          })
-        )
+          }),
+        ),
       );
       toast.success(
         ar
           ? `تم تحديد ${targetRooms.length} غرف كغير نظيفة`
-          : `Marked ${targetRooms.length} rooms as dirty`
+          : `Marked ${targetRooms.length} rooms as dirty`,
       );
       setSelectedRoomIds(new Set());
       await refreshHousekeepingData();
@@ -342,7 +364,9 @@ export function HousekeepingTab({
         floorMap.get(Number(r.floorId)) || r.floorId || "",
       [ar ? "نوع الغرفة" : "Room Type"]: r.roomType || "",
       [ar ? "السعة" : "Capacity"]: r.capacity || 1,
-      [ar ? "الحالة" : "Status"]: getStatusBadge((r.status || "").toLowerCase().trim()).label,
+      [ar ? "الحالة" : "Status"]: getStatusBadge(
+        (r.status || "").toLowerCase().trim(),
+      ).label,
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -363,7 +387,8 @@ export function HousekeepingTab({
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(
-          errData.error || (ar ? "فشل تحديث حالة الغرفة" : "Failed to update room status")
+          errData.error ||
+            (ar ? "فشل تحديث حالة الغرفة" : "Failed to update room status"),
         );
       }
 
@@ -373,37 +398,39 @@ export function HousekeepingTab({
         toast.success(
           ar
             ? `تم تحديث الغرفة ${room.roomNumber} وجعلها جاهزة/نظيفة`
-            : `Room ${room.roomNumber} marked clean & available`
+            : `Room ${room.roomNumber} marked clean & available`,
         );
       } else if (newStatus === "inspected") {
         toast.success(
           ar
             ? `تم فحص واعتماد الغرفة ${room.roomNumber} بنجاح`
-            : `Room ${room.roomNumber} marked as inspected & verified`
+            : `Room ${room.roomNumber} marked as inspected & verified`,
         );
       } else if (newStatus === "in_cleaning") {
         toast.success(
           ar
             ? `تم بدء أعمال تنظيف الغرفة ${room.roomNumber}`
-            : `Room ${room.roomNumber} marked in cleaning`
+            : `Room ${room.roomNumber} marked in cleaning`,
         );
       } else if (newStatus === "occupied") {
         toast.success(
           ar
             ? `تم تنظيف الغرفة المشغولة ${room.roomNumber} بنجاح`
-            : `Room ${room.roomNumber} cleaned (Occupied Clean)`
+            : `Room ${room.roomNumber} cleaned (Occupied Clean)`,
         );
       } else {
         toast.success(
           ar
             ? `تم تحديث حالة الغرفة ${room.roomNumber} بنجاح`
-            : `Room ${room.roomNumber} status updated successfully`
+            : `Room ${room.roomNumber} status updated successfully`,
         );
       }
     } catch (err: any) {
       toast.error(
         err.message ||
-          (ar ? "حدث خطأ أثناء تحديث حالة الغرفة" : "Failed to update room status")
+          (ar
+            ? "حدث خطأ أثناء تحديث حالة الغرفة"
+            : "Failed to update room status"),
       );
     } finally {
       setUpdatingId(null);
@@ -413,14 +440,18 @@ export function HousekeepingTab({
   const handleSubmitOos = async () => {
     if (!oosRoom) return;
     if (!oosStartDate || !oosEndDate) {
-      toast.error(ar ? "يرجى تحديد تاريخ البداية والنهاية" : "Please select start and end dates");
+      toast.error(
+        ar
+          ? "يرجى تحديد تاريخ البداية والنهاية"
+          : "Please select start and end dates",
+      );
       return;
     }
-    
+
     setIsSubmittingOos(true);
     try {
       const descriptionWithDates = `[${oosStartDate} to ${oosEndDate}] ${oosReason || (oosType === "out_of_order" ? "Out of Order" : "Out of Service")}`;
-      
+
       // 1. Create a Maintenance ticket for tracking
       await fetch("/api/maintenance", {
         method: "POST",
@@ -450,9 +481,13 @@ export function HousekeepingTab({
       setOosReason("");
       setOosStartDate("");
       setOosEndDate("");
-      
+
       await refreshHousekeepingData();
-      toast.success(ar ? "تم إغلاق الغرفة وإنشاء التذكرة" : "Room closed and ticket created");
+      toast.success(
+        ar
+          ? "تم إغلاق الغرفة وإنشاء التذكرة"
+          : "Room closed and ticket created",
+      );
     } catch (err: any) {
       toast.error(err.message || "Error");
     } finally {
@@ -608,7 +643,9 @@ export function HousekeepingTab({
         <div
           onClick={() => setStatusFilter("needs_cleaning")}
           className={`cursor-pointer p-4 rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:shadow-md border-orange-200/80 dark:border-orange-900/40 bg-gradient-to-br from-orange-50/40 to-background dark:from-orange-950/10 ${
-            statusFilter === "needs_cleaning" || statusFilter === "dirty" || statusFilter === "occupied_dirty"
+            statusFilter === "needs_cleaning" ||
+            statusFilter === "dirty" ||
+            statusFilter === "occupied_dirty"
               ? "ring-2 ring-orange-500 border-orange-500"
               : "hover:border-orange-400/60"
           }`}
@@ -625,7 +662,8 @@ export function HousekeepingTab({
             {needsCleaningTotalCount}
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">
-            {dirtyCount} {ar ? "شاغرة" : "vacant"} • {occupiedDirtyCount} {ar ? "مشغولة" : "occupied"}
+            {dirtyCount} {ar ? "شاغرة" : "vacant"} • {occupiedDirtyCount}{" "}
+            {ar ? "مشغولة" : "occupied"}
           </p>
         </div>
 
@@ -670,10 +708,14 @@ export function HousekeepingTab({
             }}
           >
             <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder={ar ? "جميع المباني" : "All Buildings"} />
+              <SelectValue
+                placeholder={ar ? "جميع المباني" : "All Buildings"}
+              />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{ar ? "جميع المباني" : "All Buildings"}</SelectItem>
+              <SelectItem value="all">
+                {ar ? "جميع المباني" : "All Buildings"}
+              </SelectItem>
               {buildings.map((b) => (
                 <SelectItem key={b.id} value={String(b.id)}>
                   {b.name}
@@ -693,7 +735,9 @@ export function HousekeepingTab({
               <SelectValue placeholder={ar ? "جميع الطوابق" : "All Floors"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{ar ? "جميع الطوابق" : "All Floors"}</SelectItem>
+              <SelectItem value="all">
+                {ar ? "جميع الطوابق" : "All Floors"}
+              </SelectItem>
               {filteredFloorOptions.map((f) => (
                 <SelectItem key={f.id} value={String(f.id)}>
                   {f.floorNumber
@@ -723,7 +767,9 @@ export function HousekeepingTab({
               <SelectItem value="clean">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  <span>{ar ? "شاغرة نظيفة / جاهزة" : "Clean & Ready (Vacant)"}</span>
+                  <span>
+                    {ar ? "شاغرة نظيفة / جاهزة" : "Clean & Ready (Vacant)"}
+                  </span>
                 </div>
               </SelectItem>
               <SelectItem value="occupied">
@@ -735,7 +781,9 @@ export function HousekeepingTab({
               <SelectItem value="needs_cleaning">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
-                  <span>{ar ? "تحتاج تنظيف (شامل)" : "Needs Cleaning (All)"}</span>
+                  <span>
+                    {ar ? "تحتاج تنظيف (شامل)" : "Needs Cleaning (All)"}
+                  </span>
                 </div>
               </SelectItem>
               <SelectItem value="dirty">
@@ -765,7 +813,9 @@ export function HousekeepingTab({
               <SelectItem value="out_of_service">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                  <span>{ar ? "خارج الخدمة / صيانة" : "Out of Service / Order"}</span>
+                  <span>
+                    {ar ? "خارج الخدمة / صيانة" : "Out of Service / Order"}
+                  </span>
                 </div>
               </SelectItem>
             </SelectContent>
@@ -887,275 +937,315 @@ export function HousekeepingTab({
               const isSelected = selectedRoomIds.has(room.id);
 
               const buildingName = room.buildingId
-                ? buildingMap.get(Number(room.buildingId)) || `Building ${room.buildingId}`
+                ? buildingMap.get(Number(room.buildingId)) ||
+                  `Building ${room.buildingId}`
                 : ar
-                ? "غير محدد"
-                : "Unassigned";
+                  ? "غير محدد"
+                  : "Unassigned";
 
-            const floorName = room.floorId
-              ? floorMap.get(Number(room.floorId)) || `Floor ${room.floorId}`
-              : ar
-              ? "طابق غير محدد"
-              : "No Floor";
+              const floorName = room.floorId
+                ? floorMap.get(Number(room.floorId)) || `Floor ${room.floorId}`
+                : ar
+                  ? "طابق غير محدد"
+                  : "No Floor";
 
-            const isUpdating = updatingId === room.id;
+              const isUpdating = updatingId === room.id;
 
-            return (
-              <div
-                key={room.id}
-                className={`p-4 rounded-xl border bg-card shadow-sm hover:shadow-md transition-all flex flex-col justify-between ${
-                  isSelected
-                    ? "border-primary ring-2 ring-primary/20 bg-primary/5"
-                    : ""
-                }`}
-              >
-                <div>
-                  {/* Header: Checkbox + Room number + Badge */}
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-start gap-2.5 min-w-0">
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleSelectRoom(room.id)}
-                        className="mt-1"
-                      />
-                      <div className="min-w-0">
-                        <span className="text-2xl font-black tracking-tight text-primary">
-                          {room.roomNumber}
-                        </span>
-                        <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
-                          <Building2 className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
-                          <span className="truncate max-w-[80px] sm:max-w-[100px]">{buildingName}</span>
-                          <span>•</span>
-                          <Layers className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
-                          <span className="truncate max-w-[60px] sm:max-w-[100px]">{floorName}</span>
+              return (
+                <div
+                  key={room.id}
+                  className={`p-4 rounded-xl border bg-card shadow-sm hover:shadow-md transition-all flex flex-col justify-between ${
+                    isSelected
+                      ? "border-primary ring-2 ring-primary/20 bg-primary/5"
+                      : ""
+                  }`}
+                >
+                  <div>
+                    {/* Header: Checkbox + Room number + Badge */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleSelectRoom(room.id)}
+                          className="mt-1"
+                        />
+                        <div className="min-w-0">
+                          <span className="text-2xl font-black tracking-tight text-primary">
+                            {room.roomNumber}
+                          </span>
+                          <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
+                            <Building2 className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+                            <span className="truncate max-w-[80px] sm:max-w-[100px]">
+                              {buildingName}
+                            </span>
+                            <span>•</span>
+                            <Layers className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+                            <span className="truncate max-w-[60px] sm:max-w-[100px]">
+                              {floorName}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      <Badge
+                        className={`text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 border text-center ${badge.className}`}
+                      >
+                        {badge.label}
+                      </Badge>
                     </div>
-                    <Badge
-                      className={`text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 border text-center ${badge.className}`}
-                    >
-                      {badge.label}
-                    </Badge>
+
+                    {/* Room type + Capacity */}
+                    <div className="my-3 py-2 px-3 rounded-lg bg-muted/40 text-xs flex items-center justify-between text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <BedDouble className="w-3.5 h-3.5 text-foreground/70" />
+                        <span className="font-medium text-foreground">
+                          {room.roomType || (ar ? "قياسي" : "Standard")}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5 text-foreground/70" />
+                        <span>
+                          {ar
+                            ? `السعة: ${room.capacity || 1}`
+                            : `Capacity: ${room.capacity || 1}`}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Room type + Capacity */}
-                  <div className="my-3 py-2 px-3 rounded-lg bg-muted/40 text-xs flex items-center justify-between text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <BedDouble className="w-3.5 h-3.5 text-foreground/70" />
-                      <span className="font-medium text-foreground">
-                        {room.roomType || (ar ? "قياسي" : "Standard")}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5 text-foreground/70" />
-                      <span>
-                        {ar
-                          ? `السعة: ${room.capacity || 1}`
-                          : `Capacity: ${room.capacity || 1}`}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Action Button */}
-                {(canEditHsk || canCreateHsk) && (
-                <div className="mt-2 pt-2 border-t border-border/50 flex gap-2">
-                  {/* For 'dirty' */}
-                  {canEditHsk && (normStatus === "dirty" || normStatus === "vacant_dirty") && (
-                    <div className="flex-1 flex gap-1.5">
-                      <Button
-                        size="sm"
-                        disabled={isUpdating}
-                        onClick={() => handleUpdateStatus(room, "available")}
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs gap-1 px-2"
-                      >
-                        {isUpdating ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <span className="flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            {ar ? "تنظيف وإتاحة" : "Clean & Ready"}
-                          </span>
+                  {/* Quick Action Button */}
+                  {(canEditHsk || canCreateHsk) && (
+                    <div className="mt-2 pt-2 border-t border-border/50 flex gap-2">
+                      {/* For 'dirty' */}
+                      {canEditHsk &&
+                        (normStatus === "dirty" ||
+                          normStatus === "vacant_dirty") && (
+                          <div className="flex-1 flex gap-1.5">
+                            <Button
+                              size="sm"
+                              disabled={isUpdating}
+                              onClick={() =>
+                                handleUpdateStatus(room, "available")
+                              }
+                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs gap-1 px-2"
+                            >
+                              {isUpdating ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <span className="flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  {ar ? "تنظيف وإتاحة" : "Clean & Ready"}
+                                </span>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isUpdating}
+                              onClick={() =>
+                                handleUpdateStatus(room, "inspected")
+                              }
+                              className="border-teal-300 dark:border-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-teal-700 dark:text-teal-300 font-semibold text-xs shadow-xs gap-1 px-2"
+                              title={
+                                ar
+                                  ? "تسجيل فحص الغرفة قبل الاعتماد النهائي"
+                                  : "Mark as inspected"
+                              }
+                            >
+                              <span className="flex items-center gap-1">
+                                <Sparkles className="w-3 h-3 text-teal-500" />
+                                {ar ? "فحص" : "Inspect"}
+                              </span>
+                            </Button>
+                          </div>
                         )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={isUpdating}
-                        onClick={() => handleUpdateStatus(room, "inspected")}
-                        className="border-teal-300 dark:border-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-teal-700 dark:text-teal-300 font-semibold text-xs shadow-xs gap-1 px-2"
-                        title={ar ? "تسجيل فحص الغرفة قبل الاعتماد النهائي" : "Mark as inspected"}
-                      >
-                        <span className="flex items-center gap-1">
-                          <Sparkles className="w-3 h-3 text-teal-500" />
-                          {ar ? "فحص" : "Inspect"}
-                        </span>
-                      </Button>
-                    </div>
-                  )}
 
-                  {/* For 'inspected' */}
-                  {canEditHsk && normStatus === "inspected" && (
-                    <Button
-                      size="sm"
-                      disabled={isUpdating}
-                      onClick={() => handleUpdateStatus(room, "available")}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs gap-1.5 px-2"
-                    >
-                      {isUpdating ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <span className="flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          {ar ? "اعتماد الغرفة وإتاحتها" : "Approve & Release"}
-                        </span>
+                      {/* For 'inspected' */}
+                      {canEditHsk && normStatus === "inspected" && (
+                        <Button
+                          size="sm"
+                          disabled={isUpdating}
+                          onClick={() => handleUpdateStatus(room, "available")}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs gap-1.5 px-2"
+                        >
+                          {isUpdating ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <span className="flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {ar
+                                ? "اعتماد الغرفة وإتاحتها"
+                                : "Approve & Release"}
+                            </span>
+                          )}
+                        </Button>
                       )}
-                    </Button>
-                  )}
 
-                  {/* For 'in_cleaning' */}
-                  {canEditHsk && (normStatus === "in_cleaning" || normStatus === "cleaning") && (
-                    <div className="flex-1 flex gap-1.5">
-                      <Button
-                        size="sm"
-                        disabled={isUpdating}
-                        onClick={() => handleUpdateStatus(room, "inspected")}
-                        className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs shadow-xs gap-1 px-2"
-                      >
-                        {isUpdating ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <span className="flex items-center gap-1">
-                            <Sparkles className="w-3.5 h-3.5" />
-                            {ar ? "إتمام وفحص" : "Done & Inspect"}
-                          </span>
+                      {/* For 'in_cleaning' */}
+                      {canEditHsk &&
+                        (normStatus === "in_cleaning" ||
+                          normStatus === "cleaning") && (
+                          <div className="flex-1 flex gap-1.5">
+                            <Button
+                              size="sm"
+                              disabled={isUpdating}
+                              onClick={() =>
+                                handleUpdateStatus(room, "inspected")
+                              }
+                              className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs shadow-xs gap-1 px-2"
+                            >
+                              {isUpdating ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <span className="flex items-center gap-1">
+                                  <Sparkles className="w-3.5 h-3.5" />
+                                  {ar ? "إتمام وفحص" : "Done & Inspect"}
+                                </span>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isUpdating}
+                              onClick={() =>
+                                handleUpdateStatus(room, "available")
+                              }
+                              className="border-emerald-300 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold text-xs shadow-xs gap-1 px-2"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {ar ? "إتاحة" : "Ready"}
+                            </Button>
+                          </div>
                         )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={isUpdating}
-                        onClick={() => handleUpdateStatus(room, "available")}
-                        className="border-emerald-300 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold text-xs shadow-xs gap-1 px-2"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        {ar ? "إتاحة" : "Ready"}
-                      </Button>
+
+                      {/* For 'occupied_dirty' */}
+                      {canEditHsk && normStatus === "occupied_dirty" && (
+                        <Button
+                          size="sm"
+                          disabled={isUpdating}
+                          onClick={() => handleUpdateStatus(room, "occupied")}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs gap-1.5 px-2"
+                        >
+                          {isUpdating ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <span className="flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {ar ? "تنظيف" : "Mark Clean"}
+                            </span>
+                          )}
+                        </Button>
+                      )}
+
+                      {/* For 'out_of_service' */}
+                      {canEditHsk &&
+                        (normStatus === "out_of_service" ||
+                          normStatus === "oos" ||
+                          normStatus === "maintenance") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isUpdating}
+                            onClick={() =>
+                              handleUpdateStatus(room, "available")
+                            }
+                            className="flex-1 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground font-semibold text-xs shadow-xs gap-1.5 px-2"
+                          >
+                            {isUpdating ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <span className="flex items-center gap-1.5">
+                                <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                                <span>{ar ? "إعادة للخدمة" : "Restore"}</span>
+                              </span>
+                            )}
+                          </Button>
+                        )}
+
+                      {/* For 'available/clean' */}
+                      {canEditHsk &&
+                        (normStatus === "available" ||
+                          normStatus === "clean") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isUpdating}
+                            onClick={() => handleUpdateStatus(room, "dirty")}
+                            className="flex-1 border-orange-200 dark:border-orange-800 hover:bg-orange-50 dark:hover:bg-orange-950/30 text-orange-700 dark:text-orange-400 font-semibold text-xs shadow-xs gap-1.5 px-2"
+                          >
+                            {isUpdating ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <span className="flex items-center gap-1.5">
+                                <Brush className="w-3.5 h-3.5" />
+                                {ar ? "تحديد كمتسخة" : "Mark Dirty"}
+                              </span>
+                            )}
+                          </Button>
+                        )}
+
+                      {/* For 'occupied' */}
+                      {canEditHsk &&
+                        (normStatus === "occupied" ||
+                          normStatus === "occupied_clean") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isUpdating}
+                            onClick={() =>
+                              handleUpdateStatus(room, "occupied_dirty")
+                            }
+                            className="flex-1 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950/30 text-purple-700 dark:text-purple-400 font-semibold text-xs shadow-xs gap-1.5 px-2"
+                          >
+                            {isUpdating ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <span className="flex items-center gap-1.5">
+                                <Brush className="w-3.5 h-3.5" />
+                                {ar ? "تحديد كمتسخة" : "Mark Dirty"}
+                              </span>
+                            )}
+                          </Button>
+                        )}
+
+                      {/* OOS Button for all except OOS itself */}
+                      {canCreateHsk &&
+                        normStatus !== "out_of_service" &&
+                        normStatus !== "oos" &&
+                        normStatus !== "maintenance" &&
+                        normStatus !== "out_of_order" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isUpdating}
+                            onClick={() => {
+                              setOosRoom(room);
+                              setOosType("out_of_service");
+                              setOosReason("");
+                              setOosStartDate("");
+                              setOosEndDate("");
+                            }}
+                            className="flex-1 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-400 font-semibold text-[11px] shadow-xs gap-1 px-1"
+                            title={
+                              ar
+                                ? "إغلاق الغرفة للصيانة"
+                                : "Close room for service"
+                            }
+                          >
+                            {isUpdating ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <span className="flex items-center gap-1">
+                                <Ban className="w-3 h-3 text-red-500" />
+                                {ar ? "إغلاق" : "Close"}
+                              </span>
+                            )}
+                          </Button>
+                        )}
                     </div>
-                  )}
-
-                  {/* For 'occupied_dirty' */}
-                  {canEditHsk && normStatus === "occupied_dirty" && (
-                    <Button
-                      size="sm"
-                      disabled={isUpdating}
-                      onClick={() => handleUpdateStatus(room, "occupied")}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs gap-1.5 px-2"
-                    >
-                      {isUpdating ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <span className="flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          {ar ? "تنظيف" : "Mark Clean"}
-                        </span>
-                      )}
-                    </Button>
-                  )}
-
-                  {/* For 'out_of_service' */}
-                  {canEditHsk && (normStatus === "out_of_service" ||
-                    normStatus === "oos" ||
-                    normStatus === "maintenance") && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isUpdating}
-                      onClick={() => handleUpdateStatus(room, "available")}
-                      className="flex-1 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-foreground font-semibold text-xs shadow-xs gap-1.5 px-2"
-                    >
-                      {isUpdating ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <span className="flex items-center gap-1.5">
-                          <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-                          <span>{ar ? "إعادة للخدمة" : "Restore"}</span>
-                        </span>
-                      )}
-                    </Button>
-                  )}
-
-                  {/* For 'available/clean' */}
-                  {canEditHsk && (normStatus === "available" || normStatus === "clean") && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isUpdating}
-                      onClick={() => handleUpdateStatus(room, "dirty")}
-                      className="flex-1 border-orange-200 dark:border-orange-800 hover:bg-orange-50 dark:hover:bg-orange-950/30 text-orange-700 dark:text-orange-400 font-semibold text-xs shadow-xs gap-1.5 px-2"
-                    >
-                      {isUpdating ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <span className="flex items-center gap-1.5">
-                          <Brush className="w-3.5 h-3.5" />
-                          {ar ? "تحديد كمتسخة" : "Mark Dirty"}
-                        </span>
-                      )}
-                    </Button>
-                  )}
-
-                  {/* For 'occupied' */}
-                  {canEditHsk && (normStatus === "occupied" || normStatus === "occupied_clean") && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isUpdating}
-                      onClick={() => handleUpdateStatus(room, "occupied_dirty")}
-                      className="flex-1 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950/30 text-purple-700 dark:text-purple-400 font-semibold text-xs shadow-xs gap-1.5 px-2"
-                    >
-                      {isUpdating ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <span className="flex items-center gap-1.5">
-                          <Brush className="w-3.5 h-3.5" />
-                          {ar ? "تحديد كمتسخة" : "Mark Dirty"}
-                        </span>
-                      )}
-                    </Button>
-                  )}
-
-                  {/* OOS Button for all except OOS itself */}
-                  {canCreateHsk && normStatus !== "out_of_service" && normStatus !== "oos" && normStatus !== "maintenance" && normStatus !== "out_of_order" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isUpdating}
-                      onClick={() => {
-                        setOosRoom(room);
-                        setOosType("out_of_service");
-                        setOosReason("");
-                        setOosStartDate("");
-                        setOosEndDate("");
-                      }}
-                      className="flex-1 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-400 font-semibold text-[11px] shadow-xs gap-1 px-1"
-                      title={ar ? "إغلاق الغرفة للصيانة" : "Close room for service"}
-                    >
-                      {isUpdating ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <span className="flex items-center gap-1">
-                          <Ban className="w-3 h-3 text-red-500" />
-                          {ar ? "إغلاق" : "Close"}
-                        </span>
-                      )}
-                    </Button>
                   )}
                 </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
           </div>
           {filteredRooms.length > 0 && (
             <DataPagination
@@ -1170,11 +1260,15 @@ export function HousekeepingTab({
       )}
 
       {/* OOS / OOO Dialog */}
-      <Dialog open={!!oosRoom} onOpenChange={(open) => !open && setOosRoom(null)}>
+      <Dialog
+        open={!!oosRoom}
+        onOpenChange={(open) => !open && setOosRoom(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {ar ? "إغلاق الغرفة للخدمة" : "Close Room for Service"} - {oosRoom?.roomNumber}
+              {ar ? "إغلاق الغرفة للخدمة" : "Close Room for Service"} -{" "}
+              {oosRoom?.roomNumber}
             </DialogTitle>
           </DialogHeader>
 
@@ -1198,10 +1292,12 @@ export function HousekeepingTab({
 
             <div className="space-y-2">
               <Label>{ar ? "السبب / الملاحظات" : "Reason / Notes"}</Label>
-              <Textarea 
+              <Textarea
                 value={oosReason}
                 onChange={(e) => setOosReason(e.target.value)}
-                placeholder={ar ? "اذكر سبب إغلاق الغرفة..." : "Reason for closing..."}
+                placeholder={
+                  ar ? "اذكر سبب إغلاق الغرفة..." : "Reason for closing..."
+                }
               />
             </div>
 
@@ -1231,7 +1327,9 @@ export function HousekeepingTab({
               {ar ? "إلغاء" : "Cancel"}
             </Button>
             <Button onClick={handleSubmitOos} disabled={isSubmittingOos}>
-              {isSubmittingOos && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isSubmittingOos && (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              )}
               {ar ? "تأكيد الإغلاق" : "Confirm Closure"}
             </Button>
           </DialogFooter>

@@ -2,7 +2,10 @@
 // from the property's lists, so the page needs no profile/stay/ticket lists.
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
-import { computeReportAnalytics, type ReportAnalytics } from "@workspace/report-rows";
+import {
+  computeReportAnalytics,
+  type ReportAnalytics,
+} from "@workspace/report-rows";
 
 const BROWSER_TIME_ZONE = (() => {
   try {
@@ -14,8 +17,28 @@ const BROWSER_TIME_ZONE = (() => {
 
 // Shape-complete placeholders (zeros) until the first response arrives.
 const EMPTY = {
-  ar: computeReportAnalytics({ ar: true, rooms: [], assignments: [], profiles: [], buildings: [], floors: [], maintenance: [], reservations: [], hostings: [] }),
-  en: computeReportAnalytics({ ar: false, rooms: [], assignments: [], profiles: [], buildings: [], floors: [], maintenance: [], reservations: [], hostings: [] }),
+  ar: computeReportAnalytics({
+    ar: true,
+    rooms: [],
+    assignments: [],
+    profiles: [],
+    buildings: [],
+    floors: [],
+    maintenance: [],
+    reservations: [],
+    hostings: [],
+  }),
+  en: computeReportAnalytics({
+    ar: false,
+    rooms: [],
+    assignments: [],
+    profiles: [],
+    buildings: [],
+    floors: [],
+    maintenance: [],
+    reservations: [],
+    hostings: [],
+  }),
 };
 
 export function useServerAnalytics({
@@ -31,8 +54,12 @@ export function useServerAnalytics({
   filterBuilding: string;
   filterFloor: string;
 }) {
-  const qs = new URLSearchParams({ propertyId: String(propId ?? ""), lang: ar ? "ar" : "en" });
-  if (filterBuilding && filterBuilding !== "all") qs.set("filterBuilding", filterBuilding);
+  const qs = new URLSearchParams({
+    propertyId: String(propId ?? ""),
+    lang: ar ? "ar" : "en",
+  });
+  if (filterBuilding && filterBuilding !== "all")
+    qs.set("filterBuilding", filterBuilding);
   if (filterFloor && filterFloor !== "all") qs.set("filterFloor", filterFloor);
   if (BROWSER_TIME_ZONE) qs.set("tz", BROWSER_TIME_ZONE);
 
@@ -44,5 +71,9 @@ export function useServerAnalytics({
   });
 
   const result = query.data ?? (ar ? EMPTY.ar : EMPTY.en);
-  return { stats: result.stats, analytics: result.analytics, isLoading: query.isLoading };
+  return {
+    stats: result.stats,
+    analytics: result.analytics,
+    isLoading: query.isLoading,
+  };
 }

@@ -1,7 +1,17 @@
 import { Router } from "express";
-import { withTenant, assignmentsTable, roomsTable, profilesTable, buildingsTable, floorsTable } from "@workspace/db";
+import {
+  withTenant,
+  assignmentsTable,
+  roomsTable,
+  profilesTable,
+  buildingsTable,
+  floorsTable,
+} from "@workspace/db";
 import { eq, and, or, sql, SQL, desc } from "drizzle-orm";
-import { ListAssignmentsQueryParams, ListAssignmentsResponse } from "@workspace/api-zod";
+import {
+  ListAssignmentsQueryParams,
+  ListAssignmentsResponse,
+} from "@workspace/api-zod";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { getTenantId } from "../../lib/request-utils.js";
 import { findProfileAcrossAllProperties } from "../../lib/cross-property-service.js";
@@ -84,7 +94,10 @@ router.get(
           floorNumber: floorsTable.floorNumber,
         })
         .from(assignmentsTable)
-        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+        .leftJoin(
+          profilesTable,
+          eq(assignmentsTable.profileId, profilesTable.id),
+        )
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
         .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
         .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
@@ -93,7 +106,10 @@ router.get(
       const countResult = await tenantDb
         .select({ count: sql<number>`count(*)` })
         .from(assignmentsTable)
-        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+        .leftJoin(
+          profilesTable,
+          eq(assignmentsTable.profileId, profilesTable.id),
+        )
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
         .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
         .where(and(...conditions));
@@ -107,7 +123,7 @@ router.get(
 
       return {
         total,
-        data: items.map(i => ({
+        data: items.map((i) => ({
           ...i.assignment,
           profileStatus: i.profileStatus,
           vacationStartDate: i.vacationStartDate,
@@ -165,8 +181,8 @@ router.get(
       pagination: {
         total: result.total,
         page,
-        limit
-      }
+        limit,
+      },
     });
   },
 );
@@ -188,7 +204,9 @@ router.get(
     const limit = Math.max(1, parseInt(query.limit || "20"));
     const offset = (page - 1) * limit;
 
-    const conditions: SQL[] = [sql`upper(${assignmentsTable.status}) != 'ACTIVE'`];
+    const conditions: SQL[] = [
+      sql`upper(${assignmentsTable.status}) != 'ACTIVE'`,
+    ];
 
     if (query.status && query.status !== "ALL") {
       const s = String(query.status).toUpperCase();
@@ -243,7 +261,10 @@ router.get(
           floorNumber: floorsTable.floorNumber,
         })
         .from(assignmentsTable)
-        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+        .leftJoin(
+          profilesTable,
+          eq(assignmentsTable.profileId, profilesTable.id),
+        )
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
         .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
         .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
@@ -252,7 +273,10 @@ router.get(
       const countResult = await tenantDb
         .select({ count: sql<number>`count(*)` })
         .from(assignmentsTable)
-        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+        .leftJoin(
+          profilesTable,
+          eq(assignmentsTable.profileId, profilesTable.id),
+        )
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
         .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
         .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
@@ -261,7 +285,11 @@ router.get(
       const total = Number(countResult[0]?.count || 0);
 
       const items = await baseQuery
-        .orderBy(desc(sql`COALESCE(${assignmentsTable.checkOutDate}, ${assignmentsTable.createdAt}::text)`))
+        .orderBy(
+          desc(
+            sql`COALESCE(${assignmentsTable.checkOutDate}, ${assignmentsTable.createdAt}::text)`,
+          ),
+        )
         .limit(limit)
         .offset(offset);
 
@@ -343,7 +371,10 @@ router.get(
     const conditions: SQL[] = [];
 
     if (query.success) {
-      if (query.data.status && String(query.data.status).toUpperCase() !== "ALL")
+      if (
+        query.data.status &&
+        String(query.data.status).toUpperCase() !== "ALL"
+      )
         conditions.push(eq(assignmentsTable.status, query.data.status));
       if (query.data.profileId)
         conditions.push(eq(assignmentsTable.profileId, query.data.profileId));
@@ -384,13 +415,18 @@ router.get(
           profileNationality: profilesTable.nationality,
         })
         .from(assignmentsTable)
-        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+        .leftJoin(
+          profilesTable,
+          eq(assignmentsTable.profileId, profilesTable.id),
+        )
         .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
         .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
         .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id));
 
       return conditions.length > 0
-        ? await base.where(and(...conditions)).orderBy(desc(assignmentsTable.id))
+        ? await base
+            .where(and(...conditions))
+            .orderBy(desc(assignmentsTable.id))
         : await base.orderBy(desc(assignmentsTable.id));
     });
 

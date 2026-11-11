@@ -27,7 +27,9 @@ export function SortableHead({
 }: SortableHeadProps) {
   const active = activeKey === sortKey;
   return (
-    <TableHead className={cn("text-white font-semibold whitespace-nowrap", className)}>
+    <TableHead
+      className={cn("text-white font-semibold whitespace-nowrap", className)}
+    >
       <button
         type="button"
         onClick={() => onToggle(sortKey)}

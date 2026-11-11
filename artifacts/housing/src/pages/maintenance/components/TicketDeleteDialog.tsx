@@ -16,7 +16,12 @@ interface TicketDeleteDialogProps {
   onConfirm: () => void;
 }
 
-export function TicketDeleteDialog({ ar, open, onOpenChange, onConfirm }: TicketDeleteDialogProps) {
+export function TicketDeleteDialog({
+  ar,
+  open,
+  onOpenChange,
+  onConfirm,
+}: TicketDeleteDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>

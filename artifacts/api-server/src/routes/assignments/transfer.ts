@@ -1,12 +1,30 @@
 import { Router } from "express";
-import { db, withTenant, assignmentsTable, roomsTable, profilesTable, buildingsTable, roomMovesTable } from "@workspace/db";
+import {
+  db,
+  withTenant,
+  assignmentsTable,
+  roomsTable,
+  profilesTable,
+  buildingsTable,
+  roomMovesTable,
+} from "@workspace/db";
 import { eq, and, sql, not, count } from "drizzle-orm";
-import { TransferAssignmentBody, TransferAssignmentParams, TransferAssignmentResponse } from "@workspace/api-zod";
+import {
+  TransferAssignmentBody,
+  TransferAssignmentParams,
+  TransferAssignmentResponse,
+} from "@workspace/api-zod";
 import { logActivity } from "../../lib/activity-logger.js";
-import { requireAnyPermission, hasPermission } from "../../middlewares/permissions.js";
+import {
+  requireAnyPermission,
+  hasPermission,
+} from "../../middlewares/permissions.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
-import { executeCrossPropertyTransfer, findAssignmentAcrossAllProperties } from "../../lib/cross-property-service.js";
+import {
+  executeCrossPropertyTransfer,
+  findAssignmentAcrossAllProperties,
+} from "../../lib/cross-property-service.js";
 import { fmtAssignment } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
 import { IdParams } from "../../validation/schemas.js";
@@ -16,7 +34,10 @@ const router: Router = Router();
 // ─── POST /assignments/:id/transfer ──────────────────────────────────────
 router.post(
   "/assignments/:id/transfer",
-  requireAnyPermission(["accommodation", "transfer"], ["accommodation", "edit"]),
+  requireAnyPermission(
+    ["accommodation", "transfer"],
+    ["accommodation", "edit"],
+  ),
   validate({ params: IdParams }),
   async (req, res): Promise<void> => {
     let propertyId = getTenantId(req);
@@ -46,7 +67,9 @@ router.post(
 
     // If not found in propertyId or propertyId wasn't passed, search all properties
     if (!assignment) {
-      const crossFound = await findAssignmentAcrossAllProperties(params.data.id);
+      const crossFound = await findAssignmentAcrossAllProperties(
+        params.data.id,
+      );
       if (crossFound) {
         propertyId = crossFound.propertyId;
         assignment = crossFound.assignment;
@@ -59,23 +82,37 @@ router.post(
     }
 
     const authUser = (req as any).authUser;
-    if (authUser && !authUser.isSystemAdmin && Array.isArray(authUser.propertyIds) && authUser.propertyIds.length > 0 && !authUser.propertyIds.includes(propertyId)) {
-      res.status(403).json({ error: "Access denied to the hotel where this resident is housed" });
-      return;
-    }
-
-    const asgnStatusUpper = String(assignment.status || "").toUpperCase();
-    if (!["ACTIVE", "VACATION", "OCCUPIED_VACATION"].includes(asgnStatusUpper)) {
-      res.status(409).json({ 
-        error: `لا يمكن نقل الموظف لأن حالة الإقامة الحالية هي (${assignment.status}). النقل متاح فقط للتسكين النشط أو المقيمين في إجازة.` 
+    if (
+      authUser &&
+      !authUser.isSystemAdmin &&
+      Array.isArray(authUser.propertyIds) &&
+      authUser.propertyIds.length > 0 &&
+      !authUser.propertyIds.includes(propertyId)
+    ) {
+      res.status(403).json({
+        error: "Access denied to the hotel where this resident is housed",
       });
       return;
     }
 
-    const isTemporaryVacationOverride = Boolean((req.body as any)?.isTemporaryVacationOverride);
+    const asgnStatusUpper = String(assignment.status || "").toUpperCase();
+    if (
+      !["ACTIVE", "VACATION", "OCCUPIED_VACATION"].includes(asgnStatusUpper)
+    ) {
+      res.status(409).json({
+        error: `لا يمكن نقل الموظف لأن حالة الإقامة الحالية هي (${assignment.status}). النقل متاح فقط للتسكين النشط أو المقيمين في إجازة.`,
+      });
+      return;
+    }
+
+    const isTemporaryVacationOverride = Boolean(
+      (req.body as any)?.isTemporaryVacationOverride,
+    );
 
     const rawTargetPropertyId = (req.body as any)?.targetPropertyId;
-    const targetPropertyId = rawTargetPropertyId ? Number(rawTargetPropertyId) : null;
+    const targetPropertyId = rawTargetPropertyId
+      ? Number(rawTargetPropertyId)
+      : null;
 
     if (targetPropertyId && targetPropertyId !== propertyId) {
       const crossResult = await executeCrossPropertyTransfer({
@@ -90,9 +127,10 @@ router.post(
         hasPolicyException: Boolean((req.body as any)?.hasPolicyException),
         policyExceptionReason: (req.body as any)?.policyExceptionReason || null,
         policyApprovedBy: (req.body as any)?.policyApprovedBy || null,
-        archiveSourceProfile: (req.body as any)?.archiveSourceProfile !== undefined
-          ? Boolean((req.body as any)?.archiveSourceProfile)
-          : true,
+        archiveSourceProfile:
+          (req.body as any)?.archiveSourceProfile !== undefined
+            ? Boolean((req.body as any)?.archiveSourceProfile)
+            : true,
         req,
       });
 
@@ -105,7 +143,7 @@ router.post(
         TransferAssignmentResponse.parse({
           ...fmtAssignment((crossResult as any).updated),
           propertyId: targetPropertyId,
-        })
+        }),
       );
       return;
     }
@@ -124,7 +162,15 @@ router.post(
 
       // ── فحص صلاحية الغرفة الجديدة ─────────────────────────────────────────
       const newRoomStatus = newRoom.status?.toLowerCase() || "";
-      if (["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(newRoomStatus)) {
+      if (
+        [
+          "maintenance",
+          "out_of_service",
+          "out_of_order",
+          "oos",
+          "ooo",
+        ].includes(newRoomStatus)
+      ) {
         return {
           error: `لا يمكن نقل الموظف إلى هذه الغرفة لأنها غير صالحة للسكن حالياً (الحالة: ${newRoom.status}). يرجى إنهاء أعمال الصيانة أولاً.`,
           code: "ROOM_NOT_ELIGIBLE",
@@ -141,7 +187,10 @@ router.post(
           lastName: profilesTable.lastName,
         })
         .from(assignmentsTable)
-        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+        .leftJoin(
+          profilesTable,
+          eq(assignmentsTable.profileId, profilesTable.id),
+        )
         .where(
           and(
             eq(assignmentsTable.roomId, parsed.data.newRoomId),
@@ -158,7 +207,8 @@ router.post(
       }
 
       const isEntireRoomRequested = Boolean(
-        (req.body as any)?.isEntireRoom || (assignment.isEntireRoom && newRoom.currentOccupancy === 0)
+        (req.body as any)?.isEntireRoom ||
+        (assignment.isEntireRoom && newRoom.currentOccupancy === 0),
       );
 
       if (isEntireRoomRequested && newRoom.currentOccupancy > 0) {
@@ -182,7 +232,10 @@ router.post(
             vacationEndDate: profilesTable.vacationEndDate,
           })
           .from(assignmentsTable)
-          .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+          .leftJoin(
+            profilesTable,
+            eq(assignmentsTable.profileId, profilesTable.id),
+          )
           .where(
             and(
               eq(assignmentsTable.roomId, parsed.data.newRoomId),
@@ -193,7 +246,8 @@ router.post(
 
         if (takenBeds.length > 0) {
           const primaryOccupant = takenBeds[0];
-          const isOccupantOnVacation = primaryOccupant.profileStatus?.toUpperCase() === "VACATION";
+          const isOccupantOnVacation =
+            primaryOccupant.profileStatus?.toUpperCase() === "VACATION";
 
           if (!isOccupantOnVacation) {
             return {
@@ -204,14 +258,26 @@ router.post(
           }
 
           const transAuthUser = (req as any).authUser || (req as any).user;
-          const transUserRole = (transAuthUser?.roles?.[0] || su(req).userRole || "").toLowerCase();
-          const transUserPerms: string[] = Array.isArray(transAuthUser?.permissions) ? transAuthUser.permissions : [];
+          const transUserRole = (
+            transAuthUser?.roles?.[0] ||
+            su(req).userRole ||
+            ""
+          ).toLowerCase();
+          const transUserPerms: string[] = Array.isArray(
+            transAuthUser?.permissions,
+          )
+            ? transAuthUser.permissions
+            : [];
           const isManagerOrAdmin =
-            ["super_admin", "system_admin", "admin", "manager"].includes(transUserRole) ||
+            ["super_admin", "system_admin", "admin", "manager"].includes(
+              transUserRole,
+            ) ||
             transUserPerms.includes("accommodation.override_vacation") ||
             transUserPerms.includes("accommodation.transfer") ||
             transUserPerms.includes("accommodation.edit") ||
-            (transAuthUser && (hasPermission(transAuthUser, "accommodation", "transfer") || hasPermission(transAuthUser, "accommodation", "edit")));
+            (transAuthUser &&
+              (hasPermission(transAuthUser, "accommodation", "transfer") ||
+                hasPermission(transAuthUser, "accommodation", "edit")));
 
           if (!isManagerOrAdmin) {
             return {
@@ -224,7 +290,9 @@ router.post(
           if (!isTemporaryVacationOverride) {
             return {
               error: `السرير رقم ${parsed.data.newBedNumber} محجوز للموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}) وهو حالياً في إجازة${
-                primaryOccupant.vacationEndDate ? ` حتى تاريخ ${primaryOccupant.vacationEndDate}` : ""
+                primaryOccupant.vacationEndDate
+                  ? ` حتى تاريخ ${primaryOccupant.vacationEndDate}`
+                  : ""
               }. هل ترغب في تأكيد النقل المؤقت كبديل خلال فترة الإجازة؟`,
               code: "BED_OCCUPANT_ON_VACATION",
               occupantName: `${primaryOccupant.firstName} ${primaryOccupant.lastName}`,
@@ -236,7 +304,10 @@ router.post(
         }
       }
 
-      if (newRoom.currentOccupancy >= newRoom.capacity && !isTemporaryVacationOverride) {
+      if (
+        newRoom.currentOccupancy >= newRoom.capacity &&
+        !isTemporaryVacationOverride
+      ) {
         return {
           error: `الغرفة الجديدة ممتلئة تماماً (${newRoom.capacity}/${newRoom.capacity} سرير). لا يمكن تجاوز الطاقة الاستيعابية.`,
           code: "ROOM_FULL",
@@ -282,7 +353,9 @@ router.post(
         );
       const newOcc = isEntireRoomRequested
         ? newRoom.capacity
-        : (isTemporaryVacationOverride ? Number(newRemaining?.count ?? 0) : Number(newRemaining?.count ?? 0) + 1);
+        : isTemporaryVacationOverride
+          ? Number(newRemaining?.count ?? 0)
+          : Number(newRemaining?.count ?? 0) + 1;
 
       await tenantDb
         .update(roomsTable)
@@ -312,21 +385,32 @@ router.post(
         .update(assignmentsTable)
         .set({
           roomId: parsed.data.newRoomId,
-          bedNumber: isEntireRoomRequested ? (parsed.data.newBedNumber || 1) : (parsed.data.newBedNumber ?? null),
+          bedNumber: isEntireRoomRequested
+            ? parsed.data.newBedNumber || 1
+            : (parsed.data.newBedNumber ?? null),
           isEntireRoom: isEntireRoomRequested,
           checkInDate: nowStr,
-          hasPolicyException: (req.body as any)?.hasPolicyException !== undefined
-            ? Boolean((req.body as any)?.hasPolicyException)
-            : assignment.hasPolicyException,
-          policyExceptionReason: (req.body as any)?.policyExceptionReason || assignment.policyExceptionReason || null,
-          policyApprovedBy: (req.body as any)?.policyApprovedBy || assignment.policyApprovedBy || null,
+          hasPolicyException:
+            (req.body as any)?.hasPolicyException !== undefined
+              ? Boolean((req.body as any)?.hasPolicyException)
+              : assignment.hasPolicyException,
+          policyExceptionReason:
+            (req.body as any)?.policyExceptionReason ||
+            assignment.policyExceptionReason ||
+            null,
+          policyApprovedBy:
+            (req.body as any)?.policyApprovedBy ||
+            assignment.policyApprovedBy ||
+            null,
           notes: [
             assignment.notes,
             `تم النقل من الغرفة ${oldRoom?.roomNumber || assignment.roomId} إلى الغرفة ${newRoom.roomNumber}`,
             parsed.data.transferReason
               ? `السبب: ${parsed.data.transferReason}`
               : null,
-          ].filter(Boolean).join(" | "),
+          ]
+            .filter(Boolean)
+            .join(" | "),
         })
         .where(eq(assignmentsTable.id, params.data.id))
         .returning();
@@ -346,13 +430,28 @@ router.post(
         .where(eq(profilesTable.id, assignment.profileId));
 
       const [oldBld] = oldRoom?.buildingId
-        ? await tenantDb.select().from(buildingsTable).where(eq(buildingsTable.id, oldRoom.buildingId))
+        ? await tenantDb
+            .select()
+            .from(buildingsTable)
+            .where(eq(buildingsTable.id, oldRoom.buildingId))
         : [null];
       const [newBld] = newRoom.buildingId
-        ? await tenantDb.select().from(buildingsTable).where(eq(buildingsTable.id, newRoom.buildingId))
+        ? await tenantDb
+            .select()
+            .from(buildingsTable)
+            .where(eq(buildingsTable.id, newRoom.buildingId))
         : [null];
 
-      return { error: undefined, updated, oldRoom, newRoom, prof, oldBld, newBld, oldBedNumber: assignment.bedNumber };
+      return {
+        error: undefined,
+        updated,
+        oldRoom,
+        newRoom,
+        prof,
+        oldBld,
+        newBld,
+        oldBedNumber: assignment.bedNumber,
+      };
     });
 
     if (result.error) {
@@ -400,9 +499,16 @@ router.post(
     // ── Record in Room Moves Log ──
     try {
       const p = transferData.prof;
-      const residentName = p ? `${p.firstName || ""} ${p.lastName || ""}`.trim() : `Profile #${transferData.updated?.profileId}`;
-      const residentNameEn = p ? `${p.firstName || ""} ${p.lastName || ""}`.trim() : null;
-      const residentNameAr = p?.firstNameAr || p?.lastNameAr ? `${p.firstNameAr || ""} ${p.lastNameAr || ""}`.trim() : residentName;
+      const residentName = p
+        ? `${p.firstName || ""} ${p.lastName || ""}`.trim()
+        : `Profile #${transferData.updated?.profileId}`;
+      const residentNameEn = p
+        ? `${p.firstName || ""} ${p.lastName || ""}`.trim()
+        : null;
+      const residentNameAr =
+        p?.firstNameAr || p?.lastNameAr
+          ? `${p.firstNameAr || ""} ${p.lastNameAr || ""}`.trim()
+          : residentName;
 
       await db.insert(roomMovesTable).values({
         propertyId,

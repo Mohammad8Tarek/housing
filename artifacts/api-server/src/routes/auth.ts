@@ -1,18 +1,40 @@
 import { Router } from "express";
 import crypto from "node:crypto";
-import { db, usersTable, userPasswordResetOtpsTable, withTenant, settingsTable } from "@workspace/db";
+import {
+  db,
+  usersTable,
+  userPasswordResetOtpsTable,
+  withTenant,
+  settingsTable,
+} from "@workspace/db";
 import { eq, sql, desc, and, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { LoginBody, ChangePasswordBody } from "@workspace/api-zod";
 import { sendOtpEmail } from "../lib/email-service.js";
 import { logActivity, getClientIp } from "../lib/activity-logger.js";
-import { changePasswordRateLimit, resetLoginAttempts } from "../middlewares/rate-limit.js";
-import { getPasswordPolicy, validatePassword, checkPasswordHistory, recordPasswordHistory, cleanupOldPasswordHistory, isPasswordExpired } from "../lib/password-policy.js";
+import {
+  changePasswordRateLimit,
+  resetLoginAttempts,
+} from "../middlewares/rate-limit.js";
+import {
+  getPasswordPolicy,
+  validatePassword,
+  checkPasswordHistory,
+  recordPasswordHistory,
+  cleanupOldPasswordHistory,
+  isPasswordExpired,
+} from "../lib/password-policy.js";
 import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
 import { formatZodError } from "../utils/error-response.js";
 import { createWsAuthToken } from "../lib/ws-auth-token.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, SwitchPropertyBody, ForgotOtpRequestBody, ForgotOtpVerifyBody, ForgotResetBody } from "../validation/schemas.js";
+import {
+  CommonListQuery,
+  SwitchPropertyBody,
+  ForgotOtpRequestBody,
+  ForgotOtpVerifyBody,
+  ForgotResetBody,
+} from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -195,8 +217,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   // Also prevents 502 when browser sends a stale/destroyed session cookie
   const roles = (user.roles ?? []).map(normalizeRole);
   const isSystemAdmin =
-    roles.includes("super_admin") ||
-    roles.includes("system_admin");
+    roles.includes("super_admin") || roles.includes("system_admin");
 
   const sessionData = {
     userId: user.id,
@@ -257,34 +278,37 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/auth/ws-token", validate({ query: CommonListQuery }),
+router.get(
+  "/auth/ws-token",
+  validate({ query: CommonListQuery }),
   (req, res): void => {
-  const session = req.session as any;
-  const userId = Number(session?.userId);
-  const sessionPropertyId = Number(session?.propertyId);
-  const requestedPropertyId = Number(req.query["propertyId"] ?? 0);
-  const isSystemAdmin = Boolean(session?.isSystemAdmin);
-  const propertyId = requestedPropertyId || sessionPropertyId;
+    const session = req.session as any;
+    const userId = Number(session?.userId);
+    const sessionPropertyId = Number(session?.propertyId);
+    const requestedPropertyId = Number(req.query["propertyId"] ?? 0);
+    const isSystemAdmin = Boolean(session?.isSystemAdmin);
+    const propertyId = requestedPropertyId || sessionPropertyId;
 
-  if (!userId || !sessionPropertyId || !propertyId) {
-    res.status(401).json({ success: false, message: "Unauthorized" });
-    return;
-  }
+    if (!userId || !sessionPropertyId || !propertyId) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
 
-  if (!isSystemAdmin && propertyId !== sessionPropertyId) {
-    res.status(403).json({ success: false, message: "Access denied" });
-    return;
-  }
+    if (!isSystemAdmin && propertyId !== sessionPropertyId) {
+      res.status(403).json({ success: false, message: "Access denied" });
+      return;
+    }
 
-  const token = createWsAuthToken({
-    userId,
-    propertyId,
-    username: String(session?.username ?? "unknown"),
-    isSystemAdmin,
-  });
+    const token = createWsAuthToken({
+      userId,
+      propertyId,
+      username: String(session?.username ?? "unknown"),
+      isSystemAdmin,
+    });
 
-  res.json({ token, expiresIn: 60 });
-});
+    res.json({ token, expiresIn: 60 });
+  },
+);
 
 // ─── POST /auth/logout ────────────────────────────────────────────────────
 router.post("/auth/logout", async (req, res): Promise<void> => {
@@ -334,7 +358,9 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
 // ─── GET /auth/me ─────────────────────────────────────────────────────────
 router.get("/auth/me", async (req, res): Promise<void> => {
   const userId = (req.session as any)?.userId;
-  console.log(`[AUTH_ME_ROUTE] userId=${userId}, sessionID=${req.sessionID}, cookie=${req.headers.cookie}, xSid=${req.headers["x-session-id"]}`);
+  console.log(
+    `[AUTH_ME_ROUTE] userId=${userId}, sessionID=${req.sessionID}, cookie=${req.headers.cookie}, xSid=${req.headers["x-session-id"]}`,
+  );
   if (!userId) {
     res.status(401).json({ error: "Not authenticated" });
     return;
@@ -353,8 +379,7 @@ router.get("/auth/me", async (req, res): Promise<void> => {
 
   const roles = (user.roles ?? []).map(normalizeRole);
   const isSystemAdmin =
-    roles.includes("super_admin") ||
-    roles.includes("system_admin");
+    roles.includes("super_admin") || roles.includes("system_admin");
 
   const session = req.session as any;
   const passwordExpired = session?.passwordExpired ?? false;
@@ -466,89 +491,94 @@ router.post(
 );
 
 // ─── POST /auth/switch-property ───────────────────────────────────────────
-router.post("/auth/switch-property", validate({ body: SwitchPropertyBody }),
+router.post(
+  "/auth/switch-property",
+  validate({ body: SwitchPropertyBody }),
   async (req, res): Promise<void> => {
-  const session = req.session as any;
-  const userId = session?.userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+    const session = req.session as any;
+    const userId = session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
 
-  const newPropertyId = Number(req.body?.propertyId);
-  // Guard against NaN, zero, negative values that could slip past DB constraints
-  if (!Number.isFinite(newPropertyId) || newPropertyId <= 0) {
-    res.status(400).json({ error: "A valid positive propertyId is required" });
-    return;
-  }
+    const newPropertyId = Number(req.body?.propertyId);
+    // Guard against NaN, zero, negative values that could slip past DB constraints
+    if (!Number.isFinite(newPropertyId) || newPropertyId <= 0) {
+      res
+        .status(400)
+        .json({ error: "A valid positive propertyId is required" });
+      return;
+    }
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, userId))
-    .limit(1);
-  if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
-  }
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .limit(1);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
 
-  // Use normalizeRole (defined above) for consistent case-insensitive role matching
-  // Previously used `user.roles.includes("SYSTEM_ADMIN")` — that (uppercase) never matched
-  // the lowercase-stored roles, silently denying system admins the bypass they should have.
-  const isSystemAdmin =
-    (user.roles ?? []).map(normalizeRole).includes("super_admin") ||
-    (user.roles ?? []).map(normalizeRole).includes("system_admin");
+    // Use normalizeRole (defined above) for consistent case-insensitive role matching
+    // Previously used `user.roles.includes("SYSTEM_ADMIN")` — that (uppercase) never matched
+    // the lowercase-stored roles, silently denying system admins the bypass they should have.
+    const isSystemAdmin =
+      (user.roles ?? []).map(normalizeRole).includes("super_admin") ||
+      (user.roles ?? []).map(normalizeRole).includes("system_admin");
 
-  if (!isSystemAdmin) {
-    const allowedIds: number[] = (user as any).propertyIds?.length
-      ? (user as any).propertyIds
-      : user.propertyId
-        ? [user.propertyId]
-        : [];
-    if (!allowedIds.includes(newPropertyId)) {
-      // Log denied attempts — could indicate privilege escalation probing
-      await logActivity({
+    if (!isSystemAdmin) {
+      const allowedIds: number[] = (user as any).propertyIds?.length
+        ? (user as any).propertyIds
+        : user.propertyId
+          ? [user.propertyId]
+          : [];
+      if (!allowedIds.includes(newPropertyId)) {
+        // Log denied attempts — could indicate privilege escalation probing
+        await logActivity({
+          req,
+          propertyId: newPropertyId,
+          username: user.username,
+          userId: user.id,
+          userRole: user.roles?.[0],
+          action: "PROPERTY_SWITCH_DENIED",
+          actionType: "SECURITY",
+          module: "auth",
+          severity: "warning",
+          details: `Access denied switching to property ${newPropertyId} (allowed: ${JSON.stringify(allowedIds)})`,
+          ipAddress: getClientIp(req),
+        });
+        res.status(403).json({ error: "Access denied to this property" });
+        return;
+      }
+    }
+
+    const oldPropertyId = session.propertyId;
+    session.propertyId = newPropertyId;
+
+    // Respond immediately, express-session will save in background
+    if (oldPropertyId !== newPropertyId) {
+      logActivity({
         req,
         propertyId: newPropertyId,
         username: user.username,
         userId: user.id,
         userRole: user.roles?.[0],
-        action: "PROPERTY_SWITCH_DENIED",
-        actionType: "SECURITY",
+        action: "PROPERTY_SWITCH",
+        actionType: "UPDATE",
         module: "auth",
-        severity: "warning",
-        details: `Access denied switching to property ${newPropertyId} (allowed: ${JSON.stringify(allowedIds)})`,
+        severity: "info",
+        details: `Switched from property ${oldPropertyId ?? "none"} to ${newPropertyId}`,
         ipAddress: getClientIp(req),
+      }).catch((err) => {
+        console.error("[auth/property-switch] Activity log error:", err);
       });
-      res.status(403).json({ error: "Access denied to this property" });
-      return;
     }
-  }
 
-  const oldPropertyId = session.propertyId;
-  session.propertyId = newPropertyId;
-
-  // Respond immediately, express-session will save in background
-  if (oldPropertyId !== newPropertyId) {
-    logActivity({
-      req,
-      propertyId: newPropertyId,
-      username: user.username,
-      userId: user.id,
-      userRole: user.roles?.[0],
-      action: "PROPERTY_SWITCH",
-      actionType: "UPDATE",
-      module: "auth",
-      severity: "info",
-      details: `Switched from property ${oldPropertyId ?? "none"} to ${newPropertyId}`,
-      ipAddress: getClientIp(req),
-    }).catch((err) => {
-      console.error("[auth/property-switch] Activity log error:", err);
-    });
-  }
-
-  res.json({ success: true, propertyId: newPropertyId });
-});
+    res.json({ success: true, propertyId: newPropertyId });
+  },
+);
 
 // ─── HELPER: Mask Email ──────────────────────────────────────────────────
 function maskEmail(email: string): string {
@@ -564,415 +594,437 @@ function maskEmail(email: string): string {
 }
 
 // ─── POST /auth/forgot-password/request-otp ──────────────────────────────
-router.post("/auth/forgot-password/request-otp", validate({ body: ForgotOtpRequestBody }),
+router.post(
+  "/auth/forgot-password/request-otp",
+  validate({ body: ForgotOtpRequestBody }),
   async (req, res): Promise<void> => {
-  const identifier = String(req.body?.identifier || "").trim();
-  if (!identifier) {
-    res.status(400).json({
-      error: "يرجى إدخال اسم المستخدم أو البريد الإلكتروني / Username or email is required",
-    });
-    return;
-  }
-
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(
-      or(
-        sql`lower(${usersTable.username}) = lower(${identifier})`,
-        sql`lower(${usersTable.email}) = lower(${identifier})`,
-      ),
-    )
-    .limit(1);
-
-  if (!user) {
-    res.status(404).json({
-      error: "اسم المستخدم أو البريد الإلكتروني غير مسجل في النظام / User account not found",
-    });
-    return;
-  }
-
-  if (user.status && user.status.toLowerCase() !== "active") {
-    res.status(403).json({
-      error: "هذا الحساب غير نشط أو تم تعطيله / This account is inactive or disabled",
-    });
-    return;
-  }
-
-  if (!user.email || !user.email.includes("@")) {
-    res.status(400).json({
-      error:
-        "هذا الحساب ليس لديه بريد إلكتروني مسجل. يرجى التواصل مع مسؤول النظام لتحديث بياناتك / No email address registered for this account. Please contact system administrator.",
-    });
-    return;
-  }
-
-  // Rate Limiting & Progressive Cooldown
-  const [latestOtp] = await db
-    .select()
-    .from(userPasswordResetOtpsTable)
-    .where(eq(userPasswordResetOtpsTable.userId, user.id))
-    .orderBy(desc(userPasswordResetOtpsTable.createdAt))
-    .limit(1);
-
-  let resendCount = 0;
-  if (latestOtp) {
-    const lastActionTime = latestOtp.lastResendAt || latestOtp.createdAt;
-    const secondsSinceLast = Math.floor(
-      (Date.now() - new Date(lastActionTime).getTime()) / 1000,
-    );
-
-    // Cooldown progression:
-    // 0 resends -> 60s
-    // 1 resend  -> 120s
-    // 2+ resends -> 300s (5 minutes)
-    const requiredCooldown =
-      latestOtp.resendCount === 0
-        ? 60
-        : latestOtp.resendCount === 1
-          ? 120
-          : 300;
-
-    if (secondsSinceLast < requiredCooldown && secondsSinceLast < 1800) {
-      const remainingCooldown = requiredCooldown - secondsSinceLast;
-      res.status(429).json({
-        error: `يرجى الانتظار ${remainingCooldown} ثانية قبل إعادة إرسال رمز جديد / Please wait ${remainingCooldown}s before requesting a new code`,
-        cooldownSeconds: remainingCooldown,
-        retryAfterSeconds: remainingCooldown,
+    const identifier = String(req.body?.identifier || "").trim();
+    if (!identifier) {
+      res.status(400).json({
+        error:
+          "يرجى إدخال اسم المستخدم أو البريد الإلكتروني / Username or email is required",
       });
       return;
     }
 
-    resendCount = secondsSinceLast > 1800 ? 0 : latestOtp.resendCount + 1;
-  }
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(
+        or(
+          sql`lower(${usersTable.username}) = lower(${identifier})`,
+          sql`lower(${usersTable.email}) = lower(${identifier})`,
+        ),
+      )
+      .limit(1);
 
-  // Generate 6-digit cryptographically secure OTP
-  const otpCode = crypto.randomInt(100000, 999999).toString();
-  const otpHash = await bcrypt.hash(otpCode, 10);
-  const TTL_SECONDS = 180; // Exactly 3 minutes (180 seconds)
-  const expiresAt = new Date(Date.now() + TTL_SECONDS * 1000);
-
-  // Invalidate older OTP records for this user
-  await db
-    .delete(userPasswordResetOtpsTable)
-    .where(eq(userPasswordResetOtpsTable.userId, user.id));
-
-  // Insert fresh OTP record
-  await db.insert(userPasswordResetOtpsTable).values({
-    userId: user.id,
-    identifier: user.username,
-    otpHash,
-    attempts: 0,
-    maxAttempts: 5,
-    isVerified: false,
-    resendCount,
-    lastResendAt: new Date(),
-    expiresAt,
-  });
-
-  const nextCooldownSeconds =
-    resendCount === 0 ? 60 : resendCount === 1 ? 120 : 300;
-
-  // Retrieve tenant SMTP config from database settings if configured
-  let smtpConfig: any = undefined;
-  if (user.propertyId && Number(user.propertyId) > 0) {
-    try {
-      const tenantSettings = await withTenant(Number(user.propertyId), async (tenantDb) => {
-        const [s] = await tenantDb.select().from(settingsTable).limit(1);
-        return s;
+    if (!user) {
+      res.status(404).json({
+        error:
+          "اسم المستخدم أو البريد الإلكتروني غير مسجل في النظام / User account not found",
       });
-      if (tenantSettings?.smtpHost && tenantSettings?.smtpUser && tenantSettings?.smtpPass) {
-        smtpConfig = {
-          smtpHost: tenantSettings.smtpHost,
-          smtpPort: tenantSettings.smtpPort,
-          smtpSecure: tenantSettings.smtpSecure,
-          smtpUser: tenantSettings.smtpUser,
-          smtpPass: tenantSettings.smtpPass,
-          smtpFrom: tenantSettings.smtpFrom,
-        };
-      }
-    } catch (e: any) {
-      console.warn("[auth/request-otp] Could not load tenant SMTP config:", e?.message);
+      return;
     }
-  }
 
-  // Send Email (SMTP from DB or environment with console fallback)
-  await sendOtpEmail({
-    toEmail: user.email,
-    recipientName: user.username,
-    otpCode,
-    expiresInSeconds: TTL_SECONDS,
-    config: smtpConfig,
-  });
+    if (user.status && user.status.toLowerCase() !== "active") {
+      res.status(403).json({
+        error:
+          "هذا الحساب غير نشط أو تم تعطيله / This account is inactive or disabled",
+      });
+      return;
+    }
 
-  await logActivity({
-    req,
-    propertyId: user.propertyId ?? 0,
-    username: user.username,
-    userId: user.id,
-    userRole: user.roles?.[0],
-    action: "PASSWORD_RESET_OTP_REQUESTED",
-    actionType: "SECURITY",
-    module: "auth",
-    severity: "info",
-    details: `Password reset OTP generated for ${user.username} (sent to ${maskEmail(user.email)})`,
-    ipAddress: getClientIp(req),
-  });
+    if (!user.email || !user.email.includes("@")) {
+      res.status(400).json({
+        error:
+          "هذا الحساب ليس لديه بريد إلكتروني مسجل. يرجى التواصل مع مسؤول النظام لتحديث بياناتك / No email address registered for this account. Please contact system administrator.",
+      });
+      return;
+    }
 
-  res.json({
-    success: true,
-    message:
-      "تم إرسال رمز التحقق إلى بريدك الإلكتروني بنجاح / Verification code sent to your email",
-    maskedEmail: maskEmail(user.email),
-    expiresInSeconds: TTL_SECONDS,
-    cooldownSeconds: nextCooldownSeconds,
-    resendCount,
-    debugOtp: process.env.NODE_ENV !== "production" ? otpCode : undefined,
-  });
-});
+    // Rate Limiting & Progressive Cooldown
+    const [latestOtp] = await db
+      .select()
+      .from(userPasswordResetOtpsTable)
+      .where(eq(userPasswordResetOtpsTable.userId, user.id))
+      .orderBy(desc(userPasswordResetOtpsTable.createdAt))
+      .limit(1);
+
+    let resendCount = 0;
+    if (latestOtp) {
+      const lastActionTime = latestOtp.lastResendAt || latestOtp.createdAt;
+      const secondsSinceLast = Math.floor(
+        (Date.now() - new Date(lastActionTime).getTime()) / 1000,
+      );
+
+      // Cooldown progression:
+      // 0 resends -> 60s
+      // 1 resend  -> 120s
+      // 2+ resends -> 300s (5 minutes)
+      const requiredCooldown =
+        latestOtp.resendCount === 0
+          ? 60
+          : latestOtp.resendCount === 1
+            ? 120
+            : 300;
+
+      if (secondsSinceLast < requiredCooldown && secondsSinceLast < 1800) {
+        const remainingCooldown = requiredCooldown - secondsSinceLast;
+        res.status(429).json({
+          error: `يرجى الانتظار ${remainingCooldown} ثانية قبل إعادة إرسال رمز جديد / Please wait ${remainingCooldown}s before requesting a new code`,
+          cooldownSeconds: remainingCooldown,
+          retryAfterSeconds: remainingCooldown,
+        });
+        return;
+      }
+
+      resendCount = secondsSinceLast > 1800 ? 0 : latestOtp.resendCount + 1;
+    }
+
+    // Generate 6-digit cryptographically secure OTP
+    const otpCode = crypto.randomInt(100000, 999999).toString();
+    const otpHash = await bcrypt.hash(otpCode, 10);
+    const TTL_SECONDS = 180; // Exactly 3 minutes (180 seconds)
+    const expiresAt = new Date(Date.now() + TTL_SECONDS * 1000);
+
+    // Invalidate older OTP records for this user
+    await db
+      .delete(userPasswordResetOtpsTable)
+      .where(eq(userPasswordResetOtpsTable.userId, user.id));
+
+    // Insert fresh OTP record
+    await db.insert(userPasswordResetOtpsTable).values({
+      userId: user.id,
+      identifier: user.username,
+      otpHash,
+      attempts: 0,
+      maxAttempts: 5,
+      isVerified: false,
+      resendCount,
+      lastResendAt: new Date(),
+      expiresAt,
+    });
+
+    const nextCooldownSeconds =
+      resendCount === 0 ? 60 : resendCount === 1 ? 120 : 300;
+
+    // Retrieve tenant SMTP config from database settings if configured
+    let smtpConfig: any = undefined;
+    if (user.propertyId && Number(user.propertyId) > 0) {
+      try {
+        const tenantSettings = await withTenant(
+          Number(user.propertyId),
+          async (tenantDb) => {
+            const [s] = await tenantDb.select().from(settingsTable).limit(1);
+            return s;
+          },
+        );
+        if (
+          tenantSettings?.smtpHost &&
+          tenantSettings?.smtpUser &&
+          tenantSettings?.smtpPass
+        ) {
+          smtpConfig = {
+            smtpHost: tenantSettings.smtpHost,
+            smtpPort: tenantSettings.smtpPort,
+            smtpSecure: tenantSettings.smtpSecure,
+            smtpUser: tenantSettings.smtpUser,
+            smtpPass: tenantSettings.smtpPass,
+            smtpFrom: tenantSettings.smtpFrom,
+          };
+        }
+      } catch (e: any) {
+        console.warn(
+          "[auth/request-otp] Could not load tenant SMTP config:",
+          e?.message,
+        );
+      }
+    }
+
+    // Send Email (SMTP from DB or environment with console fallback)
+    await sendOtpEmail({
+      toEmail: user.email,
+      recipientName: user.username,
+      otpCode,
+      expiresInSeconds: TTL_SECONDS,
+      config: smtpConfig,
+    });
+
+    await logActivity({
+      req,
+      propertyId: user.propertyId ?? 0,
+      username: user.username,
+      userId: user.id,
+      userRole: user.roles?.[0],
+      action: "PASSWORD_RESET_OTP_REQUESTED",
+      actionType: "SECURITY",
+      module: "auth",
+      severity: "info",
+      details: `Password reset OTP generated for ${user.username} (sent to ${maskEmail(user.email)})`,
+      ipAddress: getClientIp(req),
+    });
+
+    res.json({
+      success: true,
+      message:
+        "تم إرسال رمز التحقق إلى بريدك الإلكتروني بنجاح / Verification code sent to your email",
+      maskedEmail: maskEmail(user.email),
+      expiresInSeconds: TTL_SECONDS,
+      cooldownSeconds: nextCooldownSeconds,
+      resendCount,
+      debugOtp: process.env.NODE_ENV !== "production" ? otpCode : undefined,
+    });
+  },
+);
 
 // ─── POST /auth/forgot-password/verify-otp ───────────────────────────────
-router.post("/auth/forgot-password/verify-otp", validate({ body: ForgotOtpVerifyBody }),
+router.post(
+  "/auth/forgot-password/verify-otp",
+  validate({ body: ForgotOtpVerifyBody }),
   async (req, res): Promise<void> => {
-  const identifier = String(req.body?.identifier || "").trim();
-  const otp = String(req.body?.otp || "").trim();
+    const identifier = String(req.body?.identifier || "").trim();
+    const otp = String(req.body?.otp || "").trim();
 
-  if (!identifier || !otp) {
-    res.status(400).json({
-      error:
-        "اسم المستخدم ورمز التحقق مطلوبان / Username and OTP code are required",
-    });
-    return;
-  }
+    if (!identifier || !otp) {
+      res.status(400).json({
+        error:
+          "اسم المستخدم ورمز التحقق مطلوبان / Username and OTP code are required",
+      });
+      return;
+    }
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(
-      or(
-        sql`lower(${usersTable.username}) = lower(${identifier})`,
-        sql`lower(${usersTable.email}) = lower(${identifier})`,
-      ),
-    )
-    .limit(1);
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(
+        or(
+          sql`lower(${usersTable.username}) = lower(${identifier})`,
+          sql`lower(${usersTable.email}) = lower(${identifier})`,
+        ),
+      )
+      .limit(1);
 
-  if (!user) {
-    res.status(404).json({
-      error: "الحساب غير موجود / User account not found",
-    });
-    return;
-  }
+    if (!user) {
+      res.status(404).json({
+        error: "الحساب غير موجود / User account not found",
+      });
+      return;
+    }
 
-  const [otpRecord] = await db
-    .select()
-    .from(userPasswordResetOtpsTable)
-    .where(
-      and(
-        eq(userPasswordResetOtpsTable.userId, user.id),
-        eq(userPasswordResetOtpsTable.isVerified, false),
-      ),
-    )
-    .orderBy(desc(userPasswordResetOtpsTable.createdAt))
-    .limit(1);
+    const [otpRecord] = await db
+      .select()
+      .from(userPasswordResetOtpsTable)
+      .where(
+        and(
+          eq(userPasswordResetOtpsTable.userId, user.id),
+          eq(userPasswordResetOtpsTable.isVerified, false),
+        ),
+      )
+      .orderBy(desc(userPasswordResetOtpsTable.createdAt))
+      .limit(1);
 
-  if (!otpRecord) {
-    res.status(400).json({
-      error:
-        "لم يتم العثور على طلب استعادة نشط. يرجى طلب رمز جديد / No active reset request found. Please request a new code.",
-    });
-    return;
-  }
+    if (!otpRecord) {
+      res.status(400).json({
+        error:
+          "لم يتم العثور على طلب استعادة نشط. يرجى طلب رمز جديد / No active reset request found. Please request a new code.",
+      });
+      return;
+    }
 
-  // Check expiration (Strict 180s / 3 mins)
-  if (new Date() > new Date(otpRecord.expiresAt)) {
-    res.status(400).json({
-      error:
-        "انتهت صلاحية رمز التحقق (أكثر من 3 دقائق). يرجى طلب رمز جديد / Verification code has expired. Please request a new code.",
-      code: "OTP_EXPIRED",
-    });
-    return;
-  }
+    // Check expiration (Strict 180s / 3 mins)
+    if (new Date() > new Date(otpRecord.expiresAt)) {
+      res.status(400).json({
+        error:
+          "انتهت صلاحية رمز التحقق (أكثر من 3 دقائق). يرجى طلب رمز جديد / Verification code has expired. Please request a new code.",
+        code: "OTP_EXPIRED",
+      });
+      return;
+    }
 
-  // Check attempt limit
-  if (otpRecord.attempts >= otpRecord.maxAttempts) {
-    res.status(400).json({
-      error:
-        "تم استنفاد الحد الأقصى لمحاولات إدخال الرمز (5 محاولات). يرجى طلب رمز جديد / Maximum attempts reached. Please request a new code.",
-      code: "MAX_ATTEMPTS_EXCEEDED",
-    });
-    return;
-  }
+    // Check attempt limit
+    if (otpRecord.attempts >= otpRecord.maxAttempts) {
+      res.status(400).json({
+        error:
+          "تم استنفاد الحد الأقصى لمحاولات إدخال الرمز (5 محاولات). يرجى طلب رمز جديد / Maximum attempts reached. Please request a new code.",
+        code: "MAX_ATTEMPTS_EXCEEDED",
+      });
+      return;
+    }
 
-  // Verify OTP code hash
-  const isValid = await bcrypt.compare(otp, otpRecord.otpHash);
-  if (!isValid) {
-    const newAttempts = otpRecord.attempts + 1;
+    // Verify OTP code hash
+    const isValid = await bcrypt.compare(otp, otpRecord.otpHash);
+    if (!isValid) {
+      const newAttempts = otpRecord.attempts + 1;
+      await db
+        .update(userPasswordResetOtpsTable)
+        .set({ attempts: newAttempts })
+        .where(eq(userPasswordResetOtpsTable.id, otpRecord.id));
+
+      const remaining = Math.max(0, otpRecord.maxAttempts - newAttempts);
+      res.status(400).json({
+        error: `رمز التحقق غير صحيح. المحاولات المتبقية: ${remaining} / Invalid verification code. Remaining attempts: ${remaining}`,
+        remainingAttempts: remaining,
+      });
+      return;
+    }
+
+    // OTP is verified! Generate secure reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = await bcrypt.hash(resetToken, 10);
+
+    // Mark record as verified, grant 10 minutes to submit new password
     await db
       .update(userPasswordResetOtpsTable)
-      .set({ attempts: newAttempts })
+      .set({
+        isVerified: true,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 600 * 1000),
+      })
       .where(eq(userPasswordResetOtpsTable.id, otpRecord.id));
 
-    const remaining = Math.max(0, otpRecord.maxAttempts - newAttempts);
-    res.status(400).json({
-      error: `رمز التحقق غير صحيح. المحاولات المتبقية: ${remaining} / Invalid verification code. Remaining attempts: ${remaining}`,
-      remainingAttempts: remaining,
+    res.json({
+      success: true,
+      message: "تم التحقق من الرمز بنجاح / Verification successful",
+      resetToken,
     });
-    return;
-  }
-
-  // OTP is verified! Generate secure reset token
-  const resetToken = crypto.randomBytes(32).toString("hex");
-  const tokenHash = await bcrypt.hash(resetToken, 10);
-
-  // Mark record as verified, grant 10 minutes to submit new password
-  await db
-    .update(userPasswordResetOtpsTable)
-    .set({
-      isVerified: true,
-      tokenHash,
-      expiresAt: new Date(Date.now() + 600 * 1000),
-    })
-    .where(eq(userPasswordResetOtpsTable.id, otpRecord.id));
-
-  res.json({
-    success: true,
-    message: "تم التحقق من الرمز بنجاح / Verification successful",
-    resetToken,
-  });
-});
+  },
+);
 
 // ─── POST /auth/forgot-password/reset-password ───────────────────────────
-router.post("/auth/forgot-password/reset-password", validate({ body: ForgotResetBody }),
+router.post(
+  "/auth/forgot-password/reset-password",
+  validate({ body: ForgotResetBody }),
   async (req, res): Promise<void> => {
-  const identifier = String(req.body?.identifier || "").trim();
-  const resetToken = String(req.body?.resetToken || "").trim();
-  const newPassword = String(req.body?.newPassword || "").trim();
+    const identifier = String(req.body?.identifier || "").trim();
+    const resetToken = String(req.body?.resetToken || "").trim();
+    const newPassword = String(req.body?.newPassword || "").trim();
 
-  if (!identifier || !resetToken || !newPassword) {
-    res.status(400).json({
-      error: "جميع الحقول مطلوبة / All fields are required",
+    if (!identifier || !resetToken || !newPassword) {
+      res.status(400).json({
+        error: "جميع الحقول مطلوبة / All fields are required",
+      });
+      return;
+    }
+
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(
+        or(
+          sql`lower(${usersTable.username}) = lower(${identifier})`,
+          sql`lower(${usersTable.email}) = lower(${identifier})`,
+        ),
+      )
+      .limit(1);
+
+    if (!user) {
+      res.status(404).json({ error: "الحساب غير موجود / User not found" });
+      return;
+    }
+
+    // Find verified OTP session
+    const [otpRecord] = await db
+      .select()
+      .from(userPasswordResetOtpsTable)
+      .where(
+        and(
+          eq(userPasswordResetOtpsTable.userId, user.id),
+          eq(userPasswordResetOtpsTable.isVerified, true),
+        ),
+      )
+      .orderBy(desc(userPasswordResetOtpsTable.createdAt))
+      .limit(1);
+
+    if (!otpRecord || !otpRecord.tokenHash) {
+      res.status(400).json({
+        error:
+          "جلسة التحقق غير صالحة. يرجى إعادة المحاولة من البداية / Invalid reset session. Please start over.",
+      });
+      return;
+    }
+
+    if (new Date() > new Date(otpRecord.expiresAt)) {
+      res.status(400).json({
+        error:
+          "انتهت مهلة جلسة تغيير كلمة المرور. يرجى إعادة طلب رمز التحقق / Reset session expired. Please request a new OTP.",
+      });
+      return;
+    }
+
+    const isTokenValid = await bcrypt.compare(resetToken, otpRecord.tokenHash);
+    if (!isTokenValid) {
+      res.status(403).json({
+        error: "رمز المصادقة غير صالح / Invalid reset token",
+      });
+      return;
+    }
+
+    // Enforce Password Policy
+    const propertyId = user.propertyId ?? 0;
+    const policy = await getPasswordPolicy(propertyId);
+    const validation = validatePassword(newPassword, policy);
+    if (!validation.valid) {
+      res.status(400).json({
+        error: validation.errors.join(". "),
+        errors: validation.errors,
+      });
+      return;
+    }
+
+    // Enforce Password History
+    const historyError = await checkPasswordHistory(
+      user.id,
+      newPassword,
+      policy.historyCount,
+    );
+    if (historyError) {
+      res.status(400).json({ error: historyError });
+      return;
+    }
+
+    // Hash new password and update user account
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+    await db
+      .update(usersTable)
+      .set({
+        passwordHash,
+        passwordChangedAt: new Date(),
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      })
+      .where(eq(usersTable.id, user.id));
+
+    // Record into password history and cleanup
+    await recordPasswordHistory(user.id, passwordHash);
+    await cleanupOldPasswordHistory(user.id, policy.historyCount);
+
+    // Remove the consumed OTP record
+    await db
+      .delete(userPasswordResetOtpsTable)
+      .where(eq(userPasswordResetOtpsTable.id, otpRecord.id));
+
+    // Log security event
+    await logActivity({
+      req,
+      propertyId: user.propertyId ?? 0,
+      username: user.username,
+      userId: user.id,
+      userRole: user.roles?.[0],
+      action: "PASSWORD_RESET_SUCCESS",
+      actionType: "SECURITY",
+      module: "auth",
+      severity: "info",
+      details: `Password successfully reset via verified OTP for user ${user.username}`,
+      ipAddress: getClientIp(req),
     });
-    return;
-  }
 
-  const [user] = await db
-    .select()
-    .from(usersTable)
-    .where(
-      or(
-        sql`lower(${usersTable.username}) = lower(${identifier})`,
-        sql`lower(${usersTable.email}) = lower(${identifier})`,
-      ),
-    )
-    .limit(1);
-
-  if (!user) {
-    res.status(404).json({ error: "الحساب غير موجود / User not found" });
-    return;
-  }
-
-  // Find verified OTP session
-  const [otpRecord] = await db
-    .select()
-    .from(userPasswordResetOtpsTable)
-    .where(
-      and(
-        eq(userPasswordResetOtpsTable.userId, user.id),
-        eq(userPasswordResetOtpsTable.isVerified, true),
-      ),
-    )
-    .orderBy(desc(userPasswordResetOtpsTable.createdAt))
-    .limit(1);
-
-  if (!otpRecord || !otpRecord.tokenHash) {
-    res.status(400).json({
-      error:
-        "جلسة التحقق غير صالحة. يرجى إعادة المحاولة من البداية / Invalid reset session. Please start over.",
+    res.json({
+      success: true,
+      message:
+        "تم تغيير كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة / Password reset successfully! You can now log in.",
     });
-    return;
-  }
-
-  if (new Date() > new Date(otpRecord.expiresAt)) {
-    res.status(400).json({
-      error:
-        "انتهت مهلة جلسة تغيير كلمة المرور. يرجى إعادة طلب رمز التحقق / Reset session expired. Please request a new OTP.",
-    });
-    return;
-  }
-
-  const isTokenValid = await bcrypt.compare(resetToken, otpRecord.tokenHash);
-  if (!isTokenValid) {
-    res.status(403).json({
-      error: "رمز المصادقة غير صالح / Invalid reset token",
-    });
-    return;
-  }
-
-  // Enforce Password Policy
-  const propertyId = user.propertyId ?? 0;
-  const policy = await getPasswordPolicy(propertyId);
-  const validation = validatePassword(newPassword, policy);
-  if (!validation.valid) {
-    res.status(400).json({
-      error: validation.errors.join(". "),
-      errors: validation.errors,
-    });
-    return;
-  }
-
-  // Enforce Password History
-  const historyError = await checkPasswordHistory(
-    user.id,
-    newPassword,
-    policy.historyCount,
-  );
-  if (historyError) {
-    res.status(400).json({ error: historyError });
-    return;
-  }
-
-  // Hash new password and update user account
-  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
-
-  await db
-    .update(usersTable)
-    .set({
-      passwordHash,
-      passwordChangedAt: new Date(),
-      failedLoginAttempts: 0,
-      lockedUntil: null,
-    })
-    .where(eq(usersTable.id, user.id));
-
-  // Record into password history and cleanup
-  await recordPasswordHistory(user.id, passwordHash);
-  await cleanupOldPasswordHistory(user.id, policy.historyCount);
-
-  // Remove the consumed OTP record
-  await db
-    .delete(userPasswordResetOtpsTable)
-    .where(eq(userPasswordResetOtpsTable.id, otpRecord.id));
-
-  // Log security event
-  await logActivity({
-    req,
-    propertyId: user.propertyId ?? 0,
-    username: user.username,
-    userId: user.id,
-    userRole: user.roles?.[0],
-    action: "PASSWORD_RESET_SUCCESS",
-    actionType: "SECURITY",
-    module: "auth",
-    severity: "info",
-    details: `Password successfully reset via verified OTP for user ${user.username}`,
-    ipAddress: getClientIp(req),
-  });
-
-  res.json({
-    success: true,
-    message:
-      "تم تغيير كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة / Password reset successfully! You can now log in.",
-  });
-});
+  },
+);
 
 export default router;

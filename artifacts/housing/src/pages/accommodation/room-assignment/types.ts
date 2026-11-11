@@ -1,4 +1,7 @@
-import type { recommendBestRooms, checkPolicyCompliance } from "@/lib/room-recommender";
+import type {
+  recommendBestRooms,
+  checkPolicyCompliance,
+} from "@/lib/room-recommender";
 
 /** Result of `recommendBestRooms` (null until a profile is selected and rooms are loaded). */
 export type Recommendation = ReturnType<typeof recommendBestRooms> | null;

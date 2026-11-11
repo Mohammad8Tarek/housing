@@ -1,7 +1,22 @@
 import { Router } from "express";
-import { db, withTenant, profilesTable, profileDocumentsTable, assignmentsTable, roomsTable, buildingsTable, propertiesTable, lookupValuesTable } from "@workspace/db";
+import {
+  db,
+  withTenant,
+  profilesTable,
+  profileDocumentsTable,
+  assignmentsTable,
+  roomsTable,
+  buildingsTable,
+  propertiesTable,
+  lookupValuesTable,
+} from "@workspace/db";
 import { eq, and, or, SQL } from "drizzle-orm";
-import { UpdateProfileBody, UpdateProfileParams, DeleteProfileParams, UpdateProfileResponse } from "@workspace/api-zod";
+import {
+  UpdateProfileBody,
+  UpdateProfileParams,
+  DeleteProfileParams,
+  UpdateProfileResponse,
+} from "@workspace/api-zod";
 import { logActivity } from "../../lib/activity-logger.js";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { moveOrEnsureProfilePortalAccount } from "../../lib/portal-accounts.js";
@@ -10,7 +25,11 @@ import { broadcastToProperty } from "../../lib/websocket.js";
 import { enrichProfileBilingual } from "../../lib/bilingual-translator.js";
 import { resolveProfileTenant, normalizePhotoData } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
-import { IdParams, ProfilePhotoBody, ProfileIdImageBody } from "../../validation/schemas.js";
+import {
+  IdParams,
+  ProfilePhotoBody,
+  ProfileIdImageBody,
+} from "../../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -50,10 +69,14 @@ router.patch(
         );
       const allowedPids: number[] = Array.isArray(authUser?.propertyIds)
         ? authUser.propertyIds.map(Number).filter(Boolean)
-        : (authUser?.propertyId ? [Number(authUser.propertyId)] : []);
+        : authUser?.propertyId
+          ? [Number(authUser.propertyId)]
+          : [];
 
       try {
-        const props = await db.select({ id: propertiesTable.id }).from(propertiesTable);
+        const props = await db
+          .select({ id: propertiesTable.id })
+          .from(propertiesTable);
         for (const p of props) {
           if (p.id === propertyId) continue;
           if (!isSysAdmin && !allowedPids.includes(p.id)) continue;
@@ -88,7 +111,11 @@ router.patch(
 
     // ── Prevent duplicate profile ID, national ID, or phone on update ────
     const body = parsed.data as Record<string, any>;
-    if (body.profileId || body.nationalId || (body.phone && body.phone.trim())) {
+    if (
+      body.profileId ||
+      body.nationalId ||
+      (body.phone && body.phone.trim())
+    ) {
       const existingEmp = await withTenant(propertyId, async (tenantDb) => {
         const conditions: SQL[] = [];
         if (body.profileId)
@@ -133,7 +160,7 @@ router.patch(
         if (!existing) return { previous: null, updated: null };
 
         const { idDocuments } = parsed.data as any;
-        
+
         const allowedProfileColumns = [
           "profileId",
           "firstName",
@@ -178,15 +205,18 @@ router.patch(
 
         // Dual-Layer RBAC & Data Integrity: Level cannot be manually modified — it is pulled direct from HR / job title lookup
         if (existing.employmentType !== "THIRD_PARTY" && existing.level) {
-          if (cleanProfileData.jobTitle && cleanProfileData.jobTitle !== existing.jobTitle) {
+          if (
+            cleanProfileData.jobTitle &&
+            cleanProfileData.jobTitle !== existing.jobTitle
+          ) {
             const [jtLookup] = await tenantDb
               .select()
               .from(lookupValuesTable)
               .where(
                 and(
                   eq(lookupValuesTable.category, "job_title"),
-                  eq(lookupValuesTable.value, cleanProfileData.jobTitle)
-                )
+                  eq(lookupValuesTable.value, cleanProfileData.jobTitle),
+                ),
               )
               .limit(1);
             cleanProfileData.level = jtLookup?.extraValue || existing.level;
@@ -209,12 +239,18 @@ router.patch(
           jobTitle: cleanProfileData.jobTitle ?? existing.jobTitle,
           jobTitleAr: cleanProfileData.jobTitleAr ?? existing.jobTitleAr,
         });
-        if (cleanProfileData.firstName || !existing.firstNameAr) cleanProfileData.firstNameAr = enrichedPatch.firstNameAr;
-        if (cleanProfileData.lastName || !existing.lastNameAr) cleanProfileData.lastNameAr = enrichedPatch.lastNameAr;
-        if (cleanProfileData.thirdName || !existing.thirdNameAr) cleanProfileData.thirdNameAr = enrichedPatch.thirdNameAr;
-        if (cleanProfileData.fourthName || !existing.fourthNameAr) cleanProfileData.fourthNameAr = enrichedPatch.fourthNameAr;
-        if (cleanProfileData.department || !existing.departmentAr) cleanProfileData.departmentAr = enrichedPatch.departmentAr;
-        if (cleanProfileData.jobTitle || !existing.jobTitleAr) cleanProfileData.jobTitleAr = enrichedPatch.jobTitleAr;
+        if (cleanProfileData.firstName || !existing.firstNameAr)
+          cleanProfileData.firstNameAr = enrichedPatch.firstNameAr;
+        if (cleanProfileData.lastName || !existing.lastNameAr)
+          cleanProfileData.lastNameAr = enrichedPatch.lastNameAr;
+        if (cleanProfileData.thirdName || !existing.thirdNameAr)
+          cleanProfileData.thirdNameAr = enrichedPatch.thirdNameAr;
+        if (cleanProfileData.fourthName || !existing.fourthNameAr)
+          cleanProfileData.fourthNameAr = enrichedPatch.fourthNameAr;
+        if (cleanProfileData.department || !existing.departmentAr)
+          cleanProfileData.departmentAr = enrichedPatch.departmentAr;
+        if (cleanProfileData.jobTitle || !existing.jobTitleAr)
+          cleanProfileData.jobTitleAr = enrichedPatch.jobTitleAr;
 
         let updatedProfile = existing;
         if (Object.keys(cleanProfileData).length > 0) {
@@ -229,7 +265,9 @@ router.patch(
         }
 
         if (idDocuments) {
-          await tenantDb.delete(profileDocumentsTable).where(eq(profileDocumentsTable.profileId, params.data.id));
+          await tenantDb
+            .delete(profileDocumentsTable)
+            .where(eq(profileDocumentsTable.profileId, params.data.id));
           const validDocs = idDocuments
             .filter((doc: any) => doc && (doc.fileData || doc.fileName))
             .map((doc: any) => ({
@@ -249,13 +287,16 @@ router.patch(
             const newProfileStatus = parsed.data.status.toUpperCase();
             // Find active assignment for this profile
             const [activeAssign] = await tenantDb
-              .select({ id: assignmentsTable.id, roomId: assignmentsTable.roomId })
+              .select({
+                id: assignmentsTable.id,
+                roomId: assignmentsTable.roomId,
+              })
               .from(assignmentsTable)
               .where(
                 and(
                   eq(assignmentsTable.profileId, params.data.id),
-                  eq(assignmentsTable.status, "ACTIVE")
-                )
+                  eq(assignmentsTable.status, "ACTIVE"),
+                ),
               );
 
             if (activeAssign && activeAssign.roomId) {
@@ -273,17 +314,22 @@ router.patch(
                       status: profilesTable.status,
                     })
                     .from(assignmentsTable)
-                    .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+                    .leftJoin(
+                      profilesTable,
+                      eq(assignmentsTable.profileId, profilesTable.id),
+                    )
                     .where(
                       and(
                         eq(assignmentsTable.roomId, room.id),
-                        eq(assignmentsTable.status, "ACTIVE")
-                      )
+                        eq(assignmentsTable.status, "ACTIVE"),
+                      ),
                     );
 
                   // If all occupants are in vacation (or this is the only occupant)
                   const allOnVacation = roomAssignments.every((ra) =>
-                    ra.profileId === params.data.id ? true : ra.status?.toUpperCase() === "VACATION"
+                    ra.profileId === params.data.id
+                      ? true
+                      : ra.status?.toUpperCase() === "VACATION",
                   );
 
                   if (allOnVacation) {
@@ -322,7 +368,10 @@ router.patch(
               }
             }
           } catch (syncErr) {
-            console.error("[HospitalityWorkflow] Error syncing room status:", syncErr);
+            console.error(
+              "[HospitalityWorkflow] Error syncing room status:",
+              syncErr,
+            );
           }
         }
         return { previous: existing, updated: updatedProfile };
@@ -351,7 +400,7 @@ router.patch(
       entityType: "profile",
       entityId: updated.id,
     });
-    
+
     const safeUpdated = {
       ...updated,
       propertyId,
@@ -404,8 +453,8 @@ router.delete(
         .where(
           and(
             eq(assignmentsTable.profileId, params.data.id),
-            eq(assignmentsTable.status, "ACTIVE")
-          )
+            eq(assignmentsTable.status, "ACTIVE"),
+          ),
         )
         .limit(1);
 
@@ -460,7 +509,11 @@ router.delete(
         severity: "warning",
         details: `Dept: ${result.emp.department}`,
       });
-      broadcastToProperty(propertyId, { module: "profiles", action: "deleted", entityId: result.emp.id });
+      broadcastToProperty(propertyId, {
+        module: "profiles",
+        action: "deleted",
+        entityId: result.emp.id,
+      });
     }
     res.sendStatus(204);
   },
@@ -503,10 +556,14 @@ router.patch(
         );
       const allowedPids: number[] = Array.isArray(authUser?.propertyIds)
         ? authUser.propertyIds.map(Number).filter(Boolean)
-        : (authUser?.propertyId ? [Number(authUser.propertyId)] : []);
+        : authUser?.propertyId
+          ? [Number(authUser.propertyId)]
+          : [];
 
       try {
-        const props = await db.select({ id: propertiesTable.id }).from(propertiesTable);
+        const props = await db
+          .select({ id: propertiesTable.id })
+          .from(propertiesTable);
         for (const p of props) {
           if (p.id === propertyId) continue;
           if (!isSysAdmin && !allowedPids.includes(p.id)) continue;
@@ -596,9 +653,7 @@ router.patch(
 
     let idImage: string | null;
     try {
-      idImage = normalizePhotoData(
-        (req.body as { idImage?: string })?.idImage,
-      );
+      idImage = normalizePhotoData((req.body as { idImage?: string })?.idImage);
     } catch (error: any) {
       res.status(400).json({ error: error.message || "Invalid ID image" });
       return;
@@ -632,7 +687,7 @@ router.patch(
       });
     }
     res.json({ success: true });
-  }
+  },
 );
 
 export default router;

@@ -138,7 +138,9 @@ const statusInfo: Record<
 };
 
 export const isRequestCompleted = (st?: string | null) =>
-  ["resolved", "closed", "completed", "done"].includes((st || "").toLowerCase());
+  ["resolved", "closed", "completed", "done"].includes(
+    (st || "").toLowerCase(),
+  );
 
 export default function TabRequests() {
   const { t, lang } = useTheme();
@@ -189,7 +191,7 @@ export default function TabRequests() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed");
-      
+
       // Optimistic update
       if (data.request) {
         setRequests((prev) => [data.request, ...prev]);
@@ -249,8 +251,8 @@ export default function TabRequests() {
   ];
 
   const displayedRequests = showAll ? requests : requests.slice(0, 4);
-  const pendingCount = requests.filter(
-    (r) => ["open", "in_progress"].includes((r.status || "").toLowerCase()),
+  const pendingCount = requests.filter((r) =>
+    ["open", "in_progress"].includes((r.status || "").toLowerCase()),
   ).length;
   const unratedRequests = requests.filter(
     (r) => isRequestCompleted(r.status) && !r.rating,
@@ -574,7 +576,9 @@ export default function TabRequests() {
               </div>
             </div>
             <button
-              onClick={() => setLocation("/request-details?id=" + unratedRequests[0].id)}
+              onClick={() =>
+                setLocation("/request-details?id=" + unratedRequests[0].id)
+              }
               className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-xs shrink-0 transition-colors shadow-xs"
             >
               {isRtl ? "تقييم الآن" : "Rate"}

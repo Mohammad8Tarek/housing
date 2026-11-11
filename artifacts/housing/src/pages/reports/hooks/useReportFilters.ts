@@ -8,7 +8,8 @@ export function useReportFilters() {
   const [filterFloor, setFilterFloor] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterRoomType, setFilterRoomType] = useState<string>("all");
-  const [filterEmploymentType, setFilterEmploymentType] = useState<string>("all");
+  const [filterEmploymentType, setFilterEmploymentType] =
+    useState<string>("all");
   const [search, setSearch] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
@@ -17,9 +18,15 @@ export function useReportFilters() {
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
   const [filterGender, setFilterGender] = useState<string>("all");
   const [filterNationality, setFilterNationality] = useState<string>("all");
-  const [inventoryViewMode, setInventoryViewMode] = useState<"summary" | "detailed">("summary");
-  const [inHouseViewMode, setInHouseViewMode] = useState<"grouped" | "flat">("grouped");
-  const [waterSortMode, setWaterSortMode] = useState<"room" | "department">("room");
+  const [inventoryViewMode, setInventoryViewMode] = useState<
+    "summary" | "detailed"
+  >("summary");
+  const [inHouseViewMode, setInHouseViewMode] = useState<"grouped" | "flat">(
+    "grouped",
+  );
+  const [waterSortMode, setWaterSortMode] = useState<"room" | "department">(
+    "room",
+  );
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -66,7 +73,9 @@ export function useReportFilters() {
     setSelectedRows(new Set());
   };
 
-  const createFilterSetter = <T,>(setter: React.Dispatch<React.SetStateAction<T>>) => {
+  const createFilterSetter = <T>(
+    setter: React.Dispatch<React.SetStateAction<T>>,
+  ) => {
     return (val: React.SetStateAction<T>) => {
       setter(val);
       setCurrentPage(1);

@@ -14,14 +14,25 @@ import { WhatsAppSettingsSectionProps } from "./whatsapp/WhatsAppSettingsSection
 
 export function WhatsAppSettingsSection(props: WhatsAppSettingsSectionProps) {
   const s = useWhatsAppSettingsSectionState(props);
-  const { propertyId, language, ar, loading, provider, broadcastOpen, setBroadcastOpen } = s;
-
+  const {
+    propertyId,
+    language,
+    ar,
+    loading,
+    provider,
+    broadcastOpen,
+    setBroadcastOpen,
+  } = s;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground">
         <Loader2 className="w-8 h-8 animate-spin mr-2" />
-        <span>{ar ? "جاري تحميل إعدادات الواتساب..." : "Loading WhatsApp settings..."}</span>
+        <span>
+          {ar
+            ? "جاري تحميل إعدادات الواتساب..."
+            : "Loading WhatsApp settings..."}
+        </span>
       </div>
     );
   }
@@ -32,16 +43,14 @@ export function WhatsAppSettingsSection(props: WhatsAppSettingsSectionProps) {
       {renderProviderPicker(s)}
 
       {/* ── CARD 1: ACTIVE PROVIDER CONFIGURATION ── */}
-      {provider === "custom_gateway" ? (
-        /* CUSTOM / ANY WHATSAPP GATEWAY CARD */
-        renderCustomGatewayCard(s)
-      ) : provider === "meta_cloud" ? (
-        /* META CLOUD API CARD */
-        renderMetaCloudCard(s)
-      ) : (
-        /* DIRECT BAILEYS QR CODE CARD */
-        renderBaileysQrCard(s)
-      )}
+      {provider === "custom_gateway"
+        ? /* CUSTOM / ANY WHATSAPP GATEWAY CARD */
+          renderCustomGatewayCard(s)
+        : provider === "meta_cloud"
+          ? /* META CLOUD API CARD */
+            renderMetaCloudCard(s)
+          : /* DIRECT BAILEYS QR CODE CARD */
+            renderBaileysQrCard(s)}
 
       {/* ── PERSISTENT OUTBOX QUEUE STATUS CARD ── */}
       {renderOutboxQueueCard(s)}

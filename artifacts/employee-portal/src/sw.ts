@@ -27,7 +27,10 @@ registerRoute(
           fallback ||
           new Response(
             "<!doctype html><html><head><meta charset='UTF-8'><title>Offline</title></head><body style='background:#0d0f14;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;'><h2>Sunrise Portal Offline</h2></body></html>",
-            { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
+            {
+              status: 200,
+              headers: { "Content-Type": "text/html; charset=utf-8" },
+            },
           )
         );
       }

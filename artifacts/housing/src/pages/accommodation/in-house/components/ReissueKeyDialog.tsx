@@ -102,9 +102,7 @@ export function ReissueKeyDialog({
                 onIssueComplete={() => {
                   invalidate();
                   toast.success(
-                    ar
-                      ? "تم إصدار المفاتيح بنجاح"
-                      : "Keys issued successfully",
+                    ar ? "تم إصدار المفاتيح بنجاح" : "Keys issued successfully",
                   );
                 }}
               />

@@ -21,7 +21,10 @@ import { formatDMYTime, toISODate } from "@workspace/dates";
 const isNative = Capacitor.isNativePlatform();
 
 function isIOS(): boolean {
-  return typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return (
+    typeof navigator !== "undefined" &&
+    /iphone|ipad|ipod/i.test(navigator.userAgent)
+  );
 }
 
 export default function TabPortalSettings() {
@@ -88,9 +91,7 @@ export default function TabPortalSettings() {
         isRtl ? "تم تنزيل بياناتك بنجاح" : "Your data downloaded successfully",
       );
     } catch {
-      toast.error(
-        isRtl ? "تعذر تنزيل البيانات" : "Failed to download data",
-      );
+      toast.error(isRtl ? "تعذر تنزيل البيانات" : "Failed to download data");
     } finally {
       setExporting(false);
     }
@@ -122,7 +123,9 @@ export default function TabPortalSettings() {
     try {
       if (!("Notification" in window)) {
         toast.error(
-          isRtl ? "الإشعارات غير مدعومة في هذا المتصفح" : "Notifications not supported",
+          isRtl
+            ? "الإشعارات غير مدعومة في هذا المتصفح"
+            : "Notifications not supported",
         );
         return;
       }
@@ -131,7 +134,9 @@ export default function TabPortalSettings() {
         await push.subscribe();
         setNotifEnabled(true);
         toast.success(
-          isRtl ? "تم تفعيل الإشعارات بنجاح!" : "Notifications enabled successfully!",
+          isRtl
+            ? "تم تفعيل الإشعارات بنجاح!"
+            : "Notifications enabled successfully!",
         );
       } else {
         setNotifEnabled(false);
@@ -150,7 +155,9 @@ export default function TabPortalSettings() {
     try {
       if (!("Notification" in window)) {
         toast.error(
-          isRtl ? "الإشعارات غير مدعومة في هذا الجهاز" : "Notifications not supported",
+          isRtl
+            ? "الإشعارات غير مدعومة في هذا الجهاز"
+            : "Notifications not supported",
         );
         return;
       }
@@ -183,7 +190,9 @@ export default function TabPortalSettings() {
         new Notification(title, options);
       }
       toast.success(
-        isRtl ? "تم إرسال الإشعار التجريبي بنجاح!" : "Test notification sent successfully!",
+        isRtl
+          ? "تم إرسال الإشعار التجريبي بنجاح!"
+          : "Test notification sent successfully!",
       );
     } catch (e: any) {
       toast.error(e.message || "Failed to trigger notification");
@@ -582,17 +591,27 @@ export default function TabPortalSettings() {
       {/* Mobile App Installation / PWA */}
       <div>
         <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-          <MaterialIcon icon="install_mobile" size={18} className="text-accent2" />
+          <MaterialIcon
+            icon="install_mobile"
+            size={18}
+            className="text-accent2"
+          />
           {isRtl ? "تثبيت التطبيق على الهاتف" : "Install Mobile App"}
         </h3>
         <div className="bg-card border border-border2 rounded-xl p-4 space-y-3">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-accent2/10 flex items-center justify-center flex-shrink-0">
-              <MaterialIcon icon="smartphone" size={20} className="text-accent2" />
+              <MaterialIcon
+                icon="smartphone"
+                size={20}
+                className="text-accent2"
+              />
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[13px] font-bold text-foreground">
-                {isRtl ? "تطبيق صن رايز لإدارة السكن" : "Sunrise Staff Housing Portal"}
+                {isRtl
+                  ? "تطبيق صن رايز لإدارة السكن"
+                  : "Sunrise Staff Housing Portal"}
               </div>
               <p className="text-[11px] text-muted2 mt-0.5 leading-relaxed">
                 {isRtl
@@ -605,7 +624,11 @@ export default function TabPortalSettings() {
           {isInstalled ? (
             <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-[12px] font-semibold">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>{isRtl ? "التطبيق مثبت بالفعل ويعمل كـ PWA على هذا الجهاز" : "App is installed and running as PWA on this device"}</span>
+              <span>
+                {isRtl
+                  ? "التطبيق مثبت بالفعل ويعمل كـ PWA على هذا الجهاز"
+                  : "App is installed and running as PWA on this device"}
+              </span>
             </div>
           ) : (
             <div className="space-y-3">
@@ -614,25 +637,57 @@ export default function TabPortalSettings() {
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-accent2 text-accent2-foreground text-[12px] font-bold hover:brightness-110 active:scale-[0.99] transition-all shadow-md shadow-accent2/20 cursor-pointer"
               >
                 <MaterialIcon icon="download" size={18} />
-                <span>{isRtl ? "تثبيت التطبيق على هاتفك الآن" : "Install App to Your Phone Now"}</span>
+                <span>
+                  {isRtl
+                    ? "تثبيت التطبيق على هاتفك الآن"
+                    : "Install App to Your Phone Now"}
+                </span>
               </button>
 
               {isIOS() ? (
                 <div className="p-3 rounded-lg bg-surface border border-border2 space-y-1.5 text-[11px] text-muted2">
                   <div className="font-bold text-foreground flex items-center gap-1.5">
-                    <MaterialIcon icon="ios_share" size={16} className="text-accent2" />
-                    <span>{isRtl ? "طريقة التثبيت على أجهزة iPhone / iPad:" : "How to install on iOS:"}</span>
+                    <MaterialIcon
+                      icon="ios_share"
+                      size={16}
+                      className="text-accent2"
+                    />
+                    <span>
+                      {isRtl
+                        ? "طريقة التثبيت على أجهزة iPhone / iPad:"
+                        : "How to install on iOS:"}
+                    </span>
                   </div>
                   <ol className="list-decimal list-inside space-y-1 ps-1">
-                    <li>{isRtl ? "اضغط على زر المشاركة (Share) أسفل متصفح Safari." : "Tap the Share button at the bottom of Safari."}</li>
-                    <li>{isRtl ? "اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen)." : "Select 'Add to Home Screen'."}</li>
-                    <li>{isRtl ? "اضغط على 'إضافة' (Add) في الزاوية العلوية." : "Tap 'Add' in the top corner."}</li>
+                    <li>
+                      {isRtl
+                        ? "اضغط على زر المشاركة (Share) أسفل متصفح Safari."
+                        : "Tap the Share button at the bottom of Safari."}
+                    </li>
+                    <li>
+                      {isRtl
+                        ? "اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen)."
+                        : "Select 'Add to Home Screen'."}
+                    </li>
+                    <li>
+                      {isRtl
+                        ? "اضغط على 'إضافة' (Add) في الزاوية العلوية."
+                        : "Tap 'Add' in the top corner."}
+                    </li>
                   </ol>
                 </div>
               ) : !installPrompt ? (
                 <div className="flex items-center gap-2 p-2.5 rounded-lg bg-surface border border-border2 text-[11px] text-muted2">
-                  <MaterialIcon icon="info" size={16} className="text-accent2 flex-shrink-0" />
-                  <span>{isRtl ? "يمكنك أيضاً تثبيت التطبيق من قائمة المتصفح (المزيد ⋮ > تثبيت التطبيق / Install App)." : "You can also install this app from your browser menu (More ⋮ > Install app)."}</span>
+                  <MaterialIcon
+                    icon="info"
+                    size={16}
+                    className="text-accent2 flex-shrink-0"
+                  />
+                  <span>
+                    {isRtl
+                      ? "يمكنك أيضاً تثبيت التطبيق من قائمة المتصفح (المزيد ⋮ > تثبيت التطبيق / Install App)."
+                      : "You can also install this app from your browser menu (More ⋮ > Install app)."}
+                  </span>
                 </div>
               ) : null}
             </div>
@@ -643,7 +698,11 @@ export default function TabPortalSettings() {
       {/* Notifications & Push Alerts */}
       <div>
         <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-          <MaterialIcon icon="notifications" size={18} className="text-accent2" />
+          <MaterialIcon
+            icon="notifications"
+            size={18}
+            className="text-accent2"
+          />
           {isRtl ? "إشعارات الهاتف والتنبيهات" : "Notifications & Push Alerts"}
         </h3>
         <div className="bg-card border border-border2 rounded-xl p-4 space-y-3">
@@ -651,7 +710,9 @@ export default function TabPortalSettings() {
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center">
                 <MaterialIcon
-                  icon={notifEnabled ? "notifications_active" : "notifications_off"}
+                  icon={
+                    notifEnabled ? "notifications_active" : "notifications_off"
+                  }
                   size={18}
                   className={notifEnabled ? "text-green-400" : "text-muted2"}
                 />
@@ -662,8 +723,12 @@ export default function TabPortalSettings() {
                 </div>
                 <div className="text-[10px] text-muted2">
                   {notifEnabled
-                    ? (isRtl ? "مفعّلة - ستصلك التنبيهات فوراً" : "Active - You'll receive instant alerts")
-                    : (isRtl ? "غير مفعّلة - اضغط للتفعيل" : "Disabled - Tap to enable")}
+                    ? isRtl
+                      ? "مفعّلة - ستصلك التنبيهات فوراً"
+                      : "Active - You'll receive instant alerts"
+                    : isRtl
+                      ? "غير مفعّلة - اضغط للتفعيل"
+                      : "Disabled - Tap to enable"}
                 </div>
               </div>
             </div>
@@ -679,16 +744,24 @@ export default function TabPortalSettings() {
               {isNotifLoading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : notifEnabled ? (
-                isRtl ? "مفعّلة ✓" : "Active ✓"
+                isRtl ? (
+                  "مفعّلة ✓"
+                ) : (
+                  "Active ✓"
+                )
+              ) : isRtl ? (
+                "تفعيل الآن"
               ) : (
-                isRtl ? "تفعيل الآن" : "Enable"
+                "Enable"
               )}
             </button>
           </div>
 
           <div className="pt-2 border-t border-border2 flex items-center justify-between">
             <span className="text-[11px] text-muted2">
-              {isRtl ? "اختبار وصول الإشعار لهاتفك:" : "Test alert delivery on your phone:"}
+              {isRtl
+                ? "اختبار وصول الإشعار لهاتفك:"
+                : "Test alert delivery on your phone:"}
             </span>
             <button
               onClick={handleSendTestNotification}
@@ -734,7 +807,10 @@ export default function TabPortalSettings() {
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted2 mb-1">
                   {isRtl ? "آخر تسجيل دخول" : "Last login"}
                 </p>
-                <p className="text-[14px] font-bold text-foreground tabular-nums" dir="ltr">
+                <p
+                  className="text-[14px] font-bold text-foreground tabular-nums"
+                  dir="ltr"
+                >
                   {lastLoginAt ? formatDMYTime(lastLoginAt, "—") : "—"}
                 </p>
               </div>

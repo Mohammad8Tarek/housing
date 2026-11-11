@@ -95,25 +95,49 @@ We wish you a safe trip and a pleasant stay! ✨`;
 
 export const VARIABLE_TAGS = [
   { tag: "{employee_name}", labelAr: "اسم الموظف", labelEn: "Employee Name" },
-  { tag: "{profile_id}", labelAr: "الرقم الوظيفي / كود الموظف", labelEn: "Employee / Profile ID" },
-  { tag: "{property_name}", labelAr: "اسم السكن/الفندق", labelEn: "Property Name" },
+  {
+    tag: "{profile_id}",
+    labelAr: "الرقم الوظيفي / كود الموظف",
+    labelEn: "Employee / Profile ID",
+  },
+  {
+    tag: "{property_name}",
+    labelAr: "اسم السكن/الفندق",
+    labelEn: "Property Name",
+  },
   { tag: "{building_name}", labelAr: "اسم المبنى", labelEn: "Building" },
   { tag: "{floor_name}", labelAr: "الدور/الطابق", labelEn: "Floor" },
   { tag: "{room_number}", labelAr: "رقم الغرفة", labelEn: "Room No." },
   { tag: "{bed_label}", labelAr: "السرير", labelEn: "Bed" },
   { tag: "{checkin_date}", labelAr: "تاريخ التسكين", labelEn: "Check-in Date" },
   { tag: "{portal_url}", labelAr: "رابط البوابة", labelEn: "Portal Link" },
-  { tag: "{supervisor_contact}", labelAr: "هاتف المشرف", labelEn: "Supervisor Phone" },
+  {
+    tag: "{supervisor_contact}",
+    labelAr: "هاتف المشرف",
+    labelEn: "Supervisor Phone",
+  },
 ];
 
 export const RESERVATION_TAGS = [
   { tag: "{guest_name}", labelAr: "اسم النزيل", labelEn: "Guest Name" },
-  { tag: "{property_name}", labelAr: "اسم السكن/الفندق", labelEn: "Property Name" },
+  {
+    tag: "{property_name}",
+    labelAr: "اسم السكن/الفندق",
+    labelEn: "Property Name",
+  },
   { tag: "{reservation_id}", labelAr: "رقم الحجز", labelEn: "Booking Ref" },
   { tag: "{room_info}", labelAr: "المبنى والغرفة", labelEn: "Building & Room" },
   { tag: "{bed_info}", labelAr: "السرير", labelEn: "Bed" },
   { tag: "{checkin_date}", labelAr: "تاريخ الوصول", labelEn: "Check-in Date" },
-  { tag: "{checkout_date}", labelAr: "تاريخ المغادرة", labelEn: "Check-out Date" },
+  {
+    tag: "{checkout_date}",
+    labelAr: "تاريخ المغادرة",
+    labelEn: "Check-out Date",
+  },
   { tag: "{portal_url}", labelAr: "رابط البوابة", labelEn: "Portal Link" },
-  { tag: "{supervisor_contact}", labelAr: "هاتف المشرف", labelEn: "Supervisor Phone" },
+  {
+    tag: "{supervisor_contact}",
+    labelAr: "هاتف المشرف",
+    labelEn: "Supervisor Phone",
+  },
 ];

@@ -4,7 +4,19 @@ import { logActivity } from "../../lib/activity-logger.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { logger } from "../../lib/logger.js";
 import { requirePermission } from "../../middlewares/permissions.js";
-import { STEP_ROLES, SignBody, RejectBody, RebackBody, su, ensureProfileInTargetSchema, resolveRequestId, canAccessProperty, userMatchesApprovalRole, hasAlreadyActedOnRequest, getRequestWithSteps } from "./shared.js";
+import {
+  STEP_ROLES,
+  SignBody,
+  RejectBody,
+  RebackBody,
+  su,
+  ensureProfileInTargetSchema,
+  resolveRequestId,
+  canAccessProperty,
+  userMatchesApprovalRole,
+  hasAlreadyActedOnRequest,
+  getRequestWithSteps,
+} from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
 import { RequestRefParams } from "../../validation/schemas.js";
 
@@ -258,7 +270,10 @@ router.post(
           "SELECT role_required, label_ar, label_en FROM public.hosting_request_approval_steps WHERE request_id = $1 AND step_order = $2",
           [requestId, nextStepOrder],
         );
-        const nextRole = nextStepRow.rows[0]?.role_required || STEP_ROLES[nextStepOrder] || "admin";
+        const nextRole =
+          nextStepRow.rows[0]?.role_required ||
+          STEP_ROLES[nextStepOrder] ||
+          "admin";
         const nextRoleLabelAr = nextStepRow.rows[0]?.label_ar || nextRole;
         const nextRoleLabelEn = nextStepRow.rows[0]?.label_en || nextRole;
 
@@ -313,42 +328,47 @@ router.post(
             try {
               await ghClient.query("BEGIN");
               const targetPropId = request.visit_hotel_id || requestPropertyId;
-              const profileCheck = await ensureProfileInTargetSchema(ghClient, requestPropertyId, targetPropId, request.clock_number);
-              
+              const profileCheck = await ensureProfileInTargetSchema(
+                ghClient,
+                requestPropertyId,
+                targetPropId,
+                request.clock_number,
+              );
+
               if (profileCheck) {
-                  const { profileId, targetSchema: schemaName } = profileCheck;
-                  
-                  if (profileId) {
-                    const hostingRes = await ghClient.query(
-                      `INSERT INTO "${schemaName}".hostings
+                const { profileId, targetSchema: schemaName } = profileCheck;
+
+                if (profileId) {
+                  const hostingRes = await ghClient.query(
+                    `INSERT INTO "${schemaName}".hostings
                        (profile_id, hosting_type, guests_count, expected_from, expected_to, notes, created_by, status, room_id)
                        VALUES ($1, 'SEPARATE_ROOM', $2, $3, $4, $5, $6, 'APPROVED', $7)
                        RETURNING id`,
-                      [
-                        profileId,
-                        request.family_members_count,
-                        request.from_date,
-                        request.to_date,
-                        request.remarks || "",
-                        user.username || String(user.userId),
-                        request.assigned_room_id || null,
-                      ],
-                    );
-                    const hostingId = hostingRes.rows[0].id;
-                    await ghClient.query(
-                      `UPDATE public.hosting_requests SET guest_hosting_id = $1, guest_hosting_status = 'APPROVED', updated_at = NOW() WHERE id = $2`,
-                      [hostingId, requestId],
-                    );
-                    await ghClient.query("COMMIT");
-                    // Notify to refresh accommodation
-                    broadcastToProperty(requestPropertyId, {
-                      type: "data_updated",
-                      module: "accommodation",
-                      action: "updated",
-                    });
-                  } else {
-                    await ghClient.query("ROLLBACK");
-                  }
+                    [
+                      profileId,
+                      request.family_members_count,
+                      request.from_date,
+                      request.to_date,
+                      request.remarks || "",
+                      user.username || String(user.userId),
+                      request.assigned_room_id || null,
+                    ],
+                  );
+                  const hostingId = hostingRes.rows[0].id;
+                  await ghClient.query(
+                    `UPDATE public.hosting_requests SET guest_hosting_id = $1, guest_hosting_status = 'APPROVED', updated_at = NOW() WHERE id = $2`,
+                    [hostingId, requestId],
+                  );
+                  await ghClient.query("COMMIT");
+                  // Notify to refresh accommodation
+                  broadcastToProperty(requestPropertyId, {
+                    type: "data_updated",
+                    module: "accommodation",
+                    action: "updated",
+                  });
+                } else {
+                  await ghClient.query("ROLLBACK");
+                }
               } else {
                 await ghClient.query("ROLLBACK");
               }
@@ -452,7 +472,10 @@ router.post(
           "SELECT role_required FROM public.hosting_request_approval_steps WHERE request_id = $1 AND step_order = $2",
           [requestId, stepOrder],
         );
-        requiredRole = currentStepRes.rows[0]?.role_required || STEP_ROLES[stepOrder] || "admin";
+        requiredRole =
+          currentStepRes.rows[0]?.role_required ||
+          STEP_ROLES[stepOrder] ||
+          "admin";
 
         const hasRole = userMatchesApprovalRole(user, requiredRole);
         if (!hasRole) {

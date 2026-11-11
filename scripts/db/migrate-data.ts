@@ -1,9 +1,13 @@
 import { Client } from "pg";
 
 const LOCAL_DB_URL =
-  process.env.DATABASE_URL ?? "postgresql://postgres:admin123@localhost:5432/staff-housing";
+  process.env.DATABASE_URL ??
+  "postgresql://postgres:admin123@localhost:5432/staff-housing";
 const REMOTE_DB_URL =
-  (process.env.REMOTE_DATABASE_URL ?? (() => { throw new Error("Set REMOTE_DATABASE_URL"); })());
+  process.env.REMOTE_DATABASE_URL ??
+  (() => {
+    throw new Error("Set REMOTE_DATABASE_URL");
+  })();
 
 async function migrate() {
   const local = new Client({ connectionString: LOCAL_DB_URL });

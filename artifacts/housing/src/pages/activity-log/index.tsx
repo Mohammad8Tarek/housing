@@ -138,12 +138,16 @@ const prettyKeyAction = (action: string, ar: boolean) => {
   return a ? a.charAt(0).toUpperCase() + a.slice(1) : "-";
 };
 
-const parseDetails = (rawDetails: any): { isJson: boolean; data: any; summary?: string; roomNumber?: string } => {
+const parseDetails = (
+  rawDetails: any,
+): { isJson: boolean; data: any; summary?: string; roomNumber?: string } => {
   if (!rawDetails) return { isJson: false, data: null };
   if (typeof rawDetails === "object") {
     const roomNumber =
       rawDetails.roomNumber ||
-      (rawDetails.fromRoomNumber ? `${rawDetails.fromRoomNumber} ➔ ${rawDetails.toRoomNumber}` : undefined);
+      (rawDetails.fromRoomNumber
+        ? `${rawDetails.fromRoomNumber} ➔ ${rawDetails.toRoomNumber}`
+        : undefined);
     return {
       isJson: true,
       data: rawDetails,
@@ -155,7 +159,10 @@ const parseDetails = (rawDetails: any): { isJson: boolean; data: any; summary?: 
     const parsed = JSON.parse(rawDetails);
     const isJson = typeof parsed === "object" && parsed !== null;
     const roomNumber = isJson
-      ? parsed.roomNumber || (parsed.fromRoomNumber ? `${parsed.fromRoomNumber} ➔ ${parsed.toRoomNumber}` : undefined)
+      ? parsed.roomNumber ||
+        (parsed.fromRoomNumber
+          ? `${parsed.fromRoomNumber} ➔ ${parsed.toRoomNumber}`
+          : undefined)
       : undefined;
     return {
       isJson,
@@ -210,7 +217,9 @@ const escapeHtml = (value: string | number | null | undefined) =>
 
 function downloadCsv(filename: string, rows: string[]) {
   // Prepend UTF-8 BOM (\uFEFF) so Excel on Windows properly displays Arabic text
-  const blob = new Blob(["\uFEFF" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob(["\uFEFF" + rows.join("\n")], {
+    type: "text/csv;charset=utf-8;",
+  });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -266,7 +275,9 @@ export default function ActivityLog() {
   const [keyLogsLoading, setKeyLogsLoading] = useState(false); // mock or replace if needed
   const { data: keyLogsRaw = [], isLoading: isKeyLogsLoading } =
     useAuditLog(keyAuditPropertyId);
-  const keyLogs: any[] = Array.isArray(keyLogsRaw) ? keyLogsRaw : (((keyLogsRaw as any)?.data as any[]) || []);
+  const keyLogs: any[] = Array.isArray(keyLogsRaw)
+    ? keyLogsRaw
+    : ((keyLogsRaw as any)?.data as any[]) || [];
 
   const [debouncedSearch, setDebouncedSearch] = useState(search);
   useEffect(() => {
@@ -274,8 +285,12 @@ export default function ActivityLog() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data: logsResponse, isLoading, refetch } = useListActivityLogs(
-    { 
+  const {
+    data: logsResponse,
+    isLoading,
+    refetch,
+  } = useListActivityLogs(
+    {
       propertyId: activePropertyId,
       page: currentPage,
       limit: pageSize,
@@ -289,8 +304,11 @@ export default function ActivityLog() {
     { query: { enabled: true } as any },
   );
 
-  const paginated: any[] = Array.isArray(logsResponse) ? logsResponse : (((logsResponse as any)?.data as any[]) || []);
-  const totalLogs = (logsResponse as any)?.pagination?.total || paginated.length;
+  const paginated: any[] = Array.isArray(logsResponse)
+    ? logsResponse
+    : ((logsResponse as any)?.data as any[]) || [];
+  const totalLogs =
+    (logsResponse as any)?.pagination?.total || paginated.length;
 
   // Replaced client-side filtering and pagination with server-side response
 
@@ -380,7 +398,8 @@ export default function ActivityLog() {
       [
         l.id,
         l.timestamp,
-        (l as any).propertyName || (l.propertyId ? `Property #${l.propertyId}` : "Global"),
+        (l as any).propertyName ||
+          (l.propertyId ? `Property #${l.propertyId}` : "Global"),
         l.username,
         l.userRole ?? "",
         l.action,
@@ -513,8 +532,9 @@ export default function ActivityLog() {
     },
     {
       label: ar ? "الغرف المتأثرة" : "Rooms",
-      value: new Set(filteredKeyLogs.map((l: any) => l.roomNumber).filter(Boolean))
-        .size,
+      value: new Set(
+        filteredKeyLogs.map((l: any) => l.roomNumber).filter(Boolean),
+      ).size,
       color: "text-blue-600",
     },
   ];
@@ -614,10 +634,10 @@ export default function ActivityLog() {
                         ? "كل الوحدات"
                         : "All Modules"
                       : m === "hr_sync"
-                      ? ar
-                        ? "الموارد البشرية (HR Sync)"
-                        : "HR Sync"
-                      : m.charAt(0).toUpperCase() + m.slice(1)}
+                        ? ar
+                          ? "الموارد البشرية (HR Sync)"
+                          : "HR Sync"
+                        : m.charAt(0).toUpperCase() + m.slice(1)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -651,11 +671,21 @@ export default function ActivityLog() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{ar ? "كل المستويات" : "All Severity"}</SelectItem>
-                <SelectItem value="info">{ar ? "معلومات (Info)" : "Info"}</SelectItem>
-                <SelectItem value="warning">{ar ? "تحذير (Warning)" : "Warning"}</SelectItem>
-                <SelectItem value="high">{ar ? "مرتفع (High)" : "High"}</SelectItem>
-                <SelectItem value="error">{ar ? "خطأ (Error)" : "Error"}</SelectItem>
+                <SelectItem value="all">
+                  {ar ? "كل المستويات" : "All Severity"}
+                </SelectItem>
+                <SelectItem value="info">
+                  {ar ? "معلومات (Info)" : "Info"}
+                </SelectItem>
+                <SelectItem value="warning">
+                  {ar ? "تحذير (Warning)" : "Warning"}
+                </SelectItem>
+                <SelectItem value="high">
+                  {ar ? "مرتفع (High)" : "High"}
+                </SelectItem>
+                <SelectItem value="error">
+                  {ar ? "خطأ (Error)" : "Error"}
+                </SelectItem>
               </SelectContent>
             </Select>
             <DateInput
@@ -676,7 +706,12 @@ export default function ActivityLog() {
               className="w-36"
               placeholder={ar ? "إلى تاريخ..." : "To date..."}
             />
-            {(search || moduleFilter !== "all" || actionFilter !== "all" || severityFilter !== "all" || activityDateFrom || activityDateTo) && (
+            {(search ||
+              moduleFilter !== "all" ||
+              actionFilter !== "all" ||
+              severityFilter !== "all" ||
+              activityDateFrom ||
+              activityDateTo) && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -705,7 +740,8 @@ export default function ActivityLog() {
               },
               {
                 label: ar ? "تسجيلات دخول" : "Logins",
-                value: paginated.filter((l: any) => l.action === "LOGIN").length,
+                value: paginated.filter((l: any) => l.action === "LOGIN")
+                  .length,
                 color: "text-purple-600",
               },
               {
@@ -806,7 +842,12 @@ export default function ActivityLog() {
                             variant="outline"
                             className="font-medium text-[11px] bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                           >
-                            {(log as any).propertyName || (log.propertyId ? `Hotel #${log.propertyId}` : (ar ? "النظام العام" : "Global"))}
+                            {(log as any).propertyName ||
+                              (log.propertyId
+                                ? `Hotel #${log.propertyId}`
+                                : ar
+                                  ? "النظام العام"
+                                  : "Global")}
                           </Badge>
                         </TableCell>
                       )}
@@ -849,7 +890,9 @@ export default function ActivityLog() {
                               className="text-xs capitalize"
                             >
                               {log.module === "hr_sync"
-                                ? (ar ? "الموارد البشرية (HR)" : "HR Sync")
+                                ? ar
+                                  ? "الموارد البشرية (HR)"
+                                  : "HR Sync"
                                 : log.module}
                             </Badge>
                           )}
@@ -896,7 +939,11 @@ export default function ActivityLog() {
                                     <Badge
                                       variant="secondary"
                                       className="px-1.5 py-0 text-[10px] font-mono font-bold bg-blue-100/90 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200 shrink-0"
-                                      title={ar ? `الغرفة: ${p.roomNumber}` : `Room: ${p.roomNumber}`}
+                                      title={
+                                        ar
+                                          ? `الغرفة: ${p.roomNumber}`
+                                          : `Room: ${p.roomNumber}`
+                                      }
                                     >
                                       🚪 {p.roomNumber}
                                     </Badge>
@@ -905,7 +952,11 @@ export default function ActivityLog() {
                                     className="truncate text-xs text-foreground/80 font-medium"
                                     title={(log as any).details ?? ""}
                                   >
-                                    {p.summary || (typeof p.data === "string" ? p.data : (log as any).details) || "-"}
+                                    {p.summary ||
+                                      (typeof p.data === "string"
+                                        ? p.data
+                                        : (log as any).details) ||
+                                      "-"}
                                   </p>
                                 </div>
                                 <Button
@@ -916,7 +967,11 @@ export default function ActivityLog() {
                                     e.stopPropagation();
                                     setSelectedLog(log);
                                   }}
-                                  title={ar ? "عرض التفاصيل الكاملة" : "View full details"}
+                                  title={
+                                    ar
+                                      ? "عرض التفاصيل الكاملة"
+                                      : "View full details"
+                                  }
                                 >
                                   <Eye className="w-3 h-3" />
                                   {ar ? "تفاصيل" : "Details"}
@@ -951,34 +1006,55 @@ export default function ActivityLog() {
                 </TableBody>
               </Table>
 
-              <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
+              <Dialog
+                open={!!selectedLog}
+                onOpenChange={(open) => !open && setSelectedLog(null)}
+              >
                 <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-                  {selectedLog && (
+                  {selectedLog &&
                     (() => {
-                      const detailsParsed = parseDetails((selectedLog as any).details);
+                      const detailsParsed = parseDetails(
+                        (selectedLog as any).details,
+                      );
                       return (
                         <div className="space-y-4">
                           <DialogHeader>
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${actionColor(selectedLog.action)}`}>
+                                <span
+                                  className={`px-2.5 py-1 rounded-full text-xs font-bold ${actionColor(selectedLog.action)}`}
+                                >
                                   {selectedLog.action}
                                 </span>
                                 {selectedLog.module && (
-                                  <Badge variant="outline" className="text-xs uppercase">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs uppercase"
+                                  >
                                     {selectedLog.module}
                                   </Badge>
                                 )}
                                 {(selectedLog as any).severity && (
                                   <Badge
-                                    variant={(selectedLog as any).severity === "warning" || (selectedLog as any).severity === "high" || (selectedLog as any).severity === "error" ? "destructive" : "secondary"}
+                                    variant={
+                                      (selectedLog as any).severity ===
+                                        "warning" ||
+                                      (selectedLog as any).severity ===
+                                        "high" ||
+                                      (selectedLog as any).severity === "error"
+                                        ? "destructive"
+                                        : "secondary"
+                                    }
                                     className="text-xs uppercase"
                                   >
                                     {(selectedLog as any).severity}
                                   </Badge>
                                 )}
                                 {(selectedLog as any).propertyName && (
-                                  <Badge variant="outline" className="text-xs bg-muted/40 font-medium">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs bg-muted/40 font-medium"
+                                  >
                                     🏨 {(selectedLog as any).propertyName}
                                   </Badge>
                                 )}
@@ -988,10 +1064,14 @@ export default function ActivityLog() {
                               </span>
                             </div>
                             <DialogTitle className="text-lg font-bold mt-2">
-                              {ar ? "تفاصيل العملية والنشاط" : "Activity Log Details"}
+                              {ar
+                                ? "تفاصيل العملية والنشاط"
+                                : "Activity Log Details"}
                             </DialogTitle>
                             <DialogDescription className="text-xs text-muted-foreground">
-                              {ar ? `رقم السجل: #${selectedLog.id}` : `Record ID: #${selectedLog.id}`}
+                              {ar
+                                ? `رقم السجل: #${selectedLog.id}`
+                                : `Record ID: #${selectedLog.id}`}
                             </DialogDescription>
                           </DialogHeader>
 
@@ -1006,36 +1086,63 @@ export default function ActivityLog() {
                             </div>
                           )}
 
-                          <div className={`grid grid-cols-2 ${detailsParsed.roomNumber ? "sm:grid-cols-4" : "sm:grid-cols-4"} gap-2.5 text-xs`}>
+                          <div
+                            className={`grid grid-cols-2 ${detailsParsed.roomNumber ? "sm:grid-cols-4" : "sm:grid-cols-4"} gap-2.5 text-xs`}
+                          >
                             <div className="p-3 rounded-lg bg-muted/40 border">
-                              <p className="text-muted-foreground font-medium mb-1">{ar ? "المستخدم:" : "User:"}</p>
-                              <p className="font-semibold text-foreground">{selectedLog.username || "-"}</p>
+                              <p className="text-muted-foreground font-medium mb-1">
+                                {ar ? "المستخدم:" : "User:"}
+                              </p>
+                              <p className="font-semibold text-foreground">
+                                {selectedLog.username || "-"}
+                              </p>
                               {selectedLog.userRole && (
-                                <p className="text-[10px] text-muted-foreground capitalize mt-0.5">{selectedLog.userRole}</p>
+                                <p className="text-[10px] text-muted-foreground capitalize mt-0.5">
+                                  {selectedLog.userRole}
+                                </p>
                               )}
                             </div>
                             <div className="p-3 rounded-lg bg-muted/40 border">
-                              <p className="text-muted-foreground font-medium mb-1">{ar ? "المنشأة:" : "Property:"}</p>
-                              <p className="font-semibold text-foreground">{(selectedLog as any).propertyName || (selectedLog.propertyId ? `Hotel #${selectedLog.propertyId}` : (ar ? "النظام العام" : "Global"))}</p>
+                              <p className="text-muted-foreground font-medium mb-1">
+                                {ar ? "المنشأة:" : "Property:"}
+                              </p>
+                              <p className="font-semibold text-foreground">
+                                {(selectedLog as any).propertyName ||
+                                  (selectedLog.propertyId
+                                    ? `Hotel #${selectedLog.propertyId}`
+                                    : ar
+                                      ? "النظام العام"
+                                      : "Global")}
+                              </p>
                             </div>
                             {detailsParsed.roomNumber ? (
                               <div className="p-3 rounded-lg bg-blue-50/80 border border-blue-200 dark:bg-blue-950/40 dark:border-blue-800">
-                                <p className="text-blue-700 dark:text-blue-300 font-semibold mb-1">{ar ? "رقم الغرفة:" : "Room Number:"}</p>
+                                <p className="text-blue-700 dark:text-blue-300 font-semibold mb-1">
+                                  {ar ? "رقم الغرفة:" : "Room Number:"}
+                                </p>
                                 <p className="font-mono font-bold text-blue-950 dark:text-blue-100 text-sm">
                                   🚪 {detailsParsed.roomNumber}
                                 </p>
                               </div>
                             ) : (
                               <div className="p-3 rounded-lg bg-muted/40 border">
-                                <p className="text-muted-foreground font-medium mb-1">{ar ? "العنصر المرتبط:" : "Entity:"}</p>
+                                <p className="text-muted-foreground font-medium mb-1">
+                                  {ar ? "العنصر المرتبط:" : "Entity:"}
+                                </p>
                                 <p className="font-semibold text-foreground">
-                                  {selectedLog.entityType ? `${selectedLog.entityType} #${selectedLog.entityId || ""}` : "-"}
+                                  {selectedLog.entityType
+                                    ? `${selectedLog.entityType} #${selectedLog.entityId || ""}`
+                                    : "-"}
                                 </p>
                               </div>
                             )}
                             <div className="p-3 rounded-lg bg-muted/40 border">
-                              <p className="text-muted-foreground font-medium mb-1">{ar ? "عنوان IP:" : "IP Address:"}</p>
-                              <p className="font-mono text-foreground">{(selectedLog as any).ipAddress || "-"}</p>
+                              <p className="text-muted-foreground font-medium mb-1">
+                                {ar ? "عنوان IP:" : "IP Address:"}
+                              </p>
+                              <p className="font-mono text-foreground">
+                                {(selectedLog as any).ipAddress || "-"}
+                              </p>
                             </div>
                           </div>
 
@@ -1043,18 +1150,31 @@ export default function ActivityLog() {
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                                 <Terminal className="w-3.5 h-3.5 text-primary" />
-                                {ar ? "البيانات المسجلة (Payload & Parameters):" : "Recorded Payload & Data:"}
+                                {ar
+                                  ? "البيانات المسجلة (Payload & Parameters):"
+                                  : "Recorded Payload & Data:"}
                               </span>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="h-7 text-xs gap-1"
                                 onClick={() => {
-                                  const content = typeof detailsParsed.data === "object"
-                                    ? JSON.stringify(detailsParsed.data, null, 2)
-                                    : String((selectedLog as any).details || "");
+                                  const content =
+                                    typeof detailsParsed.data === "object"
+                                      ? JSON.stringify(
+                                          detailsParsed.data,
+                                          null,
+                                          2,
+                                        )
+                                      : String(
+                                          (selectedLog as any).details || "",
+                                        );
                                   navigator.clipboard.writeText(content);
-                                  toast.success(ar ? "تم نسخ التفاصيل للحافظة" : "Copied to clipboard");
+                                  toast.success(
+                                    ar
+                                      ? "تم نسخ التفاصيل للحافظة"
+                                      : "Copied to clipboard",
+                                  );
                                 }}
                               >
                                 <Copy className="w-3 h-3" />
@@ -1069,7 +1189,10 @@ export default function ActivityLog() {
                                 </pre>
                               ) : (
                                 <p className="whitespace-pre-wrap leading-relaxed">
-                                  {(selectedLog as any).details || (ar ? "لا توجد تفاصيل إضافية" : "No extra details recorded")}
+                                  {(selectedLog as any).details ||
+                                    (ar
+                                      ? "لا توجد تفاصيل إضافية"
+                                      : "No extra details recorded")}
                                 </p>
                               )}
                             </div>
@@ -1077,14 +1200,17 @@ export default function ActivityLog() {
 
                           {(selectedLog as any).userAgent && (
                             <div className="text-[11px] text-muted-foreground pt-1 border-t">
-                              <span className="font-medium text-foreground">{ar ? "المتصفح والنظام:" : "User Agent:"} </span>
-                              <span className="font-mono text-[10px] break-all">{(selectedLog as any).userAgent}</span>
+                              <span className="font-medium text-foreground">
+                                {ar ? "المتصفح والنظام:" : "User Agent:"}{" "}
+                              </span>
+                              <span className="font-mono text-[10px] break-all">
+                                {(selectedLog as any).userAgent}
+                              </span>
                             </div>
                           )}
                         </div>
                       );
-                    })()
-                  )}
+                    })()}
                 </DialogContent>
               </Dialog>
 

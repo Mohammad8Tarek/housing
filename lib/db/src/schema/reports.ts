@@ -28,11 +28,16 @@ export const customReportTemplatesTable = pgTable("custom_report_templates", {
     .$onUpdate(() => new Date()),
 });
 
-export const insertCustomReportTemplateSchema = createInsertSchema(customReportTemplatesTable).omit({
+export const insertCustomReportTemplateSchema = createInsertSchema(
+  customReportTemplatesTable,
+).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export type InsertCustomReportTemplate = z.infer<typeof insertCustomReportTemplateSchema>;
-export type CustomReportTemplate = typeof customReportTemplatesTable.$inferSelect;
+export type InsertCustomReportTemplate = z.infer<
+  typeof insertCustomReportTemplateSchema
+>;
+export type CustomReportTemplate =
+  typeof customReportTemplatesTable.$inferSelect;

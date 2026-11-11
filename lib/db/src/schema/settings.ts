@@ -70,27 +70,59 @@ export const settingsTable = pgTable("settings", {
   policyLevel4Capacity: integer("policy_level_4_capacity").notNull().default(4),
   policyLevel5Capacity: integer("policy_level_5_capacity").notNull().default(5),
   policyLevel6Capacity: integer("policy_level_6_capacity").notNull().default(6),
-  policyLevel0AllowEntire: boolean("policy_level_0_allow_entire").notNull().default(true),
-  policyLevel1AllowEntire: boolean("policy_level_1_allow_entire").notNull().default(true),
-  policyLevel2AllowEntire: boolean("policy_level_2_allow_entire").notNull().default(false),
-  policyLevel5AllowEntire: boolean("policy_level_5_allow_entire").notNull().default(false),
-  policyLevel6AllowEntire: boolean("policy_level_6_allow_entire").notNull().default(false),
+  policyLevel0AllowEntire: boolean("policy_level_0_allow_entire")
+    .notNull()
+    .default(true),
+  policyLevel1AllowEntire: boolean("policy_level_1_allow_entire")
+    .notNull()
+    .default(true),
+  policyLevel2AllowEntire: boolean("policy_level_2_allow_entire")
+    .notNull()
+    .default(false),
+  policyLevel5AllowEntire: boolean("policy_level_5_allow_entire")
+    .notNull()
+    .default(false),
+  policyLevel6AllowEntire: boolean("policy_level_6_allow_entire")
+    .notNull()
+    .default(false),
   customLevelRules: jsonb("custom_level_rules").default([]),
   jobLevelPolicies: jsonb("job_level_policies").default([]),
-  policyDepartmentClustering: boolean("policy_department_clustering").notNull().default(true),
-  policyStrictDepartmentSegregation: boolean("policy_strict_department_segregation").notNull().default(false),
-  policyStrictGenderSegregation: boolean("policy_strict_gender_segregation").notNull().default(true),
-  policyStrictFamilySegregation: boolean("policy_strict_family_segregation").notNull().default(true),
-  policyAdaptiveLearning: boolean("policy_adaptive_learning").notNull().default(true),
-  policyRequireExceptionApproval: boolean("policy_require_exception_approval").notNull().default(true),
+  policyDepartmentClustering: boolean("policy_department_clustering")
+    .notNull()
+    .default(true),
+  policyStrictDepartmentSegregation: boolean(
+    "policy_strict_department_segregation",
+  )
+    .notNull()
+    .default(false),
+  policyStrictGenderSegregation: boolean("policy_strict_gender_segregation")
+    .notNull()
+    .default(true),
+  policyStrictFamilySegregation: boolean("policy_strict_family_segregation")
+    .notNull()
+    .default(true),
+  policyAdaptiveLearning: boolean("policy_adaptive_learning")
+    .notNull()
+    .default(true),
+  policyRequireExceptionApproval: boolean("policy_require_exception_approval")
+    .notNull()
+    .default(true),
 
   // ─── Family Visit Policy ──────────────────────────────────────────
   visitMaxNights: integer("visit_max_nights").notNull().default(7),
-  visitMaxVisitsPerYear: integer("visit_max_visits_per_year").notNull().default(2),
-  visitMinServiceMonths: integer("visit_min_service_months").notNull().default(6),
+  visitMaxVisitsPerYear: integer("visit_max_visits_per_year")
+    .notNull()
+    .default(2),
+  visitMinServiceMonths: integer("visit_min_service_months")
+    .notNull()
+    .default(6),
   visitCooldownDays: integer("visit_cooldown_days").notNull().default(90),
-  visitRequireNationalId: boolean("visit_require_national_id").notNull().default(true),
-  hostingRequestSignaturePolicy: jsonb("hosting_request_signature_policy").default([]),
+  visitRequireNationalId: boolean("visit_require_national_id")
+    .notNull()
+    .default(true),
+  hostingRequestSignaturePolicy: jsonb(
+    "hosting_request_signature_policy",
+  ).default([]),
 
   // ─── Housing Rules & Documentation ─────────────────────────────────
   curfewEnabled: boolean("curfew_enabled").notNull().default(false),
@@ -111,12 +143,16 @@ export const settingsTable = pgTable("settings", {
   hrContact2Email: text("hr_contact_2_email").default(""),
 
   housingManager1Name: text("housing_manager_1_name").default(""),
-  housingManager1Title: text("housing_manager_1_title").default("Housing Manager"),
+  housingManager1Title: text("housing_manager_1_title").default(
+    "Housing Manager",
+  ),
   housingManager1Phone: text("housing_manager_1_phone").default(""),
   housingManager1Email: text("housing_manager_1_email").default(""),
 
   housingManager2Name: text("housing_manager_2_name").default(""),
-  housingManager2Title: text("housing_manager_2_title").default("Assistant Housing Manager"),
+  housingManager2Title: text("housing_manager_2_title").default(
+    "Assistant Housing Manager",
+  ),
   housingManager2Phone: text("housing_manager_2_phone").default(""),
   housingManager2Email: text("housing_manager_2_email").default(""),
 

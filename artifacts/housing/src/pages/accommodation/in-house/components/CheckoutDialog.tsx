@@ -98,7 +98,13 @@ export function CheckoutDialog({
             </Label>
             <Select value={checkoutReason} onValueChange={setCheckoutReason}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={ar ? "اختر سبب المغادرة (إلزامي)..." : "Select reason (Mandatory)..."} />
+                <SelectValue
+                  placeholder={
+                    ar
+                      ? "اختر سبب المغادرة (إلزامي)..."
+                      : "Select reason (Mandatory)..."
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {CHECKOUT_REASONS.map((r) => (
@@ -112,7 +118,9 @@ export function CheckoutDialog({
           <div className="space-y-1.5">
             <Label>{ar ? "ملاحظات" : "Notes"}</Label>
             <Textarea
-              placeholder={ar ? "أي ملاحظات إضافية..." : "Any additional notes..."}
+              placeholder={
+                ar ? "أي ملاحظات إضافية..." : "Any additional notes..."
+              }
               value={checkoutNotes}
               onChange={(e) => setCheckoutNotes(e.target.value)}
               rows={2}

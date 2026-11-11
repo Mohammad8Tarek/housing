@@ -230,183 +230,207 @@ router.post("/generate", requireAuth, async (req, res, next): Promise<any> => {
 // ═══════════════════════════════════════════════════════════════
 // ENHANCED EVALUATION REPORT
 // ═══════════════════════════════════════════════════════════════
-router.get("/evaluations-report", requireAuth, validate({ query: CommonListQuery }),
+router.get(
+  "/evaluations-report",
+  requireAuth,
+  validate({ query: CommonListQuery }),
   async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
 
-    const fromDate = req.query.from
-      ? new Date(req.query.from as string)
-      : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    const toDate = req.query.to ? new Date(req.query.to as string) : new Date();
-    const department = req.query.department as string | undefined;
+      const fromDate = req.query.from
+        ? new Date(req.query.from as string)
+        : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const toDate = req.query.to
+        ? new Date(req.query.to as string)
+        : new Date();
+      const department = req.query.department as string | undefined;
 
-    const report = await withTableFallback(
-      async () =>
-        withTenant(propertyId, async (tenantDb) => {
-          return await buildEvaluationsReport(
-            tenantDb,
-            fromDate,
-            toDate,
-            department,
-            true,
-          );
-        }),
-      null,
-    );
+      const report = await withTableFallback(
+        async () =>
+          withTenant(propertyId, async (tenantDb) => {
+            return await buildEvaluationsReport(
+              tenantDb,
+              fromDate,
+              toDate,
+              department,
+              true,
+            );
+          }),
+        null,
+      );
 
-    if (!report) {
-      res.json({
-        summary: { totalTemplates: 0, totalResponses: 0 },
-        templates: [],
-      });
-      return;
+      if (!report) {
+        res.json({
+          summary: { totalTemplates: 0, totalResponses: 0 },
+          templates: [],
+        });
+        return;
+      }
+      res.json(report);
+    } catch (err) {
+      next(err);
     }
-    res.json(report);
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // ═══════════════════════════════════════════════════════════════
 // ENHANCED ACTIVITY REGISTRATION REPORT
 // ═══════════════════════════════════════════════════════════════
-router.get("/activities-report", requireAuth, validate({ query: CommonListQuery }),
+router.get(
+  "/activities-report",
+  requireAuth,
+  validate({ query: CommonListQuery }),
   async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
 
-    const fromDate = req.query.from
-      ? new Date(req.query.from as string)
-      : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    const toDate = req.query.to ? new Date(req.query.to as string) : new Date();
-    const department = req.query.department as string | undefined;
+      const fromDate = req.query.from
+        ? new Date(req.query.from as string)
+        : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const toDate = req.query.to
+        ? new Date(req.query.to as string)
+        : new Date();
+      const department = req.query.department as string | undefined;
 
-    const report = await withTableFallback(
-      async () =>
-        withTenant(propertyId, async (tenantDb) => {
-          return await buildActivitiesReport(
-            tenantDb,
-            fromDate,
-            toDate,
-            department,
-            true,
-          );
-        }),
-      null,
-    );
+      const report = await withTableFallback(
+        async () =>
+          withTenant(propertyId, async (tenantDb) => {
+            return await buildActivitiesReport(
+              tenantDb,
+              fromDate,
+              toDate,
+              department,
+              true,
+            );
+          }),
+        null,
+      );
 
-    if (!report) {
-      res.json({ summary: { totalActivities: 0 }, activities: [] });
-      return;
+      if (!report) {
+        res.json({ summary: { totalActivities: 0 }, activities: [] });
+        return;
+      }
+      res.json(report);
+    } catch (err) {
+      next(err);
     }
-    res.json(report);
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // ═══════════════════════════════════════════════════════════════
 // ENGAGEMENT REPORT
 // ═══════════════════════════════════════════════════════════════
-router.get("/engagement-report", requireAuth, validate({ query: CommonListQuery }),
+router.get(
+  "/engagement-report",
+  requireAuth,
+  validate({ query: CommonListQuery }),
   async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
 
-    const fromDate = req.query.from
-      ? new Date(req.query.from as string)
-      : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    const toDate = req.query.to ? new Date(req.query.to as string) : new Date();
-    const department = req.query.department as string | undefined;
+      const fromDate = req.query.from
+        ? new Date(req.query.from as string)
+        : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const toDate = req.query.to
+        ? new Date(req.query.to as string)
+        : new Date();
+      const department = req.query.department as string | undefined;
 
-    const report = await withTableFallback(
-      async () =>
-        withTenant(propertyId, async (tenantDb) => {
-          return await buildEngagementReport(
-            tenantDb,
-            fromDate,
-            toDate,
-            department,
-            true,
-          );
-        }),
-      null,
-    );
+      const report = await withTableFallback(
+        async () =>
+          withTenant(propertyId, async (tenantDb) => {
+            return await buildEngagementReport(
+              tenantDb,
+              fromDate,
+              toDate,
+              department,
+              true,
+            );
+          }),
+        null,
+      );
 
-    if (!report) {
-      res.json({
-        summary: { totalProfiles: 0, engagedProfiles: 0 },
-        mostActive: [],
-        departmentEngagement: [],
-        nonEngaged: [],
-        trend: [],
-      });
-      return;
+      if (!report) {
+        res.json({
+          summary: { totalProfiles: 0, engagedProfiles: 0 },
+          mostActive: [],
+          departmentEngagement: [],
+          nonEngaged: [],
+          trend: [],
+        });
+        return;
+      }
+      res.json(report);
+    } catch (err) {
+      next(err);
     }
-    res.json(report);
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // ═══════════════════════════════════════════════════════════════
 // CUSTOM REPORT
 // ═══════════════════════════════════════════════════════════════
-router.get("/custom-report", requireAuth, validate({ query: CommonListQuery }),
+router.get(
+  "/custom-report",
+  requireAuth,
+  validate({ query: CommonListQuery }),
   async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
 
-    const fromDate = req.query.from
-      ? new Date(req.query.from as string)
-      : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    const toDate = req.query.to ? new Date(req.query.to as string) : new Date();
-    const department = req.query.department as string | undefined;
-    const modules = (
-      (req.query.modules as string) || "evaluations,activities"
-    ).split(",");
+      const fromDate = req.query.from
+        ? new Date(req.query.from as string)
+        : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const toDate = req.query.to
+        ? new Date(req.query.to as string)
+        : new Date();
+      const department = req.query.department as string | undefined;
+      const modules = (
+        (req.query.modules as string) || "evaluations,activities"
+      ).split(",");
 
-    const report = await withTableFallback(
-      async () =>
-        withTenant(propertyId, async (tenantDb) => {
-          return await buildCustomReport(
-            tenantDb,
-            fromDate,
-            toDate,
-            department,
-            modules,
-            true,
-          );
-        }),
-      null,
-    );
+      const report = await withTableFallback(
+        async () =>
+          withTenant(propertyId, async (tenantDb) => {
+            return await buildCustomReport(
+              tenantDb,
+              fromDate,
+              toDate,
+              department,
+              modules,
+              true,
+            );
+          }),
+        null,
+      );
 
-    if (!report) {
-      res.json({ summary: { modulesGenerated: 0 }, sections: [] });
-      return;
+      if (!report) {
+        res.json({ summary: { modulesGenerated: 0 }, sections: [] });
+        return;
+      }
+      res.json(report);
+    } catch (err) {
+      next(err);
     }
-    res.json(report);
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 // ═══════════════════════════════════════════════════════════════
 // REPORT TEMPLATES
@@ -460,28 +484,32 @@ router.get("/templates/list", requireAuth, async (req, res, next) => {
 // ═══════════════════════════════════════════════════════════════
 // DEPARTMENTS LIST (for filter dropdown)
 // ═══════════════════════════════════════════════════════════════
-router.get("/departments", requireAuth, async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
+router.get(
+  "/departments",
+  requireAuth,
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
 
-    const departments = await withTenant(propertyId, async (tenantDb) => {
-      const profiles = await tenantDb
-        .select({ department: profilesTable.department })
-        .from(profilesTable);
-      return [
-        ...new Set(profiles.map((e) => e.department).filter(Boolean)),
-      ].sort();
-    });
+      const departments = await withTenant(propertyId, async (tenantDb) => {
+        const profiles = await tenantDb
+          .select({ department: profilesTable.department })
+          .from(profilesTable);
+        return [
+          ...new Set(profiles.map((e) => e.department).filter(Boolean)),
+        ].sort();
+      });
 
-    res.json(departments);
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json(departments);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ═══════════════════════════════════════════════════════════════
 // BUILD FUNCTIONS
@@ -542,9 +570,7 @@ async function buildEvaluationsReport(
     const responses = allResponses.filter(
       (r: any) => r.templateId === template.id,
     );
-    const uniqueProfiles = [
-      ...new Set(responses.map((r: any) => r.profileId)),
-    ];
+    const uniqueProfiles = [...new Set(responses.map((r: any) => r.profileId))];
 
     const itemBreakdown = items.map((item: any) => {
       const itemResponses = responses.filter((r: any) => r.itemId === item.id);
@@ -619,9 +645,7 @@ async function buildEvaluationsReport(
       responseCount: data.count,
       profiles: data.profiles,
       responseRate:
-        data.profiles > 0
-          ? Math.round((data.count / data.profiles) * 100)
-          : 0,
+        data.profiles > 0 ? Math.round((data.count / data.profiles) * 100) : 0,
       avgRating:
         data.count > 0
           ? Math.round((data.avgRating / data.count) * 10) / 10
@@ -1059,9 +1083,8 @@ async function buildEngagementReport(
           .from(activityRegistrationsTable)
           .where(inArray(activityRegistrationsTable.activityId, allActivityIds))
       : [];
-  const uniqueParticipants = new Set(
-    registrations.map((r: any) => r.profileId),
-  ).size;
+  const uniqueParticipants = new Set(registrations.map((r: any) => r.profileId))
+    .size;
   const totalAttended = registrations.filter((r: any) => r.attended).length;
 
   // Profile engagement map
@@ -1189,9 +1212,7 @@ async function buildEngagementReport(
     ...registrations.map((r: any) => r.profileId),
   ]).size;
   const overallScore =
-    totalProfiles > 0
-      ? Math.round((engagedProfiles / totalProfiles) * 100)
-      : 0;
+    totalProfiles > 0 ? Math.round((engagedProfiles / totalProfiles) * 100) : 0;
 
   return {
     title: "Portal Engagement Report",

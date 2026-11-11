@@ -1,5 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { Wrench, Sparkles, Clock, CheckCircle2, Flame, Star, Activity, Layers } from "lucide-react";
+import {
+  Wrench,
+  Sparkles,
+  Clock,
+  CheckCircle2,
+  Flame,
+  Star,
+  Activity,
+  Layers,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,11 +49,17 @@ export function MaintenanceDualTrackReportRibbon({
   ticketsData = [],
 }: MaintenanceDualTrackReportRibbonProps) {
   // Query backend summary or calculate from local ticketsData
-  const { data: response, isLoading } = useQuery<{ success: boolean; data: OverviewData }>({
+  const { data: response, isLoading } = useQuery<{
+    success: boolean;
+    data: OverviewData;
+  }>({
     queryKey: ["reports", "maintenance-overview", propertyId],
     queryFn: async () => {
-      if (!propertyId) return { success: true, data: getLocalStats(ticketsData) };
-      const res = await fetch(`/api/dashboard/tickets-overview?propertyId=${propertyId}`);
+      if (!propertyId)
+        return { success: true, data: getLocalStats(ticketsData) };
+      const res = await fetch(
+        `/api/dashboard/tickets-overview?propertyId=${propertyId}`,
+      );
       if (!res.ok) return { success: true, data: getLocalStats(ticketsData) };
       return res.json();
     },
@@ -57,7 +72,7 @@ export function MaintenanceDualTrackReportRibbon({
       const items = list.filter((t: any) =>
         cat === "housekeeping"
           ? t.category === "housekeeping"
-          : t.category !== "housekeeping"
+          : t.category !== "housekeeping",
       );
       const total = items.length;
       let open = 0;
@@ -72,10 +87,22 @@ export function MaintenanceDualTrackReportRibbon({
         const st = (t.status || "").toLowerCase();
         const pr = (t.priority || "").toLowerCase();
         if (st === "open" || st.includes("مفتوح")) open++;
-        else if (st === "in_progress" || st === "approved" || st.includes("تنفيذ")) approved++;
-        else if (st === "resolved" || st === "closed" || st.includes("تم") || st.includes("مكتمل")) done++;
+        else if (
+          st === "in_progress" ||
+          st === "approved" ||
+          st.includes("تنفيذ")
+        )
+          approved++;
+        else if (
+          st === "resolved" ||
+          st === "closed" ||
+          st.includes("تم") ||
+          st.includes("مكتمل")
+        )
+          done++;
 
-        if (pr === "urgent" || pr === "critical" || pr.includes("عاجل")) urgent++;
+        if (pr === "urgent" || pr === "critical" || pr.includes("عاجل"))
+          urgent++;
 
         const r = t.rating != null ? Number(t.rating) : null;
         if (r && r > 0) {
@@ -85,9 +112,11 @@ export function MaintenanceDualTrackReportRibbon({
         }
       });
 
-      const avgRating = ratedCount > 0 ? Number((ratedSum / ratedCount).toFixed(1)) : 0;
+      const avgRating =
+        ratedCount > 0 ? Number((ratedSum / ratedCount).toFixed(1)) : 0;
       const completionRate = total > 0 ? Math.round((done / total) * 100) : 0;
-      const satisfactionRate = ratedCount > 0 ? Math.round((satisfiedCount / ratedCount) * 100) : 0;
+      const satisfactionRate =
+        ratedCount > 0 ? Math.round((satisfiedCount / ratedCount) * 100) : 0;
 
       return {
         total,
@@ -116,16 +145,23 @@ export function MaintenanceDualTrackReportRibbon({
 
   const totalOverall = (mnt?.total || 0) + (hsk?.total || 0);
   const doneOverall = (mnt?.done || 0) + (hsk?.done || 0);
-  const overallCompletion = totalOverall > 0 ? Math.round((doneOverall / totalOverall) * 100) : 0;
+  const overallCompletion =
+    totalOverall > 0 ? Math.round((doneOverall / totalOverall) * 100) : 0;
 
-  const totalRatedOverall = (mnt?.ratingStats?.totalRated || 0) + (hsk?.ratingStats?.totalRated || 0);
-  const overallAvgRating = totalRatedOverall > 0
-    ? Number((
-        ((mnt?.ratingStats?.avgRating || 0) * (mnt?.ratingStats?.totalRated || 0) +
-          (hsk?.ratingStats?.avgRating || 0) * (hsk?.ratingStats?.totalRated || 0)) /
-        totalRatedOverall
-      ).toFixed(1))
-    : 0;
+  const totalRatedOverall =
+    (mnt?.ratingStats?.totalRated || 0) + (hsk?.ratingStats?.totalRated || 0);
+  const overallAvgRating =
+    totalRatedOverall > 0
+      ? Number(
+          (
+            ((mnt?.ratingStats?.avgRating || 0) *
+              (mnt?.ratingStats?.totalRated || 0) +
+              (hsk?.ratingStats?.avgRating || 0) *
+                (hsk?.ratingStats?.totalRated || 0)) /
+            totalRatedOverall
+          ).toFixed(1),
+        )
+      : 0;
 
   return (
     <div className="space-y-3.5 mb-2">
@@ -138,10 +174,17 @@ export function MaintenanceDualTrackReportRibbon({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-bold text-base text-foreground">
-                {ar ? "المؤشرات التنفيذية المزدوجة للصيانة والهاوس كيبنج" : "Executive Dual-Track Service & Maintenance Hub"}
+                {ar
+                  ? "المؤشرات التنفيذية المزدوجة للصيانة والهاوس كيبنج"
+                  : "Executive Dual-Track Service & Maintenance Hub"}
               </h3>
-              <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20 font-mono">
-                {ar ? `${totalOverall} بلاغ كلي` : `${totalOverall} Total Orders`}
+              <Badge
+                variant="outline"
+                className="text-xs bg-primary/5 text-primary border-primary/20 font-mono"
+              >
+                {ar
+                  ? `${totalOverall} بلاغ كلي`
+                  : `${totalOverall} Total Orders`}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -163,7 +206,7 @@ export function MaintenanceDualTrackReportRibbon({
               "text-xs font-semibold h-7 px-3 rounded-md transition-all",
               filterCategory === "all" || !filterCategory
                 ? "bg-background text-foreground shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Layers className="w-3.5 h-3.5 ltr:mr-1.5 rtl:ml-1.5" />
@@ -179,7 +222,7 @@ export function MaintenanceDualTrackReportRibbon({
               "text-xs font-semibold h-7 px-3 rounded-md transition-all",
               filterCategory === "maintenance"
                 ? "bg-amber-500 text-white shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Wrench className="w-3.5 h-3.5 ltr:mr-1.5 rtl:ml-1.5" />
@@ -195,7 +238,7 @@ export function MaintenanceDualTrackReportRibbon({
               "text-xs font-semibold h-7 px-3 rounded-md transition-all",
               filterCategory === "housekeeping"
                 ? "bg-sky-500 text-white shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <Sparkles className="w-3.5 h-3.5 ltr:mr-1.5 rtl:ml-1.5" />
@@ -207,10 +250,14 @@ export function MaintenanceDualTrackReportRibbon({
       {/* The Two Main Tracks Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Track 1: Engineering Maintenance */}
-        <Card className={cn(
-          "border transition-all shadow-xs relative overflow-hidden",
-          filterCategory === "maintenance" ? "ring-2 ring-amber-500 border-amber-300 dark:border-amber-700" : ""
-        )}>
+        <Card
+          className={cn(
+            "border transition-all shadow-xs relative overflow-hidden",
+            filterCategory === "maintenance"
+              ? "ring-2 ring-amber-500 border-amber-300 dark:border-amber-700"
+              : "",
+          )}
+        >
           <div className="absolute top-0 ltr:left-0 rtl:right-0 h-1 w-full bg-gradient-to-r from-amber-500 to-amber-600" />
           <CardContent className="p-4 space-y-3.5">
             <div className="flex items-center justify-between gap-2">
@@ -220,14 +267,21 @@ export function MaintenanceDualTrackReportRibbon({
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-foreground">
-                    {ar ? "شق الصيانة الفنية والأعطال" : "Engineering & Maintenance"}
+                    {ar
+                      ? "شق الصيانة الفنية والأعطال"
+                      : "Engineering & Maintenance"}
                   </h4>
                   <p className="text-[11px] text-muted-foreground">
-                    {ar ? "أعمال الكهرباء، السباكة، التكييف، والنجارة" : "HVAC, Plumbing, Electrical, and Furniture repairs"}
+                    {ar
+                      ? "أعمال الكهرباء، السباكة، التكييف، والنجارة"
+                      : "HVAC, Plumbing, Electrical, and Furniture repairs"}
                   </p>
                 </div>
               </div>
-              <Badge variant="outline" className="font-mono text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200">
+              <Badge
+                variant="outline"
+                className="font-mono text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200"
+              >
                 {mnt.total} {ar ? "طلب" : "orders"}
               </Badge>
             </div>
@@ -281,17 +335,22 @@ export function MaintenanceDualTrackReportRibbon({
                 <div className="flex items-center gap-1 text-amber-500">
                   <Star className="w-4 h-4 fill-amber-500" />
                   <span className="font-bold text-sm text-foreground font-mono">
-                    {mnt.ratingStats?.avgRating ? mnt.ratingStats.avgRating : "—"}
+                    {mnt.ratingStats?.avgRating
+                      ? mnt.ratingStats.avgRating
+                      : "—"}
                   </span>
                   <span className="text-[11px] text-muted-foreground">/ 5</span>
                 </div>
                 <span className="text-[11px] text-muted-foreground">
-                  ({mnt.ratingStats?.totalRated || 0} {ar ? "تقييم نزلائي" : "rated"})
+                  ({mnt.ratingStats?.totalRated || 0}{" "}
+                  {ar ? "تقييم نزلائي" : "rated"})
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground">{ar ? "نسبة الإنجاز:" : "Completion:"}</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {ar ? "نسبة الإنجاز:" : "Completion:"}
+                </span>
                 <span className="font-bold font-mono text-emerald-600">
                   {mnt.completionRate}%
                 </span>
@@ -301,10 +360,14 @@ export function MaintenanceDualTrackReportRibbon({
         </Card>
 
         {/* Track 2: Housekeeping & Cleaning */}
-        <Card className={cn(
-          "border transition-all shadow-xs relative overflow-hidden",
-          filterCategory === "housekeeping" ? "ring-2 ring-sky-500 border-sky-300 dark:border-sky-700" : ""
-        )}>
+        <Card
+          className={cn(
+            "border transition-all shadow-xs relative overflow-hidden",
+            filterCategory === "housekeeping"
+              ? "ring-2 ring-sky-500 border-sky-300 dark:border-sky-700"
+              : "",
+          )}
+        >
           <div className="absolute top-0 ltr:left-0 rtl:right-0 h-1 w-full bg-gradient-to-r from-sky-500 to-sky-600" />
           <CardContent className="p-4 space-y-3.5">
             <div className="flex items-center justify-between gap-2">
@@ -314,14 +377,21 @@ export function MaintenanceDualTrackReportRibbon({
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-foreground">
-                    {ar ? "شق الهاوس كيبنج والنظافة" : "Housekeeping & Room Service"}
+                    {ar
+                      ? "شق الهاوس كيبنج والنظافة"
+                      : "Housekeeping & Room Service"}
                   </h4>
                   <p className="text-[11px] text-muted-foreground">
-                    {ar ? "نظافة الغرف، تغيير المفروشات، وتجهيز الغرف الشاغرة" : "Room cleaning, linen turnover, and amenities replenishments"}
+                    {ar
+                      ? "نظافة الغرف، تغيير المفروشات، وتجهيز الغرف الشاغرة"
+                      : "Room cleaning, linen turnover, and amenities replenishments"}
                   </p>
                 </div>
               </div>
-              <Badge variant="outline" className="font-mono text-xs font-bold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200">
+              <Badge
+                variant="outline"
+                className="font-mono text-xs font-bold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200"
+              >
                 {hsk.total} {ar ? "طلب" : "orders"}
               </Badge>
             </div>
@@ -375,17 +445,22 @@ export function MaintenanceDualTrackReportRibbon({
                 <div className="flex items-center gap-1 text-amber-500">
                   <Star className="w-4 h-4 fill-amber-500" />
                   <span className="font-bold text-sm text-foreground font-mono">
-                    {hsk.ratingStats?.avgRating ? hsk.ratingStats.avgRating : "—"}
+                    {hsk.ratingStats?.avgRating
+                      ? hsk.ratingStats.avgRating
+                      : "—"}
                   </span>
                   <span className="text-[11px] text-muted-foreground">/ 5</span>
                 </div>
                 <span className="text-[11px] text-muted-foreground">
-                  ({hsk.ratingStats?.totalRated || 0} {ar ? "تقييم نزلائي" : "rated"})
+                  ({hsk.ratingStats?.totalRated || 0}{" "}
+                  {ar ? "تقييم نزلائي" : "rated"})
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground">{ar ? "نسبة الإنجاز:" : "Completion:"}</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {ar ? "نسبة الإنجاز:" : "Completion:"}
+                </span>
                 <span className="font-bold font-mono text-emerald-600">
                   {hsk.completionRate}%
                 </span>

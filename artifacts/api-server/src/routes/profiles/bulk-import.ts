@@ -25,7 +25,9 @@ router.post(
 
     const { profiles: rawProfiles } = req.body;
     if (!Array.isArray(rawProfiles) || rawProfiles.length === 0) {
-      res.status(400).json({ error: "profiles array is required and must not be empty" });
+      res
+        .status(400)
+        .json({ error: "profiles array is required and must not be empty" });
       return;
     }
 
@@ -79,7 +81,12 @@ router.post(
       const batchSeenNationalIds = new Set<string>();
 
       const rowsToInsert: any[] = [];
-      const rowsToUpdate: Array<{ id: number; profileId: string; updates: Record<string, any>; diffSummary: string[] }> = [];
+      const rowsToUpdate: Array<{
+        id: number;
+        profileId: string;
+        updates: Record<string, any>;
+        diffSummary: string[];
+      }> = [];
       const skippedItems: Array<{
         profileId: string;
         name: string;
@@ -93,7 +100,13 @@ router.post(
         const pId = String(p.profileId || "").trim();
         const nid = String(p.nationalId || "").trim();
         const ph = String(p.phone || "").trim();
-        const pName = [p.firstName, p.lastName, p.thirdName, p.fourthName].filter(Boolean).join(" ").trim() || pId || `Row ${i + 1}`;
+        const pName =
+          [p.firstName, p.lastName, p.thirdName, p.fourthName]
+            .filter(Boolean)
+            .join(" ")
+            .trim() ||
+          pId ||
+          `Row ${i + 1}`;
         const lowerPid = pId.toLowerCase();
 
         // 1. Check duplicate within current file batch
@@ -123,16 +136,29 @@ router.post(
         if (nid) batchSeenNationalIds.add(nid);
 
         // 2. Find existing record by profileId or nationalId
-        const existingRecord = (lowerPid ? dbByProfileId.get(lowerPid) : null) || (nid ? dbByNationalId.get(nid) : null);
+        const existingRecord =
+          (lowerPid ? dbByProfileId.get(lowerPid) : null) ||
+          (nid ? dbByNationalId.get(nid) : null);
 
         if (existingRecord) {
           // Employee exists! Check for updates
           const updates: Record<string, any> = {};
           const diffSummary: string[] = [];
 
-          const checkField = (field: string, incomingVal: any, existingVal: any, label: string) => {
-            const inc = incomingVal !== undefined && incomingVal !== null ? String(incomingVal).trim() : "";
-            const ext = existingVal !== undefined && existingVal !== null ? String(existingVal).trim() : "";
+          const checkField = (
+            field: string,
+            incomingVal: any,
+            existingVal: any,
+            label: string,
+          ) => {
+            const inc =
+              incomingVal !== undefined && incomingVal !== null
+                ? String(incomingVal).trim()
+                : "";
+            const ext =
+              existingVal !== undefined && existingVal !== null
+                ? String(existingVal).trim()
+                : "";
             // Only update if incoming is provided, not empty, not placeholder, and differs from existing
             if (inc && inc !== "—" && inc !== ext) {
               updates[field] = inc;
@@ -140,32 +166,142 @@ router.post(
             }
           };
 
-          checkField("firstName", p.firstName, existingRecord.firstName, "الاسم الأول");
-          if (p.firstNameAr) checkField("firstNameAr", p.firstNameAr, existingRecord.firstNameAr, "الاسم الأول (عربي)");
-          checkField("lastName", p.lastName, existingRecord.lastName, "اسم العائلة");
-          if (p.lastNameAr) checkField("lastNameAr", p.lastNameAr, existingRecord.lastNameAr, "اسم العائلة (عربي)");
-          checkField("thirdName", p.thirdName, existingRecord.thirdName, "الاسم الثالث");
-          if (p.thirdNameAr) checkField("thirdNameAr", p.thirdNameAr, existingRecord.thirdNameAr, "الاسم الثالث (عربي)");
-          checkField("fourthName", p.fourthName, existingRecord.fourthName, "الاسم الرابع");
-          if (p.fourthNameAr) checkField("fourthNameAr", p.fourthNameAr, existingRecord.fourthNameAr, "الاسم الرابع (عربي)");
-          checkField("department", p.department, existingRecord.department, "القسم");
-          if (p.departmentAr) checkField("departmentAr", p.departmentAr, existingRecord.departmentAr, "القسم (عربي)");
-          checkField("jobTitle", p.jobTitle, existingRecord.jobTitle, "الوظيفة");
-          if (p.jobTitleAr) checkField("jobTitleAr", p.jobTitleAr, existingRecord.jobTitleAr, "الوظيفة (عربي)");
+          checkField(
+            "firstName",
+            p.firstName,
+            existingRecord.firstName,
+            "الاسم الأول",
+          );
+          if (p.firstNameAr)
+            checkField(
+              "firstNameAr",
+              p.firstNameAr,
+              existingRecord.firstNameAr,
+              "الاسم الأول (عربي)",
+            );
+          checkField(
+            "lastName",
+            p.lastName,
+            existingRecord.lastName,
+            "اسم العائلة",
+          );
+          if (p.lastNameAr)
+            checkField(
+              "lastNameAr",
+              p.lastNameAr,
+              existingRecord.lastNameAr,
+              "اسم العائلة (عربي)",
+            );
+          checkField(
+            "thirdName",
+            p.thirdName,
+            existingRecord.thirdName,
+            "الاسم الثالث",
+          );
+          if (p.thirdNameAr)
+            checkField(
+              "thirdNameAr",
+              p.thirdNameAr,
+              existingRecord.thirdNameAr,
+              "الاسم الثالث (عربي)",
+            );
+          checkField(
+            "fourthName",
+            p.fourthName,
+            existingRecord.fourthName,
+            "الاسم الرابع",
+          );
+          if (p.fourthNameAr)
+            checkField(
+              "fourthNameAr",
+              p.fourthNameAr,
+              existingRecord.fourthNameAr,
+              "الاسم الرابع (عربي)",
+            );
+          checkField(
+            "department",
+            p.department,
+            existingRecord.department,
+            "القسم",
+          );
+          if (p.departmentAr)
+            checkField(
+              "departmentAr",
+              p.departmentAr,
+              existingRecord.departmentAr,
+              "القسم (عربي)",
+            );
+          checkField(
+            "jobTitle",
+            p.jobTitle,
+            existingRecord.jobTitle,
+            "الوظيفة",
+          );
+          if (p.jobTitleAr)
+            checkField(
+              "jobTitleAr",
+              p.jobTitleAr,
+              existingRecord.jobTitleAr,
+              "الوظيفة (عربي)",
+            );
           checkField("level", p.level, existingRecord.level, "الدرجة");
-          checkField("nationality", p.nationality, existingRecord.nationality, "الجنسية");
-          if (p.gender && (p.gender === "M" || p.gender === "F") && p.gender !== existingRecord.gender) {
+          checkField(
+            "nationality",
+            p.nationality,
+            existingRecord.nationality,
+            "الجنسية",
+          );
+          if (
+            p.gender &&
+            (p.gender === "M" || p.gender === "F") &&
+            p.gender !== existingRecord.gender
+          ) {
             updates.gender = p.gender;
             diffSummary.push(`النوع: ${existingRecord.gender} ➔ ${p.gender}`);
           }
           checkField("phone", p.phone, existingRecord.phone, "الهاتف");
-          checkField("email", p.email, existingRecord.email, "البريد الإلكتروني");
-          checkField("emergencyContact", p.emergencyContact, existingRecord.emergencyContact, "طوارئ");
-          checkField("companyName", p.companyName, existingRecord.companyName, "الشركة");
-          checkField("employmentType", p.employmentType, existingRecord.employmentType, "نوع التوظيف");
-          checkField("hireDate", p.hireDate, existingRecord.hireDate, "تاريخ التعيين");
-          checkField("contractEndDate", p.contractEndDate, existingRecord.contractEndDate, "انتهاء العقد");
-          checkField("dateOfBirth", p.dateOfBirth, existingRecord.dateOfBirth, "تاريخ الميلاد");
+          checkField(
+            "email",
+            p.email,
+            existingRecord.email,
+            "البريد الإلكتروني",
+          );
+          checkField(
+            "emergencyContact",
+            p.emergencyContact,
+            existingRecord.emergencyContact,
+            "طوارئ",
+          );
+          checkField(
+            "companyName",
+            p.companyName,
+            existingRecord.companyName,
+            "الشركة",
+          );
+          checkField(
+            "employmentType",
+            p.employmentType,
+            existingRecord.employmentType,
+            "نوع التوظيف",
+          );
+          checkField(
+            "hireDate",
+            p.hireDate,
+            existingRecord.hireDate,
+            "تاريخ التعيين",
+          );
+          checkField(
+            "contractEndDate",
+            p.contractEndDate,
+            existingRecord.contractEndDate,
+            "انتهاء العقد",
+          );
+          checkField(
+            "dateOfBirth",
+            p.dateOfBirth,
+            existingRecord.dateOfBirth,
+            "تاريخ الميلاد",
+          );
           checkField("address", p.address, existingRecord.address, "العنوان");
 
           // Also check nationalId if matched by profileId
@@ -173,7 +309,9 @@ router.post(
             const conflict = dbByNationalId.get(nid);
             if (!conflict || conflict.id === existingRecord.id) {
               updates.nationalId = nid;
-              diffSummary.push(`الرقم القومي: ${existingRecord.nationalId} ➔ ${nid}`);
+              diffSummary.push(
+                `الرقم القومي: ${existingRecord.nationalId} ➔ ${nid}`,
+              );
             }
           }
 
@@ -193,12 +331,42 @@ router.post(
               jobTitleAr: updates.jobTitleAr ?? existingRecord.jobTitleAr,
             };
             const enrichedMerged = enrichProfileBilingual(merged);
-            if (!updates.firstNameAr && !existingRecord.firstNameAr && enrichedMerged.firstNameAr) updates.firstNameAr = enrichedMerged.firstNameAr;
-            if (!updates.lastNameAr && !existingRecord.lastNameAr && enrichedMerged.lastNameAr) updates.lastNameAr = enrichedMerged.lastNameAr;
-            if (!updates.thirdNameAr && !existingRecord.thirdNameAr && enrichedMerged.thirdNameAr) updates.thirdNameAr = enrichedMerged.thirdNameAr;
-            if (!updates.fourthNameAr && !existingRecord.fourthNameAr && enrichedMerged.fourthNameAr) updates.fourthNameAr = enrichedMerged.fourthNameAr;
-            if (!updates.departmentAr && !existingRecord.departmentAr && enrichedMerged.departmentAr) updates.departmentAr = enrichedMerged.departmentAr;
-            if (!updates.jobTitleAr && !existingRecord.jobTitleAr && enrichedMerged.jobTitleAr) updates.jobTitleAr = enrichedMerged.jobTitleAr;
+            if (
+              !updates.firstNameAr &&
+              !existingRecord.firstNameAr &&
+              enrichedMerged.firstNameAr
+            )
+              updates.firstNameAr = enrichedMerged.firstNameAr;
+            if (
+              !updates.lastNameAr &&
+              !existingRecord.lastNameAr &&
+              enrichedMerged.lastNameAr
+            )
+              updates.lastNameAr = enrichedMerged.lastNameAr;
+            if (
+              !updates.thirdNameAr &&
+              !existingRecord.thirdNameAr &&
+              enrichedMerged.thirdNameAr
+            )
+              updates.thirdNameAr = enrichedMerged.thirdNameAr;
+            if (
+              !updates.fourthNameAr &&
+              !existingRecord.fourthNameAr &&
+              enrichedMerged.fourthNameAr
+            )
+              updates.fourthNameAr = enrichedMerged.fourthNameAr;
+            if (
+              !updates.departmentAr &&
+              !existingRecord.departmentAr &&
+              enrichedMerged.departmentAr
+            )
+              updates.departmentAr = enrichedMerged.departmentAr;
+            if (
+              !updates.jobTitleAr &&
+              !existingRecord.jobTitleAr &&
+              enrichedMerged.jobTitleAr
+            )
+              updates.jobTitleAr = enrichedMerged.jobTitleAr;
 
             rowsToUpdate.push({
               id: existingRecord.id,
@@ -259,7 +427,10 @@ router.post(
         const inserted = await tenantDb
           .insert(profilesTable)
           .values(chunk)
-          .returning({ id: profilesTable.id, profileId: profilesTable.profileId });
+          .returning({
+            id: profilesTable.id,
+            profileId: profilesTable.profileId,
+          });
         insertedCount += inserted.length;
         for (const ins of inserted) {
           ensureProfilePortalAccount(propertyId, ins.profileId).catch(() => {});
@@ -299,7 +470,8 @@ router.post(
       userId: s.userId,
       userRole: s.userRole,
       action: `استيراد ذكي للملفات الشخصية: تم إضافة ${result.created}، تحديث ${result.updated}، وتخطي ${result.skipped} سجل مكرر`,
-      actionType: result.updated > 0 && result.created === 0 ? "UPDATE" : "CREATE",
+      actionType:
+        result.updated > 0 && result.created === 0 ? "UPDATE" : "CREATE",
       module: "profiles",
       entityType: "profile",
       details: `Total: ${result.total}, Created: ${result.created}, Updated: ${result.updated}, Skipped: ${result.skipped}`,
@@ -308,7 +480,11 @@ router.post(
     broadcastToProperty(propertyId, {
       module: "profiles",
       action: "updated",
-      data: { created: result.created, updated: result.updated, count: result.success },
+      data: {
+        created: result.created,
+        updated: result.updated,
+        count: result.success,
+      },
     });
 
     res.status(200).json(result);

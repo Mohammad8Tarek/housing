@@ -10,15 +10,41 @@ import {
   workersTable,
   withTenant,
 } from "@workspace/db";
-import { eq, ne, and, or, ilike, sql, SQL, desc, inArray, aliasedTable } from "drizzle-orm";
-import { CreateMaintenanceBody, UpdateMaintenanceParams, DeleteMaintenanceParams } from "@workspace/api-zod";
+import {
+  eq,
+  ne,
+  and,
+  or,
+  ilike,
+  sql,
+  SQL,
+  desc,
+  inArray,
+  aliasedTable,
+} from "drizzle-orm";
+import {
+  CreateMaintenanceBody,
+  UpdateMaintenanceParams,
+  DeleteMaintenanceParams,
+} from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { broadcastToProperty } from "../lib/websocket.js";
-import { requireAnyPermission, hasPermission } from "../middlewares/permissions.js";
+import {
+  requireAnyPermission,
+  hasPermission,
+} from "../middlewares/permissions.js";
 import { getTenantId } from "../lib/request-utils.js";
-import { normalizeSearchString, sqlNormalizeArabic } from "../lib/search-helper.js";
+import {
+  normalizeSearchString,
+  sqlNormalizeArabic,
+} from "../lib/search-helper.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, IdParams, PropertyIdOnlyBody, SubTicketBody } from "../validation/schemas.js";
+import {
+  CommonListQuery,
+  IdParams,
+  PropertyIdOnlyBody,
+  SubTicketBody,
+} from "../validation/schemas.js";
 
 const router: Router = Router();
 const assignedProfile = aliasedTable(profilesTable, "assigned_profile");
@@ -26,7 +52,9 @@ const assignedProfile = aliasedTable(profilesTable, "assigned_profile");
 /**
  * جلب العقارات المصرح للمستخدم الوصول إليها
  */
-async function getAccessibleProperties(user: any): Promise<{ id: number; name: string; displayName?: string | null }[]> {
+async function getAccessibleProperties(
+  user: any,
+): Promise<{ id: number; name: string; displayName?: string | null }[]> {
   try {
     if (
       user?.isSystemAdmin ||
@@ -63,12 +91,15 @@ async function getAccessibleProperties(user: any): Promise<{ id: number; name: s
       .where(
         and(
           eq(propertiesTable.status, "active"),
-          inArray(propertiesTable.id, pIds)
-        )
+          inArray(propertiesTable.id, pIds),
+        ),
       );
     return props;
   } catch (err) {
-    console.error("[Maintenance Route] Failed to get accessible properties:", err);
+    console.error(
+      "[Maintenance Route] Failed to get accessible properties:",
+      err,
+    );
     return [];
   }
 }
@@ -78,7 +109,10 @@ async function getAccessibleProperties(user: any): Promise<{ id: number; name: s
  */
 function buildConditions(
   query: any,
-  categoryIsolation: { onlyHousekeeping?: boolean; excludeHousekeeping?: boolean } | null,
+  categoryIsolation: {
+    onlyHousekeeping?: boolean;
+    excludeHousekeeping?: boolean;
+  } | null,
   userProfileId?: number | null,
   isStaffOnly?: boolean,
 ): SQL[] {
@@ -90,7 +124,11 @@ function buildConditions(
   } else if (categoryIsolation?.excludeHousekeeping) {
     // مستخدم الصيانة يرى جميع فئات الصيانة (سباكة، كهرباء، تكييف، نجارة...) ويُستثنى الهاوس كيبنج فقط
     conditions.push(ne(maintenanceTable.category, "housekeeping"));
-    if (query.category && query.category !== "all" && query.category !== "housekeeping") {
+    if (
+      query.category &&
+      query.category !== "all" &&
+      query.category !== "housekeeping"
+    ) {
       conditions.push(eq(maintenanceTable.category, String(query.category)));
     }
   } else if (query.category && query.category !== "all") {
@@ -108,7 +146,11 @@ function buildConditions(
   }
 
   // 4. تقييد التعيين للموظف (Assigned To / Scoping)
-  if (isStaffOnly && userProfileId && (!query.assignedTo || query.assignedTo === "me")) {
+  if (
+    isStaffOnly &&
+    userProfileId &&
+    (!query.assignedTo || query.assignedTo === "me")
+  ) {
     // موظف / فني بدون صلاحيات إشرافية: يرى أوردراته فقط حصرًا
     conditions.push(eq(maintenanceTable.assignedTo, userProfileId));
   } else if (query.assignedTo) {
@@ -151,7 +193,9 @@ function buildConditions(
     try {
       const fromD = new Date(query.fromDate);
       if (!isNaN(fromD.getTime())) {
-        conditions.push(sql`${maintenanceTable.reportedAt} >= ${fromD.toISOString()}::timestamptz`);
+        conditions.push(
+          sql`${maintenanceTable.reportedAt} >= ${fromD.toISOString()}::timestamptz`,
+        );
       }
     } catch {}
   }
@@ -160,7 +204,9 @@ function buildConditions(
       const toD = new Date(query.toDate);
       if (!isNaN(toD.getTime())) {
         toD.setHours(23, 59, 59, 999);
-        conditions.push(sql`${maintenanceTable.reportedAt} <= ${toD.toISOString()}::timestamptz`);
+        conditions.push(
+          sql`${maintenanceTable.reportedAt} <= ${toD.toISOString()}::timestamptz`,
+        );
       }
     } catch {}
   }
@@ -275,8 +321,16 @@ function fmt(r: any) {
  * دمج وفحص صلاحيات فئات الصيانة والهاوس كيبنج بدقة استناداً لمصفوفة الصلاحيات
  */
 function resolveCategoryPermissions(user: any, isSysAdmin: boolean) {
-  const hasExplicitMntOrders = hasPermission(user, "maintenance", "view_maintenance");
-  const hasExplicitHskOrders = hasPermission(user, "maintenance", "view_housekeeping");
+  const hasExplicitMntOrders = hasPermission(
+    user,
+    "maintenance",
+    "view_maintenance",
+  );
+  const hasExplicitHskOrders = hasPermission(
+    user,
+    "maintenance",
+    "view_housekeeping",
+  );
   const hasExplicitFilter = hasExplicitMntOrders || hasExplicitHskOrders;
 
   let userHasMaintenance: boolean;
@@ -287,7 +341,8 @@ function resolveCategoryPermissions(user: any, isSysAdmin: boolean) {
     userHasHousekeeping = true;
   } else if (hasExplicitFilter) {
     userHasMaintenance = hasExplicitMntOrders;
-    userHasHousekeeping = hasExplicitHskOrders || hasPermission(user, "housekeeping", "view");
+    userHasHousekeeping =
+      hasExplicitHskOrders || hasPermission(user, "housekeeping", "view");
   } else {
     userHasMaintenance = hasPermission(user, "maintenance", "view");
     userHasHousekeeping = hasPermission(user, "housekeeping", "view");
@@ -303,7 +358,7 @@ router.get(
     ["maintenance", "view"],
     ["maintenance", "view_maintenance"],
     ["maintenance", "view_housekeeping"],
-    ["housekeeping", "view"]
+    ["housekeeping", "view"],
   ),
   validate({ query: CommonListQuery }),
   async (req, res, next) => {
@@ -314,13 +369,17 @@ router.get(
         user?.roles?.includes("super_admin") ||
         user?.roles?.includes("system_admin");
 
-      const { userHasMaintenance, userHasHousekeeping } = resolveCategoryPermissions(user, isSysAdmin);
+      const { userHasMaintenance, userHasHousekeeping } =
+        resolveCategoryPermissions(user, isSysAdmin);
 
       // تقييد الفئة حسب الصلاحية:
       // إذا كان المستخدم لديه فقط housekeeping يرى فقط housekeeping
       // إذا كان لديه فقط maintenance يرى كافة فئات الصيانة باستثناء الهاوس كيبنج
       // إذا كان لديه كلاهما يرى حسب query.category
-      let categoryIsolation: { onlyHousekeeping?: boolean; excludeHousekeeping?: boolean } | null = null;
+      let categoryIsolation: {
+        onlyHousekeeping?: boolean;
+        excludeHousekeeping?: boolean;
+      } | null = null;
       if (!isSysAdmin) {
         if (userHasHousekeeping && !userHasMaintenance) {
           categoryIsolation = { onlyHousekeeping: true };
@@ -339,24 +398,43 @@ router.get(
         hasPermission(user, "housekeeping", "edit") ||
         hasPermission(user, "housekeeping", "view") ||
         hasPermission(user, "maintenance", "view_housekeeping");
-      const canAssignMnt = canEditMnt || hasPermission(user, "maintenance", "create");
-      const canAssignHsk = canEditHsk || hasPermission(user, "housekeeping", "create");
-      const hasManagerialScope = isSysAdmin || canAssignMnt || canAssignHsk || canEditMnt || canEditHsk;
+      const canAssignMnt =
+        canEditMnt || hasPermission(user, "maintenance", "create");
+      const canAssignHsk =
+        canEditHsk || hasPermission(user, "housekeeping", "create");
+      const hasManagerialScope =
+        isSysAdmin || canAssignMnt || canAssignHsk || canEditMnt || canEditHsk;
       const isStrictWorker = Boolean(
         user?.roles?.includes("technician") ||
         user?.roles?.includes("worker") ||
-        user?.roles?.includes("cleaner")
+        user?.roles?.includes("cleaner"),
       );
-      const isStaffOnly = !hasManagerialScope && isStrictWorker && (!req.query.assignedTo || req.query.assignedTo === "me");
-      const queryProfileId = req.query.assignedToProfileId ? parseInt(String(req.query.assignedToProfileId), 10) : null;
+      const isStaffOnly =
+        !hasManagerialScope &&
+        isStrictWorker &&
+        (!req.query.assignedTo || req.query.assignedTo === "me");
+      const queryProfileId = req.query.assignedToProfileId
+        ? parseInt(String(req.query.assignedToProfileId), 10)
+        : null;
 
       let page = 1;
       let limit = 1000;
-      if (req.query.page) page = Math.max(1, parseInt(req.query.page as string) || 1);
-      if (req.query.limit) limit = Math.min(5000, Math.max(1, parseInt(req.query.limit as string) || 10));
+      if (req.query.page)
+        page = Math.max(1, parseInt(req.query.page as string) || 1);
+      if (req.query.limit)
+        limit = Math.min(
+          5000,
+          Math.max(1, parseInt(req.query.limit as string) || 10),
+        );
 
-      const queryProp = req.query.propertyId ? String(req.query.propertyId).trim() : "";
-      const isAllProperties = queryProp === "all" || (!queryProp && ((req.session as any)?.propertyId === -1 || !(req.session as any)?.propertyId));
+      const queryProp = req.query.propertyId
+        ? String(req.query.propertyId).trim()
+        : "";
+      const isAllProperties =
+        queryProp === "all" ||
+        (!queryProp &&
+          ((req.session as any)?.propertyId === -1 ||
+            !(req.session as any)?.propertyId));
 
       const accessibleProps = await getAccessibleProperties(user);
       if (accessibleProps.length === 0) {
@@ -384,16 +462,32 @@ router.get(
                 if (foundEmp) effectiveProfileId = foundEmp.id;
               }
 
-              const conditions = buildConditions(req.query, categoryIsolation, effectiveProfileId, isStaffOnly);
-              const whereClause = conditions.length ? and(...conditions) : undefined;
+              const conditions = buildConditions(
+                req.query,
+                categoryIsolation,
+                effectiveProfileId,
+                isStaffOnly,
+              );
+              const whereClause = conditions.length
+                ? and(...conditions)
+                : undefined;
 
               const [countRes] = await tenantDb
                 .select({ count: sql<number>`count(*)` })
                 .from(maintenanceTable)
-                .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+                .leftJoin(
+                  roomsTable,
+                  eq(maintenanceTable.roomId, roomsTable.id),
+                )
                 // The search condition also matches building names.
-                .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
-                .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
+                .leftJoin(
+                  buildingsTable,
+                  eq(roomsTable.buildingId, buildingsTable.id),
+                )
+                .leftJoin(
+                  workersTable,
+                  eq(maintenanceTable.workerId, workersTable.id),
+                )
                 .where(whereClause);
 
               const propTotal = Number(countRes?.count || 0);
@@ -418,7 +512,9 @@ router.get(
                     priority: maintenanceTable.priority,
                     reportedBy: maintenanceTable.reportedBy,
                     assignedTo: maintenanceTable.assignedTo,
-                    assignedToName: sql<string | null>`CASE WHEN ${assignedProfile.firstName} IS NOT NULL THEN TRIM(CONCAT(COALESCE(${assignedProfile.firstName}, ''), ' ', COALESCE(${assignedProfile.lastName}, ''))) ELSE NULL END`,
+                    assignedToName: sql<
+                      string | null
+                    >`CASE WHEN ${assignedProfile.firstName} IS NOT NULL THEN TRIM(CONCAT(COALESCE(${assignedProfile.firstName}, ''), ' ', COALESCE(${assignedProfile.lastName}, ''))) ELSE NULL END`,
                     assignedToProfileId: assignedProfile.profileId,
                     residentName: sql<string | null>`(
                       SELECT TRIM(CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, '')))
@@ -445,13 +541,28 @@ router.get(
                     ratedByProfileId: maintenanceTable.ratedByProfileId,
                   })
                   .from(maintenanceTable)
-                  .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
-                  .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+                  .leftJoin(
+                    roomsTable,
+                    eq(maintenanceTable.roomId, roomsTable.id),
+                  )
+                  .leftJoin(
+                    buildingsTable,
+                    eq(roomsTable.buildingId, buildingsTable.id),
+                  )
                   .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
-                  .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
-                  .leftJoin(assignedProfile, eq(maintenanceTable.assignedTo, assignedProfile.id))
+                  .leftJoin(
+                    workersTable,
+                    eq(maintenanceTable.workerId, workersTable.id),
+                  )
+                  .leftJoin(
+                    assignedProfile,
+                    eq(maintenanceTable.assignedTo, assignedProfile.id),
+                  )
                   .where(whereClause)
-                  .orderBy(desc(maintenanceTable.reportedAt), desc(maintenanceTable.id))
+                  .orderBy(
+                    desc(maintenanceTable.reportedAt),
+                    desc(maintenanceTable.id),
+                  )
                   .limit(offset + limit);
 
                 for (const row of rows) {
@@ -464,7 +575,10 @@ router.get(
               }
             });
           } catch (propErr) {
-            console.error(`[Maintenance Route] Error querying tenant ${prop.id}:`, propErr);
+            console.error(
+              `[Maintenance Route] Error querying tenant ${prop.id}:`,
+              propErr,
+            );
           }
         }
 
@@ -510,7 +624,12 @@ router.get(
           if (foundEmp) effectiveProfileId = foundEmp.id;
         }
 
-        const conditions = buildConditions(req.query, categoryIsolation, effectiveProfileId, isStaffOnly);
+        const conditions = buildConditions(
+          req.query,
+          categoryIsolation,
+          effectiveProfileId,
+          isStaffOnly,
+        );
         const whereClause = conditions.length ? and(...conditions) : undefined;
 
         const [countResult] = await tenantDb
@@ -518,8 +637,14 @@ router.get(
           .from(maintenanceTable)
           .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
           // The search condition also matches building names.
-          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
-          .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
+          .leftJoin(
+            buildingsTable,
+            eq(roomsTable.buildingId, buildingsTable.id),
+          )
+          .leftJoin(
+            workersTable,
+            eq(maintenanceTable.workerId, workersTable.id),
+          )
           .where(whereClause);
 
         const rows = await tenantDb
@@ -539,7 +664,9 @@ router.get(
             priority: maintenanceTable.priority,
             reportedBy: maintenanceTable.reportedBy,
             assignedTo: maintenanceTable.assignedTo,
-            assignedToName: sql<string | null>`CASE WHEN ${assignedProfile.firstName} IS NOT NULL THEN TRIM(CONCAT(COALESCE(${assignedProfile.firstName}, ''), ' ', COALESCE(${assignedProfile.lastName}, ''))) ELSE NULL END`,
+            assignedToName: sql<
+              string | null
+            >`CASE WHEN ${assignedProfile.firstName} IS NOT NULL THEN TRIM(CONCAT(COALESCE(${assignedProfile.firstName}, ''), ' ', COALESCE(${assignedProfile.lastName}, ''))) ELSE NULL END`,
             assignedToProfileId: assignedProfile.profileId,
             residentName: sql<string | null>`(
               SELECT TRIM(CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, '')))
@@ -567,10 +694,19 @@ router.get(
           })
           .from(maintenanceTable)
           .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
-          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+          .leftJoin(
+            buildingsTable,
+            eq(roomsTable.buildingId, buildingsTable.id),
+          )
           .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
-          .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
-          .leftJoin(assignedProfile, eq(maintenanceTable.assignedTo, assignedProfile.id))
+          .leftJoin(
+            workersTable,
+            eq(maintenanceTable.workerId, workersTable.id),
+          )
+          .leftJoin(
+            assignedProfile,
+            eq(maintenanceTable.assignedTo, assignedProfile.id),
+          )
           .where(whereClause)
           .orderBy(desc(maintenanceTable.reportedAt), desc(maintenanceTable.id))
           .limit(limit)
@@ -605,7 +741,7 @@ router.get(
     ["maintenance", "view_housekeeping"],
     ["maintenance", "edit"],
     ["housekeeping", "view"],
-    ["housekeeping", "edit"]
+    ["housekeeping", "edit"],
   ),
   validate({ params: IdParams, query: CommonListQuery }),
   async (req, res, next) => {
@@ -625,7 +761,10 @@ router.get(
       );
       const photo = rows[0]?.photoUrl;
       if (!photo) {
-        res.status(404).json({ error: "Photo not found", errorAr: "لا توجد صورة لهذا البلاغ" });
+        res.status(404).json({
+          error: "Photo not found",
+          errorAr: "لا توجد صورة لهذا البلاغ",
+        });
         return;
       }
       if (/^https?:\/\//i.test(photo)) {
@@ -634,15 +773,26 @@ router.get(
       }
       const m = /^data:(image\/[a-z0-9.+-]+);base64,(.*)$/is.exec(photo);
       if (!m) {
-        res.status(404).json({ error: "Photo not found", errorAr: "لا توجد صورة لهذا البلاغ" });
+        res.status(404).json({
+          error: "Photo not found",
+          errorAr: "لا توجد صورة لهذا البلاغ",
+        });
         return;
       }
       res.setHeader("Content-Type", m[1].toLowerCase());
       res.setHeader("X-Content-Type-Options", "nosniff");
       // Stored images are user uploads: never let one run script (e.g. SVG).
-      res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+      res.setHeader(
+        "Content-Security-Policy",
+        "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+      );
       // The list links carry a content hash (?v=…), so the URL changes with the photo.
-      res.setHeader("Cache-Control", req.query.v ? "private, max-age=31536000, immutable" : "private, no-cache");
+      res.setHeader(
+        "Cache-Control",
+        req.query.v
+          ? "private, max-age=31536000, immutable"
+          : "private, no-cache",
+      );
       res.send(Buffer.from(m[2], "base64"));
     } catch (err) {
       next(err);
@@ -659,7 +809,7 @@ router.get(
     ["maintenance", "view_housekeeping"],
     ["maintenance", "edit"],
     ["housekeeping", "view"],
-    ["housekeeping", "edit"]
+    ["housekeeping", "edit"],
   ),
   validate({ params: IdParams, query: CommonListQuery }),
   validate({ body: PropertyIdOnlyBody }),
@@ -681,7 +831,7 @@ router.get(
       const queryProp =
         req.query.propertyId || req.body?.propertyId
           ? parseInt(String(req.query.propertyId || req.body?.propertyId), 10)
-          : (getTenantId(req) || 0);
+          : getTenantId(req) || 0;
 
       let targetPropList: typeof accessibleProps;
       if (queryProp && queryProp > 0) {
@@ -722,7 +872,9 @@ router.get(
                 priority: maintenanceTable.priority,
                 status: maintenanceTable.status,
                 assignedTo: maintenanceTable.assignedTo,
-                assignedToName: sql<string | null>`CASE WHEN ${assignedProfile.firstName} IS NOT NULL THEN TRIM(CONCAT(COALESCE(${assignedProfile.firstName}, ''), ' ', COALESCE(${assignedProfile.lastName}, ''))) ELSE NULL END`,
+                assignedToName: sql<
+                  string | null
+                >`CASE WHEN ${assignedProfile.firstName} IS NOT NULL THEN TRIM(CONCAT(COALESCE(${assignedProfile.firstName}, ''), ' ', COALESCE(${assignedProfile.lastName}, ''))) ELSE NULL END`,
                 assignedToProfileId: assignedProfile.profileId,
                 residentName: sql<string | null>`(
                   SELECT TRIM(CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, '')))
@@ -752,10 +904,19 @@ router.get(
               })
               .from(maintenanceTable)
               .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
-              .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+              .leftJoin(
+                buildingsTable,
+                eq(roomsTable.buildingId, buildingsTable.id),
+              )
               .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
-              .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
-              .leftJoin(assignedProfile, eq(maintenanceTable.assignedTo, assignedProfile.id))
+              .leftJoin(
+                workersTable,
+                eq(maintenanceTable.workerId, workersTable.id),
+              )
+              .leftJoin(
+                assignedProfile,
+                eq(maintenanceTable.assignedTo, assignedProfile.id),
+              )
               .where(eq(maintenanceTable.id, id))
               .limit(1);
             return found;
@@ -775,26 +936,33 @@ router.get(
       }
 
       // فحص الصلاحية على الفئة
-      const { userHasMaintenance, userHasHousekeeping } = resolveCategoryPermissions(user, isSysAdmin);
+      const { userHasMaintenance, userHasHousekeeping } =
+        resolveCategoryPermissions(user, isSysAdmin);
       if (!isSysAdmin) {
         if (foundRecord.category === "housekeeping") {
           if (!userHasHousekeeping) {
-            res.status(403).json({ error: "Permission denied to view housekeeping orders" });
+            res
+              .status(403)
+              .json({ error: "Permission denied to view housekeeping orders" });
             return;
           }
         } else {
           if (!userHasMaintenance) {
-            res.status(403).json({ error: "Permission denied to view maintenance orders" });
+            res
+              .status(403)
+              .json({ error: "Permission denied to view maintenance orders" });
             return;
           }
         }
       }
 
-      res.json(fmt({
-        ...foundRecord,
-        propertyId: matchedProp?.id,
-        propertyName: matchedProp?.displayName || matchedProp?.name,
-      }));
+      res.json(
+        fmt({
+          ...foundRecord,
+          propertyId: matchedProp?.id,
+          propertyName: matchedProp?.displayName || matchedProp?.name,
+        }),
+      );
     } catch (err) {
       next(err);
     }
@@ -812,7 +980,7 @@ router.post(
     ["housekeeping", "create"],
     ["housekeeping", "edit"],
     ["housekeeping", "view"],
-    ["maintenance", "view_housekeeping"]
+    ["maintenance", "view_housekeeping"],
   ),
   validate({ query: CommonListQuery }),
   async (req, res, next) => {
@@ -842,18 +1010,26 @@ router.post(
         return;
       }
 
-      const category = (req.body.category || (parsed.data as any).category || "maintenance").toLowerCase();
+      const category = (
+        req.body.category ||
+        (parsed.data as any).category ||
+        "maintenance"
+      ).toLowerCase();
 
       // التحقق من الصلاحية حسب فئة الطلب
       if (!isSysAdmin) {
         if (category === "housekeeping") {
           if (!userHasHskCreate) {
-            res.status(403).json({ error: "Permission denied to create housekeeping orders" });
+            res.status(403).json({
+              error: "Permission denied to create housekeeping orders",
+            });
             return;
           }
         } else {
           if (!userHasMntCreate) {
-            res.status(403).json({ error: "Permission denied to create maintenance orders" });
+            res.status(403).json({
+              error: "Permission denied to create maintenance orders",
+            });
             return;
           }
         }
@@ -876,63 +1052,85 @@ router.post(
         return;
       }
 
-      const parentId = req.body.parentId ? parseInt(String(req.body.parentId)) : null;
+      const parentId = req.body.parentId
+        ? parseInt(String(req.body.parentId))
+        : null;
 
-      const { record, roomNumber } = await withTenant(propertyId, async (tenantDb) => {
-        const inserted = await tenantDb
-          .insert(maintenanceTable)
-          .values({
-            ...parsed.data,
-            category,
-            workerId: req.body.workerId ? Number(req.body.workerId) : null,
-            assignedTo: req.body.assignedTo ? Number(req.body.assignedTo) : null,
-            reportedBy: req.body.reportedBy || user?.displayName || user?.username || null,
-            photoUrl: req.body.photoUrl || null,
-            notes: req.body.notes || null,
-            ...(parentId ? { parentId } : {}),
-            status: "open",
-          } as any)
-          .returning();
+      const { record, roomNumber } = await withTenant(
+        propertyId,
+        async (tenantDb) => {
+          const inserted = await tenantDb
+            .insert(maintenanceTable)
+            .values({
+              ...parsed.data,
+              category,
+              workerId: req.body.workerId ? Number(req.body.workerId) : null,
+              assignedTo: req.body.assignedTo
+                ? Number(req.body.assignedTo)
+                : null,
+              reportedBy:
+                req.body.reportedBy ||
+                user?.displayName ||
+                user?.username ||
+                null,
+              photoUrl: req.body.photoUrl || null,
+              notes: req.body.notes || null,
+              ...(parentId ? { parentId } : {}),
+              status: "open",
+            } as any)
+            .returning();
 
-        let roomNum: string | undefined;
-        if (inserted[0]?.roomId) {
-          const [rm] = await tenantDb
-            .select({ roomNumber: roomsTable.roomNumber })
-            .from(roomsTable)
-            .where(eq(roomsTable.id, inserted[0].roomId))
-            .limit(1);
-          roomNum = rm?.roomNumber;
-
-          // إذا كان الطلب صيانة، نضع حالة الغرفة out_of_service
-          if (category === "maintenance") {
-            await tenantDb
-              .update(roomsTable)
-              .set({ status: "out_of_service" })
-              .where(eq(roomsTable.id, inserted[0].roomId));
-          } else if (category === "housekeeping") {
-            const [roomData] = await tenantDb
-              .select({ currentOccupancy: roomsTable.currentOccupancy, status: roomsTable.status })
+          let roomNum: string | undefined;
+          if (inserted[0]?.roomId) {
+            const [rm] = await tenantDb
+              .select({ roomNumber: roomsTable.roomNumber })
               .from(roomsTable)
               .where(eq(roomsTable.id, inserted[0].roomId))
               .limit(1);
-            if (roomData && roomData.status !== "out_of_service" && roomData.status !== "out_of_order") {
-              const isOccupied = (roomData.currentOccupancy || 0) > 0;
+            roomNum = rm?.roomNumber;
+
+            // إذا كان الطلب صيانة، نضع حالة الغرفة out_of_service
+            if (category === "maintenance") {
               await tenantDb
                 .update(roomsTable)
-                .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
+                .set({ status: "out_of_service" })
                 .where(eq(roomsTable.id, inserted[0].roomId));
+            } else if (category === "housekeeping") {
+              const [roomData] = await tenantDb
+                .select({
+                  currentOccupancy: roomsTable.currentOccupancy,
+                  status: roomsTable.status,
+                })
+                .from(roomsTable)
+                .where(eq(roomsTable.id, inserted[0].roomId))
+                .limit(1);
+              if (
+                roomData &&
+                roomData.status !== "out_of_service" &&
+                roomData.status !== "out_of_order"
+              ) {
+                const isOccupied = (roomData.currentOccupancy || 0) > 0;
+                await tenantDb
+                  .update(roomsTable)
+                  .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
+                  .where(eq(roomsTable.id, inserted[0].roomId));
+              }
             }
           }
-        }
 
-        return { record: inserted[0], roomNumber: roomNum };
-      });
+          return { record: inserted[0], roomNumber: roomNum };
+        },
+      );
 
       const s = session(req);
       const isHsk = category === "housekeeping";
       const actionTitle = isHsk
-        ? (roomNumber ? `طلب نظافة للغرفة رقم ${roomNumber}: ${record.description || record.problemType}` : `طلب نظافة جديد: ${record.description || record.problemType}`)
-        : (roomNumber ? `بلاغ صيانة في الغرفة رقم ${roomNumber}: ${record.description || record.problemType}` : `بلاغ صيانة جديد: ${record.description || record.problemType}`);
+        ? roomNumber
+          ? `طلب نظافة للغرفة رقم ${roomNumber}: ${record.description || record.problemType}`
+          : `طلب نظافة جديد: ${record.description || record.problemType}`
+        : roomNumber
+          ? `بلاغ صيانة في الغرفة رقم ${roomNumber}: ${record.description || record.problemType}`
+          : `بلاغ صيانة جديد: ${record.description || record.problemType}`;
 
       logActivity({
         req,
@@ -965,7 +1163,10 @@ router.post(
       broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
       broadcastToProperty(propertyId, { module: "rooms", action: "sync" });
       if (isHsk) {
-        broadcastToProperty(propertyId, { module: "housekeeping", action: "sync" });
+        broadcastToProperty(propertyId, {
+          module: "housekeeping",
+          action: "sync",
+        });
       }
 
       return res.status(201).json(fmt({ ...record, roomNumber, propertyId }));
@@ -985,7 +1186,7 @@ router.patch(
     ["housekeeping", "edit"],
     ["housekeeping", "view"],
     ["housekeeping", "assign"],
-    ["maintenance", "view_housekeeping"]
+    ["maintenance", "view_housekeeping"],
   ),
   validate({ params: IdParams, query: CommonListQuery }),
   async (req, res, next) => {
@@ -1006,7 +1207,7 @@ router.patch(
       const queryProp =
         req.body?.propertyId || req.query?.propertyId
           ? parseInt(String(req.body?.propertyId || req.query?.propertyId), 10)
-          : (getTenantId(req) || 0);
+          : getTenantId(req) || 0;
 
       let targetPropList: typeof accessibleProps;
       if (queryProp && queryProp > 0) {
@@ -1069,12 +1270,16 @@ router.patch(
       if (!isSysAdmin) {
         if (existingRecord.category === "housekeeping") {
           if (!userHasHskEdit) {
-            res.status(403).json({ error: "Permission denied to edit housekeeping orders" });
+            res
+              .status(403)
+              .json({ error: "Permission denied to edit housekeeping orders" });
             return;
           }
         } else {
           if (!userHasMntEdit) {
-            res.status(403).json({ error: "Permission denied to edit maintenance orders" });
+            res
+              .status(403)
+              .json({ error: "Permission denied to edit maintenance orders" });
             return;
           }
         }
@@ -1084,116 +1289,145 @@ router.patch(
       const updateData = { ...req.body };
       delete updateData.propertyId;
       if ("workerId" in updateData) {
-        updateData.workerId = updateData.workerId ? Number(updateData.workerId) : null;
+        updateData.workerId = updateData.workerId
+          ? Number(updateData.workerId)
+          : null;
       }
       if ("assignedTo" in updateData) {
-        updateData.assignedTo = updateData.assignedTo ? Number(updateData.assignedTo) : null;
+        updateData.assignedTo = updateData.assignedTo
+          ? Number(updateData.assignedTo)
+          : null;
       }
 
-      const { updated, roomNumber } = await withTenant(targetPropertyId, async (tenantDb) => {
-        const result = await tenantDb
-          .update(maintenanceTable)
-          .set(updateData as any)
-          .where(eq(maintenanceTable.id, p.data.id))
-          .returning();
+      const { updated, roomNumber } = await withTenant(
+        targetPropertyId,
+        async (tenantDb) => {
+          const result = await tenantDb
+            .update(maintenanceTable)
+            .set(updateData as any)
+            .where(eq(maintenanceTable.id, p.data.id))
+            .returning();
 
-        let roomNum: string | undefined;
-        if (result[0]?.roomId) {
-          const [rm] = await tenantDb
-            .select({ roomNumber: roomsTable.roomNumber })
-            .from(roomsTable)
-            .where(eq(roomsTable.id, result[0].roomId))
-            .limit(1);
-          roomNum = rm?.roomNumber;
-        }
+          let roomNum: string | undefined;
+          if (result[0]?.roomId) {
+            const [rm] = await tenantDb
+              .select({ roomNumber: roomsTable.roomNumber })
+              .from(roomsTable)
+              .where(eq(roomsTable.id, result[0].roomId))
+              .limit(1);
+            roomNum = rm?.roomNumber;
+          }
 
-        // معالجة تغيير حالة الغرفة للصيانة والهاوس كيبنج
-        if (result[0]?.roomId && req.body.status) {
-          const newStatus = req.body.status;
-          const isResolvedOrClosed = newStatus === "resolved" || newStatus === "closed";
-          const isOpenOrProgress = newStatus === "open" || newStatus === "in_progress";
+          // معالجة تغيير حالة الغرفة للصيانة والهاوس كيبنج
+          if (result[0]?.roomId && req.body.status) {
+            const newStatus = req.body.status;
+            const isResolvedOrClosed =
+              newStatus === "resolved" || newStatus === "closed";
+            const isOpenOrProgress =
+              newStatus === "open" || newStatus === "in_progress";
 
-          if (result[0].category === "maintenance") {
-            if (isResolvedOrClosed) {
-              const [openTickets] = await tenantDb
-                .select({ count: sql<number>`count(*)` })
-                .from(maintenanceTable)
-                .where(
-                  and(
-                    eq(maintenanceTable.roomId, result[0].roomId),
-                    or(eq(maintenanceTable.status, "open"), eq(maintenanceTable.status, "in_progress")),
-                    eq(maintenanceTable.category, "maintenance")
-                  )
-                );
+            if (result[0].category === "maintenance") {
+              if (isResolvedOrClosed) {
+                const [openTickets] = await tenantDb
+                  .select({ count: sql<number>`count(*)` })
+                  .from(maintenanceTable)
+                  .where(
+                    and(
+                      eq(maintenanceTable.roomId, result[0].roomId),
+                      or(
+                        eq(maintenanceTable.status, "open"),
+                        eq(maintenanceTable.status, "in_progress"),
+                      ),
+                      eq(maintenanceTable.category, "maintenance"),
+                    ),
+                  );
 
-              if (Number(openTickets?.count || 0) === 0) {
-                const roomData = await tenantDb
-                  .select({ currentOccupancy: roomsTable.currentOccupancy })
-                  .from(roomsTable)
-                  .where(eq(roomsTable.id, result[0].roomId))
-                  .limit(1);
+                if (Number(openTickets?.count || 0) === 0) {
+                  const roomData = await tenantDb
+                    .select({ currentOccupancy: roomsTable.currentOccupancy })
+                    .from(roomsTable)
+                    .where(eq(roomsTable.id, result[0].roomId))
+                    .limit(1);
 
-                const isOccupied = (roomData[0]?.currentOccupancy || 0) > 0;
+                  const isOccupied = (roomData[0]?.currentOccupancy || 0) > 0;
+                  await tenantDb
+                    .update(roomsTable)
+                    .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
+                    .where(eq(roomsTable.id, result[0].roomId));
+                }
+              } else if (isOpenOrProgress) {
                 await tenantDb
                   .update(roomsTable)
-                  .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
+                  .set({ status: "out_of_service" })
                   .where(eq(roomsTable.id, result[0].roomId));
               }
-            } else if (isOpenOrProgress) {
-              await tenantDb
-                .update(roomsTable)
-                .set({ status: "out_of_service" })
-                .where(eq(roomsTable.id, result[0].roomId));
-            }
-          } else if (result[0].category === "housekeeping") {
-            if (isResolvedOrClosed) {
-              // عند إنجاز طلب النظافة والتأكد من عدم وجود طلبات نظافة أخرى مفتوحة للغرفة
-              const [openHsk] = await tenantDb
-                .select({ count: sql<number>`count(*)` })
-                .from(maintenanceTable)
-                .where(
-                  and(
-                    eq(maintenanceTable.roomId, result[0].roomId),
-                    or(eq(maintenanceTable.status, "open"), eq(maintenanceTable.status, "in_progress")),
-                    eq(maintenanceTable.category, "housekeeping")
-                  )
-                );
+            } else if (result[0].category === "housekeeping") {
+              if (isResolvedOrClosed) {
+                // عند إنجاز طلب النظافة والتأكد من عدم وجود طلبات نظافة أخرى مفتوحة للغرفة
+                const [openHsk] = await tenantDb
+                  .select({ count: sql<number>`count(*)` })
+                  .from(maintenanceTable)
+                  .where(
+                    and(
+                      eq(maintenanceTable.roomId, result[0].roomId),
+                      or(
+                        eq(maintenanceTable.status, "open"),
+                        eq(maintenanceTable.status, "in_progress"),
+                      ),
+                      eq(maintenanceTable.category, "housekeeping"),
+                    ),
+                  );
 
-              if (Number(openHsk?.count || 0) === 0) {
+                if (Number(openHsk?.count || 0) === 0) {
+                  const [roomData] = await tenantDb
+                    .select({
+                      currentOccupancy: roomsTable.currentOccupancy,
+                      status: roomsTable.status,
+                    })
+                    .from(roomsTable)
+                    .where(eq(roomsTable.id, result[0].roomId))
+                    .limit(1);
+
+                  if (
+                    roomData &&
+                    roomData.status !== "out_of_service" &&
+                    roomData.status !== "out_of_order"
+                  ) {
+                    const isOccupied = (roomData.currentOccupancy || 0) > 0;
+                    await tenantDb
+                      .update(roomsTable)
+                      .set({ status: isOccupied ? "occupied" : "available" })
+                      .where(eq(roomsTable.id, result[0].roomId));
+                  }
+                }
+              } else if (isOpenOrProgress) {
                 const [roomData] = await tenantDb
-                  .select({ currentOccupancy: roomsTable.currentOccupancy, status: roomsTable.status })
+                  .select({
+                    currentOccupancy: roomsTable.currentOccupancy,
+                    status: roomsTable.status,
+                  })
                   .from(roomsTable)
                   .where(eq(roomsTable.id, result[0].roomId))
                   .limit(1);
 
-                if (roomData && roomData.status !== "out_of_service" && roomData.status !== "out_of_order") {
+                if (
+                  roomData &&
+                  roomData.status !== "out_of_service" &&
+                  roomData.status !== "out_of_order"
+                ) {
                   const isOccupied = (roomData.currentOccupancy || 0) > 0;
                   await tenantDb
                     .update(roomsTable)
-                    .set({ status: isOccupied ? "occupied" : "available" })
+                    .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
                     .where(eq(roomsTable.id, result[0].roomId));
                 }
               }
-            } else if (isOpenOrProgress) {
-              const [roomData] = await tenantDb
-                .select({ currentOccupancy: roomsTable.currentOccupancy, status: roomsTable.status })
-                .from(roomsTable)
-                .where(eq(roomsTable.id, result[0].roomId))
-                .limit(1);
-
-              if (roomData && roomData.status !== "out_of_service" && roomData.status !== "out_of_order") {
-                const isOccupied = (roomData.currentOccupancy || 0) > 0;
-                await tenantDb
-                  .update(roomsTable)
-                  .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
-                  .where(eq(roomsTable.id, result[0].roomId));
-              }
             }
           }
-        }
 
-        return { updated: result[0], roomNumber: roomNum };
-      });
+          return { updated: result[0], roomNumber: roomNum };
+        },
+      );
 
       if (!updated) {
         res.status(404).json({ success: false, message: "البلاغ غير موجود" });
@@ -1230,13 +1464,24 @@ router.patch(
         module: "maintenance",
         action: "sync",
       });
-      broadcastToProperty(targetPropertyId, { module: "dashboard", action: "sync" });
-      broadcastToProperty(targetPropertyId, { module: "rooms", action: "sync" });
+      broadcastToProperty(targetPropertyId, {
+        module: "dashboard",
+        action: "sync",
+      });
+      broadcastToProperty(targetPropertyId, {
+        module: "rooms",
+        action: "sync",
+      });
       if (isHsk) {
-        broadcastToProperty(targetPropertyId, { module: "housekeeping", action: "sync" });
+        broadcastToProperty(targetPropertyId, {
+          module: "housekeeping",
+          action: "sync",
+        });
       }
 
-      return res.json(fmt({ ...updated, propertyId: targetPropertyId, roomNumber }));
+      return res.json(
+        fmt({ ...updated, propertyId: targetPropertyId, roomNumber }),
+      );
     } catch (err) {
       return next(err);
     }
@@ -1250,7 +1495,7 @@ router.delete(
     ["maintenance", "delete"],
     ["maintenance", "edit"],
     ["housekeeping", "delete"],
-    ["housekeeping", "edit"]
+    ["housekeeping", "edit"],
   ),
   validate({ params: IdParams, query: CommonListQuery }),
   async (req, res, next) => {
@@ -1271,7 +1516,7 @@ router.delete(
       const queryProp =
         req.query?.propertyId || req.body?.propertyId
           ? parseInt(String(req.query?.propertyId || req.body?.propertyId), 10)
-          : (getTenantId(req) || 0);
+          : getTenantId(req) || 0;
 
       let targetPropList: typeof accessibleProps;
       if (queryProp && queryProp > 0) {
@@ -1330,33 +1575,40 @@ router.delete(
       if (!isSysAdmin) {
         if (existingRecord.category === "housekeeping") {
           if (!userHasHskDelete) {
-            res.status(403).json({ error: "Permission denied to delete housekeeping orders" });
+            res.status(403).json({
+              error: "Permission denied to delete housekeeping orders",
+            });
             return;
           }
         } else {
           if (!userHasMntDelete) {
-            res.status(403).json({ error: "Permission denied to delete maintenance orders" });
+            res.status(403).json({
+              error: "Permission denied to delete maintenance orders",
+            });
             return;
           }
         }
       }
 
-      const { row, roomNumber } = await withTenant(targetPropertyId, async (tenantDb) => {
-        let roomNum: string | undefined;
-        if (existingRecord.roomId) {
-          const [rm] = await tenantDb
-            .select({ roomNumber: roomsTable.roomNumber })
-            .from(roomsTable)
-            .where(eq(roomsTable.id, existingRecord.roomId))
-            .limit(1);
-          roomNum = rm?.roomNumber;
-        }
-        await tenantDb
-          .delete(maintenanceTable)
-          .where(eq(maintenanceTable.id, p.data.id));
+      const { row, roomNumber } = await withTenant(
+        targetPropertyId,
+        async (tenantDb) => {
+          let roomNum: string | undefined;
+          if (existingRecord.roomId) {
+            const [rm] = await tenantDb
+              .select({ roomNumber: roomsTable.roomNumber })
+              .from(roomsTable)
+              .where(eq(roomsTable.id, existingRecord.roomId))
+              .limit(1);
+            roomNum = rm?.roomNumber;
+          }
+          await tenantDb
+            .delete(maintenanceTable)
+            .where(eq(maintenanceTable.id, p.data.id));
 
-        return { row: existingRecord, roomNumber: roomNum };
-      });
+          return { row: existingRecord, roomNumber: roomNum };
+        },
+      );
 
       const s = session(req);
       const isHsk = row.category === "housekeeping";
@@ -1387,9 +1639,15 @@ router.delete(
         module: "maintenance",
         action: "sync",
       });
-      broadcastToProperty(targetPropertyId, { module: "dashboard", action: "sync" });
+      broadcastToProperty(targetPropertyId, {
+        module: "dashboard",
+        action: "sync",
+      });
       if (isHsk) {
-        broadcastToProperty(targetPropertyId, { module: "housekeeping", action: "sync" });
+        broadcastToProperty(targetPropertyId, {
+          module: "housekeeping",
+          action: "sync",
+        });
       }
 
       return res.sendStatus(204);
@@ -1402,10 +1660,7 @@ router.delete(
 // 5. جلب التذاكر الفرعية
 router.get(
   "/maintenance/:id/sub-tickets",
-  requireAnyPermission(
-    ["maintenance", "view"],
-    ["housekeeping", "view"]
-  ),
+  requireAnyPermission(["maintenance", "view"], ["housekeeping", "view"]),
   validate({ params: IdParams, query: CommonListQuery }),
   async (req, res, next) => {
     try {
@@ -1417,8 +1672,12 @@ router.get(
       }
 
       const accessibleProps = await getAccessibleProperties(user);
-      const queryProp = req.query?.propertyId ? parseInt(String(req.query.propertyId), 10) : 0;
-      const targetPropList = queryProp ? accessibleProps.filter((p) => p.id === queryProp) : accessibleProps;
+      const queryProp = req.query?.propertyId
+        ? parseInt(String(req.query.propertyId), 10)
+        : 0;
+      const targetPropList = queryProp
+        ? accessibleProps.filter((p) => p.id === queryProp)
+        : accessibleProps;
 
       let subTickets: any[] = [];
 
@@ -1442,7 +1701,10 @@ router.get(
               .from(maintenanceTable)
               .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
               .where(eq(maintenanceTable.parentId, parentId))
-              .orderBy(desc(maintenanceTable.reportedAt), desc(maintenanceTable.id));
+              .orderBy(
+                desc(maintenanceTable.reportedAt),
+                desc(maintenanceTable.id),
+              );
           });
           if (rows.length > 0) {
             subTickets = rows.map((r) => ({ ...r, propertyId: prop.id }));
@@ -1464,7 +1726,7 @@ router.post(
   requireAnyPermission(
     ["maintenance", "create"],
     ["housekeeping", "create"],
-    ["housekeeping", "edit"]
+    ["housekeeping", "edit"],
   ),
   validate({ params: IdParams, query: CommonListQuery }),
   validate({ body: SubTicketBody }),
@@ -1478,8 +1740,13 @@ router.post(
       }
 
       const accessibleProps = await getAccessibleProperties(user);
-      const queryProp = req.body?.propertyId || req.query?.propertyId ? parseInt(String(req.body?.propertyId || req.query?.propertyId), 10) : 0;
-      const targetPropList = queryProp ? accessibleProps.filter((p) => p.id === queryProp) : accessibleProps;
+      const queryProp =
+        req.body?.propertyId || req.query?.propertyId
+          ? parseInt(String(req.body?.propertyId || req.query?.propertyId), 10)
+          : 0;
+      const targetPropList = queryProp
+        ? accessibleProps.filter((p) => p.id === queryProp)
+        : accessibleProps;
 
       let targetPropertyId = queryProp;
       let parentRecord: any = null;
@@ -1508,7 +1775,9 @@ router.post(
       }
 
       const { problemType, description, priority, roomId, category } = req.body;
-      let targetRoomId = roomId ? parseInt(String(roomId)) : parentRecord.roomId;
+      let targetRoomId = roomId
+        ? parseInt(String(roomId))
+        : parentRecord.roomId;
 
       const [record] = await withTenant(targetPropertyId, async (tenantDb) => {
         return await tenantDb
@@ -1525,8 +1794,13 @@ router.post(
           .returning();
       });
 
-      broadcastToProperty(targetPropertyId, { module: "maintenance", action: "sync" });
-      return res.status(201).json(fmt({ ...record, propertyId: targetPropertyId }));
+      broadcastToProperty(targetPropertyId, {
+        module: "maintenance",
+        action: "sync",
+      });
+      return res
+        .status(201)
+        .json(fmt({ ...record, propertyId: targetPropertyId }));
     } catch (err) {
       return next(err);
     }

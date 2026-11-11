@@ -20,7 +20,7 @@ interface PermissionGateProps {
  * <PermissionGate module="users" action="create">
  *   <Button>Add User</Button>
  * </PermissionGate>
- * 
+ *
  * <PermissionGate anyPermission={[["maintenance", "delete"], ["housekeeping", "delete"]]}>
  *   <Button>Delete</Button>
  * </PermissionGate>

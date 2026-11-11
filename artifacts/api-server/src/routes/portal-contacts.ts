@@ -31,22 +31,26 @@ function getTenantId(req: any): number {
 }
 
 // GET all contacts for a property
-router.get("/portal-contacts", requirePermission("portal_content", "view"), async (req, res): Promise<void> => {
-  const propertyId = getTenantId(req);
-  if (!propertyId) {
-    res.status(400).json({ success: false, message: "propertyId required" });
-    return;
-  }
+router.get(
+  "/portal-contacts",
+  requirePermission("portal_content", "view"),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res.status(400).json({ success: false, message: "propertyId required" });
+      return;
+    }
 
-  const contacts = await withTenant(propertyId, async (tenantDb) => {
-    return await tenantDb
-      .select()
-      .from(portalContactsTable)
-      .orderBy(portalContactsTable.createdAt);
-  });
+    const contacts = await withTenant(propertyId, async (tenantDb) => {
+      return await tenantDb
+        .select()
+        .from(portalContactsTable)
+        .orderBy(portalContactsTable.createdAt);
+    });
 
-  res.json({ success: true, contacts });
-});
+    res.json({ success: true, contacts });
+  },
+);
 
 // POST create a new contact
 router.post(

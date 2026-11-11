@@ -49,7 +49,12 @@ export function InHouseToolbar({
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <PermissionGate anyPermission={[["whatsapp", "create"], ["accommodation", "edit"]]}>
+          <PermissionGate
+            anyPermission={[
+              ["whatsapp", "create"],
+              ["accommodation", "edit"],
+            ]}
+          >
             <Button
               variant="outline"
               size="sm"
@@ -89,7 +94,12 @@ export function InHouseToolbar({
         onExportPDF={onExportPDF}
         extraActions={
           <div className="flex items-center gap-2">
-            <PermissionGate anyPermission={[["whatsapp", "create"], ["accommodation", "edit"]]}>
+            <PermissionGate
+              anyPermission={[
+                ["whatsapp", "create"],
+                ["accommodation", "edit"],
+              ]}
+            >
               <Button
                 variant="outline"
                 size="sm"
@@ -111,7 +121,12 @@ export function InHouseToolbar({
                 {ar ? "تمديد إقامة جماعي" : "Bulk Extend"}
               </Button>
             </PermissionGate>
-            <PermissionGate anyPermission={[["accommodation", "checkout"], ["accommodation", "edit"]]}>
+            <PermissionGate
+              anyPermission={[
+                ["accommodation", "checkout"],
+                ["accommodation", "edit"],
+              ]}
+            >
               <Button
                 variant="destructive"
                 size="sm"

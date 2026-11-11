@@ -21,7 +21,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
-import { getRoomServiceUrl, generateRoomQrDataUrl, getRoomQrImageUrl } from "@/lib/qr-service";
+import {
+  getRoomServiceUrl,
+  generateRoomQrDataUrl,
+  getRoomQrImageUrl,
+} from "@/lib/qr-service";
 
 interface RoomQrModalProps {
   open: boolean;
@@ -49,7 +53,9 @@ export function RoomQrModal({
   const [isLoadingQr, setIsLoadingQr] = useState(true);
 
   const targetUrl = room ? getRoomServiceUrl(propertyId, room.id) : "";
-  const bName = room ? (buildingName || room.buildingName || `Building #${room.buildingId}`) : "";
+  const bName = room
+    ? buildingName || room.buildingName || `Building #${room.buildingId}`
+    : "";
   const fNum = room ? (floorNumber ?? room.floorNumber ?? 0) : 0;
 
   useEffect(() => {
@@ -83,7 +89,9 @@ export function RoomQrModal({
     try {
       await navigator.clipboard.writeText(targetUrl);
       setCopied(true);
-      toast.success(ar ? "تم نسخ الرابط إلى الحافظة" : "URL copied to clipboard");
+      toast.success(
+        ar ? "تم نسخ الرابط إلى الحافظة" : "URL copied to clipboard",
+      );
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error(ar ? "فشل نسخ الرابط" : "Failed to copy URL");
@@ -108,7 +116,11 @@ export function RoomQrModal({
   const handlePrintSinglePlacard = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      toast.error(ar ? "يرجى السماح بالنوافذ المنبثقة للطباعة" : "Please allow popups to print");
+      toast.error(
+        ar
+          ? "يرجى السماح بالنوافذ المنبثقة للطباعة"
+          : "Please allow popups to print",
+      );
       return;
     }
 
@@ -291,7 +303,9 @@ export function RoomQrModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <QrCode className="w-5 h-5 text-primary" />
-            {ar ? `رمز QR للغرفة (${room.roomNumber})` : `Room QR Code (${room.roomNumber})`}
+            {ar
+              ? `رمز QR للغرفة (${room.roomNumber})`
+              : `Room QR Code (${room.roomNumber})`}
           </DialogTitle>
           <DialogDescription className="text-xs">
             {ar
@@ -325,7 +339,9 @@ export function RoomQrModal({
             {isLoadingQr || !qrDataUrl ? (
               <div className="w-44 h-44 flex flex-col items-center justify-center gap-2 text-muted-foreground">
                 <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <span className="text-[10px]">{ar ? "جاري تجهيز الرمز..." : "Generating QR..."}</span>
+                <span className="text-[10px]">
+                  {ar ? "جاري تجهيز الرمز..." : "Generating QR..."}
+                </span>
               </div>
             ) : (
               <img
@@ -338,10 +354,14 @@ export function RoomQrModal({
 
           <div className="space-y-1">
             <p className="text-xs font-bold text-primary">
-              {ar ? "امسح الرمز لطلب الصيانة أو النظافة" : "Scan QR for Maintenance or Housekeeping"}
+              {ar
+                ? "امسح الرمز لطلب الصيانة أو النظافة"
+                : "Scan QR for Maintenance or Housekeeping"}
             </p>
             <p className="text-[10px] text-muted-foreground">
-              {ar ? "يعمل تلقائياً بكاميرا أي جوال بدون الحاجة لتسجيل دخول" : "Works instantly with any smartphone camera"}
+              {ar
+                ? "يعمل تلقائياً بكاميرا أي جوال بدون الحاجة لتسجيل دخول"
+                : "Works instantly with any smartphone camera"}
             </p>
           </div>
         </div>
@@ -360,7 +380,11 @@ export function RoomQrModal({
               className="h-7 w-7"
               title={ar ? "نسخ الرابط" : "Copy URL"}
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
             </Button>
             <a
               href={targetUrl}

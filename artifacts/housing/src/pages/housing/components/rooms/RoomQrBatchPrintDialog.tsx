@@ -78,7 +78,9 @@ export function RoomQrBatchPrintDialog({
       const newMap: Record<number, string> = {};
       for (const r of slice) {
         try {
-          newMap[r.id] = await generateRoomQrDataUrl(propertyId, r.id, { width: 250 });
+          newMap[r.id] = await generateRoomQrDataUrl(propertyId, r.id, {
+            width: 250,
+          });
         } catch {
           newMap[r.id] = getRoomQrImageUrl(propertyId, r.id, "png");
         }
@@ -95,13 +97,17 @@ export function RoomQrBatchPrintDialog({
 
   const handlePrint = async () => {
     if (printableRooms.length === 0) {
-      toast.error(ar ? "لا توجد غرف مطابقة للطباعة" : "No rooms match criteria to print");
+      toast.error(
+        ar ? "لا توجد غرف مطابقة للطباعة" : "No rooms match criteria to print",
+      );
       return;
     }
 
     setIsPreparingPrint(true);
     const toastId = toast.loading(
-      ar ? "جاري إعداد الرموز بدقة عالية..." : "Preparing high-resolution placards..."
+      ar
+        ? "جاري إعداد الرموز بدقة عالية..."
+        : "Preparing high-resolution placards...",
     );
 
     const qrUrls: Record<number, string> = {};
@@ -109,11 +115,13 @@ export function RoomQrBatchPrintDialog({
       await Promise.all(
         printableRooms.map(async (r) => {
           try {
-            qrUrls[r.id] = await generateRoomQrDataUrl(propertyId, r.id, { width: 350 });
+            qrUrls[r.id] = await generateRoomQrDataUrl(propertyId, r.id, {
+              width: 350,
+            });
           } catch {
             qrUrls[r.id] = getRoomQrImageUrl(propertyId, r.id, "png");
           }
-        })
+        }),
       );
     } finally {
       toast.dismiss(toastId);
@@ -122,14 +130,21 @@ export function RoomQrBatchPrintDialog({
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      toast.error(ar ? "يرجى السماح بالنوافذ المنبثقة للطباعة" : "Please allow popups to print");
+      toast.error(
+        ar
+          ? "يرجى السماح بالنوافذ المنبثقة للطباعة"
+          : "Please allow popups to print",
+      );
       return;
     }
 
     const gridCols = layoutMode === "4" ? "2" : layoutMode === "6" ? "2" : "2";
-    const cardHeight = layoutMode === "4" ? "128mm" : layoutMode === "6" ? "88mm" : "66mm";
-    const qrSize = layoutMode === "4" ? "110px" : layoutMode === "6" ? "85px" : "65px";
-    const roomFont = layoutMode === "4" ? "32px" : layoutMode === "6" ? "26px" : "20px";
+    const cardHeight =
+      layoutMode === "4" ? "128mm" : layoutMode === "6" ? "88mm" : "66mm";
+    const qrSize =
+      layoutMode === "4" ? "110px" : layoutMode === "6" ? "85px" : "65px";
+    const roomFont =
+      layoutMode === "4" ? "32px" : layoutMode === "6" ? "26px" : "20px";
 
     const cardsHtml = printableRooms
       .map((r) => {
@@ -137,7 +152,8 @@ export function RoomQrBatchPrintDialog({
         const f = floors.find((x) => x.id === r.floorId);
         const bName = b?.name || `Building #${r.buildingId}`;
         const fNum = f?.floorNumber ?? 0;
-        const qrUrl = qrUrls[r.id] || getRoomQrImageUrl(propertyId, r.id, "png");
+        const qrUrl =
+          qrUrls[r.id] || getRoomQrImageUrl(propertyId, r.id, "png");
 
         return `
           <div class="placard-card">
@@ -318,7 +334,9 @@ export function RoomQrBatchPrintDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <QrCode className="w-5 h-5 text-primary" />
-            {ar ? "طباعة ملصقات QR المجمعة لأبواب الغرف" : "Batch Print Room QR Door Placards"}
+            {ar
+              ? "طباعة ملصقات QR المجمعة لأبواب الغرف"
+              : "Batch Print Room QR Door Placards"}
           </DialogTitle>
           <DialogDescription className="text-xs">
             {ar
@@ -335,10 +353,14 @@ export function RoomQrBatchPrintDialog({
             </label>
             <Select value={buildingFilter} onValueChange={setBuildingFilter}>
               <SelectTrigger className="h-8 text-xs bg-background">
-                <SelectValue placeholder={ar ? "كل المباني" : "All Buildings"} />
+                <SelectValue
+                  placeholder={ar ? "كل المباني" : "All Buildings"}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{ar ? "كل المباني" : "All Buildings"}</SelectItem>
+                <SelectItem value="all">
+                  {ar ? "كل المباني" : "All Buildings"}
+                </SelectItem>
                 {buildings.map((b) => (
                   <SelectItem key={b.id} value={String(b.id)}>
                     {b.name}
@@ -357,12 +379,14 @@ export function RoomQrBatchPrintDialog({
                 <SelectValue placeholder={ar ? "كل الطوابق" : "All Floors"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{ar ? "كل الطوابق" : "All Floors"}</SelectItem>
+                <SelectItem value="all">
+                  {ar ? "كل الطوابق" : "All Floors"}
+                </SelectItem>
                 {floors
                   .filter(
                     (f) =>
                       buildingFilter === "all" ||
-                      f.buildingId === Number(buildingFilter)
+                      f.buildingId === Number(buildingFilter),
                   )
                   .map((f) => (
                     <SelectItem key={f.id} value={String(f.id)}>
@@ -377,14 +401,25 @@ export function RoomQrBatchPrintDialog({
             <label className="text-[11px] font-semibold block mb-1">
               {ar ? "تنسيق الورقة (A4):" : "Sheet Layout (A4):"}
             </label>
-            <Select value={layoutMode} onValueChange={(val: any) => setLayoutMode(val)}>
+            <Select
+              value={layoutMode}
+              onValueChange={(val: any) => setLayoutMode(val)}
+            >
               <SelectTrigger className="h-8 text-xs bg-background">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="4">{ar ? "4 ملصقات كبيرة / ورقة" : "4 Large Cards / Sheet"}</SelectItem>
-                <SelectItem value="6">{ar ? "6 ملصقات متوسطة / ورقة (قياسي)" : "6 Medium Cards (Standard)"}</SelectItem>
-                <SelectItem value="8">{ar ? "8 ملصقات مدمجة / ورقة" : "8 Compact Cards / Sheet"}</SelectItem>
+                <SelectItem value="4">
+                  {ar ? "4 ملصقات كبيرة / ورقة" : "4 Large Cards / Sheet"}
+                </SelectItem>
+                <SelectItem value="6">
+                  {ar
+                    ? "6 ملصقات متوسطة / ورقة (قياسي)"
+                    : "6 Medium Cards (Standard)"}
+                </SelectItem>
+                <SelectItem value="8">
+                  {ar ? "8 ملصقات مدمجة / ورقة" : "8 Compact Cards / Sheet"}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -409,7 +444,11 @@ export function RoomQrBatchPrintDialog({
           {printableRooms.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-xs">
               <QrCode className="w-8 h-8 opacity-40 mx-auto mb-2" />
-              <p>{ar ? "لا توجد غرف تطابق الفلتر الحالي" : "No rooms match criteria"}</p>
+              <p>
+                {ar
+                  ? "لا توجد غرف تطابق الفلتر الحالي"
+                  : "No rooms match criteria"}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
@@ -427,7 +466,9 @@ export function RoomQrBatchPrintDialog({
                         {b?.name || "Sunrise"}
                       </span>
                       <span className="text-[9px] text-muted-foreground font-semibold">
-                        {ar ? `دور ${f?.floorNumber ?? 0}` : `F${f?.floorNumber ?? 0}`}
+                        {ar
+                          ? `دور ${f?.floorNumber ?? 0}`
+                          : `F${f?.floorNumber ?? 0}`}
                       </span>
                     </div>
 
@@ -482,7 +523,9 @@ export function RoomQrBatchPrintDialog({
             className="text-xs gap-1.5 bg-primary text-primary-foreground font-bold shadow-md"
           >
             <Printer className="w-3.5 h-3.5" />
-            {ar ? `طباعة ${printableRooms.length} ملصق A4` : `Print ${printableRooms.length} Placards`}
+            {ar
+              ? `طباعة ${printableRooms.length} ملصق A4`
+              : `Print ${printableRooms.length} Placards`}
           </Button>
         </DialogFooter>
       </DialogContent>

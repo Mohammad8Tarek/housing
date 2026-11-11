@@ -57,7 +57,10 @@ export function ProfileGrid({
                 photoUrl={emp.photoUrl}
                 size="md"
               />
-              <h3 className="mt-3 text-base font-semibold text-center line-clamp-2" title={getProfileDisplayName(emp, ar)}>
+              <h3
+                className="mt-3 text-base font-semibold text-center line-clamp-2"
+                title={getProfileDisplayName(emp, ar)}
+              >
                 {getProfileDisplayName(emp, ar)}
               </h3>
               <div className="mt-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-mono font-medium">
@@ -77,57 +80,109 @@ export function ProfileGrid({
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الاسم الأول" : "First Name"}
                   </span>
-                  <span className="font-medium truncate block text-xs" title={ar ? (emp.firstNameAr || emp.firstName) : emp.firstName}>
-                    {(ar ? (emp.firstNameAr || emp.firstName) : emp.firstName) || "—"}
+                  <span
+                    className="font-medium truncate block text-xs"
+                    title={
+                      ar ? emp.firstNameAr || emp.firstName : emp.firstName
+                    }
+                  >
+                    {(ar ? emp.firstNameAr || emp.firstName : emp.firstName) ||
+                      "—"}
                   </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الاسم الثاني" : "Second Name"}
                   </span>
-                  <span className="font-medium truncate block text-xs" title={ar ? (emp.lastNameAr || emp.lastName) : emp.lastName}>
-                    {(ar ? (emp.lastNameAr || emp.lastName) : emp.lastName) || "—"}
+                  <span
+                    className="font-medium truncate block text-xs"
+                    title={ar ? emp.lastNameAr || emp.lastName : emp.lastName}
+                  >
+                    {(ar ? emp.lastNameAr || emp.lastName : emp.lastName) ||
+                      "—"}
                   </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الاسم الثالث" : "Third Name"}
                   </span>
-                  <span className="font-medium truncate block text-xs" title={ar ? (emp.thirdNameAr || emp.thirdName) : emp.thirdName}>
-                    {(ar ? (emp.thirdNameAr || emp.thirdName) : emp.thirdName) || "—"}
+                  <span
+                    className="font-medium truncate block text-xs"
+                    title={
+                      ar ? emp.thirdNameAr || emp.thirdName : emp.thirdName
+                    }
+                  >
+                    {(ar ? emp.thirdNameAr || emp.thirdName : emp.thirdName) ||
+                      "—"}
                   </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الاسم الرابع" : "Fourth Name"}
                   </span>
-                  <span className="font-medium truncate block text-xs" title={ar ? (emp.fourthNameAr || emp.fourthName) : emp.fourthName}>
-                    {(ar ? (emp.fourthNameAr || emp.fourthName) : emp.fourthName) || "—"}
+                  <span
+                    className="font-medium truncate block text-xs"
+                    title={
+                      ar ? emp.fourthNameAr || emp.fourthName : emp.fourthName
+                    }
+                  >
+                    {(ar
+                      ? emp.fourthNameAr || emp.fourthName
+                      : emp.fourthName) || "—"}
                   </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الهوية" : "National ID"}
                   </span>
-                  <span className="font-medium truncate block text-xs" title={emp.nationalId}>{emp.nationalId || "—"}</span>
+                  <span
+                    className="font-medium truncate block text-xs"
+                    title={emp.nationalId}
+                  >
+                    {emp.nationalId || "—"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الهاتف" : "Phone"}
                   </span>
-                  <span className="font-medium truncate block text-xs text-left" title={emp.phone} dir="ltr">{emp.phone || "—"}</span>
+                  <span
+                    className="font-medium truncate block text-xs text-left"
+                    title={emp.phone}
+                    dir="ltr"
+                  >
+                    {emp.phone || "—"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الجنسية" : "Nationality"}
                   </span>
-                  <span className="font-medium truncate block text-xs" title={emp.nationality}>{formatNationality(emp.nationality, ar) || "—"}</span>
+                  <span
+                    className="font-medium truncate block text-xs"
+                    title={emp.nationality}
+                  >
+                    {formatNationality(emp.nationality, ar) || "—"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[10px] text-muted-foreground block mb-0.5">
                     {ar ? "الجنس" : "Gender"}
                   </span>
-                  <span className="font-medium truncate block text-xs" title={emp.gender === "M" ? (ar ? "ذكر" : "Male") : emp.gender === "F" ? (ar ? "أنثى" : "Female") : ""}>
+                  <span
+                    className="font-medium truncate block text-xs"
+                    title={
+                      emp.gender === "M"
+                        ? ar
+                          ? "ذكر"
+                          : "Male"
+                        : emp.gender === "F"
+                          ? ar
+                            ? "أنثى"
+                            : "Female"
+                          : ""
+                    }
+                  >
                     {emp.gender === "M"
                       ? ar
                         ? "ذكر"
@@ -153,7 +208,10 @@ export function ProfileGrid({
                     <span className="text-[10px] text-muted-foreground block mb-0.5">
                       {ar ? "الوظيفة / المهنة" : "Job / Occupation"}
                     </span>
-                    <span className="font-medium truncate block text-xs" title={getProfileDisplayJobTitle(emp, ar)}>
+                    <span
+                      className="font-medium truncate block text-xs"
+                      title={getProfileDisplayJobTitle(emp, ar)}
+                    >
                       {getProfileDisplayJobTitle(emp, ar) || "—"}
                     </span>
                   </div>
@@ -161,7 +219,10 @@ export function ProfileGrid({
                     <span className="text-[10px] text-muted-foreground block mb-0.5">
                       {ar ? "اسم الشركة" : "Company"}
                     </span>
-                    <span className="font-semibold truncate block text-xs text-purple-700 dark:text-purple-300" title={emp.companyName}>
+                    <span
+                      className="font-semibold truncate block text-xs text-purple-700 dark:text-purple-300"
+                      title={emp.companyName}
+                    >
                       {emp.companyName || "—"}
                     </span>
                   </div>
@@ -169,7 +230,10 @@ export function ProfileGrid({
                     <span className="text-[10px] text-muted-foreground block mb-0.5">
                       {ar ? "نوع التوظيف" : "Employment Type"}
                     </span>
-                    <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] px-1.5 py-0 font-semibold">
+                    <Badge
+                      variant="secondary"
+                      className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] px-1.5 py-0 font-semibold"
+                    >
                       {ar ? "طرف ثالث" : "Third Party"}
                     </Badge>
                   </div>
@@ -180,7 +244,10 @@ export function ProfileGrid({
                     <span className="text-[10px] text-muted-foreground block mb-0.5">
                       {ar ? "المسمى الوظيفي" : "Job Title"}
                     </span>
-                    <span className="font-medium truncate block text-xs" title={getProfileDisplayJobTitle(emp, ar)}>
+                    <span
+                      className="font-medium truncate block text-xs"
+                      title={getProfileDisplayJobTitle(emp, ar)}
+                    >
                       {getProfileDisplayJobTitle(emp, ar) || "—"}
                     </span>
                   </div>
@@ -188,7 +255,10 @@ export function ProfileGrid({
                     <span className="text-[10px] text-muted-foreground block mb-0.5">
                       {ar ? "القسم" : "Department"}
                     </span>
-                    <span className="font-medium truncate block text-xs" title={getProfileDisplayDepartment(emp, ar)}>
+                    <span
+                      className="font-medium truncate block text-xs"
+                      title={getProfileDisplayDepartment(emp, ar)}
+                    >
                       {getProfileDisplayDepartment(emp, ar) || "—"}
                     </span>
                   </div>
@@ -196,9 +266,15 @@ export function ProfileGrid({
                     <span className="text-[10px] text-muted-foreground block mb-0.5">
                       {ar ? "الدرجة" : "Level"}
                     </span>
-                    <span className="font-medium truncate block text-xs" title={emp.level}>
+                    <span
+                      className="font-medium truncate block text-xs"
+                      title={emp.level}
+                    >
                       {emp.level ? (
-                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/25 font-bold px-1.5 py-0 text-[11px]">
+                        <Badge
+                          variant="outline"
+                          className="bg-primary/10 text-primary border-primary/25 font-bold px-1.5 py-0 text-[11px]"
+                        >
                           {emp.level}
                         </Badge>
                       ) : (
@@ -210,7 +286,10 @@ export function ProfileGrid({
                     <span className="text-[10px] text-muted-foreground block mb-0.5">
                       {ar ? "نوع التوظيف" : "Employment Type"}
                     </span>
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0 font-semibold">
+                    <Badge
+                      variant="outline"
+                      className="bg-blue-50 text-blue-700 border-blue-200 text-[10px] px-1.5 py-0 font-semibold"
+                    >
                       {ar ? "داخلي" : "Internal"}
                     </Badge>
                   </div>
@@ -218,8 +297,16 @@ export function ProfileGrid({
                     <span className="text-[10px] text-muted-foreground block mb-0.5">
                       {ar ? "يعمل لدى" : "Works For"}
                     </span>
-                    <span className="font-medium truncate block text-xs" title={emp.companyName}>
-                      {emp.companyName || (emp.employmentType === "INTERNAL" ? (ar ? "الفندق" : "Hotel") : "—")}
+                    <span
+                      className="font-medium truncate block text-xs"
+                      title={emp.companyName}
+                    >
+                      {emp.companyName ||
+                        (emp.employmentType === "INTERNAL"
+                          ? ar
+                            ? "الفندق"
+                            : "Hotel"
+                          : "—")}
                     </span>
                   </div>
                   <div>
@@ -273,19 +360,28 @@ export function ProfileGrid({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52 shadow-lg">
                   <DropdownMenuItem asChild>
-                    <Link href={`/profiles/${emp.id}`} className="cursor-pointer">
+                    <Link
+                      href={`/profiles/${emp.id}`}
+                      className="cursor-pointer"
+                    >
                       <Eye className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-blue-500" />
                       {ar ? "عرض التفاصيل الكاملة" : "View Full Details"}
                     </Link>
                   </DropdownMenuItem>
                   <PermissionGate module="profiles" action="edit">
-                    <DropdownMenuItem onClick={() => onEdit(emp)} className="cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={() => onEdit(emp)}
+                      className="cursor-pointer"
+                    >
                       <Pencil className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-amber-500" />
                       {ar ? "تعديل الملف الشخصي" : "Edit Profile"}
                     </DropdownMenuItem>
                   </PermissionGate>
                   <PermissionGate module="profiles" action="edit">
-                    <DropdownMenuItem onClick={() => onResetPassword(emp)} className="cursor-pointer">
+                    <DropdownMenuItem
+                      onClick={() => onResetPassword(emp)}
+                      className="cursor-pointer"
+                    >
                       <Key className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-indigo-500" />
                       {ar ? "إعادة تعيين كلمة المرور" : "Reset Password"}
                     </DropdownMenuItem>

@@ -13,7 +13,11 @@ function norm(v: unknown): string {
 }
 
 /** Smart compare: empties last, DD/MM/YYYY dates, numbers, then locale text. */
-export function compareReportValues(a: unknown, b: unknown, dir: SortDir): number {
+export function compareReportValues(
+  a: unknown,
+  b: unknown,
+  dir: SortDir,
+): number {
   const sa = norm(a);
   const sb = norm(b);
   const aEmpty = EMPTY_VALUES.has(sa);
@@ -35,12 +39,19 @@ export function compareReportValues(a: unknown, b: unknown, dir: SortDir): numbe
   // Numbers (handles "1,200", "95%", "12 days left" partially via parseFloat)
   const na = parseFloat(sa.replace(/,/g, ""));
   const nb = parseFloat(sb.replace(/,/g, ""));
-  if (Number.isFinite(na) && Number.isFinite(nb) && (sa.match(/^-?[\d.,%]+$/) || sb.match(/^-?[\d.,%]+$/))) {
+  if (
+    Number.isFinite(na) &&
+    Number.isFinite(nb) &&
+    (sa.match(/^-?[\d.,%]+$/) || sb.match(/^-?[\d.,%]+$/))
+  ) {
     if (na === nb) return sa.localeCompare(sb, undefined, { numeric: true });
     return (na < nb ? -1 : 1) * (dir === "asc" ? 1 : -1);
   }
 
-  const cmp = sa.localeCompare(sb, undefined, { numeric: true, sensitivity: "base" });
+  const cmp = sa.localeCompare(sb, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
   return dir === "asc" ? cmp : -cmp;
 }
 
@@ -52,10 +63,16 @@ export function sortReportRows<T extends Record<string, any>>(
   return [...rows].sort((ra, rb) => {
     let va = ra?.[sort.key];
     let vb = rb?.[sort.key];
-    if ((va == null || va === "") && (sort.key === "roomNumber" || sort.key === "room")) {
+    if (
+      (va == null || va === "") &&
+      (sort.key === "roomNumber" || sort.key === "room")
+    ) {
       va = ra?.roomNumber ?? ra?.room ?? ra?.roomId ?? ra?.room_number ?? "";
     }
-    if ((vb == null || vb === "") && (sort.key === "roomNumber" || sort.key === "room")) {
+    if (
+      (vb == null || vb === "") &&
+      (sort.key === "roomNumber" || sort.key === "room")
+    ) {
       vb = rb?.roomNumber ?? rb?.room ?? rb?.roomId ?? rb?.room_number ?? "";
     }
     return compareReportValues(va, vb, sort.dir);

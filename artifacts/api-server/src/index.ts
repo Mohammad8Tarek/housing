@@ -76,7 +76,12 @@ import { initWebSocket, closeWebSocket } from "./lib/websocket.js";
 import { runMigrations } from "./lib/migrations/index.js";
 import { runAutoSeeder } from "./lib/seeder.js";
 import { backfillBilingualProfiles } from "./lib/bilingual-backfill.js";
-import { pool, healthCheck, warmupPool, prewarmSchemaCache } from "@workspace/db";
+import {
+  pool,
+  healthCheck,
+  warmupPool,
+  prewarmSchemaCache,
+} from "@workspace/db";
 import { startAllPmsServers } from "./lib/pms-server.js";
 import { startAllWorkers, shutdownQueue } from "@workspace/queue";
 
@@ -321,7 +326,10 @@ async function start(): Promise<void> {
       await Promise.race([
         backfillBilingualProfiles(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Bilingual backfill timeout")), 60000),
+          setTimeout(
+            () => reject(new Error("Bilingual backfill timeout")),
+            60000,
+          ),
         ),
       ]);
     }
@@ -343,10 +351,11 @@ async function start(): Promise<void> {
     } catch (err) {
       logger.error({ err }, "Failed to start queue workers");
     }
-    
+
     // Start Housekeeping Cron Job
     try {
-      const { initHousekeepingCron } = await import("./lib/housekeeping-cron.js");
+      const { initHousekeepingCron } =
+        await import("./lib/housekeeping-cron.js");
       initHousekeepingCron();
     } catch (err) {
       logger.error({ err }, "Failed to start housekeeping cron job");
@@ -359,12 +368,19 @@ async function start(): Promise<void> {
 
     // 3. Auto-restore WhatsApp linked sessions
     try {
-      const { autoRestoreAllWhatsAppSessions } = await import("./lib/whatsapp-engine.js");
+      const { autoRestoreAllWhatsAppSessions } =
+        await import("./lib/whatsapp-engine.js");
       autoRestoreAllWhatsAppSessions().catch((err) => {
-        logger.error({ err }, "Failed to auto-restore WhatsApp sessions (async)");
+        logger.error(
+          { err },
+          "Failed to auto-restore WhatsApp sessions (async)",
+        );
       });
     } catch (err) {
-      logger.error({ err }, "Failed to import WhatsApp engine for boot restore");
+      logger.error(
+        { err },
+        "Failed to import WhatsApp engine for boot restore",
+      );
     }
   });
 }

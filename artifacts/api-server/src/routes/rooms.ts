@@ -1,16 +1,44 @@
 import { Router } from "express";
-import { pool, withTenant, roomsTable, assignmentsTable, profilesTable, buildingsTable, floorsTable, hostingsTable, reservationsTable } from "@workspace/db";
+import {
+  pool,
+  withTenant,
+  roomsTable,
+  assignmentsTable,
+  profilesTable,
+  buildingsTable,
+  floorsTable,
+  hostingsTable,
+  reservationsTable,
+} from "@workspace/db";
 import { eq, and, or, desc, SQL, sql, ilike } from "drizzle-orm";
-import { CreateRoomBody, UpdateRoomBody, GetRoomParams, UpdateRoomParams, ListRoomsQueryParams } from "@workspace/api-zod";
+import {
+  CreateRoomBody,
+  UpdateRoomBody,
+  GetRoomParams,
+  UpdateRoomParams,
+  ListRoomsQueryParams,
+} from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import {
+  requirePermission,
+  requireAnyPermission,
+} from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { syncRoomFeaturesToInventory } from "./room-inventory.js";
-import { findProfileAcrossAllProperties, findRoomAcrossAllProperties } from "../lib/cross-property-service.js";
+import {
+  findProfileAcrossAllProperties,
+  findRoomAcrossAllProperties,
+} from "../lib/cross-property-service.js";
 import { buildRoomSearchConditions } from "../lib/search-helper.js";
 import { validate } from "../middlewares/validate.js";
-import { IdParams, CommonListQuery, RoomFeaturesBody, RoomStatusBody, BulkIdsBody } from "../validation/schemas.js";
+import {
+  IdParams,
+  CommonListQuery,
+  RoomFeaturesBody,
+  RoomStatusBody,
+  BulkIdsBody,
+} from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -57,7 +85,10 @@ router.get(
             department: profilesTable.department,
           })
           .from(assignmentsTable)
-          .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+          .leftJoin(
+            profilesTable,
+            eq(assignmentsTable.profileId, profilesTable.id),
+          )
           .where(
             and(
               eq(assignmentsTable.roomId, roomId),
@@ -77,7 +108,8 @@ router.get(
               occupant: null,
             });
           } else {
-            const isOnVacation = asgn.profileStatus?.toUpperCase() === "VACATION";
+            const isOnVacation =
+              asgn.profileStatus?.toUpperCase() === "VACATION";
             beds.push({
               bedNumber: b,
               status: isOnVacation ? "VACATION" : "OCCUPIED",
@@ -97,9 +129,13 @@ router.get(
           }
         }
 
-        const isEligible = !["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(
-          room.status?.toLowerCase() || "",
-        );
+        const isEligible = ![
+          "maintenance",
+          "out_of_service",
+          "out_of_order",
+          "oos",
+          "ooo",
+        ].includes(room.status?.toLowerCase() || "");
 
         return {
           room: {
@@ -140,96 +176,100 @@ router.get(
   ),
   validate({ query: CommonListQuery }),
   async (req, res) => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId) {
-      res.status(400).json({ error: "propertyId is required" });
-      return;
-    }
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
 
-    const { number } = req.query;
-    if (!number || typeof number !== "string") {
-      res.status(400).json({ error: "number query parameter is required" });
-      return;
-    }
+      const { number } = req.query;
+      if (!number || typeof number !== "string") {
+        res.status(400).json({ error: "number query parameter is required" });
+        return;
+      }
 
-    const roomDetails = await withTenant(propertyId, async (tenantDb) => {
-      const rows = await tenantDb
-        .select({
-          id: roomsTable.id,
-          roomNumber: roomsTable.roomNumber,
-          roomType: roomsTable.roomType,
-          building: buildingsTable.name,
-          floor: floorsTable.floorNumber,
-        })
-        .from(roomsTable)
-        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
-        .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
-        .where(eq(roomsTable.roomNumber, number.trim()))
-        .limit(1);
-      const room = rows[0];
-      if (!room) return null;
+      const roomDetails = await withTenant(propertyId, async (tenantDb) => {
+        const rows = await tenantDb
+          .select({
+            id: roomsTable.id,
+            roomNumber: roomsTable.roomNumber,
+            roomType: roomsTable.roomType,
+            building: buildingsTable.name,
+            floor: floorsTable.floorNumber,
+          })
+          .from(roomsTable)
+          .leftJoin(
+            buildingsTable,
+            eq(roomsTable.buildingId, buildingsTable.id),
+          )
+          .leftJoin(floorsTable, eq(roomsTable.floorId, floorsTable.id))
+          .where(eq(roomsTable.roomNumber, number.trim()))
+          .limit(1);
+        const room = rows[0];
+        if (!room) return null;
 
-      const assignmentsList = await tenantDb
-        .select({ id: assignmentsTable.id })
-        .from(assignmentsTable)
-        .where(
-          and(
-            eq(assignmentsTable.roomId, room.id),
-            eq(assignmentsTable.status, "ACTIVE"),
-          ),
-        )
-        .limit(1);
+        const assignmentsList = await tenantDb
+          .select({ id: assignmentsTable.id })
+          .from(assignmentsTable)
+          .where(
+            and(
+              eq(assignmentsTable.roomId, room.id),
+              eq(assignmentsTable.status, "ACTIVE"),
+            ),
+          )
+          .limit(1);
 
-      const hostingsList = await tenantDb
-        .select({ id: hostingsTable.id })
-        .from(hostingsTable)
-        .where(
-          and(
-            eq(hostingsTable.roomId, room.id),
-            eq(hostingsTable.status, "ACTIVE"),
-          ),
-        )
-        .limit(1);
+        const hostingsList = await tenantDb
+          .select({ id: hostingsTable.id })
+          .from(hostingsTable)
+          .where(
+            and(
+              eq(hostingsTable.roomId, room.id),
+              eq(hostingsTable.status, "ACTIVE"),
+            ),
+          )
+          .limit(1);
 
-      const reservationsList = await tenantDb
-        .select({ id: reservationsTable.id })
-        .from(reservationsTable)
-        .where(
-          and(
-            eq(reservationsTable.roomId, room.id),
-            eq(reservationsTable.status, "UPCOMING"),
-          ),
-        )
-        .limit(1);
+        const reservationsList = await tenantDb
+          .select({ id: reservationsTable.id })
+          .from(reservationsTable)
+          .where(
+            and(
+              eq(reservationsTable.roomId, room.id),
+              eq(reservationsTable.status, "UPCOMING"),
+            ),
+          )
+          .limit(1);
 
-      // Check if there are any pending or approved hosting requests for this room
-      const pendingHostingRequests = await pool.query(
-        `SELECT id FROM public.hosting_requests 
+        // Check if there are any pending or approved hosting requests for this room
+        const pendingHostingRequests = await pool.query(
+          `SELECT id FROM public.hosting_requests 
          WHERE assigned_room_id = $1 
          AND status IN ('in_signing', 'approved', 'pending')
          LIMIT 1`,
-        [room.id],
-      );
+          [room.id],
+        );
 
-      return {
-        ...room,
-        isOccupied: assignmentsList.length > 0 || hostingsList.length > 0,
-        isReserved: reservationsList.length > 0,
-        hasPendingRequest: pendingHostingRequests.rows.length > 0,
-      };
-    });
+        return {
+          ...room,
+          isOccupied: assignmentsList.length > 0 || hostingsList.length > 0,
+          isReserved: reservationsList.length > 0,
+          hasPendingRequest: pendingHostingRequests.rows.length > 0,
+        };
+      });
 
-    if (!roomDetails) {
-      res.status(404).json({ error: "Room not found" });
-      return;
+      if (!roomDetails) {
+        res.status(404).json({ error: "Room not found" });
+        return;
+      }
+
+      res.json(roomDetails);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
-
-    res.json(roomDetails);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  },
+);
 
 router.get(
   "/rooms",
@@ -275,28 +315,44 @@ router.get(
           const st = String(query.data.status).toLowerCase().trim();
           if (st === "room_vacant" || st === "available" || st === "vacant") {
             // Fully vacant only: 0 current occupancy AND available status
-            conditions.push(and(
-              or(eq(roomsTable.status, "available"), eq(roomsTable.status, "vacant"), eq(roomsTable.status, "room_vacant")),
-              eq(roomsTable.currentOccupancy, 0)
-            ) as SQL);
-          } else if (st === "bed_vacant" || st === "vacant_beds" || st === "partially") {
+            conditions.push(
+              and(
+                or(
+                  eq(roomsTable.status, "available"),
+                  eq(roomsTable.status, "vacant"),
+                  eq(roomsTable.status, "room_vacant"),
+                ),
+                eq(roomsTable.currentOccupancy, 0),
+              ) as SQL,
+            );
+          } else if (
+            st === "bed_vacant" ||
+            st === "vacant_beds" ||
+            st === "partially"
+          ) {
             // Partially occupied: has free beds AND at least 1 occupant, not OOO/OOS
-            conditions.push(and(
-              sql`${roomsTable.capacity} > ${roomsTable.currentOccupancy}`,
-              sql`${roomsTable.currentOccupancy} > 0`,
-              sql`LOWER(${roomsTable.status}) NOT IN ('out_of_service', 'out_of_order', 'maintenance', 'ooo', 'oos')`
-            ) as SQL);
+            conditions.push(
+              and(
+                sql`${roomsTable.capacity} > ${roomsTable.currentOccupancy}`,
+                sql`${roomsTable.currentOccupancy} > 0`,
+                sql`LOWER(${roomsTable.status}) NOT IN ('out_of_service', 'out_of_order', 'maintenance', 'ooo', 'oos')`,
+              ) as SQL,
+            );
           } else if (st === "room_and_bed_vacant" || st === "both") {
             // Room and bed vacant: any available capacity, not OOO/OOS/dirty
-            conditions.push(and(
-              sql`${roomsTable.capacity} > ${roomsTable.currentOccupancy}`,
-              sql`LOWER(${roomsTable.status}) NOT IN ('out_of_service', 'out_of_order', 'maintenance', 'ooo', 'oos', 'dirty', 'occupied_dirty')`
-            ) as SQL);
+            conditions.push(
+              and(
+                sql`${roomsTable.capacity} > ${roomsTable.currentOccupancy}`,
+                sql`LOWER(${roomsTable.status}) NOT IN ('out_of_service', 'out_of_order', 'maintenance', 'ooo', 'oos', 'dirty', 'occupied_dirty')`,
+              ) as SQL,
+            );
           } else if (st === "occupied") {
-            conditions.push(or(
-              eq(roomsTable.status, "occupied"),
-              sql`${roomsTable.currentOccupancy} >= ${roomsTable.capacity}`
-            ) as SQL);
+            conditions.push(
+              or(
+                eq(roomsTable.status, "occupied"),
+                sql`${roomsTable.currentOccupancy} >= ${roomsTable.capacity}`,
+              ) as SQL,
+            );
           } else {
             conditions.push(eq(roomsTable.status, query.data.status));
           }
@@ -317,7 +373,9 @@ router.get(
         let baseQuery = tenantDb
           .select()
           .from(roomsTable)
-          .orderBy(sql`LENGTH(${roomsTable.roomNumber}), ${roomsTable.roomNumber}, ${roomsTable.id}`)
+          .orderBy(
+            sql`LENGTH(${roomsTable.roomNumber}), ${roomsTable.roomNumber}, ${roomsTable.id}`,
+          )
           .limit(limit)
           .offset(offset) as any;
         if (conditions.length > 0)
@@ -454,7 +512,8 @@ router.get(
           try {
             const found = await findProfileAcrossAllProperties(item.profileId);
             if (found?.profile) {
-              item.profileName = `${found.profile.firstName ?? ""} ${found.profile.lastName ?? ""}`.trim();
+              item.profileName =
+                `${found.profile.firstName ?? ""} ${found.profile.lastName ?? ""}`.trim();
               item.profileCode = found.profile.profileId;
               item.department = found.profile.department;
               item.jobTitle = found.profile.jobTitle;
@@ -505,7 +564,9 @@ router.post(
       }
 
       const existingRoom = await withTenant(propertyId, async (tenantDb) => {
-        const conditions = [ilike(roomsTable.roomNumber, parsed.data.roomNumber.trim())];
+        const conditions = [
+          ilike(roomsTable.roomNumber, parsed.data.roomNumber.trim()),
+        ];
         if (parsed.data.buildingId) {
           conditions.push(eq(roomsTable.buildingId, parsed.data.buildingId));
         }
@@ -537,8 +598,10 @@ router.post(
       const extraData: any = {};
       if (view !== undefined) extraData.view = view;
       if (bedType !== undefined) extraData.bedType = bedType;
-      if (classification !== undefined) extraData.classification = classification;
-      if (separatorDoor !== undefined) extraData.separatorDoor = Boolean(separatorDoor);
+      if (classification !== undefined)
+        extraData.classification = classification;
+      if (separatorDoor !== undefined)
+        extraData.separatorDoor = Boolean(separatorDoor);
       if (size !== undefined) {
         extraData.size = size;
         const num = parseInt(String(size).replace(/[^0-9]/g, ""));
@@ -549,9 +612,15 @@ router.post(
       if (featuresList !== undefined) {
         extraData.featuresList = Array.isArray(featuresList)
           ? featuresList
-          : String(featuresList).split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
+          : String(featuresList)
+              .split(/[,;\n]+/)
+              .map((s: string) => s.trim())
+              .filter(Boolean);
       } else if (features !== undefined) {
-        extraData.featuresList = String(features).split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
+        extraData.featuresList = String(features)
+          .split(/[,;\n]+/)
+          .map((s: string) => s.trim())
+          .filter(Boolean);
       }
       if (notes !== undefined) extraData.notes = notes;
 
@@ -563,9 +632,17 @@ router.post(
           .returning();
       });
 
-      if (extraData.featuresList && Array.isArray(extraData.featuresList) && extraData.featuresList.length > 0) {
+      if (
+        extraData.featuresList &&
+        Array.isArray(extraData.featuresList) &&
+        extraData.featuresList.length > 0
+      ) {
         try {
-          await syncRoomFeaturesToInventory(propertyId, room.id, extraData.featuresList);
+          await syncRoomFeaturesToInventory(
+            propertyId,
+            room.id,
+            extraData.featuresList,
+          );
         } catch (e) {
           console.error("[rooms/create] Failed to sync inventory:", e);
         }
@@ -601,8 +678,8 @@ router.post(
       console.error("[rooms/create] Error:", err);
       // Check for Postgres Foreign Key constraint violation
       if (err.code === "23503") {
-         res.status(400).json({ error: "Building or floor does not exist." });
-         return;
+        res.status(400).json({ error: "Building or floor does not exist." });
+        return;
       }
       res.status(500).json({ error: "Failed to create room: " + err.message });
     }
@@ -674,229 +751,270 @@ router.patch(
         return;
       }
 
-    if (propertyId) {
-      const [exists] = await withTenant(propertyId, async (tenantDb) => {
-        return await tenantDb
-          .select({ id: roomsTable.id })
-          .from(roomsTable)
-          .where(eq(roomsTable.id, params.data.id))
-          .limit(1);
-      });
-      if (!exists) {
+      if (propertyId) {
+        const [exists] = await withTenant(propertyId, async (tenantDb) => {
+          return await tenantDb
+            .select({ id: roomsTable.id })
+            .from(roomsTable)
+            .where(eq(roomsTable.id, params.data.id))
+            .limit(1);
+        });
+        if (!exists) {
+          propertyId = (await findPropertyByRoomId(params.data.id)) || 0;
+        }
+      } else {
         propertyId = (await findPropertyByRoomId(params.data.id)) || 0;
       }
-    } else {
-      propertyId = (await findPropertyByRoomId(params.data.id)) || 0;
-    }
 
-    if (!propertyId) {
-      res.status(404).json({ error: "Room not found" });
-      return;
-    }
+      if (!propertyId) {
+        res.status(404).json({ error: "Room not found" });
+        return;
+      }
 
-    const bodyToParse = {
-      ...req.body,
-      capacity: req.body.capacity !== undefined && req.body.capacity !== "" ? Number(req.body.capacity) : undefined,
-      gender: req.body.gender === "" || req.body.gender === "__none__" ? null : req.body.gender,
-    };
+      const bodyToParse = {
+        ...req.body,
+        capacity:
+          req.body.capacity !== undefined && req.body.capacity !== ""
+            ? Number(req.body.capacity)
+            : undefined,
+        gender:
+          req.body.gender === "" || req.body.gender === "__none__"
+            ? null
+            : req.body.gender,
+      };
 
-    const parsed = UpdateRoomBody.safeParse(bodyToParse);
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.errors?.[0]?.message || parsed.error.message });
-      return;
-    }
-
-    const {
-      view,
-      bedType,
-      classification,
-      separatorDoor,
-      size,
-      sizeSqm,
-      features,
-      featuresList,
-      notes,
-      buildingId,
-      floorId,
-    } = req.body;
-
-    const [currentRoom] = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .select()
-        .from(roomsTable)
-        .where(eq(roomsTable.id, params.data.id));
-    });
-
-    if (!currentRoom) {
-      res.status(404).json({ error: "Room not found" });
-      return;
-    }
-
-    const effectiveBuildingId =
-      buildingId !== undefined
-        ? Number(buildingId)
-        : currentRoom.buildingId;
-    const targetRoomNumber = (
-      parsed.data.roomNumber || currentRoom.roomNumber
-    )?.trim();
-
-    // ── Prevent duplicate room number in the SAME building on update ───────
-    if (targetRoomNumber && effectiveBuildingId) {
-      const duplicateRooms = await withTenant(propertyId, async (tenantDb) => {
-        return await tenantDb
-          .select({ id: roomsTable.id })
-          .from(roomsTable)
-          .where(
-            and(
-              eq(roomsTable.buildingId, effectiveBuildingId),
-              ilike(roomsTable.roomNumber, targetRoomNumber),
-              sql`${roomsTable.id} != ${params.data.id}`,
-            ),
-          );
-      });
-
-      if (duplicateRooms.length > 0) {
-        res.status(409).json({
-          error: `Room ${targetRoomNumber} already exists in this building`,
-          message: `الغرفة رقم ${targetRoomNumber} مسجلة مسبقاً في هذا المبنى`,
-          code: "ROOM_DUPLICATE",
+      const parsed = UpdateRoomBody.safeParse(bodyToParse);
+      if (!parsed.success) {
+        res.status(400).json({
+          error: parsed.error.errors?.[0]?.message || parsed.error.message,
         });
         return;
       }
-    }
 
-    if (parsed.data.status) {
-      const s = parsed.data.status.toLowerCase().trim();
-      if (s === "room_vacant" || s === "room_and_bed_vacant" || s === "vacant") {
-        parsed.data.status = "available";
-      } else if (s === "bed_vacant" || s === "vacant_beds" || s === "partially") {
-        parsed.data.status = (currentRoom.currentOccupancy || 0) > 0 ? "occupied" : "available";
-      }
-    }
+      const {
+        view,
+        bedType,
+        classification,
+        separatorDoor,
+        size,
+        sizeSqm,
+        features,
+        featuresList,
+        notes,
+        buildingId,
+        floorId,
+      } = req.body;
 
-    const extraData: any = {};
-    if (buildingId !== undefined && Number(buildingId) > 0) extraData.buildingId = Number(buildingId);
-    if (floorId !== undefined && Number(floorId) > 0) extraData.floorId = Number(floorId);
-    if (view !== undefined) extraData.view = view;
-    if (bedType !== undefined) extraData.bedType = bedType;
-    if (classification !== undefined) extraData.classification = classification;
-    if (separatorDoor !== undefined) extraData.separatorDoor = Boolean(separatorDoor);
-    if (size !== undefined) {
-      extraData.size = size;
-      const num = parseInt(String(size).replace(/[^0-9]/g, ""));
-      if (!isNaN(num)) extraData.sizeSqm = num;
-    }
-    if (sizeSqm !== undefined) extraData.sizeSqm = Number(sizeSqm);
-    if (features !== undefined) extraData.features = features;
-    if (featuresList !== undefined) {
-      extraData.featuresList = Array.isArray(featuresList)
-        ? featuresList
-        : String(featuresList).split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
-    } else if (features !== undefined) {
-      extraData.featuresList = String(features).split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
-    }
-    if (notes !== undefined) extraData.notes = notes;
-
-    const { existingRoom, updated } = await withTenant(propertyId, async (tenantDb) => {
-      const [existing] = await tenantDb
-        .select()
-        .from(roomsTable)
-        .where(eq(roomsTable.id, params.data.id));
-      if (!existing) return { existingRoom: null, updated: null };
-      const [up] = await tenantDb
-        .update(roomsTable)
-        .set({ ...parsed.data, ...extraData })
-        .where(eq(roomsTable.id, params.data.id))
-        .returning();
-      return { existingRoom: existing, updated: up };
-    });
-
-    if (!updated) {
-      res.status(404).json({ error: "Room not found" });
-      return;
-    }
-
-    if (extraData.featuresList && Array.isArray(extraData.featuresList)) {
-      try {
-        await syncRoomFeaturesToInventory(propertyId, updated.id, extraData.featuresList);
-      } catch (e) {
-        console.error("[rooms/update] Failed to sync inventory:", e);
-      }
-    }
-
-    const s = su(req);
-    
-    // Log specific status change if status was updated
-    if (parsed.data.status) {
-      await logActivity({
-        req,
-        propertyId,
-        username: s.username,
-        userId: s.userId,
-        userRole: s.userRole,
-        action: `تغيير حالة الغرفة رقم ${updated.roomNumber} من [${existingRoom?.status ?? "-"}] إلى [${parsed.data.status}]`,
-        actionType: "UPDATE_STATUS",
-        module: "housekeeping",
-        entityType: "room",
-        entityId: updated.id,
-        details: {
-          roomNumber: updated.roomNumber,
-          roomId: updated.id,
-          previousStatus: existingRoom?.status,
-          newStatus: parsed.data.status,
-          buildingId: updated.buildingId,
-          floorId: updated.floorId,
-          capacity: updated.capacity,
-          user: s.username,
-          role: s.userRole,
-        },
+      const [currentRoom] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select()
+          .from(roomsTable)
+          .where(eq(roomsTable.id, params.data.id));
       });
-    } else {
-      // General update log
-      await logActivity({
-        req,
+
+      if (!currentRoom) {
+        res.status(404).json({ error: "Room not found" });
+        return;
+      }
+
+      const effectiveBuildingId =
+        buildingId !== undefined ? Number(buildingId) : currentRoom.buildingId;
+      const targetRoomNumber = (
+        parsed.data.roomNumber || currentRoom.roomNumber
+      )?.trim();
+
+      // ── Prevent duplicate room number in the SAME building on update ───────
+      if (targetRoomNumber && effectiveBuildingId) {
+        const duplicateRooms = await withTenant(
+          propertyId,
+          async (tenantDb) => {
+            return await tenantDb
+              .select({ id: roomsTable.id })
+              .from(roomsTable)
+              .where(
+                and(
+                  eq(roomsTable.buildingId, effectiveBuildingId),
+                  ilike(roomsTable.roomNumber, targetRoomNumber),
+                  sql`${roomsTable.id} != ${params.data.id}`,
+                ),
+              );
+          },
+        );
+
+        if (duplicateRooms.length > 0) {
+          res.status(409).json({
+            error: `Room ${targetRoomNumber} already exists in this building`,
+            message: `الغرفة رقم ${targetRoomNumber} مسجلة مسبقاً في هذا المبنى`,
+            code: "ROOM_DUPLICATE",
+          });
+          return;
+        }
+      }
+
+      if (parsed.data.status) {
+        const s = parsed.data.status.toLowerCase().trim();
+        if (
+          s === "room_vacant" ||
+          s === "room_and_bed_vacant" ||
+          s === "vacant"
+        ) {
+          parsed.data.status = "available";
+        } else if (
+          s === "bed_vacant" ||
+          s === "vacant_beds" ||
+          s === "partially"
+        ) {
+          parsed.data.status =
+            (currentRoom.currentOccupancy || 0) > 0 ? "occupied" : "available";
+        }
+      }
+
+      const extraData: any = {};
+      if (buildingId !== undefined && Number(buildingId) > 0)
+        extraData.buildingId = Number(buildingId);
+      if (floorId !== undefined && Number(floorId) > 0)
+        extraData.floorId = Number(floorId);
+      if (view !== undefined) extraData.view = view;
+      if (bedType !== undefined) extraData.bedType = bedType;
+      if (classification !== undefined)
+        extraData.classification = classification;
+      if (separatorDoor !== undefined)
+        extraData.separatorDoor = Boolean(separatorDoor);
+      if (size !== undefined) {
+        extraData.size = size;
+        const num = parseInt(String(size).replace(/[^0-9]/g, ""));
+        if (!isNaN(num)) extraData.sizeSqm = num;
+      }
+      if (sizeSqm !== undefined) extraData.sizeSqm = Number(sizeSqm);
+      if (features !== undefined) extraData.features = features;
+      if (featuresList !== undefined) {
+        extraData.featuresList = Array.isArray(featuresList)
+          ? featuresList
+          : String(featuresList)
+              .split(/[,;\n]+/)
+              .map((s: string) => s.trim())
+              .filter(Boolean);
+      } else if (features !== undefined) {
+        extraData.featuresList = String(features)
+          .split(/[,;\n]+/)
+          .map((s: string) => s.trim())
+          .filter(Boolean);
+      }
+      if (notes !== undefined) extraData.notes = notes;
+
+      const { existingRoom, updated } = await withTenant(
         propertyId,
-        username: s.username,
-        userId: s.userId,
-        userRole: s.userRole,
-        action: `تعديل بيانات الغرفة رقم ${updated.roomNumber}`,
-        actionType: "UPDATE",
+        async (tenantDb) => {
+          const [existing] = await tenantDb
+            .select()
+            .from(roomsTable)
+            .where(eq(roomsTable.id, params.data.id));
+          if (!existing) return { existingRoom: null, updated: null };
+          const [up] = await tenantDb
+            .update(roomsTable)
+            .set({ ...parsed.data, ...extraData })
+            .where(eq(roomsTable.id, params.data.id))
+            .returning();
+          return { existingRoom: existing, updated: up };
+        },
+      );
+
+      if (!updated) {
+        res.status(404).json({ error: "Room not found" });
+        return;
+      }
+
+      if (extraData.featuresList && Array.isArray(extraData.featuresList)) {
+        try {
+          await syncRoomFeaturesToInventory(
+            propertyId,
+            updated.id,
+            extraData.featuresList,
+          );
+        } catch (e) {
+          console.error("[rooms/update] Failed to sync inventory:", e);
+        }
+      }
+
+      const s = su(req);
+
+      // Log specific status change if status was updated
+      if (parsed.data.status) {
+        await logActivity({
+          req,
+          propertyId,
+          username: s.username,
+          userId: s.userId,
+          userRole: s.userRole,
+          action: `تغيير حالة الغرفة رقم ${updated.roomNumber} من [${existingRoom?.status ?? "-"}] إلى [${parsed.data.status}]`,
+          actionType: "UPDATE_STATUS",
+          module: "housekeeping",
+          entityType: "room",
+          entityId: updated.id,
+          details: {
+            roomNumber: updated.roomNumber,
+            roomId: updated.id,
+            previousStatus: existingRoom?.status,
+            newStatus: parsed.data.status,
+            buildingId: updated.buildingId,
+            floorId: updated.floorId,
+            capacity: updated.capacity,
+            user: s.username,
+            role: s.userRole,
+          },
+        });
+      } else {
+        // General update log
+        await logActivity({
+          req,
+          propertyId,
+          username: s.username,
+          userId: s.userId,
+          userRole: s.userRole,
+          action: `تعديل بيانات الغرفة رقم ${updated.roomNumber}`,
+          actionType: "UPDATE",
+          module: "housing",
+          entityType: "room",
+          entityId: updated.id,
+          details: {
+            roomNumber: updated.roomNumber,
+            roomId: updated.id,
+            updatedFields: Object.keys(parsed.data),
+            buildingId: updated.buildingId,
+            floorId: updated.floorId,
+            capacity: updated.capacity,
+            user: s.username,
+            role: s.userRole,
+          },
+        });
+      }
+
+      broadcastToProperty(propertyId, {
         module: "housing",
-        entityType: "room",
+        action: "updated",
         entityId: updated.id,
-        details: {
-          roomNumber: updated.roomNumber,
-          roomId: updated.id,
-          updatedFields: Object.keys(parsed.data),
-          buildingId: updated.buildingId,
-          floorId: updated.floorId,
-          capacity: updated.capacity,
-          user: s.username,
-          role: s.userRole,
-        },
       });
-    }
-    
-    broadcastToProperty(propertyId, {
-      module: "housing",
-      action: "updated",
-      entityId: updated.id,
-    });
-    broadcastToProperty(propertyId, {
-      module: "housekeeping",
-      action: "updated",
-      entityId: updated.id,
-    });
+      broadcastToProperty(propertyId, {
+        module: "housekeeping",
+        action: "updated",
+        entityId: updated.id,
+      });
 
-    res.json({ ...updated, genderPolicy: updated.gender, propertyId });
+      res.json({ ...updated, genderPolicy: updated.gender, propertyId });
     } catch (err: any) {
       console.error("[rooms/update] Error:", err);
       if (err.code === "23503") {
-        res.status(400).json({ error: "المبنى أو الدور المحدد غير موجود في النظام", code: "FK_NOT_FOUND" });
+        res.status(400).json({
+          error: "المبنى أو الدور المحدد غير موجود في النظام",
+          code: "FK_NOT_FOUND",
+        });
         return;
       }
       if (err.code === "23514") {
-        res.status(400).json({ error: "بيانات الغرفة غير صالحة وفق محددات النظام", code: "CONSTRAINT_VIOLATION" });
+        res.status(400).json({
+          error: "بيانات الغرفة غير صالحة وفق محددات النظام",
+          code: "CONSTRAINT_VIOLATION",
+        });
         return;
       }
       res.status(500).json({ error: err.message || "Failed to update room" });
@@ -940,7 +1058,10 @@ router.patch(
       const { features, featuresList } = req.body;
       const list = Array.isArray(featuresList)
         ? featuresList
-        : String(features ?? "").split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean);
+        : String(features ?? "")
+            .split(/[,;\n]+/)
+            .map((s: string) => s.trim())
+            .filter(Boolean);
       const rawText = features ?? list.join(", ");
 
       const [updated] = await withTenant(propertyId, async (tenantDb) => {
@@ -977,7 +1098,8 @@ router.patch(
   async (req, res, next) => {
     // Custom permission check: allow if user has accommodation:edit OR housekeeping:edit
     try {
-      const { loadAuthUser, hasPermission } = await import("../middlewares/permissions.js");
+      const { loadAuthUser, hasPermission } =
+        await import("../middlewares/permissions.js");
       const user = await loadAuthUser(req, res);
       if (!user) return;
       if (
@@ -987,7 +1109,10 @@ router.patch(
         !hasPermission(user, "housekeeping", "view") &&
         !hasPermission(user, "maintenance", "view_housekeeping")
       ) {
-        res.status(403).json({ error: "Permission denied. Requires accommodation, housing, or housekeeping permission" });
+        res.status(403).json({
+          error:
+            "Permission denied. Requires accommodation, housing, or housekeeping permission",
+        });
         return;
       }
       next();
@@ -1068,7 +1193,10 @@ router.patch(
       // Trigger property broadcasts for realtime UI updates
       const { broadcastToProperty } = await import("../lib/websocket.js");
       broadcastToProperty(propertyId, { module: "rooms", action: "sync" });
-      broadcastToProperty(propertyId, { module: "housekeeping", action: "sync" });
+      broadcastToProperty(propertyId, {
+        module: "housekeeping",
+        action: "sync",
+      });
       broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
 
       res.json({ success: true, room: { ...updated, propertyId } });
@@ -1080,7 +1208,9 @@ router.patch(
 
 async function findPropertyByRoomId(roomId: number): Promise<number | null> {
   try {
-    const props = await pool.query("SELECT id, schema_name FROM public.properties");
+    const props = await pool.query(
+      "SELECT id, schema_name FROM public.properties",
+    );
     for (const p of props.rows) {
       try {
         const check = await pool.query(
@@ -1103,11 +1233,15 @@ router.post(
       let propertyId = getTenantId(req);
       const { ids } = req.body || {};
       if (!Array.isArray(ids) || ids.length === 0) {
-        res.status(400).json({ error: "ids must be a non-empty array of room IDs" });
+        res
+          .status(400)
+          .json({ error: "ids must be a non-empty array of room IDs" });
         return;
       }
 
-      const numIds = ids.map((id: any) => Number(id)).filter((id: number) => !isNaN(id) && id > 0);
+      const numIds = ids
+        .map((id: any) => Number(id))
+        .filter((id: number) => !isNaN(id) && id > 0);
       if (numIds.length === 0) {
         res.status(400).json({ error: "No valid room IDs provided" });
         return;
@@ -1124,7 +1258,10 @@ router.post(
 
       const result = await withTenant(propertyId, async (tenantDb) => {
         // Find which rooms have active occupants
-        const idListSql = sql.join(numIds.map((id) => sql`${id}`), sql`, `);
+        const idListSql = sql.join(
+          numIds.map((id) => sql`${id}`),
+          sql`, `,
+        );
         const activeRows = await tenantDb.execute(sql`
           SELECT a.room_id, r.room_number, count(*)::int as count 
           FROM assignments a
@@ -1141,17 +1278,52 @@ router.post(
         const deletableIds = numIds.filter((id) => !occupiedRoomIds.has(id));
 
         if (deletableIds.length > 0) {
-          const deletableSql = sql.join(deletableIds.map((id) => sql`${id}`), sql`, `);
+          const deletableSql = sql.join(
+            deletableIds.map((id) => sql`${id}`),
+            sql`, `,
+          );
 
           // Clean up dependent child records to prevent foreign key errors
-          try { await tenantDb.execute(sql`DELETE FROM room_beds WHERE room_id IN (${deletableSql})`); } catch {}
-          try { await tenantDb.execute(sql`DELETE FROM room_keys WHERE room_id IN (${deletableSql})`); } catch {}
-          try { await tenantDb.execute(sql`DELETE FROM room_locks WHERE room_id IN (${deletableSql})`); } catch {}
-          try { await tenantDb.execute(sql`DELETE FROM reservations WHERE room_id IN (${deletableSql})`); } catch {}
-          try { await tenantDb.execute(sql`DELETE FROM assignments WHERE room_id IN (${deletableSql}) AND status != 'ACTIVE'`); } catch {}
-          try { await tenantDb.execute(sql`DELETE FROM hostings WHERE room_id IN (${deletableSql})`); } catch {}
-          try { await tenantDb.execute(sql`DELETE FROM maintenance WHERE room_id IN (${deletableSql})`); } catch {}
-          try { await tenantDb.execute(sql`DELETE FROM room_inventory WHERE room_id IN (${deletableSql})`); } catch {}
+          try {
+            await tenantDb.execute(
+              sql`DELETE FROM room_beds WHERE room_id IN (${deletableSql})`,
+            );
+          } catch {}
+          try {
+            await tenantDb.execute(
+              sql`DELETE FROM room_keys WHERE room_id IN (${deletableSql})`,
+            );
+          } catch {}
+          try {
+            await tenantDb.execute(
+              sql`DELETE FROM room_locks WHERE room_id IN (${deletableSql})`,
+            );
+          } catch {}
+          try {
+            await tenantDb.execute(
+              sql`DELETE FROM reservations WHERE room_id IN (${deletableSql})`,
+            );
+          } catch {}
+          try {
+            await tenantDb.execute(
+              sql`DELETE FROM assignments WHERE room_id IN (${deletableSql}) AND status != 'ACTIVE'`,
+            );
+          } catch {}
+          try {
+            await tenantDb.execute(
+              sql`DELETE FROM hostings WHERE room_id IN (${deletableSql})`,
+            );
+          } catch {}
+          try {
+            await tenantDb.execute(
+              sql`DELETE FROM maintenance WHERE room_id IN (${deletableSql})`,
+            );
+          } catch {}
+          try {
+            await tenantDb.execute(
+              sql`DELETE FROM room_inventory WHERE room_id IN (${deletableSql})`,
+            );
+          } catch {}
 
           await tenantDb
             .delete(roomsTable)
@@ -1195,7 +1367,9 @@ router.post(
 
       res.json(result);
     } catch (err: any) {
-      res.status(500).json({ error: err.message || "Failed to bulk delete rooms" });
+      res
+        .status(500)
+        .json({ error: err.message || "Failed to bulk delete rooms" });
     }
   },
 );
@@ -1241,18 +1415,48 @@ router.delete(
         }
 
         // Clean up dependent child records to prevent foreign key errors
-        try { await tenantDb.execute(sql`DELETE FROM room_beds WHERE room_id = ${roomId}`); } catch {}
-        try { await tenantDb.execute(sql`DELETE FROM room_keys WHERE room_id = ${roomId}`); } catch {}
-        try { await tenantDb.execute(sql`DELETE FROM room_locks WHERE room_id = ${roomId}`); } catch {}
-        try { await tenantDb.execute(sql`DELETE FROM reservations WHERE room_id = ${roomId}`); } catch {}
-        try { await tenantDb.execute(sql`DELETE FROM assignments WHERE room_id = ${roomId} AND status != 'ACTIVE'`); } catch {}
-        try { await tenantDb.execute(sql`DELETE FROM hostings WHERE room_id = ${roomId}`); } catch {}
-        try { await tenantDb.execute(sql`DELETE FROM maintenance WHERE room_id = ${roomId}`); } catch {}
-        try { await tenantDb.execute(sql`DELETE FROM room_inventory WHERE room_id = ${roomId}`); } catch {}
+        try {
+          await tenantDb.execute(
+            sql`DELETE FROM room_beds WHERE room_id = ${roomId}`,
+          );
+        } catch {}
+        try {
+          await tenantDb.execute(
+            sql`DELETE FROM room_keys WHERE room_id = ${roomId}`,
+          );
+        } catch {}
+        try {
+          await tenantDb.execute(
+            sql`DELETE FROM room_locks WHERE room_id = ${roomId}`,
+          );
+        } catch {}
+        try {
+          await tenantDb.execute(
+            sql`DELETE FROM reservations WHERE room_id = ${roomId}`,
+          );
+        } catch {}
+        try {
+          await tenantDb.execute(
+            sql`DELETE FROM assignments WHERE room_id = ${roomId} AND status != 'ACTIVE'`,
+          );
+        } catch {}
+        try {
+          await tenantDb.execute(
+            sql`DELETE FROM hostings WHERE room_id = ${roomId}`,
+          );
+        } catch {}
+        try {
+          await tenantDb.execute(
+            sql`DELETE FROM maintenance WHERE room_id = ${roomId}`,
+          );
+        } catch {}
+        try {
+          await tenantDb.execute(
+            sql`DELETE FROM room_inventory WHERE room_id = ${roomId}`,
+          );
+        } catch {}
 
-        await tenantDb
-          .delete(roomsTable)
-          .where(eq(roomsTable.id, roomId));
+        await tenantDb.delete(roomsTable).where(eq(roomsTable.id, roomId));
         return { success: true, room };
       });
 

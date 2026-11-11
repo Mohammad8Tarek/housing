@@ -94,12 +94,7 @@ type Props = {
   bLoading: boolean;
 };
 
-export function BuildingsTab({
-  propertyId,
-  buildings,
-  floors,
-  rooms,
-}: Props) {
+export function BuildingsTab({ propertyId, buildings, floors, rooms }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
@@ -109,7 +104,7 @@ export function BuildingsTab({
 
   const { data: lookupRoomTypes = [] } = useLookupValues(
     propertyId,
-    LOOKUP_CATEGORIES.ROOM_TYPE
+    LOOKUP_CATEGORIES.ROOM_TYPE,
   );
 
   const activeLookupTypes = lookupRoomTypes.filter((t: any) => !t.disabled);
@@ -168,13 +163,20 @@ export function BuildingsTab({
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch]);
-  
-  const { data: _bDataWrapper, isLoading: bLoadingQuery, isFetching: bFetching } = useListBuildings({
-    propertyId,
-    limit: pageSize,
-    page: currentPage,
-    search: debouncedSearch,
-  } as any, { query: { placeholderData: (prev: any) => prev } as any });
+
+  const {
+    data: _bDataWrapper,
+    isLoading: bLoadingQuery,
+    isFetching: bFetching,
+  } = useListBuildings(
+    {
+      propertyId,
+      limit: pageSize,
+      page: currentPage,
+      search: debouncedSearch,
+    } as any,
+    { query: { placeholderData: (prev: any) => prev } as any },
+  );
 
   const paginatedBuildings = (_bDataWrapper as any)?.data || [];
   const paginationMeta = (_bDataWrapper as any)?.pagination || { total: 0 };
@@ -275,14 +277,14 @@ export function BuildingsTab({
           }
 
           setIsBuildingGenerating(true);
-            // 1. Create Building
-            const bData = await createBuildingMut.mutateAsync({
-              data: {
-                ...bForm,
-                capacity: smartTotalBeds,
-                propertyId,
-              }
-            });
+          // 1. Create Building
+          const bData = await createBuildingMut.mutateAsync({
+            data: {
+              ...bForm,
+              capacity: smartTotalBeds,
+              propertyId,
+            },
+          });
           const newBuildingId = bData.id;
 
           // 2. Create Floors & Rooms sequentially to avoid overwhelming the DB
@@ -292,7 +294,7 @@ export function BuildingsTab({
                 propertyId,
                 buildingId: newBuildingId,
                 floorNumber: fc.floorNumber,
-              }
+              },
             });
             const newFloorId = fData.id;
 
@@ -315,7 +317,9 @@ export function BuildingsTab({
             for (let i = 0; i < roomsData.length; i += chunkSize) {
               const chunk = roomsData.slice(i, i + chunkSize);
               await Promise.all(
-                chunk.map((rData) => createRoomMut.mutateAsync({ data: rData })),
+                chunk.map((rData) =>
+                  createRoomMut.mutateAsync({ data: rData }),
+                ),
               );
             }
           }
@@ -336,7 +340,9 @@ export function BuildingsTab({
               propertyId,
             },
           });
-          toast.success(ar ? "تمت إضافة المبنى بنجاح" : "Building created successfully");
+          toast.success(
+            ar ? "تمت إضافة المبنى بنجاح" : "Building created successfully",
+          );
           invalidateAllHousingQueries();
           setBuildingModal(false);
         }
@@ -351,7 +357,11 @@ export function BuildingsTab({
   const confirmDeleteBuilding = async () => {
     if (!deleteBuilding) return;
     if (deleteBuilding.id === undefined) {
-      toast.error(ar ? "خطأ: معرف المبنى غير محدد" : "Error: Building ID is undefined! Cannot delete.");
+      toast.error(
+        ar
+          ? "خطأ: معرف المبنى غير محدد"
+          : "Error: Building ID is undefined! Cannot delete.",
+      );
       return;
     }
     try {
@@ -399,22 +409,34 @@ export function BuildingsTab({
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}>
+                <th
+                  className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}
+                >
                   {ar ? "الاسم" : "Name"}
                 </th>
-                <th className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}>
+                <th
+                  className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}
+                >
                   {ar ? "الموقع" : "Location"}
                 </th>
-                <th className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}>
+                <th
+                  className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}
+                >
                   {ar ? "الطوابق" : "Floors"}
                 </th>
-                <th className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}>
+                <th
+                  className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}
+                >
                   {ar ? "الغرف" : "Rooms"}
                 </th>
-                <th className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}>
+                <th
+                  className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}
+                >
                   {ar ? "السعة" : "Capacity"}
                 </th>
-                <th className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}>
+                <th
+                  className={`p-3 font-semibold text-muted-foreground ${ar ? "text-right" : "text-left"}`}
+                >
                   {ar ? "الحالة" : "Status"}
                 </th>
                 <th className="p-3" />
@@ -422,10 +444,32 @@ export function BuildingsTab({
             </thead>
             <tbody className="divide-y">
               {paginatedBuildings.map((b: any) => {
-                const bFloorsCount = b.floorsCount !== undefined ? b.floorsCount : floors.filter((f) => f.buildingId === b.id).length;
-                const bRoomsCount = b.roomsCount !== undefined ? b.roomsCount : rooms.filter((r) => r.buildingId === b.id).length;
-                const realCapacity = b.totalCapacity !== undefined ? b.totalCapacity : rooms.filter((r) => r.buildingId === b.id).reduce((s: number, r: any) => s + (r.capacity || 0), 0);
-                const realOccupancy = b.currentOccupancy !== undefined ? b.currentOccupancy : rooms.filter((r) => r.buildingId === b.id).reduce((s: number, r: any) => s + (r.currentOccupancy || 0), 0);
+                const bFloorsCount =
+                  b.floorsCount !== undefined
+                    ? b.floorsCount
+                    : floors.filter((f) => f.buildingId === b.id).length;
+                const bRoomsCount =
+                  b.roomsCount !== undefined
+                    ? b.roomsCount
+                    : rooms.filter((r) => r.buildingId === b.id).length;
+                const realCapacity =
+                  b.totalCapacity !== undefined
+                    ? b.totalCapacity
+                    : rooms
+                        .filter((r) => r.buildingId === b.id)
+                        .reduce(
+                          (s: number, r: any) => s + (r.capacity || 0),
+                          0,
+                        );
+                const realOccupancy =
+                  b.currentOccupancy !== undefined
+                    ? b.currentOccupancy
+                    : rooms
+                        .filter((r) => r.buildingId === b.id)
+                        .reduce(
+                          (s: number, r: any) => s + (r.currentOccupancy || 0),
+                          0,
+                        );
                 return (
                   <tr
                     key={b.id}
@@ -446,16 +490,22 @@ export function BuildingsTab({
                       </span>
                     </td>
                     <td className="p-3">
-                      <Badge variant="secondary" className="font-medium">{bFloorsCount}</Badge>
+                      <Badge variant="secondary" className="font-medium">
+                        {bFloorsCount}
+                      </Badge>
                     </td>
                     <td className="p-3">
-                      <Badge variant="secondary" className="font-medium">{bRoomsCount}</Badge>
+                      <Badge variant="secondary" className="font-medium">
+                        {bRoomsCount}
+                      </Badge>
                     </td>
                     <td className="p-3">
                       <div className="flex flex-col gap-0.5">
                         <span className="flex items-center gap-1 font-medium text-foreground">
                           <Users className="w-3.5 h-3.5 text-primary" />
-                          <span>{realCapacity} {ar ? "سرير" : "beds"}</span>
+                          <span>
+                            {realCapacity} {ar ? "سرير" : "beds"}
+                          </span>
                         </span>
                         {realCapacity > 0 && (
                           <span className="text-[11px] text-muted-foreground">
@@ -465,8 +515,15 @@ export function BuildingsTab({
                           </span>
                         )}
                         {b.capacity > 0 && b.capacity !== realCapacity && (
-                          <span className="text-[10px] text-muted-foreground/60" title={ar ? "السعة الاسمية المسجلة" : "Nominal capacity"}>
-                            {ar ? `الاسمية: ${b.capacity}` : `Nominal: ${b.capacity}`}
+                          <span
+                            className="text-[10px] text-muted-foreground/60"
+                            title={
+                              ar ? "السعة الاسمية المسجلة" : "Nominal capacity"
+                            }
+                          >
+                            {ar
+                              ? `الاسمية: ${b.capacity}`
+                              : `Nominal: ${b.capacity}`}
                           </span>
                         )}
                       </div>
@@ -590,13 +647,18 @@ export function BuildingsTab({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>{ar ? "السعة الاستيعابية (الاسمية)" : "Nominal Capacity"}</Label>
+                <Label>
+                  {ar ? "السعة الاستيعابية (الاسمية)" : "Nominal Capacity"}
+                </Label>
                 <Input
                   type="number"
                   min={0}
                   value={bForm.capacity || ""}
                   onChange={(e) =>
-                    setBForm((p) => ({ ...p, capacity: Number(e.target.value) || 0 }))
+                    setBForm((p) => ({
+                      ...p,
+                      capacity: Number(e.target.value) || 0,
+                    }))
                   }
                   placeholder={ar ? "مثال: 50" : "e.g. 50"}
                 />
@@ -760,11 +822,14 @@ export function BuildingsTab({
                                         {t}
                                       </SelectItem>
                                     ))}
-                                    {fc.roomType && !activeRoomTypeNames.includes(fc.roomType) && (
-                                      <SelectItem value={fc.roomType}>
-                                        {fc.roomType}
-                                      </SelectItem>
-                                    )}
+                                    {fc.roomType &&
+                                      !activeRoomTypeNames.includes(
+                                        fc.roomType,
+                                      ) && (
+                                        <SelectItem value={fc.roomType}>
+                                          {fc.roomType}
+                                        </SelectItem>
+                                      )}
                                   </SelectContent>
                                 </Select>
                               </div>
@@ -942,9 +1007,15 @@ export function BuildingsTab({
             </AlertDialogTitle>
             <AlertDialogDescription>
               {(() => {
-                const bFloorsCount = deleteBuilding ? floors.filter(f => f.buildingId === deleteBuilding.id).length : 0;
-                const bRoomsCount = deleteBuilding ? rooms.filter(r => r.buildingId === deleteBuilding.id).length : 0;
-                
+                const bFloorsCount = deleteBuilding
+                  ? floors.filter((f) => f.buildingId === deleteBuilding.id)
+                      .length
+                  : 0;
+                const bRoomsCount = deleteBuilding
+                  ? rooms.filter((r) => r.buildingId === deleteBuilding.id)
+                      .length
+                  : 0;
+
                 if (bRoomsCount > 0) {
                   return ar
                     ? `هذا المبنى يحتوي على ${bFloorsCount} طوابق و ${bRoomsCount} غرف. هل أنت متأكد من رغبتك في حذف المبنى مع جميع غرفه نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`

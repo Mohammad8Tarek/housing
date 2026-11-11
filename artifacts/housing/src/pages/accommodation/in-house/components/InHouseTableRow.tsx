@@ -71,15 +71,20 @@ export function InHouseTableRow({
 }: Props) {
   const emp = empMap[a.profileId];
   const room = roomMap[a.roomId];
-  const building = a.buildingName || (room ? buildingMap[room.buildingId] : null);
-  const floorNum = a.floorNumber ?? (room ? floorMap[room.floorId]?.number : null);
-  const roomNum = a.roomNumber || room?.roomNumber || (a.roomId ? `#${a.roomId}` : "—");
+  const building =
+    a.buildingName || (room ? buildingMap[room.buildingId] : null);
+  const floorNum =
+    a.floorNumber ?? (room ? floorMap[room.floorId]?.number : null);
+  const roomNum =
+    a.roomNumber || room?.roomNumber || (a.roomId ? `#${a.roomId}` : "—");
   const roomType = a.roomType || room?.roomType;
 
   const profileObj = buildProfileObj(a, emp);
 
-  const fullName = getProfileDisplayName(profileObj, ar) || (ar ? "بدون اسم" : "Unknown");
-  const profileCode = a.profileCode || emp?.profileId || (a.profileId ? String(a.profileId) : "");
+  const fullName =
+    getProfileDisplayName(profileObj, ar) || (ar ? "بدون اسم" : "Unknown");
+  const profileCode =
+    a.profileCode || emp?.profileId || (a.profileId ? String(a.profileId) : "");
   const department = getProfileDisplayDepartment(profileObj, ar);
   const nationality = a.profileNationality || (emp as any)?.nationality;
   const photoUrl = a.profilePhotoUrl || emp?.photoUrl;
@@ -88,21 +93,16 @@ export function InHouseTableRow({
     ? differenceInDays(new Date(), new Date(a.checkInDate))
     : 0;
   const daysRemaining = a.expectedCheckOutDate
-    ? differenceInDays(
-        new Date(a.expectedCheckOutDate),
-        new Date(),
-      )
+    ? differenceInDays(new Date(a.expectedCheckOutDate), new Date())
     : null;
   const isAlert =
-    daysRemaining !== null &&
-    daysRemaining <= 3 &&
-    daysRemaining >= 0;
+    daysRemaining !== null && daysRemaining <= 3 && daysRemaining >= 0;
   const isOverdue = daysRemaining !== null && daysRemaining < 0;
   const isEntire = Boolean(
     a.isEntireRoom ||
     (a as any).is_entire_room ||
     a.notes?.includes("[حجز الغرفة بالكامل]") ||
-    a.notes?.includes("[تسكين الغرفة بالكامل]")
+    a.notes?.includes("[تسكين الغرفة بالكامل]"),
   );
   const displayBed = a.bedNumber ?? (isEntire ? 1 : null);
 
@@ -132,7 +132,9 @@ export function InHouseTableRow({
             <div className="flex flex-col min-w-0">
               <button
                 type="button"
-                onClick={() => a.profileId && actions.onOpenProfile(a.profileId)}
+                onClick={() =>
+                  a.profileId && actions.onOpenProfile(a.profileId)
+                }
                 className="font-semibold text-foreground text-sm leading-tight text-left rtl:text-right hover:text-primary hover:underline transition-colors truncate"
               >
                 {fullName}
@@ -191,13 +193,19 @@ export function InHouseTableRow({
                 {roomNum}
               </span>
               {displayBed ? (
-                <Badge variant="secondary" className="text-xs font-semibold px-1.5 py-0">
+                <Badge
+                  variant="secondary"
+                  className="text-xs font-semibold px-1.5 py-0"
+                >
                   <BedDouble className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
                   {ar ? `سرير ${displayBed}` : `Bed ${displayBed}`}
                 </Badge>
               ) : null}
               {isEntire && (
-                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 text-[11px] px-1.5 py-0 font-medium">
+                <Badge
+                  variant="outline"
+                  className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300 text-[11px] px-1.5 py-0 font-medium"
+                >
                   {ar ? "غرفة كاملة" : "Entire"}
                 </Badge>
               )}
@@ -242,12 +250,18 @@ export function InHouseTableRow({
                 {formatDate(a.expectedCheckOutDate)}
               </span>
               {isOverdue && (
-                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 font-bold w-fit mt-0.5">
+                <Badge
+                  variant="destructive"
+                  className="text-[10px] px-1.5 py-0 font-bold w-fit mt-0.5"
+                >
                   {ar ? "متأخر" : "Overdue"}
                 </Badge>
               )}
               {isAlert && !isOverdue && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-bold border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 w-fit mt-0.5">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 font-bold border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 w-fit mt-0.5"
+                >
                   {daysRemaining} {ar ? "يوم متبقي" : "d left"}
                 </Badge>
               )}
@@ -267,13 +281,24 @@ export function InHouseTableRow({
       {isIHVisible("personStatus") && (
         <TableCell className="py-3">
           {(() => {
-            const pStatus = ((a as any).profileStatus || emp?.status || "").toUpperCase();
+            const pStatus = (
+              (a as any).profileStatus ||
+              emp?.status ||
+              ""
+            ).toUpperCase();
             const isVacation = pStatus === "VACATION";
-            const isCheckedOut = a.status === "CHECKED_OUT" || a.status === "LEFT" || pStatus === "LEFT" || pStatus === "CHECKED_OUT";
+            const isCheckedOut =
+              a.status === "CHECKED_OUT" ||
+              a.status === "LEFT" ||
+              pStatus === "LEFT" ||
+              pStatus === "CHECKED_OUT";
 
             if (isCheckedOut) {
               return (
-                <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 text-xs gap-1 font-medium whitespace-nowrap">
+                <Badge
+                  variant="outline"
+                  className="bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 text-xs gap-1 font-medium whitespace-nowrap"
+                >
                   <LogOut className="w-3 h-3" />
                   {ar ? "مغادر" : "Checked Out"}
                 </Badge>
@@ -281,16 +306,22 @@ export function InHouseTableRow({
             }
 
             if (isVacation) {
-              const returnDate = (a as any).vacationEndDate || emp?.vacationEndDate;
+              const returnDate =
+                (a as any).vacationEndDate || emp?.vacationEndDate;
               return (
                 <div className="flex flex-col gap-0.5 items-start">
-                  <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 text-xs font-semibold gap-1 whitespace-nowrap">
+                  <Badge
+                    variant="outline"
+                    className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 text-xs font-semibold gap-1 whitespace-nowrap"
+                  >
                     <Palmtree className="w-3 h-3 text-amber-600" />
                     {ar ? "في إجازة" : "On Vacation"}
                   </Badge>
                   {returnDate && (
                     <span className="text-[10px] text-muted-foreground font-mono">
-                      {ar ? `عودة: ${formatDate(returnDate)}` : `Return: ${formatDate(returnDate)}`}
+                      {ar
+                        ? `عودة: ${formatDate(returnDate)}`
+                        : `Return: ${formatDate(returnDate)}`}
                     </span>
                   )}
                 </div>
@@ -298,7 +329,10 @@ export function InHouseTableRow({
             }
 
             return (
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 text-xs font-semibold gap-1 whitespace-nowrap">
+              <Badge
+                variant="outline"
+                className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 text-xs font-semibold gap-1 whitespace-nowrap"
+              >
                 <UserCheck className="w-3 h-3 text-emerald-600" />
                 {ar ? "مقيم بالسكن" : "In-House"}
               </Badge>
@@ -324,7 +358,17 @@ export function InHouseTableRow({
             <DropdownMenuContent align="end" className="w-48">
               <PermissionGate module="accommodation" action="edit">
                 <DropdownMenuItem
-                  onClick={() => actions.onExtend(a, emp || { id: a.profileId, firstName: a.profileFirstName, lastName: a.profileLastName }, room || { id: a.roomId, roomNumber: a.roomNumber })}
+                  onClick={() =>
+                    actions.onExtend(
+                      a,
+                      emp || {
+                        id: a.profileId,
+                        firstName: a.profileFirstName,
+                        lastName: a.profileLastName,
+                      },
+                      room || { id: a.roomId, roomNumber: a.roomNumber },
+                    )
+                  }
                   className="text-primary font-medium"
                 >
                   <CalendarPlus className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-primary" />
@@ -336,7 +380,11 @@ export function InHouseTableRow({
                   onClick={() => {
                     actions.onReissueKey(
                       a,
-                      emp || { id: a.profileId, firstName: a.profileFirstName, lastName: a.profileLastName },
+                      emp || {
+                        id: a.profileId,
+                        firstName: a.profileFirstName,
+                        lastName: a.profileLastName,
+                      },
                       room || { id: a.roomId, roomNumber: a.roomNumber },
                     );
                   }}
@@ -365,15 +413,35 @@ export function InHouseTableRow({
               <PermissionGate module="accommodation" action="edit">
                 <DropdownMenuItem
                   onClick={() => {
-                    if (emp?.status === "VACATION" || (a as any).profileStatus === "VACATION") {
-                      actions.onReturnFromVacation(emp || { id: a.profileId, firstName: a.profileFirstName });
+                    if (
+                      emp?.status === "VACATION" ||
+                      (a as any).profileStatus === "VACATION"
+                    ) {
+                      actions.onReturnFromVacation(
+                        emp || {
+                          id: a.profileId,
+                          firstName: a.profileFirstName,
+                        },
+                      );
                     } else {
-                      actions.onSetVacation(emp || { id: a.profileId, firstName: a.profileFirstName }, room);
+                      actions.onSetVacation(
+                        emp || {
+                          id: a.profileId,
+                          firstName: a.profileFirstName,
+                        },
+                        room,
+                      );
                     }
                   }}
-                  className={(emp?.status === "VACATION" || (a as any).profileStatus === "VACATION") ? "text-emerald-600 font-medium" : "text-amber-600 font-medium"}
+                  className={
+                    emp?.status === "VACATION" ||
+                    (a as any).profileStatus === "VACATION"
+                      ? "text-emerald-600 font-medium"
+                      : "text-amber-600 font-medium"
+                  }
                 >
-                  {(emp?.status === "VACATION" || (a as any).profileStatus === "VACATION") ? (
+                  {emp?.status === "VACATION" ||
+                  (a as any).profileStatus === "VACATION" ? (
                     <>
                       <CheckCircle className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-600" />
                       {ar ? "تسجيل عودة من الإجازة" : "Return from Vacation"}
@@ -386,17 +454,29 @@ export function InHouseTableRow({
                   )}
                 </DropdownMenuItem>
               </PermissionGate>
-              <PermissionGate anyPermission={[["whatsapp", "create"], ["accommodation", "edit"]]}>
+              <PermissionGate
+                anyPermission={[
+                  ["whatsapp", "create"],
+                  ["accommodation", "edit"],
+                ]}
+              >
                 <DropdownMenuItem
                   onClick={() => {
                     actions.onWhatsApp(a, emp);
                   }}
                 >
                   <MessageSquare className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0 text-emerald-600" />
-                  {ar ? "إرسال تفاصيل التسكين (واتساب)" : "Send WhatsApp Welcome"}
+                  {ar
+                    ? "إرسال تفاصيل التسكين (واتساب)"
+                    : "Send WhatsApp Welcome"}
                 </DropdownMenuItem>
               </PermissionGate>
-              <PermissionGate anyPermission={[["accommodation", "checkout"], ["accommodation", "edit"]]}>
+              <PermissionGate
+                anyPermission={[
+                  ["accommodation", "checkout"],
+                  ["accommodation", "edit"],
+                ]}
+              >
                 <DropdownMenuItem
                   onClick={() => {
                     actions.onCheckout(a, emp);
@@ -406,7 +486,12 @@ export function InHouseTableRow({
                   {ar ? "خروج" : "Checkout"}
                 </DropdownMenuItem>
               </PermissionGate>
-              <PermissionGate anyPermission={[["accommodation", "transfer"], ["accommodation", "edit"]]}>
+              <PermissionGate
+                anyPermission={[
+                  ["accommodation", "transfer"],
+                  ["accommodation", "edit"],
+                ]}
+              >
                 <DropdownMenuItem
                   onClick={() => {
                     actions.onTransfer(a, emp);

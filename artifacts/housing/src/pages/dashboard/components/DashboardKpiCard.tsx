@@ -41,7 +41,8 @@ export function DashboardKpiCard({
   const points = sparklineData
     .map((val, i) => {
       const x = (i / (sparklineData.length - 1)) * width;
-      const y = height - ((val - minVal) / (maxVal - minVal)) * (height - 6) - 3;
+      const y =
+        height - ((val - minVal) / (maxVal - minVal)) * (height - 6) - 3;
       return `${x},${y}`;
     })
     .join(" ");
@@ -69,7 +70,9 @@ export function DashboardKpiCard({
           <div className="min-w-0">
             <div
               className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${
-                alert ? "text-orange-600 dark:text-orange-400" : "text-foreground"
+                alert
+                  ? "text-orange-600 dark:text-orange-400"
+                  : "text-foreground"
               }`}
             >
               {value}
@@ -83,8 +86,8 @@ export function DashboardKpiCard({
                     delta.isNeutral
                       ? "bg-muted text-muted-foreground"
                       : delta.isPositive
-                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                      : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
                   }`}
                 >
                   {delta.isNeutral ? (
@@ -99,7 +102,10 @@ export function DashboardKpiCard({
               )}
 
               {sub && (
-                <span className="text-[11px] text-muted-foreground truncate" title={sub}>
+                <span
+                  className="text-[11px] text-muted-foreground truncate"
+                  title={sub}
+                >
                   {sub}
                 </span>
               )}
@@ -112,7 +118,13 @@ export function DashboardKpiCard({
               <svg width={width} height={height} className="overflow-visible">
                 <polyline
                   fill="none"
-                  stroke={alert ? "#f97316" : delta?.isPositive ? "#10b981" : "#6366f1"}
+                  stroke={
+                    alert
+                      ? "#f97316"
+                      : delta?.isPositive
+                        ? "#10b981"
+                        : "#6366f1"
+                  }
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"

@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { generateKeyPairSync } from "node:crypto";
-import { sendFcmToToken, isFcmConfigured, _resetFcmCache } from "../fcm-service.js";
+import {
+  sendFcmToToken,
+  isFcmConfigured,
+  _resetFcmCache,
+} from "../fcm-service.js";
 
 const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const pem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
@@ -41,14 +45,25 @@ describe("fcm-service", () => {
         const body = init.body as URLSearchParams;
         expect(body.get("grant_type")).toContain("jwt-bearer");
         expect(body.get("assertion")!.split(".")).toHaveLength(3);
-        return new Response(JSON.stringify({ access_token: "tok-1", expires_in: 3600 }), { status: 200 });
+        return new Response(
+          JSON.stringify({ access_token: "tok-1", expires_in: 3600 }),
+          { status: 200 },
+        );
       }
       return new Response("{}", { status: 200 });
     }) as any;
 
     expect(isFcmConfigured()).toBe(true);
-    const r1 = await sendFcmToToken("device-abc", { title: "Hi", body: "Body", url: "/dashboard", tag: "t1" });
-    const r2 = await sendFcmToToken("device-abc", { title: "Hi", body: "Body" });
+    const r1 = await sendFcmToToken("device-abc", {
+      title: "Hi",
+      body: "Body",
+      url: "/dashboard",
+      tag: "t1",
+    });
+    const r2 = await sendFcmToToken("device-abc", {
+      title: "Hi",
+      body: "Body",
+    });
     expect(r1).toEqual({ ok: true });
     expect(r2).toEqual({ ok: true });
 
@@ -68,10 +83,18 @@ describe("fcm-service", () => {
   it("flags UNREGISTERED tokens so callers can prune them", async () => {
     globalThis.fetch = vi.fn(async (url: any) => {
       if (String(url).includes("oauth2")) {
-        return new Response(JSON.stringify({ access_token: "tok", expires_in: 3600 }), { status: 200 });
+        return new Response(
+          JSON.stringify({ access_token: "tok", expires_in: 3600 }),
+          { status: 200 },
+        );
       }
       return new Response(
-        JSON.stringify({ error: { status: "NOT_FOUND", details: [{ errorCode: "UNREGISTERED" }] } }),
+        JSON.stringify({
+          error: {
+            status: "NOT_FOUND",
+            details: [{ errorCode: "UNREGISTERED" }],
+          },
+        }),
         { status: 404 },
       );
     }) as any;
@@ -83,9 +106,15 @@ describe("fcm-service", () => {
   it("does not treat transient errors as unregistered", async () => {
     globalThis.fetch = vi.fn(async (url: any) => {
       if (String(url).includes("oauth2")) {
-        return new Response(JSON.stringify({ access_token: "tok", expires_in: 3600 }), { status: 200 });
+        return new Response(
+          JSON.stringify({ access_token: "tok", expires_in: 3600 }),
+          { status: 200 },
+        );
       }
-      return new Response(JSON.stringify({ error: { status: "UNAVAILABLE" } }), { status: 503 });
+      return new Response(
+        JSON.stringify({ error: { status: "UNAVAILABLE" } }),
+        { status: 503 },
+      );
     }) as any;
 
     const r = await sendFcmToToken("alive", { title: "x", body: "y" });

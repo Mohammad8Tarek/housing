@@ -3,7 +3,6 @@
 // Opera PMS column alignment, width allocation and cell styles.
 // ============================================================================
 
-
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 // 3.4 Helper: Detect multi-item lists, notes, descriptions, and addresses
@@ -135,9 +134,18 @@ export function computeReportColumnWidths(
   const colCount = headers.length + 1; // including sequence column
 
   // 1. Sequence column percentage (compact: strictly 1.8% - 2.5% in landscape, 2.5% - 3.2% in portrait)
-  const seqWidthPct = orientation === "landscape"
-    ? (colCount >= 14 ? 1.8 : colCount >= 9 ? 2.2 : 2.6)
-    : (colCount >= 12 ? 2.6 : colCount >= 8 ? 3.0 : 3.4);
+  const seqWidthPct =
+    orientation === "landscape"
+      ? colCount >= 14
+        ? 1.8
+        : colCount >= 9
+          ? 2.2
+          : 2.6
+      : colCount >= 12
+        ? 2.6
+        : colCount >= 8
+          ? 3.0
+          : 3.4;
 
   const availablePct = 100.0 - seqWidthPct;
 
@@ -189,7 +197,8 @@ export function computeReportColumnWidths(
       }
     }
 
-    const avgCellLen = validCellCount > 0 ? totalCellChars / validCellCount : maxCellLen;
+    const avgCellLen =
+      validCellCount > 0 ? totalCellChars / validCellCount : maxCellLen;
 
     // Detect semantic column characteristics
     const isFixedSingleLine =
@@ -267,20 +276,32 @@ export function computeReportColumnWidths(
     const minTokenFloor = tokenMax + 2.0;
 
     // Effective length to display
-    const effLen = m.maxCellLen > 0 ? Math.max(m.maxCellLen, m.headerTotalLen * 0.75) : m.headerTotalLen;
+    const effLen =
+      m.maxCellLen > 0
+        ? Math.max(m.maxCellLen, m.headerTotalLen * 0.75)
+        : m.headerTotalLen;
 
     if (m.isFixedSingleLine) {
       // National ID / Passport / National Number (14 digits) MUST NEVER truncate or get squeezed
       if (/national|قومي|passport|جواز|هوية/i.test(m.norm)) {
-        return Math.max(minTokenFloor, Math.max(22, (m.maxCellLen || 14) * 1.45 + 3));
+        return Math.max(
+          minTokenFloor,
+          Math.max(22, (m.maxCellLen || 14) * 1.45 + 3),
+        );
       }
       // Phone / Mobile numbers (+201012345678)
       if (/phone|هاتف|mobile|موبايل|emergency|طوارئ/i.test(m.norm)) {
-        return Math.max(minTokenFloor, Math.max(18, (m.maxCellLen || 12) * 1.35 + 2.5));
+        return Math.max(
+          minTokenFloor,
+          Math.max(18, (m.maxCellLen || 12) * 1.35 + 2.5),
+        );
       }
       // Employee codes & clock numbers (CLK-10023, EMP-1001)
       if (/code|كود|clock|profile/i.test(m.norm)) {
-        return Math.max(minTokenFloor, Math.max(15, (m.maxCellLen || 8) * 1.4 + 2.5));
+        return Math.max(
+          minTokenFloor,
+          Math.max(15, (m.maxCellLen || 8) * 1.4 + 2.5),
+        );
       }
       // Dates (DD-MM-YYYY)
       if (/date|تاريخ|birth|hire|contract|check-in|check-out/i.test(m.norm)) {
@@ -312,10 +333,16 @@ export function computeReportColumnWidths(
     // These columns can and should wrap onto 2-3 lines cleanly instead of starving non-wrapping code/ID columns!
     if (orientation === "landscape") {
       const maxTextCap = colCount >= 18 ? 14 : colCount >= 12 ? 17 : 22;
-      const textDemand = Math.max(m.avgCellLen * 0.85 + 2.0, effLen * 0.75 + 2.5);
+      const textDemand = Math.max(
+        m.avgCellLen * 0.85 + 2.0,
+        effLen * 0.75 + 2.5,
+      );
       return Math.max(minTokenFloor, Math.min(maxTextCap, textDemand));
     } else {
-      const textDemand = Math.max(m.avgCellLen * 0.6 + 1.8, effLen * 0.55 + 2.0);
+      const textDemand = Math.max(
+        m.avgCellLen * 0.6 + 1.8,
+        effLen * 0.55 + 2.0,
+      );
       return Math.max(minTokenFloor, Math.min(14, textDemand));
     }
   });
@@ -330,22 +357,29 @@ export function computeReportColumnWidths(
 
   // Round to 1 decimal place with adaptive minimum percentage based on total column count
   // Guaranteeing at least 2.4% - 4.5% so short headers like 'Level' or 'Bed' never get truncated!
-  const minColPct = colCount >= 20 ? 2.4 : colCount >= 16 ? 3.0 : colCount >= 12 ? 3.8 : 4.5;
-  const roundedColWidths = rawColWidths.map((w) => Math.max(minColPct, Math.round(w * 10) / 10));
+  const minColPct =
+    colCount >= 20 ? 2.4 : colCount >= 16 ? 3.0 : colCount >= 12 ? 3.8 : 4.5;
+  const roundedColWidths = rawColWidths.map((w) =>
+    Math.max(minColPct, Math.round(w * 10) / 10),
+  );
 
   // Re-balance so sum equals availablePct exactly
   const interimSum = roundedColWidths.reduce((a, b) => a + b, 0);
-  const reAdjustedWidths = roundedColWidths.map((w) => Math.round((w / interimSum) * availablePct * 10) / 10);
+  const reAdjustedWidths = roundedColWidths.map(
+    (w) => Math.round((w / interimSum) * availablePct * 10) / 10,
+  );
 
   // Distribute residual decimal difference to the widest column so sum is EXACTLY 100.0%
-  const currentTotal = seqWidthPct + reAdjustedWidths.reduce((a, b) => a + b, 0);
+  const currentTotal =
+    seqWidthPct + reAdjustedWidths.reduce((a, b) => a + b, 0);
   const delta = Math.round((100.0 - currentTotal) * 10) / 10;
   if (delta !== 0) {
     let maxIdx = 0;
     for (let i = 1; i < demands.length; i++) {
       if (demands[i] > demands[maxIdx]) maxIdx = i;
     }
-    reAdjustedWidths[maxIdx] = Math.round((reAdjustedWidths[maxIdx] + delta) * 10) / 10;
+    reAdjustedWidths[maxIdx] =
+      Math.round((reAdjustedWidths[maxIdx] + delta) * 10) / 10;
   }
 
   return { seqWidthPct, colWidthsPct: reAdjustedWidths };
@@ -360,14 +394,17 @@ export function computeReportColumnWidths(
  * Intelligent column styling and whitespace handling for Opera PMS tables.
  * Distributes available width cleanly without hard min-widths that cause page blowout.
  */
-export function getOperaColumnStyle(headerName: string, isArabic: boolean): string {
+export function getOperaColumnStyle(
+  headerName: string,
+  isArabic: boolean,
+): string {
   const norm = (headerName || "").toLowerCase().trim();
-  
+
   // Sequence numbering column — tightly constrained
   if (norm === "#") {
     return "text-align: center; white-space: nowrap; font-weight: 700 !important; color: #000000 !important;";
   }
-  
+
   // Multi-item lists, notes, descriptions, reasons, addresses: MUST WRAP NATURALLY
   if (isMultiItemOrTextColumn(headerName)) {
     return `text-align: ${isArabic ? "right" : "left"}; white-space: normal !important; word-break: break-word !important; overflow-wrap: break-word !important; line-height: 1.3; font-weight: 600 !important; color: #000000 !important;`;
@@ -439,7 +476,9 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("profile / id") ||
     norm.includes("رقم الموظف")
   ) {
-    const endPad = isArabic ? "padding-left: 2px !important;" : "padding-right: 2px !important;";
+    const endPad = isArabic
+      ? "padding-left: 2px !important;"
+      : "padding-right: 2px !important;";
     return `text-align: ${isArabic ? "right" : "left"}; white-space: nowrap !important; font-variant-numeric: tabular-nums; font-weight: 700 !important; color: #000000 !important; ${endPad}`;
   }
 
@@ -496,11 +535,17 @@ export function getOperaColumnStyle(headerName: string, isArabic: boolean): stri
     norm.includes("اسم النزيل") ||
     norm.includes("اسم الموظف") ||
     norm.includes("الاسم بالكامل") ||
-    (norm.includes("الاسم") && !norm.includes("مبنى") && !norm.includes("شركة")) ||
-    (norm.includes("name") && !norm.includes("building") && !norm.includes("company"));
+    (norm.includes("الاسم") &&
+      !norm.includes("مبنى") &&
+      !norm.includes("شركة")) ||
+    (norm.includes("name") &&
+      !norm.includes("building") &&
+      !norm.includes("company"));
 
   if (isPersonNameOnly) {
-    const startPad = isArabic ? "padding-right: 3px !important;" : "padding-left: 3px !important;";
+    const startPad = isArabic
+      ? "padding-right: 3px !important;"
+      : "padding-left: 3px !important;";
     return `text-align: ${isArabic ? "right" : "left"}; white-space: normal !important; word-break: normal !important; overflow-wrap: normal !important; line-height: 1.25; font-weight: 700 !important; color: #000000 !important; ${startPad}`;
   }
 

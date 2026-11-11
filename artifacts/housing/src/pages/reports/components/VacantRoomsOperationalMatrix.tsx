@@ -30,7 +30,11 @@ export function VacantRoomsOperationalMatrix({
     const activeAss = new Map<number, number>();
     const fullLocks = new Map<number, boolean>();
     assignments
-      .filter((a: any) => a.status?.toLowerCase() === "active" || a.status?.toLowerCase() === "vacation")
+      .filter(
+        (a: any) =>
+          a.status?.toLowerCase() === "active" ||
+          a.status?.toLowerCase() === "vacation",
+      )
       .forEach((a: any) => {
         activeAss.set(a.roomId, (activeAss.get(a.roomId) || 0) + 1);
         if (
@@ -119,14 +123,23 @@ export function VacantRoomsOperationalMatrix({
     };
 
     rooms.forEach((r: any) => {
-      const isOoo = ["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(
-        r.status?.toLowerCase()
-      );
+      const isOoo = [
+        "maintenance",
+        "out_of_service",
+        "out_of_order",
+        "oos",
+        "ooo",
+      ].includes(r.status?.toLowerCase());
       if (isOoo) return;
 
       const cap = Number(r.capacity || 1);
       const isFullLock = roomHasFullLock.get(r.id);
-      const occ = isFullLock ? cap : Math.min(cap, Math.max(r.currentOccupancy || 0, activeAssByRoom.get(r.id) || 0));
+      const occ = isFullLock
+        ? cap
+        : Math.min(
+            cap,
+            Math.max(r.currentOccupancy || 0, activeAssByRoom.get(r.id) || 0),
+          );
       const vacant = Math.max(0, cap - occ);
 
       let tierKey = "5+";
@@ -162,14 +175,23 @@ export function VacantRoomsOperationalMatrix({
       let partiallyVacantRooms = 0;
 
       bRooms.forEach((r: any) => {
-        const isOoo = ["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(
-          r.status?.toLowerCase()
-        );
+        const isOoo = [
+          "maintenance",
+          "out_of_service",
+          "out_of_order",
+          "oos",
+          "ooo",
+        ].includes(r.status?.toLowerCase());
         if (isOoo) return;
 
         const cap = Number(r.capacity || 1);
         const isFullLock = roomHasFullLock.get(r.id);
-        const occ = isFullLock ? cap : Math.min(cap, Math.max(r.currentOccupancy || 0, activeAssByRoom.get(r.id) || 0));
+        const occ = isFullLock
+          ? cap
+          : Math.min(
+              cap,
+              Math.max(r.currentOccupancy || 0, activeAssByRoom.get(r.id) || 0),
+            );
         const vacant = Math.max(0, cap - occ);
 
         totalBeds += cap;
@@ -183,7 +205,8 @@ export function VacantRoomsOperationalMatrix({
         }
       });
 
-      const occRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+      const occRate =
+        totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
 
       return {
         id: b.id,
@@ -200,9 +223,18 @@ export function VacantRoomsOperationalMatrix({
     });
   }, [buildings, rooms, activeAssByRoom, roomHasFullLock, buildingMap]);
 
-  const totalVacantBedsAll = capacityStats.reduce((acc, c) => acc + c.vacantBeds, 0);
-  const totalFullyVacantRoomsAll = capacityStats.reduce((acc, c) => acc + c.fullyVacantRooms, 0);
-  const totalPartiallyVacantRoomsAll = capacityStats.reduce((acc, c) => acc + c.partiallyVacantRooms, 0);
+  const totalVacantBedsAll = capacityStats.reduce(
+    (acc, c) => acc + c.vacantBeds,
+    0,
+  );
+  const totalFullyVacantRoomsAll = capacityStats.reduce(
+    (acc, c) => acc + c.fullyVacantRooms,
+    0,
+  );
+  const totalPartiallyVacantRoomsAll = capacityStats.reduce(
+    (acc, c) => acc + c.partiallyVacantRooms,
+    0,
+  );
 
   return (
     <div className="space-y-4 rounded-xl border bg-gradient-to-b from-card to-background p-4 shadow-xs">
@@ -214,9 +246,17 @@ export function VacantRoomsOperationalMatrix({
           </div>
           <div>
             <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
-              <span>{ar ? "مصفوفة السعة التشغيلية وتوزيع الأسرة الشاغرة" : "Operational Bed Capacity & Vacancy Matrix"}</span>
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 font-bold text-xs">
-                {totalVacantBedsAll} {ar ? "سرير شاغر حالياً" : "Vacant Beds Total"}
+              <span>
+                {ar
+                  ? "مصفوفة السعة التشغيلية وتوزيع الأسرة الشاغرة"
+                  : "Operational Bed Capacity & Vacancy Matrix"}
+              </span>
+              <Badge
+                variant="outline"
+                className="bg-emerald-50 text-emerald-700 border-emerald-300 font-bold text-xs"
+              >
+                {totalVacantBedsAll}{" "}
+                {ar ? "سرير شاغر حالياً" : "Vacant Beds Total"}
               </Badge>
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -230,11 +270,19 @@ export function VacantRoomsOperationalMatrix({
         <div className="flex items-center gap-2 shrink-0 text-xs">
           <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-3 py-1.5 rounded-md border border-emerald-200 dark:border-emerald-800">
             <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{totalFullyVacantRoomsAll} {ar ? "غرفة شاغرة كلياً" : "Fully Vacant Rooms"}</span>
+            <span>
+              {totalFullyVacantRoomsAll}{" "}
+              {ar ? "غرفة شاغرة كلياً" : "Fully Vacant Rooms"}
+            </span>
           </div>
           <div className="flex items-center gap-1.5 bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 px-3 py-1.5 rounded-md border border-sky-200 dark:border-sky-800">
             <Users className="w-3.5 h-3.5 text-sky-600" />
-            <span>{totalPartiallyVacantRoomsAll} {ar ? "غرفة شاغرة جزئياً (بها نزل وسرير متاح)" : "Partially Vacant Rooms"}</span>
+            <span>
+              {totalPartiallyVacantRoomsAll}{" "}
+              {ar
+                ? "غرفة شاغرة جزئياً (بها نزل وسرير متاح)"
+                : "Partially Vacant Rooms"}
+            </span>
           </div>
         </div>
       </div>
@@ -244,7 +292,9 @@ export function VacantRoomsOperationalMatrix({
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-indigo-500" />
-            {ar ? "توزيع الغرف والأسرة الشاغرة حسب سعة الغرفة (Room Capacity Breakdown):" : "Rooms and Vacant Beds by Capacity:"}
+            {ar
+              ? "توزيع الغرف والأسرة الشاغرة حسب سعة الغرفة (Room Capacity Breakdown):"
+              : "Rooms and Vacant Beds by Capacity:"}
           </span>
           {onFilterRoomType && currentRoomTypeFilter !== "all" && (
             <button
@@ -262,7 +312,10 @@ export function VacantRoomsOperationalMatrix({
             return (
               <div
                 key={tier.key}
-                onClick={() => onFilterRoomType && onFilterRoomType(isSelected ? "all" : tier.filterVal)}
+                onClick={() =>
+                  onFilterRoomType &&
+                  onFilterRoomType(isSelected ? "all" : tier.filterVal)
+                }
                 className={`relative p-3 rounded-lg border text-left rtl:text-right transition-all cursor-pointer ${
                   isSelected
                     ? "bg-primary/10 border-primary shadow-sm"
@@ -288,7 +341,9 @@ export function VacantRoomsOperationalMatrix({
                 <div className="space-y-1 text-[11px] text-muted-foreground">
                   <div className="flex justify-between">
                     <span>{ar ? "إجمالي الغرف:" : "Total Rooms:"}</span>
-                    <span className="font-semibold text-foreground">{tier.totalRooms}</span>
+                    <span className="font-semibold text-foreground">
+                      {tier.totalRooms}
+                    </span>
                   </div>
                   <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
                     <span>{ar ? "شاغرة كلياً:" : "Fully Vacant:"}</span>
@@ -297,7 +352,9 @@ export function VacantRoomsOperationalMatrix({
                   {tier.key !== "1" && (
                     <div className="flex justify-between text-sky-700 dark:text-sky-400">
                       <span>{ar ? "شاغرة جزئياً:" : "Partially Vacant:"}</span>
-                      <span className="font-bold">{tier.partiallyVacantRooms}</span>
+                      <span className="font-bold">
+                        {tier.partiallyVacantRooms}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -313,7 +370,9 @@ export function VacantRoomsOperationalMatrix({
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
               <Building className="w-3.5 h-3.5 text-amber-500" />
-              {ar ? "الأسرة الشاغرة موزعة حسب المبنى (Vacant Beds per Building):" : "Vacant Beds Breakdown by Building:"}
+              {ar
+                ? "الأسرة الشاغرة موزعة حسب المبنى (Vacant Beds per Building):"
+                : "Vacant Beds Breakdown by Building:"}
             </span>
             {onFilterBuilding && filterBuilding !== "all" && (
               <button
@@ -331,7 +390,10 @@ export function VacantRoomsOperationalMatrix({
               return (
                 <div
                   key={b.id}
-                  onClick={() => onFilterBuilding && onFilterBuilding(isSelected ? "all" : String(b.id))}
+                  onClick={() =>
+                    onFilterBuilding &&
+                    onFilterBuilding(isSelected ? "all" : String(b.id))
+                  }
                   className={`p-3 rounded-lg border transition-all cursor-pointer ${
                     isSelected
                       ? "bg-primary/10 border-primary shadow-sm"
@@ -339,7 +401,9 @@ export function VacantRoomsOperationalMatrix({
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-bold text-xs text-foreground truncate max-w-[140px]">{b.name}</span>
+                    <span className="font-bold text-xs text-foreground truncate max-w-[140px]">
+                      {b.name}
+                    </span>
                     <Badge
                       className={`text-[10px] h-5 px-2 font-bold ${
                         b.vacantBeds > 0
@@ -358,14 +422,17 @@ export function VacantRoomsOperationalMatrix({
                         {b.totalVacantRooms} {ar ? "غرفة" : "rooms"}
                         {b.fullyVacantRooms > 0 && (
                           <span className="text-emerald-600 text-[10px] mr-1 ml-1 font-normal">
-                            ({b.fullyVacantRooms} {ar ? "شاغرة تماماً" : "full"})
+                            ({b.fullyVacantRooms} {ar ? "شاغرة تماماً" : "full"}
+                            )
                           </span>
                         )}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>{ar ? "نسبة الإشغال:" : "Occupancy:"}</span>
-                      <span className="font-semibold text-foreground">{b.occRate}%</span>
+                      <span className="font-semibold text-foreground">
+                        {b.occRate}%
+                      </span>
                     </div>
                   </div>
 
@@ -376,8 +443,8 @@ export function VacantRoomsOperationalMatrix({
                         b.occRate >= 95
                           ? "bg-red-500"
                           : b.occRate >= 80
-                          ? "bg-amber-500"
-                          : "bg-emerald-500"
+                            ? "bg-amber-500"
+                            : "bg-emerald-500"
                       }`}
                       style={{ width: `${Math.min(100, b.occRate)}%` }}
                     />

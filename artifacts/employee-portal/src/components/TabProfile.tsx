@@ -23,7 +23,11 @@ const SAMPLE_DOCS = [
   },
 ];
 
-export default function TabProfile({ employee: propEmployee, photoUrl, onDocTab }: Props) {
+export default function TabProfile({
+  employee: propEmployee,
+  photoUrl,
+  onDocTab,
+}: Props) {
   const { t, lang } = useTheme();
   const isRtl = lang === "ar";
   const [, setLocation] = useLocation();
@@ -47,10 +51,13 @@ export default function TabProfile({ employee: propEmployee, photoUrl, onDocTab 
     address: propEmployee?.address || employee?.address || "",
     photo: propEmployee?.photoUrl || employee?.photoUrl || "",
     email: propEmployee?.email || employee?.email || "",
-    emergencyContact: propEmployee?.emergencyContact || employee?.emergencyContact || "",
+    emergencyContact:
+      propEmployee?.emergencyContact || employee?.emergencyContact || "",
   }));
 
-  const [preview, setPreview] = useState(photoUrl || propEmployee?.photoUrl || employee?.photoUrl || "");
+  const [preview, setPreview] = useState(
+    photoUrl || propEmployee?.photoUrl || employee?.photoUrl || "",
+  );
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -68,14 +75,16 @@ export default function TabProfile({ employee: propEmployee, photoUrl, onDocTab 
   // If native and still no employee, restore from Preferences
   useEffect(() => {
     if (!employee && Capacitor.isNativePlatform()) {
-      Preferences.get({ key: "portal_employee" }).then(({ value }) => {
-        if (value) {
-          try {
-            const parsed = JSON.parse(value);
-            setEmployee((prev: any) => ({ ...prev, ...parsed }));
-          } catch {}
-        }
-      }).catch(() => {});
+      Preferences.get({ key: "portal_employee" })
+        .then(({ value }) => {
+          if (value) {
+            try {
+              const parsed = JSON.parse(value);
+              setEmployee((prev: any) => ({ ...prev, ...parsed }));
+            } catch {}
+          }
+        })
+        .catch(() => {});
     }
   }, [employee]);
 
@@ -132,7 +141,9 @@ export default function TabProfile({ employee: propEmployee, photoUrl, onDocTab 
           sessionStorage.setItem("portal_employee", str);
           localStorage.setItem("portal_employee", str);
           if (Capacitor.isNativePlatform()) {
-            Preferences.set({ key: "portal_employee", value: str }).catch(() => {});
+            Preferences.set({ key: "portal_employee", value: str }).catch(
+              () => {},
+            );
           }
         } catch {}
         return next;
@@ -318,7 +329,10 @@ export default function TabProfile({ employee: propEmployee, photoUrl, onDocTab 
               {employee?.department || ""}
             </p>
             <p className="text-[10px] text-muted2/60 mt-1">
-              ID: {employee?.employeeId || employee?.profileId || (employee?.id ? String(employee.id) : "—")}
+              ID:{" "}
+              {employee?.employeeId ||
+                employee?.profileId ||
+                (employee?.id ? String(employee.id) : "—")}
               {employee?.nationalId && (
                 <span className="ms-3">CID: {employee.nationalId}</span>
               )}

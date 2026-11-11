@@ -20,9 +20,13 @@ export function fmtAssignment(r: Record<string, any>) {
   return out;
 }
 
-export async function findPropertyByAssignmentId(assignmentId: number): Promise<number | null> {
+export async function findPropertyByAssignmentId(
+  assignmentId: number,
+): Promise<number | null> {
   try {
-    const props = await pool.query("SELECT id, schema_name FROM public.properties");
+    const props = await pool.query(
+      "SELECT id, schema_name FROM public.properties",
+    );
     for (const p of props.rows) {
       try {
         const check = await pool.query(

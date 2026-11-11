@@ -107,8 +107,10 @@ export default function Login() {
           (data?.user?.id ? String(data.user.id) : "session_active");
         storeToken(sid, keepLoggedIn);
 
-        const submittedUser = variables?.data?.username || form.getValues("username");
-        const submittedPass = variables?.data?.password || form.getValues("password");
+        const submittedUser =
+          variables?.data?.username || form.getValues("username");
+        const submittedPass =
+          variables?.data?.password || form.getValues("password");
 
         // Save or clear remembered username
         try {
@@ -140,7 +142,9 @@ export default function Login() {
         if (data?.user) {
           queryClient.setQueryData(getGetMeQueryKey(), data.user);
         }
-        toast.success(isAr ? "تم تسجيل الدخول بنجاح" : "Logged in successfully");
+        toast.success(
+          isAr ? "تم تسجيل الدخول بنجاح" : "Logged in successfully",
+        );
         setLocation("/dashboard");
       },
       onError: (error: any) => {
@@ -226,7 +230,8 @@ export default function Login() {
 
         <div className="relative z-10 p-10 pt-0 space-y-1 animate-in fade-in duration-700 delay-300">
           <p className="text-sm text-white/75 font-medium">
-            Copyright &copy; {new Date().getFullYear()} SUNRISE Resorts &amp; Cruises
+            Copyright &copy; {new Date().getFullYear()} SUNRISE Resorts &amp;
+            Cruises
           </p>
         </div>
       </div>

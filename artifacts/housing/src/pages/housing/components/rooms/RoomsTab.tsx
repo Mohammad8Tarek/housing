@@ -104,7 +104,9 @@ export function RoomsTab({
   }, [debouncedSearch, roomBuildingFilter, roomFloorFilter, roomStatusFilter]);
 
   const [pageSize, setPageSize] = useState(10);
-  const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(new Set());
+  const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(
+    new Set(),
+  );
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [qrModalRoom, setQrModalRoom] = useState<any | null>(null);
@@ -121,17 +123,22 @@ export function RoomsTab({
     queryClient.invalidateQueries();
   };
 
-  const { data: _rDataWrapper, isLoading: rLoadingQuery, isFetching: rFetching } = useListRooms(
+  const {
+    data: _rDataWrapper,
+    isLoading: rLoadingQuery,
+    isFetching: rFetching,
+  } = useListRooms(
     {
       propertyId,
       limit: pageSize,
       page: currentPage,
       search: debouncedSearch,
-      buildingId: roomBuildingFilter === "all" ? undefined : Number(roomBuildingFilter),
+      buildingId:
+        roomBuildingFilter === "all" ? undefined : Number(roomBuildingFilter),
       floorId: roomFloorFilter === "all" ? undefined : Number(roomFloorFilter),
       status: roomStatusFilter === "all" ? undefined : roomStatusFilter,
     } as any,
-    { query: { keepPreviousData: true } as any }
+    { query: { keepPreviousData: true } as any },
   );
 
   const rData = (_rDataWrapper as any)?.data || [];
@@ -139,7 +146,10 @@ export function RoomsTab({
   const rLoading = rLoadingQuery && rData.length === 0;
 
   // Fetch all rooms for reliable client-side duplicate room number check
-  const { data: _allRoomsRaw } = useListRooms({ propertyId, limit: 1000 } as any);
+  const { data: _allRoomsRaw } = useListRooms({
+    propertyId,
+    limit: 1000,
+  } as any);
   const allPropertyRooms = (_allRoomsRaw as any)?.data || rData;
 
   const openAddRoom = () => {
@@ -174,7 +184,8 @@ export function RoomsTab({
       classification: r.classification || "",
       separatorDoor: !!r.separatorDoor,
       size: r.size || (r.sizeSqm ? `${r.sizeSqm}m2` : ""),
-      features: typeof r.features === "string" ? r.features : featuresList.join(", "),
+      features:
+        typeof r.features === "string" ? r.features : featuresList.join(", "),
       featuresList,
       notes: r.notes || "",
     });
@@ -189,7 +200,9 @@ export function RoomsTab({
   }, [externalEditRoom]);
 
   const saveRoomHandler = async () => {
-    const buildingFloors = (floors || []).filter((f: any) => Number(f.buildingId) === Number(rForm.buildingId));
+    const buildingFloors = (floors || []).filter(
+      (f: any) => Number(f.buildingId) === Number(rForm.buildingId),
+    );
     if (!rForm.buildingId || !rForm.roomNumber.trim()) {
       toast.error(
         ar
@@ -199,9 +212,7 @@ export function RoomsTab({
       return;
     }
     if (buildingFloors.length > 0 && !rForm.floorId) {
-      toast.error(
-        ar ? "يرجى تحديد الطابق" : "Please select a floor",
-      );
+      toast.error(ar ? "يرجى تحديد الطابق" : "Please select a floor");
       return;
     }
 
@@ -213,7 +224,11 @@ export function RoomsTab({
             .map((s: string) => s.trim())
             .filter(Boolean);
 
-      const effectiveFloorId = rForm.floorId ? Number(rForm.floorId) : buildingFloors[0]?.id ? Number(buildingFloors[0].id) : undefined;
+      const effectiveFloorId = rForm.floorId
+        ? Number(rForm.floorId)
+        : buildingFloors[0]?.id
+          ? Number(buildingFloors[0].id)
+          : undefined;
       if (effectiveFloorId === undefined) {
         toast.error(ar ? "يرجى تحديد الطابق" : "Please select a floor");
         return;
@@ -225,12 +240,17 @@ export function RoomsTab({
         buildingId: Number(rForm.buildingId),
         floorId: effectiveFloorId,
         capacity: Number(rForm.capacity) || 1,
-        gender: rForm.gender === "" || rForm.gender === "__none__" ? null : rForm.gender,
-        status: statusNorm(rForm.status) === "room_vacant" || statusNorm(rForm.status) === "room_and_bed_vacant" 
-          ? "available" 
-          : statusNorm(rForm.status) === "bed_vacant" 
-          ? "available" 
-          : rForm.status || "available",
+        gender:
+          rForm.gender === "" || rForm.gender === "__none__"
+            ? null
+            : rForm.gender,
+        status:
+          statusNorm(rForm.status) === "room_vacant" ||
+          statusNorm(rForm.status) === "room_and_bed_vacant"
+            ? "available"
+            : statusNorm(rForm.status) === "bed_vacant"
+              ? "available"
+              : rForm.status || "available",
         featuresList: computedFeaturesList,
         features: rForm.features || computedFeaturesList.join(", "),
       };
@@ -246,44 +266,46 @@ export function RoomsTab({
         };
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        const res = await fetch(`/api/rooms/${editRoom.id}?propertyId=${propertyId}`, {
-          method: "PATCH",
-          headers,
-          credentials: "include",
-          body: JSON.stringify(dataToSave),
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({ error: "Failed to update room" }));
-          throw new Error(errData.error || errData.message || "Failed to update room");
-        }
-        toast.success(
-          ar ? "تم تحديث الغرفة بنجاح" : "Room Updated",
+        const res = await fetch(
+          `/api/rooms/${editRoom.id}?propertyId=${propertyId}`,
           {
-            description: ar
-              ? "تم حفظ تعديلات الغرفة بنجاح."
-              : "Room details updated successfully.",
+            method: "PATCH",
+            headers,
+            credentials: "include",
+            body: JSON.stringify(dataToSave),
           },
         );
+        if (!res.ok) {
+          const errData = await res
+            .json()
+            .catch(() => ({ error: "Failed to update room" }));
+          throw new Error(
+            errData.error || errData.message || "Failed to update room",
+          );
+        }
+        toast.success(ar ? "تم تحديث الغرفة بنجاح" : "Room Updated", {
+          description: ar
+            ? "تم حفظ تعديلات الغرفة بنجاح."
+            : "Room details updated successfully.",
+        });
       } else {
         await createRoomMut.mutateAsync({ data: dataToSave });
-        toast.success(
-          ar ? "تم إضافة الغرفة بنجاح" : "Room Added",
-          {
-            description: ar
-              ? "تم إضافة الغرفة الجديدة بنجاح."
-              : "New room added successfully.",
-          },
-        );
+        toast.success(ar ? "تم إضافة الغرفة بنجاح" : "Room Added", {
+          description: ar
+            ? "تم إضافة الغرفة الجديدة بنجاح."
+            : "New room added successfully.",
+        });
       }
       invalidateAllHousingQueries();
       setRoomModal(false);
     } catch (err: any) {
-      toast.error(
-        ar ? "فشل الحفظ" : "Save Failed",
-        {
-          description: err.message || (ar ? "حدث خطأ أثناء حفظ بيانات الغرفة" : "An error occurred while saving room details."),
-        },
-      );
+      toast.error(ar ? "فشل الحفظ" : "Save Failed", {
+        description:
+          err.message ||
+          (ar
+            ? "حدث خطأ أثناء حفظ بيانات الغرفة"
+            : "An error occurred while saving room details."),
+      });
     }
   };
 
@@ -294,30 +316,30 @@ export function RoomsTab({
       return;
     }
     try {
-      const res = await fetch(`/api/rooms/${deleteRoom.id}?propertyId=${propertyId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/rooms/${deleteRoom.id}?propertyId=${propertyId}`,
+        {
+          method: "DELETE",
+        },
+      );
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Failed to delete room" }));
+        const data = await res
+          .json()
+          .catch(() => ({ error: "Failed to delete room" }));
         throw new Error(data.error || "Failed to delete room");
       }
       setDeleteRoom(null);
-      toast.success(
-        ar ? "تم حذف الغرفة بنجاح" : "Room Deleted",
-        {
-          description: ar
-            ? "تم حذف الغرفة من النظام بنجاح."
-            : "Room has been deleted successfully.",
-        },
-      );
+      toast.success(ar ? "تم حذف الغرفة بنجاح" : "Room Deleted", {
+        description: ar
+          ? "تم حذف الغرفة من النظام بنجاح."
+          : "Room has been deleted successfully.",
+      });
       invalidateAllHousingQueries();
     } catch (err: any) {
-      toast.error(
-        ar ? "فشل الحذف" : "Delete Failed",
-        {
-          description: err.message || (ar ? "تعذر حذف الغرفة" : "Could not delete room."),
-        },
-      );
+      toast.error(ar ? "فشل الحذف" : "Delete Failed", {
+        description:
+          err.message || (ar ? "تعذر حذف الغرفة" : "Could not delete room."),
+      });
     }
   };
 
@@ -332,39 +354,36 @@ export function RoomsTab({
         body: JSON.stringify({ ids, propertyId }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed to delete" }));
+        const err = await res
+          .json()
+          .catch(() => ({ error: "Failed to delete" }));
         throw new Error(err.error || "Failed to delete");
       }
       const data = await res.json();
       setConfirmBulkDelete(false);
       if (data.skippedCount > 0) {
-        toast.warning(
-          ar ? "تنبيه الحذف" : "Bulk Delete Notice",
-          {
-            description: ar
-              ? `تم حذف ${data.deletedCount} غرفة، وتخطي ${data.skippedCount} غرفة لوجود موظفين مسكنين بها.`
-              : `Deleted ${data.deletedCount} rooms, skipped ${data.skippedCount} with active residents.`,
-          },
-        );
+        toast.warning(ar ? "تنبيه الحذف" : "Bulk Delete Notice", {
+          description: ar
+            ? `تم حذف ${data.deletedCount} غرفة، وتخطي ${data.skippedCount} غرفة لوجود موظفين مسكنين بها.`
+            : `Deleted ${data.deletedCount} rooms, skipped ${data.skippedCount} with active residents.`,
+        });
       } else {
-        toast.success(
-          ar ? "تم الحذف بنجاح" : "Deleted Successfully",
-          {
-            description: ar
-              ? `تم حذف ${data.deletedCount} غرفة بنجاح.`
-              : `Successfully deleted ${data.deletedCount} rooms.`,
-          },
-        );
+        toast.success(ar ? "تم الحذف بنجاح" : "Deleted Successfully", {
+          description: ar
+            ? `تم حذف ${data.deletedCount} غرفة بنجاح.`
+            : `Successfully deleted ${data.deletedCount} rooms.`,
+        });
       }
       setSelectedRoomIds(new Set());
       invalidateAllHousingQueries();
     } catch (e: any) {
-      toast.error(
-        ar ? "فشل الحذف الجماعي" : "Bulk Delete Failed",
-        {
-          description: e.message || (ar ? "حدث خطأ أثناء محاولة الحذف" : "An error occurred during bulk deletion."),
-        },
-      );
+      toast.error(ar ? "فشل الحذف الجماعي" : "Bulk Delete Failed", {
+        description:
+          e.message ||
+          (ar
+            ? "حدث خطأ أثناء محاولة الحذف"
+            : "An error occurred during bulk deletion."),
+      });
     } finally {
       setIsBulkDeleting(false);
     }
@@ -374,41 +393,47 @@ export function RoomsTab({
     const rows = rData.map((r: any) => {
       const bld = buildings.find((b: any) => b.id === r.buildingId);
       const flr = floors.find((f: any) => f.id === r.floorId);
-      return ar ? {
-        "رقم الغرفة": r.roomNumber ?? "",
-        "تصنيف الغرفة": r.classification ?? "",
-        "نوع الغرفة": r.roomType || r.type || "",
-        "نوع السرير": r.bedType ?? "",
-        "السعة": r.capacity ?? 1,
-        "الإشغال الحالي": r.currentOccupancy ?? 0,
-        "الطابق": flr ? `${flr.floorNumber}` : (r.floor ?? ""),
-        "المبنى": bld ? bld.name : (r.building ?? ""),
-        "الحالة": r.status ?? "",
-        "إطلالة الغرفة": r.view ?? "",
-        "باب فاصل": r.separatorDoor ? "نعم" : "لا",
-        "المساحة": r.size || (r.sizeSqm ? `${r.sizeSqm}m2` : ""),
-        "المميزات": Array.isArray(r.featuresList)
-          ? r.featuresList.join(", ")
-          : (typeof r.features === "string" ? r.features : ""),
-        "ملاحظات": r.notes ?? "",
-      } : {
-        "Room Number": r.roomNumber ?? "",
-        "Room Classification": r.classification ?? "",
-        "Room Type": r.roomType || r.type || "",
-        "Bed Type": r.bedType ?? "",
-        "Capacity": r.capacity ?? 1,
-        "Current Occupancy": r.currentOccupancy ?? 0,
-        "Floor": flr ? `${flr.floorNumber}` : (r.floor ?? ""),
-        "Building": bld ? bld.name : (r.building ?? ""),
-        "Status": r.status ?? "",
-        "View": r.view ?? "",
-        "Separator Door": r.separatorDoor ? "Yes" : "No",
-        "Size": r.size || (r.sizeSqm ? `${r.sizeSqm}m2` : ""),
-        "Features": Array.isArray(r.featuresList)
-          ? r.featuresList.join(", ")
-          : (typeof r.features === "string" ? r.features : ""),
-        "Notes": r.notes ?? "",
-      };
+      return ar
+        ? {
+            "رقم الغرفة": r.roomNumber ?? "",
+            "تصنيف الغرفة": r.classification ?? "",
+            "نوع الغرفة": r.roomType || r.type || "",
+            "نوع السرير": r.bedType ?? "",
+            السعة: r.capacity ?? 1,
+            "الإشغال الحالي": r.currentOccupancy ?? 0,
+            الطابق: flr ? `${flr.floorNumber}` : (r.floor ?? ""),
+            المبنى: bld ? bld.name : (r.building ?? ""),
+            الحالة: r.status ?? "",
+            "إطلالة الغرفة": r.view ?? "",
+            "باب فاصل": r.separatorDoor ? "نعم" : "لا",
+            المساحة: r.size || (r.sizeSqm ? `${r.sizeSqm}m2` : ""),
+            المميزات: Array.isArray(r.featuresList)
+              ? r.featuresList.join(", ")
+              : typeof r.features === "string"
+                ? r.features
+                : "",
+            ملاحظات: r.notes ?? "",
+          }
+        : {
+            "Room Number": r.roomNumber ?? "",
+            "Room Classification": r.classification ?? "",
+            "Room Type": r.roomType || r.type || "",
+            "Bed Type": r.bedType ?? "",
+            Capacity: r.capacity ?? 1,
+            "Current Occupancy": r.currentOccupancy ?? 0,
+            Floor: flr ? `${flr.floorNumber}` : (r.floor ?? ""),
+            Building: bld ? bld.name : (r.building ?? ""),
+            Status: r.status ?? "",
+            View: r.view ?? "",
+            "Separator Door": r.separatorDoor ? "Yes" : "No",
+            Size: r.size || (r.sizeSqm ? `${r.sizeSqm}m2` : ""),
+            Features: Array.isArray(r.featuresList)
+              ? r.featuresList.join(", ")
+              : typeof r.features === "string"
+                ? r.features
+                : "",
+            Notes: r.notes ?? "",
+          };
     });
 
     const wb = XLSX.utils.book_new();
@@ -432,9 +457,13 @@ export function RoomsTab({
               <SelectValue placeholder={ar ? "المبنى..." : "Building..."} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{ar ? "كل المباني" : "All Buildings"}</SelectItem>
+              <SelectItem value="all">
+                {ar ? "كل المباني" : "All Buildings"}
+              </SelectItem>
               {buildings.map((b) => (
-                <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                <SelectItem key={b.id} value={String(b.id)}>
+                  {b.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -450,7 +479,9 @@ export function RoomsTab({
               <SelectValue placeholder={ar ? "الطابق..." : "Floor..."} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{ar ? "كل الطوابق" : "All Floors"}</SelectItem>
+              <SelectItem value="all">
+                {ar ? "كل الطوابق" : "All Floors"}
+              </SelectItem>
               {floors
                 .filter(
                   (f) =>
@@ -476,23 +507,35 @@ export function RoomsTab({
               <SelectValue placeholder={ar ? "الحالة..." : "Status..."} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{ar ? "كل الحالات" : "All Statuses"}</SelectItem>
+              <SelectItem value="all">
+                {ar ? "كل الحالات" : "All Statuses"}
+              </SelectItem>
               <SelectItem value="room_and_bed_vacant">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
-                  <span>{ar ? "روم آند بد فيكنت (الكل)" : "Room & Bed Vacant"}</span>
+                  <span>
+                    {ar ? "روم آند بد فيكنت (الكل)" : "Room & Bed Vacant"}
+                  </span>
                 </div>
               </SelectItem>
               <SelectItem value="room_vacant">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  <span>{ar ? "روم فيكنت (غرف فارغة بالكامل)" : "Room Vacant (Only Full Rooms)"}</span>
+                  <span>
+                    {ar
+                      ? "روم فيكنت (غرف فارغة بالكامل)"
+                      : "Room Vacant (Only Full Rooms)"}
+                  </span>
                 </div>
               </SelectItem>
               <SelectItem value="bed_vacant">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-teal-500 shrink-0" />
-                  <span>{ar ? "بد فيكنت (أسِرّة شاغرة)" : "Bed Vacant (Only Vacant Beds)"}</span>
+                  <span>
+                    {ar
+                      ? "بد فيكنت (أسِرّة شاغرة)"
+                      : "Bed Vacant (Only Vacant Beds)"}
+                  </span>
                 </div>
               </SelectItem>
               <SelectItem value="dirty">
@@ -593,7 +636,9 @@ export function RoomsTab({
             onClick={() => setBatchQrModalOpen(true)}
           >
             <QrCode className="w-3.5 h-3.5" />
-            {ar ? `طباعة QR للمحدد (${selectedRoomIds.size})` : `Print QR for Selected (${selectedRoomIds.size})`}
+            {ar
+              ? `طباعة QR للمحدد (${selectedRoomIds.size})`
+              : `Print QR for Selected (${selectedRoomIds.size})`}
           </Button>
 
           <PermissionGate module="housing" action="delete">
@@ -645,8 +690,10 @@ export function RoomsTab({
                   <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   {ar ? "جاري الحذف..." : "Deleting..."}
                 </span>
+              ) : ar ? (
+                "تأكيد الحذف"
               ) : (
-                ar ? "تأكيد الحذف" : "Confirm Delete"
+                "Confirm Delete"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -12,15 +12,29 @@ import {
 } from "@workspace/report-rows";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { validate } from "../../middlewares/validate.js";
-import { ManagerFlashQuery, OccupancyForecastQuery, ReportAnalyticsQuery, ReportFilterOptionsQuery, ReportRowsParams, ReportRowsQuery, SERVER_REPORTS } from "../../validation/schemas.js";
-import { loadReportDatasets, type ReportDatasetKey } from "../../lib/report-datasets.js";
+import {
+  ManagerFlashQuery,
+  OccupancyForecastQuery,
+  ReportAnalyticsQuery,
+  ReportFilterOptionsQuery,
+  ReportRowsParams,
+  ReportRowsQuery,
+  SERVER_REPORTS,
+} from "../../validation/schemas.js";
+import {
+  loadReportDatasets,
+  type ReportDatasetKey,
+} from "../../lib/report-datasets.js";
 
 const router: Router = Router();
 
 // Lists each server-paged report is built from (buildings/floors/rooms are
 // small and feed the building/floor/room lookups every report uses).
 const BASE = ["buildings", "floors", "rooms"] as const;
-const REPORT_SOURCES: Record<(typeof SERVER_REPORTS)[number], readonly ReportDatasetKey[]> = {
+const REPORT_SOURCES: Record<
+  (typeof SERVER_REPORTS)[number],
+  readonly ReportDatasetKey[]
+> = {
   manager_flash: [...BASE, "maintenance"],
   occupancy_forecast: [...BASE, "assignments", "reservations"],
   housing_map: [...BASE, "assignments", "profiles"],
@@ -42,7 +56,13 @@ const REPORT_SOURCES: Record<(typeof SERVER_REPORTS)[number], readonly ReportDat
   water_distribution: [...BASE, "assignments", "profiles"],
   gate_logs: [...BASE, "gateLogs"],
   police_report: [...BASE, "assignments", "profiles"],
-  policy_exceptions: [...BASE, "assignments", "hostings", "profiles", "settings"],
+  policy_exceptions: [
+    ...BASE,
+    "assignments",
+    "hostings",
+    "profiles",
+    "settings",
+  ],
 };
 
 function validTimeZone(tz: string | undefined): string | undefined {
@@ -71,7 +91,11 @@ router.get(
       const q = req.query as Record<string, string | undefined>;
       const propertyId = Number(q.propertyId);
 
-      const datasets = await loadReportDatasets(req, propertyId, REPORT_SOURCES[report]);
+      const datasets = await loadReportDatasets(
+        req,
+        propertyId,
+        REPORT_SOURCES[report],
+      );
       const maps = buildReportMaps(datasets);
       const filters: ReportFilters = {
         ar: q.lang !== "en",
@@ -93,8 +117,16 @@ router.get(
         timeZone: validTimeZone(q.tz),
       };
 
-      const sort = q.sortKey ? { key: q.sortKey, dir: q.sortDir === "desc" ? "desc" as const : "asc" as const } : null;
-      const rows = sortReportRows(buildReportRows(filters, datasets, maps), sort);
+      const sort = q.sortKey
+        ? {
+            key: q.sortKey,
+            dir: q.sortDir === "desc" ? ("desc" as const) : ("asc" as const),
+          }
+        : null;
+      const rows = sortReportRows(
+        buildReportRows(filters, datasets, maps),
+        sort,
+      );
       const grouped = q.groupBy === "room" && report === "assignments";
 
       if (q.all === "1") {
@@ -104,7 +136,9 @@ router.get(
 
       const requested = Number(q.limit) || 25;
       const limit = ALLOWED_PAGE_SIZES.has(requested) ? requested : 25;
-      const units: any[][] = grouped ? groupRowsByRoom(rows).map(([, list]) => list) : rows.map((r) => [r]);
+      const units: any[][] = grouped
+        ? groupRowsByRoom(rows).map(([, list]) => list)
+        : rows.map((r) => [r]);
       const total = units.length;
       const totalPages = Math.max(1, Math.ceil(total / limit));
       const page = Math.min(Math.max(1, Number(q.page) || 1), totalPages);
@@ -131,12 +165,24 @@ router.get(
   async (req, res, next) => {
     try {
       const propertyId = Number(req.query.propertyId);
-      const d = await loadReportDatasets(req, propertyId, ["profiles", "reservations"]);
+      const d = await loadReportDatasets(req, propertyId, [
+        "profiles",
+        "reservations",
+      ]);
       const departments = new Set<string>();
-      d.profiles.forEach((e: any) => e.department && departments.add(String(e.department).trim()));
-      d.reservations.forEach((r: any) => r.department && departments.add(String(r.department).trim()));
+      d.profiles.forEach(
+        (e: any) =>
+          e.department && departments.add(String(e.department).trim()),
+      );
+      d.reservations.forEach(
+        (r: any) =>
+          r.department && departments.add(String(r.department).trim()),
+      );
       const nationalities = new Set<string>();
-      d.profiles.forEach((e: any) => e.nationality && nationalities.add(String(e.nationality).trim()));
+      d.profiles.forEach(
+        (e: any) =>
+          e.nationality && nationalities.add(String(e.nationality).trim()),
+      );
       res.json({
         departments: Array.from(departments).sort(),
         nationalities: Array.from(nationalities).sort(),
@@ -160,10 +206,23 @@ router.get(
       const q = req.query as Record<string, string | undefined>;
       const propertyId = Number(q.propertyId);
       const d = await loadReportDatasets(req, propertyId, [
-        "buildings", "floors", "rooms", "profiles", "assignments", "maintenance", "reservations", "hostings",
+        "buildings",
+        "floors",
+        "rooms",
+        "profiles",
+        "assignments",
+        "maintenance",
+        "reservations",
+        "hostings",
       ]);
       const { roomMap } = buildReportMaps(d);
-      const scope = filterAnalyticsScope(d.rooms, d.assignments, q.filterBuilding || "all", q.filterFloor || "all", roomMap);
+      const scope = filterAnalyticsScope(
+        d.rooms,
+        d.assignments,
+        q.filterBuilding || "all",
+        q.filterFloor || "all",
+        roomMap,
+      );
       res.json(
         computeReportAnalytics({
           ar: q.lang !== "en",
@@ -195,7 +254,13 @@ router.get(
     try {
       const q = req.query as Record<string, string | undefined>;
       const d = await loadReportDatasets(req, Number(q.propertyId), [
-        "buildings", "floors", "rooms", "assignments", "reservations", "maintenance", "profiles",
+        "buildings",
+        "floors",
+        "rooms",
+        "assignments",
+        "reservations",
+        "maintenance",
+        "profiles",
       ]);
       res.json(
         computeManagerFlash({
@@ -226,7 +291,11 @@ router.get(
   async (req, res, next) => {
     try {
       const q = req.query as Record<string, string | undefined>;
-      const d = await loadReportDatasets(req, Number(q.propertyId), ["rooms", "assignments", "reservations"]);
+      const d = await loadReportDatasets(req, Number(q.propertyId), [
+        "rooms",
+        "assignments",
+        "reservations",
+      ]);
       res.json(
         computeOccupancyForecast({
           ar: q.lang !== "en",

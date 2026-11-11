@@ -6,7 +6,22 @@ import { getExportFileName } from "@/lib/date-utils";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import { computeManagerFlash, type ManagerFlash } from "@workspace/report-rows";
-import { Building2, BedDouble, Users, Wrench, Sparkles, Calendar, ArrowDownRight, ArrowUpRight, Clock, CheckCircle2, Hotel, ShieldCheck, Building, RotateCcw } from "lucide-react";
+import {
+  Building2,
+  BedDouble,
+  Users,
+  Wrench,
+  Sparkles,
+  Calendar,
+  ArrowDownRight,
+  ArrowUpRight,
+  Clock,
+  CheckCircle2,
+  Hotel,
+  ShieldCheck,
+  Building,
+  RotateCcw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DateInput } from "@/components/ui/date-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +37,17 @@ import {
 import { Progress } from "@/components/ui/progress";
 
 const emptyFlash = (ar: boolean) =>
-  computeManagerFlash({ ar, reportDate: "", rooms: [], buildings: [], floors: [], assignments: [], reservations: [], maintenance: [], profiles: [] });
+  computeManagerFlash({
+    ar,
+    reportDate: "",
+    rooms: [],
+    buildings: [],
+    floors: [],
+    assignments: [],
+    reservations: [],
+    maintenance: [],
+    profiles: [],
+  });
 const EMPTY_FLASH_AR = emptyFlash(true);
 const EMPTY_FLASH_EN = emptyFlash(false);
 
@@ -35,7 +60,10 @@ interface ManagerFlashTabProps {
   propId?: number;
   onExportPDF?: () => void;
   onExportExcel?: () => void;
-  onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
+  onRegisterExport?: (actions: {
+    exportExcel?: () => void;
+    exportPDF?: () => void;
+  }) => void;
 }
 
 export function ManagerFlashTab({
@@ -48,9 +76,11 @@ export function ManagerFlashTab({
   onExportExcel,
   onRegisterExport,
 }: ManagerFlashTabProps) {
-  const [reportDate, setReportDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [reportDate, setReportDate] = useState(
+    () => new Date().toISOString().split("T")[0],
+  );
   const [selectedPropertyFilter, setSelectedPropertyFilter] = useState<string>(
-    activePropertyId ? String(activePropertyId) : "all"
+    activePropertyId ? String(activePropertyId) : "all",
   );
 
   // Active Property Name and details
@@ -58,10 +88,14 @@ export function ManagerFlashTab({
     if (!selectedPropertyFilter || selectedPropertyFilter === "all") {
       return properties[0] || { name: "سكن منتجعات صن رايز", code: "SUNRISE" };
     }
-    return properties.find((p: any) => String(p.id) === String(selectedPropertyFilter)) || {
-      name: "سكن منتجعات صن رايز",
-      code: "SUNRISE",
-    };
+    return (
+      properties.find(
+        (p: any) => String(p.id) === String(selectedPropertyFilter),
+      ) || {
+        name: "سكن منتجعات صن رايز",
+        code: "SUNRISE",
+      }
+    );
   }, [properties, selectedPropertyFilter]);
 
   // Figures are computed by the API for the selected date (same code as before,
@@ -75,8 +109,12 @@ export function ManagerFlashTab({
     enabled: !!propId && /^\d{4}-\d{2}-\d{2}$/.test(reportDate),
     placeholderData: keepPreviousData,
   });
-  const { metrics, buildingBreakdown, departmentBreakdown, nationalityBreakdown } =
-    flashQuery.data ?? (ar ? EMPTY_FLASH_AR : EMPTY_FLASH_EN);
+  const {
+    metrics,
+    buildingBreakdown,
+    departmentBreakdown,
+    nationalityBreakdown,
+  } = flashQuery.data ?? (ar ? EMPTY_FLASH_AR : EMPTY_FLASH_EN);
 
   const nowFormatted = useMemo(() => {
     return new Date().toLocaleDateString(ar ? "ar-EG" : "en-US", {
@@ -105,13 +143,23 @@ export function ManagerFlashTab({
       [ar ? "نسبة الإشغال" : "Occupancy Rate"]: `${row.occPercent}%`,
       [ar ? "الحالة" : "Status"]:
         row.occPercent >= 90
-          ? (ar ? "إشغال مرتفع" : "High Occupancy")
+          ? ar
+            ? "إشغال مرتفع"
+            : "High Occupancy"
           : row.occPercent >= 70
-          ? (ar ? "إشغال متوسط" : "Moderate")
-          : (ar ? "متاح للتسكين" : "Available"),
+            ? ar
+              ? "إشغال متوسط"
+              : "Moderate"
+            : ar
+              ? "متاح للتسكين"
+              : "Available",
     }));
     const wsMatrix = XLSX.utils.json_to_sheet(matrixRows);
-    XLSX.utils.book_append_sheet(wb, wsMatrix, ar ? "مصفوفة إشغال المباني" : "Building Matrix");
+    XLSX.utils.book_append_sheet(
+      wb,
+      wsMatrix,
+      ar ? "مصفوفة إشغال المباني" : "Building Matrix",
+    );
 
     // Sheet 2: Top Occupying Departments
     const deptRows = departmentBreakdown.map((dept, idx) => ({
@@ -121,7 +169,11 @@ export function ManagerFlashTab({
       [ar ? "نسبة الإشغال من السكن" : "Occupancy Share"]: `${dept.percent}%`,
     }));
     const wsDept = XLSX.utils.json_to_sheet(deptRows);
-    XLSX.utils.book_append_sheet(wb, wsDept, ar ? "إشغال الأقسام" : "Departments");
+    XLSX.utils.book_append_sheet(
+      wb,
+      wsDept,
+      ar ? "إشغال الأقسام" : "Departments",
+    );
 
     // Sheet 3: Nationalities Distribution
     const natRows = nationalityBreakdown.map((nat, idx) => ({
@@ -131,9 +183,17 @@ export function ManagerFlashTab({
       [ar ? "النسبة المئوية" : "Percentage"]: `${nat.percent}%`,
     }));
     const wsNat = XLSX.utils.json_to_sheet(natRows);
-    XLSX.utils.book_append_sheet(wb, wsNat, ar ? "توزيع الجنسيات" : "Nationalities");
+    XLSX.utils.book_append_sheet(
+      wb,
+      wsNat,
+      ar ? "توزيع الجنسيات" : "Nationalities",
+    );
 
-    writeSunriseWorkbook(wb, getExportFileName("Daily_Morning_Operations_Report", "xlsx"), { rtl: ar });
+    writeSunriseWorkbook(
+      wb,
+      getExportFileName("Daily_Morning_Operations_Report", "xlsx"),
+      { rtl: ar },
+    );
   };
 
   const [isStudioOpen, setIsStudioOpen] = useState(false);
@@ -166,10 +226,16 @@ export function ManagerFlashTab({
       rate: `${row.occPercent}%`,
       status:
         row.occPercent >= 90
-          ? (ar ? "إشغال مرتفع" : "High Occupancy")
+          ? ar
+            ? "إشغال مرتفع"
+            : "High Occupancy"
           : row.occPercent >= 70
-          ? (ar ? "إشغال متوسط" : "Moderate")
-          : (ar ? "متاح للتسكين" : "Available"),
+            ? ar
+              ? "إشغال متوسط"
+              : "Moderate"
+            : ar
+              ? "متاح للتسكين"
+              : "Available",
     }));
 
     if (!records.length) return;
@@ -185,7 +251,10 @@ export function ManagerFlashTab({
   }, [handleExcelExport, handlePrint, onRegisterExport]);
 
   return (
-    <div id="manager-flash-report" className="space-y-6 print:space-y-4 print:p-0">
+    <div
+      id="manager-flash-report"
+      className="space-y-6 print:space-y-4 print:p-0"
+    >
       {/* ── Top Executive Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 rounded-2xl shadow-sm border border-indigo-900/50 print:bg-white print:text-black print:border-slate-300 print:shadow-none print:p-3">
         <div className="space-y-1.5">
@@ -200,17 +269,23 @@ export function ManagerFlashTab({
                 </span>
                 <span className="text-xs text-slate-400">•</span>
                 <span className="text-xs text-slate-300 font-medium">
-                  {ar ? "سكن العاملين والموظفين" : "Staff Housing Accommodation"}
+                  {ar
+                    ? "سكن العاملين والموظفين"
+                    : "Staff Housing Accommodation"}
                 </span>
               </div>
               <h2 className="text-xl font-bold tracking-tight text-white mt-0.5">
-                {ar ? "التقرير الصباحي الشامل للإشغال والتشغيل" : "Daily Morning Operations & Occupancy Report"}
+                {ar
+                  ? "التقرير الصباحي الشامل للإشغال والتشغيل"
+                  : "Daily Morning Operations & Occupancy Report"}
               </h2>
             </div>
           </div>
           <p className="text-xs text-slate-300/80 flex items-center gap-1.5 pt-0.5">
             <Clock className="w-3.5 h-3.5 text-slate-400" />
-            {ar ? `تاريخ وساعة التوليد: ${nowFormatted}` : `Generated on: ${nowFormatted}`}
+            {ar
+              ? `تاريخ وساعة التوليد: ${nowFormatted}`
+              : `Generated on: ${nowFormatted}`}
           </p>
         </div>
 
@@ -224,7 +299,9 @@ export function ManagerFlashTab({
               aria-label={ar ? "اختيار الفندق أو السكن" : "Select property"}
               className="bg-slate-800 text-white text-xs border border-slate-700 rounded-lg px-3 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-amber-400"
             >
-              <option value="all">{ar ? "كافة الفنادق والسكنات" : "All Properties"}</option>
+              <option value="all">
+                {ar ? "كافة الفنادق والسكنات" : "All Properties"}
+              </option>
               {properties.map((p: any) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -235,7 +312,9 @@ export function ManagerFlashTab({
 
           <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs">
             <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-slate-300">{ar ? "تاريخ التقرير:" : "Date:"}</span>
+            <span className="text-slate-300">
+              {ar ? "تاريخ التقرير:" : "Date:"}
+            </span>
             <DateInput
               value={reportDate}
               onChange={(iso) => setReportDate(iso)}
@@ -245,7 +324,9 @@ export function ManagerFlashTab({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setReportDate(new Date().toISOString().split("T")[0])}
+            onClick={() =>
+              setReportDate(new Date().toISOString().split("T")[0])
+            }
             className="text-xs h-8 bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700"
           >
             {ar ? "اليوم" : "Today"}
@@ -264,9 +345,13 @@ export function ManagerFlashTab({
               </span>
               <BedDouble className="w-4 h-4 text-blue-500" />
             </div>
-            <div className="text-2xl font-bold text-foreground">{metrics.totalBeds}</div>
+            <div className="text-2xl font-bold text-foreground">
+              {metrics.totalBeds}
+            </div>
             <div className="text-[11px] text-muted-foreground">
-              {ar ? `${metrics.totalRooms} غرفة مسجلة` : `${metrics.totalRooms} Total Rooms`}
+              {ar
+                ? `${metrics.totalRooms} غرفة مسجلة`
+                : `${metrics.totalRooms} Total Rooms`}
             </div>
           </CardContent>
         </Card>
@@ -283,7 +368,10 @@ export function ManagerFlashTab({
             <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
               {metrics.occupancyRate}%
             </div>
-            <Progress value={metrics.occupancyRate} className="h-1.5 bg-amber-200 dark:bg-amber-950" />
+            <Progress
+              value={metrics.occupancyRate}
+              className="h-1.5 bg-amber-200 dark:bg-amber-950"
+            />
           </CardContent>
         </Card>
 
@@ -300,7 +388,9 @@ export function ManagerFlashTab({
               {metrics.occupiedBeds}
             </div>
             <div className="text-[11px] text-muted-foreground">
-              {ar ? `+${metrics.vacationResidents} في إجازة` : `+${metrics.vacationResidents} On Vacation`}
+              {ar
+                ? `+${metrics.vacationResidents} في إجازة`
+                : `+${metrics.vacationResidents} On Vacation`}
             </div>
           </CardContent>
         </Card>
@@ -318,7 +408,9 @@ export function ManagerFlashTab({
               {metrics.vacantBeds}
             </div>
             <div className="text-[11px] text-muted-foreground">
-              {ar ? `${metrics.vacantClean} غرفة جاهزة فوراً` : `${metrics.vacantClean} Ready Rooms`}
+              {ar
+                ? `${metrics.vacantClean} غرفة جاهزة فوراً`
+                : `${metrics.vacantClean} Ready Rooms`}
             </div>
           </CardContent>
         </Card>
@@ -336,7 +428,9 @@ export function ManagerFlashTab({
               {metrics.vacantDirty + metrics.occupiedDirty}
             </div>
             <div className="text-[11px] text-muted-foreground">
-              {ar ? `${metrics.vacantDirty} شاغرة + ${metrics.occupiedDirty} مشغولة` : `${metrics.vacantDirty} Vacant, ${metrics.occupiedDirty} Occ`}
+              {ar
+                ? `${metrics.vacantDirty} شاغرة + ${metrics.occupiedDirty} مشغولة`
+                : `${metrics.vacantDirty} Vacant, ${metrics.occupiedDirty} Occ`}
             </div>
           </CardContent>
         </Card>
@@ -354,7 +448,9 @@ export function ManagerFlashTab({
               {metrics.outOfOrder + metrics.outOfService}
             </div>
             <div className="text-[11px] text-muted-foreground">
-              {ar ? `${metrics.openTickets} طلب صيانة نشط` : `${metrics.openTickets} Active Tickets`}
+              {ar
+                ? `${metrics.openTickets} طلب صيانة نشط`
+                : `${metrics.openTickets} Active Tickets`}
             </div>
           </CardContent>
         </Card>
@@ -370,19 +466,30 @@ export function ManagerFlashTab({
                 <ArrowDownRight className="w-4 h-4" />
                 {ar ? "حركة الوصول اليومية" : "Arrivals Today"}
               </CardTitle>
-              <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 text-xs">
+              <Badge
+                variant="outline"
+                className="border-emerald-500/40 text-emerald-600 text-xs"
+              >
                 {ar ? "وصول" : "Arrivals"}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="p-4 pt-1 space-y-2">
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-muted-foreground">{ar ? "المتوقع وصولهم (حجوزات):" : "Expected (Due In):"}</span>
-              <span className="text-lg font-bold text-foreground">{metrics.arrivalsExpected}</span>
+              <span className="text-xs text-muted-foreground">
+                {ar ? "المتوقع وصولهم (حجوزات):" : "Expected (Due In):"}
+              </span>
+              <span className="text-lg font-bold text-foreground">
+                {metrics.arrivalsExpected}
+              </span>
             </div>
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-muted-foreground">{ar ? "تم تسكينهم بالفعل اليوم:" : "Checked-in Today:"}</span>
-              <span className="text-sm font-semibold text-emerald-600">{metrics.arrivalsCheckedIn}</span>
+              <span className="text-xs text-muted-foreground">
+                {ar ? "تم تسكينهم بالفعل اليوم:" : "Checked-in Today:"}
+              </span>
+              <span className="text-sm font-semibold text-emerald-600">
+                {metrics.arrivalsCheckedIn}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -395,19 +502,30 @@ export function ManagerFlashTab({
                 <ArrowUpRight className="w-4 h-4" />
                 {ar ? "المغادرات والتصفيات" : "Departures Today"}
               </CardTitle>
-              <Badge variant="outline" className="border-rose-500/40 text-rose-600 text-xs">
+              <Badge
+                variant="outline"
+                className="border-rose-500/40 text-rose-600 text-xs"
+              >
                 {ar ? "مغادرة" : "Due Out"}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="p-4 pt-1 space-y-2">
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-muted-foreground">{ar ? "المستحق مغادرتهم اليوم:" : "Due Out Today:"}</span>
-              <span className="text-lg font-bold text-foreground">{metrics.departuresExpected}</span>
+              <span className="text-xs text-muted-foreground">
+                {ar ? "المستحق مغادرتهم اليوم:" : "Due Out Today:"}
+              </span>
+              <span className="text-lg font-bold text-foreground">
+                {metrics.departuresExpected}
+              </span>
             </div>
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-muted-foreground">{ar ? "تمت المغادرة الفعلية:" : "Checked-out Today:"}</span>
-              <span className="text-sm font-semibold text-rose-600">{metrics.departuresCheckedOut}</span>
+              <span className="text-xs text-muted-foreground">
+                {ar ? "تمت المغادرة الفعلية:" : "Checked-out Today:"}
+              </span>
+              <span className="text-sm font-semibold text-rose-600">
+                {metrics.departuresCheckedOut}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -420,19 +538,30 @@ export function ManagerFlashTab({
                 <Users className="w-4 h-4" />
                 {ar ? "المقيمون المستمرون" : "In-House Stayovers"}
               </CardTitle>
-              <Badge variant="outline" className="border-blue-500/40 text-blue-600 text-xs">
+              <Badge
+                variant="outline"
+                className="border-blue-500/40 text-blue-600 text-xs"
+              >
                 {ar ? "مستمر" : "Stayover"}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="p-4 pt-1 space-y-2">
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-muted-foreground">{ar ? "نزلاء مستمرون بالسكن:" : "Active Residents:"}</span>
-              <span className="text-lg font-bold text-foreground">{metrics.inHouseActive}</span>
+              <span className="text-xs text-muted-foreground">
+                {ar ? "نزلاء مستمرون بالسكن:" : "Active Residents:"}
+              </span>
+              <span className="text-lg font-bold text-foreground">
+                {metrics.inHouseActive}
+              </span>
             </div>
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-muted-foreground">{ar ? "في إجازات دورية:" : "On Vacation:"}</span>
-              <span className="text-sm font-semibold text-blue-600">{metrics.vacationResidents}</span>
+              <span className="text-xs text-muted-foreground">
+                {ar ? "في إجازات دورية:" : "On Vacation:"}
+              </span>
+              <span className="text-sm font-semibold text-blue-600">
+                {metrics.vacationResidents}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -445,19 +574,30 @@ export function ManagerFlashTab({
                 <RotateCcw className="w-4 h-4" />
                 {ar ? "التنقلات الداخلية" : "Room Transfers"}
               </CardTitle>
-              <Badge variant="outline" className="border-purple-500/40 text-purple-600 text-xs">
+              <Badge
+                variant="outline"
+                className="border-purple-500/40 text-purple-600 text-xs"
+              >
                 {ar ? "تنقلات" : "Transfers"}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="p-4 pt-1 space-y-2">
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-muted-foreground">{ar ? "نقل أسرة وغرف اليوم:" : "Room Moves Today:"}</span>
-              <span className="text-lg font-bold text-foreground">{metrics.roomTransfers}</span>
+              <span className="text-xs text-muted-foreground">
+                {ar ? "نقل أسرة وغرف اليوم:" : "Room Moves Today:"}
+              </span>
+              <span className="text-lg font-bold text-foreground">
+                {metrics.roomTransfers}
+              </span>
             </div>
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-muted-foreground">{ar ? "إجمالي المباني النشطة:" : "Active Buildings:"}</span>
-              <span className="text-sm font-semibold text-purple-600">{buildingBreakdown.length}</span>
+              <span className="text-xs text-muted-foreground">
+                {ar ? "إجمالي المباني النشطة:" : "Active Buildings:"}
+              </span>
+              <span className="text-sm font-semibold text-purple-600">
+                {buildingBreakdown.length}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -469,11 +609,15 @@ export function ManagerFlashTab({
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-amber-500" />
             <h3 className="font-bold text-sm text-foreground">
-              {ar ? "مصفوفة الطاقة الاستيعابية وإشغال المباني" : "Building Capacity & Occupancy Matrix"}
+              {ar
+                ? "مصفوفة الطاقة الاستيعابية وإشغال المباني"
+                : "Building Capacity & Occupancy Matrix"}
             </h3>
           </div>
           <span className="text-xs text-muted-foreground">
-            {ar ? `إجمالي المباني: ${buildingBreakdown.length} مبنى` : `Total Buildings: ${buildingBreakdown.length}`}
+            {ar
+              ? `إجمالي المباني: ${buildingBreakdown.length} مبنى`
+              : `Total Buildings: ${buildingBreakdown.length}`}
           </span>
         </div>
 
@@ -481,16 +625,36 @@ export function ManagerFlashTab({
           <Table>
             <TableHeader>
               <TableRow className="bg-[#0F2A44] hover:bg-[#0F2A44] text-white">
-                <TableHead className="text-white">{ar ? "المبنى والكود" : "Building & Code"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "الأدوار" : "Floors"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "إجمالي الغرف" : "Rooms"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "إجمالي الأسرة" : "Total Beds"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "المشغول" : "Occupied"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "الشاغر المتاح" : "Vacant Beds"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "متسخ" : "Dirty"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "صيانة (OOO)" : "OOO"}</TableHead>
-                <TableHead className="text-white text-center min-w-[150px]">{ar ? "نسبة الإشغال" : "Occupancy Rate"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "الحالة" : "Status"}</TableHead>
+                <TableHead className="text-white">
+                  {ar ? "المبنى والكود" : "Building & Code"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "الأدوار" : "Floors"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "إجمالي الغرف" : "Rooms"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "إجمالي الأسرة" : "Total Beds"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "المشغول" : "Occupied"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "الشاغر المتاح" : "Vacant Beds"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "متسخ" : "Dirty"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "صيانة (OOO)" : "OOO"}
+                </TableHead>
+                <TableHead className="text-white text-center min-w-[150px]">
+                  {ar ? "نسبة الإشغال" : "Occupancy Rate"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "الحالة" : "Status"}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -498,18 +662,35 @@ export function ManagerFlashTab({
                 <TableRow key={row.id} className="hover:bg-muted/30">
                   <TableCell>
                     <div>
-                      <p className="font-bold text-sm text-foreground">{row.name}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{row.code}</p>
+                      <p className="font-bold text-sm text-foreground">
+                        {row.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        {row.code}
+                      </p>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center text-xs text-muted-foreground">{row.floorsCount}</TableCell>
-                  <TableCell className="text-center font-semibold text-xs">{row.totalRooms}</TableCell>
-                  <TableCell className="text-center font-bold text-xs">{row.totalBeds}</TableCell>
-                  <TableCell className="text-center font-semibold text-xs text-emerald-600">{row.occupiedBeds}</TableCell>
-                  <TableCell className="text-center font-semibold text-xs text-sky-600">{row.vacantBeds}</TableCell>
+                  <TableCell className="text-center text-xs text-muted-foreground">
+                    {row.floorsCount}
+                  </TableCell>
+                  <TableCell className="text-center font-semibold text-xs">
+                    {row.totalRooms}
+                  </TableCell>
+                  <TableCell className="text-center font-bold text-xs">
+                    {row.totalBeds}
+                  </TableCell>
+                  <TableCell className="text-center font-semibold text-xs text-emerald-600">
+                    {row.occupiedBeds}
+                  </TableCell>
+                  <TableCell className="text-center font-semibold text-xs text-sky-600">
+                    {row.vacantBeds}
+                  </TableCell>
                   <TableCell className="text-center text-xs">
                     {row.dirtyCount > 0 ? (
-                      <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 text-xs">
+                      <Badge
+                        variant="outline"
+                        className="bg-rose-50 text-rose-700 border-rose-200 text-xs"
+                      >
                         {row.dirtyCount}
                       </Badge>
                     ) : (
@@ -518,7 +699,10 @@ export function ManagerFlashTab({
                   </TableCell>
                   <TableCell className="text-center text-xs">
                     {row.oooCount > 0 ? (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                      <Badge
+                        variant="outline"
+                        className="bg-amber-50 text-amber-700 border-amber-200 text-xs"
+                      >
                         {row.oooCount}
                       </Badge>
                     ) : (
@@ -527,11 +711,10 @@ export function ManagerFlashTab({
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center gap-2 justify-center">
-                      <span className="font-mono font-bold text-xs w-9 text-right">{row.occPercent}%</span>
-                      <Progress
-                        value={row.occPercent}
-                        className="w-20 h-2"
-                      />
+                      <span className="font-mono font-bold text-xs w-9 text-right">
+                        {row.occPercent}%
+                      </span>
+                      <Progress value={row.occPercent} className="w-20 h-2" />
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
@@ -541,15 +724,21 @@ export function ManagerFlashTab({
                         row.occPercent >= 90
                           ? "bg-rose-50 text-rose-700 border-rose-200"
                           : row.occPercent >= 70
-                          ? "bg-amber-50 text-amber-700 border-amber-200"
-                          : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            ? "bg-amber-50 text-amber-700 border-amber-200"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
                       }
                     >
                       {row.occPercent >= 90
-                        ? (ar ? "إشغال مرتفع" : "High Occ.")
+                        ? ar
+                          ? "إشغال مرتفع"
+                          : "High Occ."
                         : row.occPercent >= 70
-                        ? (ar ? "إشغال متوسط" : "Moderate")
-                        : (ar ? "متاح" : "Available")}
+                          ? ar
+                            ? "إشغال متوسط"
+                            : "Moderate"
+                          : ar
+                            ? "متاح"
+                            : "Available"}
                     </Badge>
                   </TableCell>
                 </TableRow>
@@ -567,7 +756,9 @@ export function ManagerFlashTab({
             <CardTitle className="text-sm font-semibold flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <Building className="w-4 h-4 text-primary" />
-                {ar ? "أعلى الإدارات إشغالاً بالسكن" : "Top Occupying Departments"}
+                {ar
+                  ? "أعلى الإدارات إشغالاً بالسكن"
+                  : "Top Occupying Departments"}
               </span>
               <Badge variant="secondary" className="text-xs">
                 {metrics.totalProfiles} {ar ? "موظف" : "Staff"}
@@ -578,8 +769,12 @@ export function ManagerFlashTab({
             {departmentBreakdown.map((dept) => (
               <div key={dept.name} className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="font-medium text-foreground">{dept.name}</span>
-                  <span className="font-mono text-muted-foreground">{dept.count} ({dept.percent}%)</span>
+                  <span className="font-medium text-foreground">
+                    {dept.name}
+                  </span>
+                  <span className="font-mono text-muted-foreground">
+                    {dept.count} ({dept.percent}%)
+                  </span>
                 </div>
                 <Progress value={dept.percent} className="h-1.5" />
               </div>
@@ -604,8 +799,12 @@ export function ManagerFlashTab({
             {nationalityBreakdown.map((nat) => (
               <div key={nat.name} className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="font-medium text-foreground">{nat.name}</span>
-                  <span className="font-mono text-muted-foreground">{nat.count} ({nat.percent}%)</span>
+                  <span className="font-medium text-foreground">
+                    {nat.name}
+                  </span>
+                  <span className="font-mono text-muted-foreground">
+                    {nat.count} ({nat.percent}%)
+                  </span>
                 </div>
                 <Progress value={nat.percent} className="h-1.5" />
               </div>
@@ -617,16 +816,22 @@ export function ManagerFlashTab({
       {/* ── Official Signatures Box ── */}
       <div className="border rounded-2xl p-5 bg-card shadow-xs space-y-4">
         <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground text-center">
-          {ar ? "اعتماد ومراجعة التقرير اليومي" : "Daily Report Formal Approvals"}
+          {ar
+            ? "اعتماد ومراجعة التقرير اليومي"
+            : "Daily Report Formal Approvals"}
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
           {/* Prepared By */}
           <div className="border border-dashed rounded-xl p-4 text-center space-y-2">
             <p className="text-xs font-semibold text-muted-foreground">
-              {ar ? "إعداد مشرف السكن المناوب" : "Prepared By: Duty Housing Supervisor"}
+              {ar
+                ? "إعداد مشرف السكن المناوب"
+                : "Prepared By: Duty Housing Supervisor"}
             </p>
             <div className="h-10 flex items-center justify-center">
-              <span className="text-xs text-muted-foreground/50 font-mono">________________________</span>
+              <span className="text-xs text-muted-foreground/50 font-mono">
+                ________________________
+              </span>
             </div>
             <p className="text-[11px] text-muted-foreground">
               {ar ? "التوقيع والوقت" : "Signature & Timestamp"}
@@ -636,10 +841,14 @@ export function ManagerFlashTab({
           {/* Housekeeping Manager */}
           <div className="border border-dashed rounded-xl p-4 text-center space-y-2">
             <p className="text-xs font-semibold text-muted-foreground">
-              {ar ? "مراجعة مدير الإشراف الداخلي" : "Reviewed By: Executive Housekeeper"}
+              {ar
+                ? "مراجعة مدير الإشراف الداخلي"
+                : "Reviewed By: Executive Housekeeper"}
             </p>
             <div className="h-10 flex items-center justify-center">
-              <span className="text-xs text-muted-foreground/50 font-mono">________________________</span>
+              <span className="text-xs text-muted-foreground/50 font-mono">
+                ________________________
+              </span>
             </div>
             <p className="text-[11px] text-muted-foreground">
               {ar ? "التوقيع والاعتماد" : "Signature & Approval"}
@@ -649,10 +858,14 @@ export function ManagerFlashTab({
           {/* HR Director */}
           <div className="border border-dashed rounded-xl p-4 text-center space-y-2">
             <p className="text-xs font-semibold text-muted-foreground">
-              {ar ? "اعتماد مدير الموارد البشرية / المدير العام" : "Approved By: HR Director / GM"}
+              {ar
+                ? "اعتماد مدير الموارد البشرية / المدير العام"
+                : "Approved By: HR Director / GM"}
             </p>
             <div className="h-10 flex items-center justify-center">
-              <span className="text-xs text-muted-foreground/50 font-mono">________________________</span>
+              <span className="text-xs text-muted-foreground/50 font-mono">
+                ________________________
+              </span>
             </div>
             <p className="text-[11px] text-muted-foreground">
               {ar ? "الختم الرسمي و التوقيع" : "Official Seal & Sign-off"}
@@ -670,12 +883,36 @@ export function ManagerFlashTab({
         availableColumns={studioColumns}
         allRows={studioRows}
         kpis={[
-          { label: "Total Buildings", labelAr: "إجمالي المباني", value: buildingBreakdown.length },
-          { label: "Total Capacity", labelAr: "إجمالي الأسِرّة", value: metrics.totalBeds },
-          { label: "Occupied Beds", labelAr: "الأسِرّة المشغولة", value: metrics.occupiedBeds },
-          { label: "Vacant Beds", labelAr: "الأسِرّة الشاغرة", value: metrics.vacantBeds },
-          { label: "Dirty Rooms (HK)", labelAr: "غرف متسخة (HK)", value: metrics.vacantDirty + metrics.occupiedDirty },
-          { label: "Open Maintenance", labelAr: "بلاغات صيانة مفتوحة", value: metrics.openTickets },
+          {
+            label: "Total Buildings",
+            labelAr: "إجمالي المباني",
+            value: buildingBreakdown.length,
+          },
+          {
+            label: "Total Capacity",
+            labelAr: "إجمالي الأسِرّة",
+            value: metrics.totalBeds,
+          },
+          {
+            label: "Occupied Beds",
+            labelAr: "الأسِرّة المشغولة",
+            value: metrics.occupiedBeds,
+          },
+          {
+            label: "Vacant Beds",
+            labelAr: "الأسِرّة الشاغرة",
+            value: metrics.vacantBeds,
+          },
+          {
+            label: "Dirty Rooms (HK)",
+            labelAr: "غرف متسخة (HK)",
+            value: metrics.vacantDirty + metrics.occupiedDirty,
+          },
+          {
+            label: "Open Maintenance",
+            labelAr: "بلاغات صيانة مفتوحة",
+            value: metrics.openTickets,
+          },
         ]}
         initialLanguage={ar ? "ar" : "en"}
       />

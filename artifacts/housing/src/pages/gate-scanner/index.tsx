@@ -20,7 +20,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { QrCode, ScanLine, LogIn, LogOut, CheckCircle2, XCircle, AlertTriangle, User, RefreshCw, Search, Download, Users, Camera, Keyboard, Clock, Maximize2 } from "lucide-react";
+import {
+  QrCode,
+  ScanLine,
+  LogIn,
+  LogOut,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  User,
+  RefreshCw,
+  Search,
+  Download,
+  Users,
+  Camera,
+  Keyboard,
+  Clock,
+  Maximize2,
+} from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { GateCameraScanner } from "./GateCameraScanner";
@@ -75,13 +92,14 @@ export default function GateScannerPage() {
     toast.info(
       isAr
         ? `تم ضبط الاتجاه: ${newDir === "IN" ? "دخول السكن (IN)" : "خروج من السكن (OUT)"}`
-        : `Direction set to: ${newDir === "IN" ? "Entry (IN)" : "Exit (OUT)"}`
+        : `Direction set to: ${newDir === "IN" ? "Entry (IN)" : "Exit (OUT)"}`,
     );
     if (scanMode === "MANUAL") inputRef.current?.focus();
   };
 
   const [scanMode, setScanMode] = useState<"CAMERA" | "MANUAL">("CAMERA");
-  const [fullscreenCameraOpen, setFullscreenCameraOpen] = useState<boolean>(false);
+  const [fullscreenCameraOpen, setFullscreenCameraOpen] =
+    useState<boolean>(false);
   const [scanInput, setScanInput] = useState("");
   const [lastVerification, setLastVerification] = useState<any | null>(null);
   const [autoLogEnabled, setAutoLogEnabled] = useState(true);
@@ -104,7 +122,7 @@ export default function GateScannerPage() {
     queryKey: ["gate-stats", selectedPropertyId],
     queryFn: async () => {
       const res = await fetch(
-        `/api/gate/stats?propertyId=${selectedPropertyId || ""}`
+        `/api/gate/stats?propertyId=${selectedPropertyId || ""}`,
       );
       if (!res.ok) throw new Error("Failed to fetch gate stats");
       return res.json();
@@ -166,11 +184,12 @@ export default function GateScannerPage() {
       return res.json();
     },
     onSuccess: (data, variables: any) => {
-      const loggedDir = variables?.direction || data?.log?.direction || directionRef.current;
+      const loggedDir =
+        variables?.direction || data?.log?.direction || directionRef.current;
       toast.success(
         isAr
           ? `تم تسجيل حركة ${loggedDir === "IN" ? "الدخول" : "الخروج"} بنجاح`
-          : `Recorded ${loggedDir} movement successfully`
+          : `Recorded ${loggedDir} movement successfully`,
       );
       queryClient.invalidateQueries({ queryKey: ["gate-logs"] });
       queryClient.invalidateQueries({ queryKey: ["gate-stats"] });
@@ -184,9 +203,11 @@ export default function GateScannerPage() {
   const handleVerify = async (
     valueToVerify?: string,
     methodOverride?: string,
-    dirOverride?: "IN" | "OUT"
+    dirOverride?: "IN" | "OUT",
   ) => {
-    const rawVal = (valueToVerify !== undefined ? valueToVerify : scanInput).trim();
+    const rawVal = (
+      valueToVerify !== undefined ? valueToVerify : scanInput
+    ).trim();
     if (!rawVal) return;
 
     const currentDirection = dirOverride || directionRef.current || direction;
@@ -211,13 +232,14 @@ export default function GateScannerPage() {
       const isGranted = result.verdict === "GRANTED";
       playChime(isGranted);
 
-      const effectiveScanMethod = methodOverride || (isPayload ? "QR_SCAN" : "BARCODE_GUN");
+      const effectiveScanMethod =
+        methodOverride || (isPayload ? "QR_SCAN" : "BARCODE_GUN");
 
       if (isGranted) {
         toast.success(
           isAr
             ? `مصرّح: ${result.resident?.fullName} (غرفة ${result.resident?.roomNumber})`
-            : `Authorized: ${result.resident?.fullName} (Room ${result.resident?.roomNumber})`
+            : `Authorized: ${result.resident?.fullName} (Room ${result.resident?.roomNumber})`,
         );
 
         // Auto log if enabled
@@ -241,7 +263,7 @@ export default function GateScannerPage() {
         toast.error(
           isAr
             ? `مرفوض: ${result.reason || "غير مصرّح بالدخول"}`
-            : `Denied: ${result.reason || "Access Denied"}`
+            : `Denied: ${result.reason || "Access Denied"}`,
         );
 
         // Record denied attempt in logs
@@ -285,15 +307,15 @@ export default function GateScannerPage() {
     }
 
     const dataToExport = logs.map((l: any, i: number) => ({
-      "م": i + 1,
+      م: i + 1,
       "الوقت والتاريخ": new Date(l.scannedAt).toLocaleString("ar-EG"),
-      "الاتجاه": l.direction === "IN" ? "دخول (IN)" : "خروج (OUT)",
-      "الحالة": l.status === "GRANTED" ? "مقبول" : "مرفوض",
+      الاتجاه: l.direction === "IN" ? "دخول (IN)" : "خروج (OUT)",
+      الحالة: l.status === "GRANTED" ? "مقبول" : "مرفوض",
       "رقم الموظف": l.employeeId,
       "الاسم الكامل": l.fullName,
-      "القسم": l.department || "—",
-      "المبنى": l.buildingName || "—",
-      "الغرفة": l.roomNumber || "—",
+      القسم: l.department || "—",
+      المبنى: l.buildingName || "—",
+      الغرفة: l.roomNumber || "—",
       "السبب / الملاحظات": l.reason || "—",
       "مسؤول الأمن": l.scannedBy || "—",
       "طريقة الفحص": l.scanMethod || "—",
@@ -302,8 +324,15 @@ export default function GateScannerPage() {
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "GateLogs");
-    XLSX.writeFile(wb, `Housing_Gate_Logs_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success(isAr ? "تم تصدير سجل البوابة إلى ملف Excel" : "Exported gate logs to Excel");
+    XLSX.writeFile(
+      wb,
+      `Housing_Gate_Logs_${new Date().toISOString().slice(0, 10)}.xlsx`,
+    );
+    toast.success(
+      isAr
+        ? "تم تصدير سجل البوابة إلى ملف Excel"
+        : "Exported gate logs to Excel",
+    );
   };
 
   return (
@@ -436,7 +465,9 @@ export default function GateScannerPage() {
                 <div>
                   <CardTitle className="text-base font-bold flex items-center gap-2">
                     <ScanLine className="w-5 h-5 text-primary" />
-                    {isAr ? "محطة مسح وفحص تصريح البوابة" : "Gate Pass Scanner Station"}
+                    {isAr
+                      ? "محطة مسح وفحص تصريح البوابة"
+                      : "Gate Pass Scanner Station"}
                   </CardTitle>
                   <CardDescription className="text-xs mt-1">
                     {isAr
@@ -484,7 +515,9 @@ export default function GateScannerPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setFullscreenCameraOpen(true)}
-                    title={isAr ? "فتح الكاميرا بملء الشاشة" : "Full Screen Camera"}
+                    title={
+                      isAr ? "فتح الكاميرا بملء الشاشة" : "Full Screen Camera"
+                    }
                     className="h-8 px-2.5 rounded-xl text-xs gap-1 font-semibold hidden sm:flex"
                   >
                     <Maximize2 className="w-3.5 h-3.5" />
@@ -532,7 +565,9 @@ export default function GateScannerPage() {
                     >
                       <LogIn className="w-5 h-5" />
                     </div>
-                    <span>{isAr ? "دخول السكن (IN)" : "Housing Entry (IN)"}</span>
+                    <span>
+                      {isAr ? "دخول السكن (IN)" : "Housing Entry (IN)"}
+                    </span>
                   </button>
 
                   <button
@@ -553,7 +588,9 @@ export default function GateScannerPage() {
                     >
                       <LogOut className="w-5 h-5" />
                     </div>
-                    <span>{isAr ? "خروج من السكن (OUT)" : "Housing Exit (OUT)"}</span>
+                    <span>
+                      {isAr ? "خروج من السكن (OUT)" : "Housing Exit (OUT)"}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -566,7 +603,9 @@ export default function GateScannerPage() {
                     active={scanMode === "CAMERA" && !fullscreenCameraOpen}
                     direction={direction}
                     onDirectionChange={handleSetDirection}
-                    onScan={(decodedCode, scanDir) => handleVerify(decodedCode, "CAMERA_SCAN", scanDir)}
+                    onScan={(decodedCode, scanDir) =>
+                      handleVerify(decodedCode, "CAMERA_SCAN", scanDir)
+                    }
                     isVerifying={isVerifying}
                     isAr={isAr}
                   />
@@ -613,7 +652,9 @@ export default function GateScannerPage() {
                 <div className="space-y-4 pt-1 animate-in fade-in">
                   <div>
                     <label className="text-xs font-bold text-muted-foreground block mb-2">
-                      {isAr ? "مسح الـ QR أو إدخال كود الموظف:" : "Scan QR / Enter Staff ID:"}
+                      {isAr
+                        ? "مسح الـ QR أو إدخال كود الموظف:"
+                        : "Scan QR / Enter Staff ID:"}
                     </label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
@@ -651,7 +692,9 @@ export default function GateScannerPage() {
 
                   {/* Quick sample chips for testing */}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1 flex-wrap">
-                    <span className="font-semibold">{isAr ? "تجربة سريعة:" : "Quick test:"}</span>
+                    <span className="font-semibold">
+                      {isAr ? "تجربة سريعة:" : "Quick test:"}
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleVerify("203", "MANUAL")}
@@ -688,8 +731,8 @@ export default function GateScannerPage() {
                 lastVerification.verdict === "GRANTED"
                   ? "bg-emerald-500/10 border-emerald-500/60 shadow-emerald-500/10"
                   : lastVerification.verdict === "WARNING"
-                  ? "bg-amber-500/10 border-amber-500/60 shadow-amber-500/10"
-                  : "bg-rose-500/10 border-rose-500/60 shadow-rose-500/10"
+                    ? "bg-amber-500/10 border-amber-500/60 shadow-amber-500/10"
+                    : "bg-rose-500/10 border-rose-500/60 shadow-rose-500/10"
               }`}
             >
               {/* Verdict Header Badge */}
@@ -715,8 +758,8 @@ export default function GateScannerPage() {
                         lastVerification.verdict === "GRANTED"
                           ? "text-emerald-600 dark:text-emerald-400"
                           : lastVerification.verdict === "WARNING"
-                          ? "text-amber-600 dark:text-amber-400"
-                          : "text-rose-600 dark:text-rose-400"
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-rose-600 dark:text-rose-400"
                       }`}
                     >
                       {lastVerification.verdict === "GRANTED"
@@ -724,12 +767,12 @@ export default function GateScannerPage() {
                           ? "مصرّح بالمرور (AUTHORIZED)"
                           : "ACCESS GRANTED"
                         : lastVerification.verdict === "WARNING"
-                        ? isAr
-                          ? "تنبيه إجازة (ON VACATION)"
-                          : "ON VACATION"
-                        : isAr
-                        ? "ممنوع الدخول (DENIED)"
-                        : "ACCESS DENIED"}
+                          ? isAr
+                            ? "تنبيه إجازة (ON VACATION)"
+                            : "ON VACATION"
+                          : isAr
+                            ? "ممنوع الدخول (DENIED)"
+                            : "ACCESS DENIED"}
                     </h3>
                     <p className="text-xs font-semibold text-muted-foreground mt-0.5">
                       {lastVerification.reason}
@@ -744,7 +787,13 @@ export default function GateScannerPage() {
                       : "bg-blue-500 text-white"
                   }`}
                 >
-                  {direction === "IN" ? (isAr ? "دخول" : "IN") : (isAr ? "خروج" : "OUT")}
+                  {direction === "IN"
+                    ? isAr
+                      ? "دخول"
+                      : "IN"
+                    : isAr
+                      ? "خروج"
+                      : "OUT"}
                 </Badge>
               </div>
 
@@ -769,7 +818,8 @@ export default function GateScannerPage() {
                         {lastVerification.resident.fullName}
                       </h4>
                       <p className="text-xs text-muted-foreground truncate mt-0.5 font-medium">
-                        {lastVerification.resident.jobTitle} · {lastVerification.resident.department}
+                        {lastVerification.resident.jobTitle} ·{" "}
+                        {lastVerification.resident.department}
                       </p>
                       <p className="text-xs font-mono text-primary font-bold mt-1">
                         ID: #{lastVerification.resident.employeeId}
@@ -803,7 +853,10 @@ export default function GateScannerPage() {
                     <Button
                       onClick={() =>
                         logMovementMutation.mutate({
-                          propertyId: selectedPropertyId || lastVerification.resident.propertyId || 1,
+                          propertyId:
+                            selectedPropertyId ||
+                            lastVerification.resident.propertyId ||
+                            1,
                           profileId: lastVerification.resident.profileId,
                           employeeId: lastVerification.resident.employeeId,
                           fullName: lastVerification.resident.fullName,
@@ -860,7 +913,9 @@ export default function GateScannerPage() {
             <div>
               <CardTitle className="text-base font-bold flex items-center gap-2">
                 <Clock className="w-5 h-5 text-primary" />
-                {isAr ? "سجل حركات بوابة السكن اللحظي" : "Live Gate Movement Log"}
+                {isAr
+                  ? "سجل حركات بوابة السكن اللحظي"
+                  : "Live Gate Movement Log"}
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
                 {isAr
@@ -877,9 +932,13 @@ export default function GateScannerPage() {
                 onChange={(e) => setFilterDirection(e.target.value)}
                 className="h-9 rounded-xl text-xs border border-border bg-background px-2.5 font-medium"
               >
-                <option value="all">{isAr ? "كل الحركات" : "All Directions"}</option>
+                <option value="all">
+                  {isAr ? "كل الحركات" : "All Directions"}
+                </option>
                 <option value="IN">{isAr ? "دخول فقط (IN)" : "IN Only"}</option>
-                <option value="OUT">{isAr ? "خروج فقط (OUT)" : "OUT Only"}</option>
+                <option value="OUT">
+                  {isAr ? "خروج فقط (OUT)" : "OUT Only"}
+                </option>
               </select>
 
               {/* Status Filter */}
@@ -888,9 +947,15 @@ export default function GateScannerPage() {
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="h-9 rounded-xl text-xs border border-border bg-background px-2.5 font-medium"
               >
-                <option value="all">{isAr ? "كل الحالات" : "All Status"}</option>
-                <option value="GRANTED">{isAr ? "مقبول فقط" : "Granted Only"}</option>
-                <option value="DENIED">{isAr ? "مرفوض فقط" : "Denied Only"}</option>
+                <option value="all">
+                  {isAr ? "كل الحالات" : "All Status"}
+                </option>
+                <option value="GRANTED">
+                  {isAr ? "مقبول فقط" : "Granted Only"}
+                </option>
+                <option value="DENIED">
+                  {isAr ? "مرفوض فقط" : "Denied Only"}
+                </option>
               </select>
 
               {/* Search input */}
@@ -913,14 +978,28 @@ export default function GateScannerPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
-                  <TableHead className="w-24">{isAr ? "الوقت" : "Time"}</TableHead>
-                  <TableHead className="w-28">{isAr ? "الاتجاه" : "Direction"}</TableHead>
-                  <TableHead className="w-24">{isAr ? "طريقة الفحص" : "Method"}</TableHead>
+                  <TableHead className="w-24">
+                    {isAr ? "الوقت" : "Time"}
+                  </TableHead>
+                  <TableHead className="w-28">
+                    {isAr ? "الاتجاه" : "Direction"}
+                  </TableHead>
+                  <TableHead className="w-24">
+                    {isAr ? "طريقة الفحص" : "Method"}
+                  </TableHead>
                   <TableHead>{isAr ? "المقيم" : "Resident"}</TableHead>
-                  <TableHead>{isAr ? "الغرفة والمبنى" : "Room & Building"}</TableHead>
-                  <TableHead className="w-28">{isAr ? "الحالة" : "Status"}</TableHead>
-                  <TableHead>{isAr ? "السبب / الملاحظات" : "Reason / Details"}</TableHead>
-                  <TableHead className="w-32">{isAr ? "رجل الأمن" : "Officer"}</TableHead>
+                  <TableHead>
+                    {isAr ? "الغرفة والمبنى" : "Room & Building"}
+                  </TableHead>
+                  <TableHead className="w-28">
+                    {isAr ? "الحالة" : "Status"}
+                  </TableHead>
+                  <TableHead>
+                    {isAr ? "السبب / الملاحظات" : "Reason / Details"}
+                  </TableHead>
+                  <TableHead className="w-32">
+                    {isAr ? "رجل الأمن" : "Officer"}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -946,10 +1025,13 @@ export default function GateScannerPage() {
                   </TableRow>
                 ) : (
                   logs.map((log: any) => {
-                    const timeFormatted = new Date(log.scannedAt).toLocaleTimeString(
-                      isAr ? "ar-EG" : "en-US",
-                      { hour: "2-digit", minute: "2-digit", second: "2-digit" }
-                    );
+                    const timeFormatted = new Date(
+                      log.scannedAt,
+                    ).toLocaleTimeString(isAr ? "ar-EG" : "en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      second: "2-digit",
+                    });
 
                     return (
                       <TableRow key={log.id} className="hover:bg-muted/30">
@@ -983,7 +1065,10 @@ export default function GateScannerPage() {
 
                         {/* Scan Method */}
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px] font-mono gap-1 rounded-md px-1.5 py-0.5 bg-muted/40">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-mono gap-1 rounded-md px-1.5 py-0.5 bg-muted/40"
+                          >
                             {log.scanMethod === "CAMERA_SCAN" ? (
                               <>
                                 <Camera className="w-3 h-3 text-emerald-500" />
@@ -1009,7 +1094,8 @@ export default function GateScannerPage() {
                             {log.fullName}
                           </div>
                           <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                            ID: {log.employeeId} {log.department ? `· ${log.department}` : ""}
+                            ID: {log.employeeId}{" "}
+                            {log.department ? `· ${log.department}` : ""}
                           </div>
                         </TableCell>
 
@@ -1028,14 +1114,20 @@ export default function GateScannerPage() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-muted-foreground text-xs">—</span>
+                            <span className="text-muted-foreground text-xs">
+                              —
+                            </span>
                           )}
                         </TableCell>
 
                         {/* Status */}
                         <TableCell>
                           <Badge
-                            variant={log.status === "GRANTED" ? "default" : "destructive"}
+                            variant={
+                              log.status === "GRANTED"
+                                ? "default"
+                                : "destructive"
+                            }
                             className={`text-[10px] font-bold uppercase rounded-full ${
                               log.status === "GRANTED"
                                 ? "bg-emerald-600 hover:bg-emerald-600"
@@ -1047,8 +1139,8 @@ export default function GateScannerPage() {
                                 ? "مقبول"
                                 : "GRANTED"
                               : isAr
-                              ? "مرفوض"
-                              : "DENIED"}
+                                ? "مرفوض"
+                                : "DENIED"}
                           </Badge>
                         </TableCell>
 
@@ -1072,13 +1164,18 @@ export default function GateScannerPage() {
       </Card>
 
       {/* ── 5. FULL SCREEN CAMERA MODAL (TABLETS & PHONES) ── */}
-      <Dialog open={fullscreenCameraOpen} onOpenChange={setFullscreenCameraOpen}>
+      <Dialog
+        open={fullscreenCameraOpen}
+        onOpenChange={setFullscreenCameraOpen}
+      >
         <DialogContent className="max-w-2xl w-full p-4 sm:p-6 rounded-3xl bg-background border shadow-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between flex-wrap gap-2">
               <span className="flex items-center gap-2 text-base font-bold text-foreground">
                 <Camera className="w-5 h-5 text-primary" />
-                {isAr ? "كاميرا فحص تصريح البوابة بملء الشاشة" : "Full Screen Gate Pass Camera"}
+                {isAr
+                  ? "كاميرا فحص تصريح البوابة بملء الشاشة"
+                  : "Full Screen Gate Pass Camera"}
               </span>
               <div className="flex items-center gap-1 p-1 bg-muted border border-border rounded-xl">
                 <button

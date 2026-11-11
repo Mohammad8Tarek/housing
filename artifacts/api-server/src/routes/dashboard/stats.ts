@@ -1,7 +1,22 @@
 import { Router } from "express";
-import { db, pool, withTenant, assignmentsTable, reservationsTable, roomsTable, profilesTable, maintenanceTable, buildingsTable, floorsTable, propertiesTable } from "@workspace/db";
+import {
+  db,
+  pool,
+  withTenant,
+  assignmentsTable,
+  reservationsTable,
+  roomsTable,
+  profilesTable,
+  maintenanceTable,
+  buildingsTable,
+  floorsTable,
+  propertiesTable,
+} from "@workspace/db";
 import { eq, and, lte, gte, count, desc, sql } from "drizzle-orm";
-import { requirePermission, requireSuperAdmin } from "../../middlewares/permissions.js";
+import {
+  requirePermission,
+  requireSuperAdmin,
+} from "../../middlewares/permissions.js";
 import { getTenantId } from "../../lib/request-utils.js";
 import { safeCount, safeSelect, statusEq } from "./shared.js";
 
@@ -13,7 +28,6 @@ router.get(
   "/dashboard/all-stats",
   requireSuperAdmin(),
   async (req, res): Promise<void> => {
-
     const result = await pool.query(
       "SELECT id, name, code, display_name FROM public.properties ORDER BY id",
     );
@@ -62,12 +76,16 @@ router.get(
                 deptRows,
                 genderRows,
               ] = await Promise.all([
-                safeCount(() => tenantDb.select({ count: count() }).from(profilesTable)),
+                safeCount(() =>
+                  tenantDb.select({ count: count() }).from(profilesTable),
+                ),
                 safeCount(() =>
                   tenantDb
                     .select({ count: count() })
                     .from(maintenanceTable)
-                    .where(sql`lower(${maintenanceTable.status}) IN ('open', 'in_progress')`),
+                    .where(
+                      sql`lower(${maintenanceTable.status}) IN ('open', 'in_progress')`,
+                    ),
                 ),
                 safeCount(() =>
                   tenantDb
@@ -75,8 +93,12 @@ router.get(
                     .from(reservationsTable)
                     .where(statusEq(reservationsTable.status, "upcoming")),
                 ),
-                safeCount(() => tenantDb.select({ count: count() }).from(buildingsTable)),
-                safeCount(() => tenantDb.select({ count: count() }).from(floorsTable)),
+                safeCount(() =>
+                  tenantDb.select({ count: count() }).from(buildingsTable),
+                ),
+                safeCount(() =>
+                  tenantDb.select({ count: count() }).from(floorsTable),
+                ),
                 safeSelect(() =>
                   tenantDb
                     .select({
@@ -102,7 +124,9 @@ router.get(
                       roomId: maintenanceTable.roomId,
                     })
                     .from(maintenanceTable)
-                    .where(sql`lower(${maintenanceTable.status}) IN ('open', 'in_progress')`)
+                    .where(
+                      sql`lower(${maintenanceTable.status}) IN ('open', 'in_progress')`,
+                    )
                     .limit(6),
                 ),
                 safeSelect(() =>
@@ -181,21 +205,31 @@ router.get(
               const totalRooms = allRooms.length;
               const availableBeds = Math.max(0, totalBeds - occupiedBeds);
               const bedOccupancyRate =
-                totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 1000) / 10 : 0;
+                totalBeds > 0
+                  ? Math.round((occupiedBeds / totalBeds) * 1000) / 10
+                  : 0;
               const roomOccupancyRate =
-                totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 1000) / 10 : 0;
+                totalRooms > 0
+                  ? Math.round((occupiedRooms / totalRooms) * 1000) / 10
+                  : 0;
               const cleanRate =
                 totalRooms > 0
-                  ? Math.round(((availableRooms + occupiedRooms) / totalRooms) * 100)
+                  ? Math.round(
+                      ((availableRooms + occupiedRooms) / totalRooms) * 100,
+                    )
                   : 100;
 
-              const formattedArrivals = (recentArrivals || []).map((arr: any) => ({
-                ...arr,
-                guestName: [arr.firstName, arr.lastName].filter(Boolean).join(" ") || "Guest",
-                propertyName: p.name,
-                propertyId: p.id,
-                roomNumber: roomNumberMap.get(arr.roomId) || "—",
-              }));
+              const formattedArrivals = (recentArrivals || []).map(
+                (arr: any) => ({
+                  ...arr,
+                  guestName:
+                    [arr.firstName, arr.lastName].filter(Boolean).join(" ") ||
+                    "Guest",
+                  propertyName: p.name,
+                  propertyId: p.id,
+                  roomNumber: roomNumberMap.get(arr.roomId) || "—",
+                }),
+              );
 
               const formattedTickets = (recentTickets || []).map((t: any) => ({
                 ...t,
@@ -307,7 +341,9 @@ router.get(
     const aggregateCleanRate =
       totals.totalRooms > 0
         ? Math.round(
-            ((totals.availableRooms + totals.occupiedRooms) / totals.totalRooms) * 100,
+            ((totals.availableRooms + totals.occupiedRooms) /
+              totals.totalRooms) *
+              100,
           )
         : 100;
 
@@ -343,7 +379,9 @@ router.get(
     let femaleCount = 0;
     for (const p of perProperty) {
       for (const g of p.genderRows || []) {
-        const gen = String(g.gender || "").toLowerCase().trim();
+        const gen = String(g.gender || "")
+          .toLowerCase()
+          .trim();
         if (gen === "female" || gen === "f" || gen === "أنثى") {
           femaleCount += Number(g.count || 0);
         } else if (gen === "male" || gen === "m" || gen === "ذكر") {
@@ -355,11 +393,13 @@ router.get(
     const genderDistribution = {
       male: {
         count: maleCount,
-        percent: genderTotal > 0 ? Math.round((maleCount / genderTotal) * 100) : 50,
+        percent:
+          genderTotal > 0 ? Math.round((maleCount / genderTotal) * 100) : 50,
       },
       female: {
         count: femaleCount,
-        percent: genderTotal > 0 ? Math.round((femaleCount / genderTotal) * 100) : 50,
+        percent:
+          genderTotal > 0 ? Math.round((femaleCount / genderTotal) * 100) : 50,
       },
     };
 
@@ -372,7 +412,8 @@ router.get(
     }
     allArrivals.sort(
       (a, b) =>
-        new Date(a.checkInDate || 0).getTime() - new Date(b.checkInDate || 0).getTime(),
+        new Date(a.checkInDate || 0).getTime() -
+        new Date(b.checkInDate || 0).getTime(),
     );
     allTickets.sort((a, b) => (b.id || 0) - (a.id || 0));
 
@@ -456,7 +497,9 @@ router.get(
         totalBuildings,
         totalFloors,
       ] = await Promise.all([
-        safeCount(() => tenantDb.select({ count: count() }).from(profilesTable)),
+        safeCount(() =>
+          tenantDb.select({ count: count() }).from(profilesTable),
+        ),
         safeCount(() =>
           tenantDb
             .select({ count: count() })
@@ -481,8 +524,12 @@ router.get(
             .from(reservationsTable)
             .where(statusEq(reservationsTable.status, "upcoming")),
         ),
-        safeCount(() => tenantDb.select({ count: count() }).from(reservationsTable)),
-        safeCount(() => tenantDb.select({ count: count() }).from(buildingsTable)),
+        safeCount(() =>
+          tenantDb.select({ count: count() }).from(reservationsTable),
+        ),
+        safeCount(() =>
+          tenantDb.select({ count: count() }).from(buildingsTable),
+        ),
         safeCount(() => tenantDb.select({ count: count() }).from(floorsTable)),
       ]);
 
@@ -500,7 +547,11 @@ router.get(
         const st = (r.status || "available").toLowerCase();
         if (st === "dirty" || st === "occupied_dirty") {
           dirtyRooms++;
-        } else if (st === "maintenance" || st === "out_of_service" || st === "out_of_order") {
+        } else if (
+          st === "maintenance" ||
+          st === "out_of_service" ||
+          st === "out_of_order"
+        ) {
           maintenanceRooms++;
         }
       }
@@ -511,7 +562,10 @@ router.get(
 
       for (const a of activeAssigns) {
         if (!a.roomId) continue;
-        roomOccupantCount.set(a.roomId, (roomOccupantCount.get(a.roomId) || 0) + 1);
+        roomOccupantCount.set(
+          a.roomId,
+          (roomOccupantCount.get(a.roomId) || 0) + 1,
+        );
         if (a.isEntireRoom) {
           occupiedBeds += roomCapacityMap.get(a.roomId) || 1;
         } else {
@@ -521,13 +575,20 @@ router.get(
 
       const totalRooms = allRooms.length;
       const occupiedRooms = roomOccupantCount.size;
-      const availableRooms = Math.max(0, totalRooms - occupiedRooms - dirtyRooms - maintenanceRooms);
+      const availableRooms = Math.max(
+        0,
+        totalRooms - occupiedRooms - dirtyRooms - maintenanceRooms,
+      );
       const availableBeds = Math.max(0, totalBeds - occupiedBeds);
 
       // Bed-level occupancy (true capacity utilization)
-      const bedOccupancyRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 1000) / 10 : 0;
+      const bedOccupancyRate =
+        totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 1000) / 10 : 0;
       // Room-level occupancy
-      const roomOccupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 1000) / 10 : 0;
+      const roomOccupancyRate =
+        totalRooms > 0
+          ? Math.round((occupiedRooms / totalRooms) * 1000) / 10
+          : 0;
 
       return {
         totalRooms,
@@ -554,7 +615,10 @@ router.get(
       };
     });
 
-    const unhousedProfiles = Math.max(0, stats.totalProfiles - stats.activeAssignments);
+    const unhousedProfiles = Math.max(
+      0,
+      stats.totalProfiles - stats.activeAssignments,
+    );
     const pendingMaintenance = stats.openMaintenance + stats.inProgressMaint;
 
     res.json({
@@ -575,7 +639,9 @@ router.get(
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
-      res.status(400).json({ success: false, message: "propertyId is required" });
+      res
+        .status(400)
+        .json({ success: false, message: "propertyId is required" });
       return;
     }
 
@@ -592,18 +658,21 @@ router.get(
           .where(eq(propertiesTable.id, propertyId))
           .limit(1);
 
-        const [buildings, floors, rooms, assignments, profiles] = await Promise.all([
-          safeSelect(() => tenantDb.select().from(buildingsTable)),
-          safeSelect(() => tenantDb.select().from(floorsTable)),
-          safeSelect(() => tenantDb.select().from(roomsTable)),
-          safeSelect(() =>
-            tenantDb
-              .select()
-              .from(assignmentsTable)
-              .where(sql`lower(${assignmentsTable.status}) IN ('active', 'vacation', 'occupied_vacation')`),
-          ),
-          safeSelect(() => tenantDb.select().from(profilesTable)),
-        ]);
+        const [buildings, floors, rooms, assignments, profiles] =
+          await Promise.all([
+            safeSelect(() => tenantDb.select().from(buildingsTable)),
+            safeSelect(() => tenantDb.select().from(floorsTable)),
+            safeSelect(() => tenantDb.select().from(roomsTable)),
+            safeSelect(() =>
+              tenantDb
+                .select()
+                .from(assignmentsTable)
+                .where(
+                  sql`lower(${assignmentsTable.status}) IN ('active', 'vacation', 'occupied_vacation')`,
+                ),
+            ),
+            safeSelect(() => tenantDb.select().from(profilesTable)),
+          ]);
 
         const profileMap = new Map<number, any>();
         for (const p of profiles) {
@@ -645,7 +714,7 @@ router.get(
           };
           list.push({
             assignmentId: a.id,
-            bedNumber: a.bedNumber ?? (list.length + 1),
+            bedNumber: a.bedNumber ?? list.length + 1,
             isEntireRoom: Boolean(a.isEntireRoom),
             checkInDate: a.checkInDate,
             expectedCheckOutDate: a.expectedCheckOutDate,
@@ -679,24 +748,31 @@ router.get(
           let displayStatus = (r.status || "available").toLowerCase();
           const rawSt = (r.status || "available").toLowerCase();
           if (displayStatus === "available" && occ > 0) {
-            displayStatus = occupiedBeds >= cap ? "occupied" : "partially_occupied";
+            displayStatus =
+              occupiedBeds >= cap ? "occupied" : "partially_occupied";
           } else if (displayStatus === "occupied" && occ < cap && !isEntire) {
             displayStatus = occ === 0 ? "available" : "partially_occupied";
           }
 
           let statusCategory = "available";
-          if (rawSt.includes("out_of_service") || rawSt.includes("out_of_order") || rawSt.includes("maintenance")) {
+          if (
+            rawSt.includes("out_of_service") ||
+            rawSt.includes("out_of_order") ||
+            rawSt.includes("maintenance")
+          ) {
             statusCategory = "maintenance";
           } else if (displayStatus === "occupied" || occupiedBeds >= cap) {
             statusCategory = "occupied";
-          } else if (displayStatus === "partially_occupied" || (occupiedBeds > 0 && occupiedBeds < cap)) {
+          } else if (
+            displayStatus === "partially_occupied" ||
+            (occupiedBeds > 0 && occupiedBeds < cap)
+          ) {
             statusCategory = "partial";
           }
 
-          const cleanlinessStatus =
-            rawSt.includes("dirty")
-              ? "dirty"
-              : rawSt.includes("inspected")
+          const cleanlinessStatus = rawSt.includes("dirty")
+            ? "dirty"
+            : rawSt.includes("inspected")
               ? "inspected"
               : "clean";
 
@@ -740,7 +816,10 @@ router.get(
             if (rm.occupiedBeds > 0) floorOccupiedRooms++;
           }
 
-          const floorVacantBeds = Math.max(0, floorCapacity - floorOccupiedBeds);
+          const floorVacantBeds = Math.max(
+            0,
+            floorCapacity - floorOccupiedBeds,
+          );
           const floorOccupancyRate =
             floorCapacity > 0
               ? Math.round((floorOccupiedBeds / floorCapacity) * 1000) / 10
@@ -759,7 +838,9 @@ router.get(
             vacantBeds: floorVacantBeds,
             occupancyRate: floorOccupancyRate,
             rooms: fRooms.sort((a, b) =>
-              a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true }),
+              a.roomNumber.localeCompare(b.roomNumber, undefined, {
+                numeric: true,
+              }),
             ),
           });
           floorsByBuilding.set(bId, list);
@@ -787,7 +868,9 @@ router.get(
 
           const bVacantBeds = Math.max(0, bCapacity - bOccupiedBeds);
           const bOccupancyRate =
-            bCapacity > 0 ? Math.round((bOccupiedBeds / bCapacity) * 1000) / 10 : 0;
+            bCapacity > 0
+              ? Math.round((bOccupiedBeds / bCapacity) * 1000) / 10
+              : 0;
 
           totalHousingCapacity += bCapacity;
           totalHousingOccupiedBeds += bOccupiedBeds;
@@ -807,9 +890,13 @@ router.get(
             vacantBeds: bVacantBeds,
             occupancyRate: bOccupancyRate,
             floors: bFloors.sort((a, b) =>
-              String(a.floorNumber).localeCompare(String(b.floorNumber), undefined, {
-                numeric: true,
-              }),
+              String(a.floorNumber).localeCompare(
+                String(b.floorNumber),
+                undefined,
+                {
+                  numeric: true,
+                },
+              ),
             ),
           };
         });
@@ -820,11 +907,15 @@ router.get(
         );
         const bedOccupancyRate =
           totalHousingCapacity > 0
-            ? Math.round((totalHousingOccupiedBeds / totalHousingCapacity) * 1000) / 10
+            ? Math.round(
+                (totalHousingOccupiedBeds / totalHousingCapacity) * 1000,
+              ) / 10
             : 0;
         const roomOccupancyRate =
           totalHousingRooms > 0
-            ? Math.round((totalHousingOccupiedRooms / totalHousingRooms) * 1000) / 10
+            ? Math.round(
+                (totalHousingOccupiedRooms / totalHousingRooms) * 1000,
+              ) / 10
             : 0;
 
         const housingSummary = {
@@ -836,7 +927,10 @@ router.get(
           totalFloors: floors.length,
           totalRooms: totalHousingRooms,
           occupiedRooms: totalHousingOccupiedRooms,
-          availableRooms: Math.max(0, totalHousingRooms - totalHousingOccupiedRooms),
+          availableRooms: Math.max(
+            0,
+            totalHousingRooms - totalHousingOccupiedRooms,
+          ),
           totalCapacity: totalHousingCapacity,
           totalBeds: totalHousingCapacity,
           occupiedBeds: totalHousingOccupiedBeds,
@@ -851,16 +945,19 @@ router.get(
         return {
           housing: housingSummary,
           summary: housingSummary,
-          buildings: enrichedBuildings.sort((a, b) => a.name.localeCompare(b.name)),
+          buildings: enrichedBuildings.sort((a, b) =>
+            a.name.localeCompare(b.name),
+          ),
         };
       });
 
       res.json({ success: true, ...data });
     } catch (err: any) {
       console.error("[DashboardHousingBreakdown] Error:", err);
-      res
-        .status(500)
-        .json({ success: false, message: err.message || "Failed to load housing breakdown" });
+      res.status(500).json({
+        success: false,
+        message: err.message || "Failed to load housing breakdown",
+      });
     }
   },
 );
@@ -901,7 +998,10 @@ router.get(
             eq(assignmentsTable.profileId, profilesTable.id),
           )
           .leftJoin(roomsTable, eq(assignmentsTable.roomId, roomsTable.id))
-          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+          .leftJoin(
+            buildingsTable,
+            eq(roomsTable.buildingId, buildingsTable.id),
+          )
           .where(
             and(
               statusEq(assignmentsTable.status, "active"),
@@ -920,7 +1020,10 @@ router.get(
           })
           .from(reservationsTable)
           .leftJoin(roomsTable, eq(reservationsTable.roomId, roomsTable.id))
-          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+          .leftJoin(
+            buildingsTable,
+            eq(roomsTable.buildingId, buildingsTable.id),
+          )
           .where(
             and(
               statusEq(reservationsTable.status, "upcoming"),
@@ -940,7 +1043,10 @@ router.get(
           })
           .from(maintenanceTable)
           .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
-          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+          .leftJoin(
+            buildingsTable,
+            eq(roomsTable.buildingId, buildingsTable.id),
+          )
           .where(statusEq(maintenanceTable.status, "open"))
           .orderBy(desc(maintenanceTable.reportedAt))
           .limit(20),
@@ -953,7 +1059,10 @@ router.get(
             building: buildingsTable,
           })
           .from(roomsTable)
-          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+          .leftJoin(
+            buildingsTable,
+            eq(roomsTable.buildingId, buildingsTable.id),
+          )
           .where(
             sql`lower(${roomsTable.status}) IN ('dirty', 'occupied_dirty')`,
           )
@@ -976,7 +1085,13 @@ router.get(
           .limit(10),
       );
 
-      return { checkOuts, checkIns, maintenanceRequests, dirtyRooms, expiringContracts };
+      return {
+        checkOuts,
+        checkIns,
+        maintenanceRequests,
+        dirtyRooms,
+        expiringContracts,
+      };
     });
 
     const todayDate = new Date();
@@ -987,9 +1102,13 @@ router.get(
       if (r.assignment.expectedCheckOutDate) {
         const exp = new Date(r.assignment.expectedCheckOutDate);
         exp.setHours(0, 0, 0, 0);
-        daysRemaining = Math.round((exp.getTime() - todayDate.getTime()) / 86_400_000);
+        daysRemaining = Math.round(
+          (exp.getTime() - todayDate.getTime()) / 86_400_000,
+        );
       }
-      const fullName = [r.profile?.firstName, r.profile?.lastName].filter(Boolean).join(" ");
+      const fullName = [r.profile?.firstName, r.profile?.lastName]
+        .filter(Boolean)
+        .join(" ");
       return {
         ...r.assignment,
         assignmentId: r.assignment.id,
@@ -1006,9 +1125,13 @@ router.get(
       if (r.reservation.checkInDate) {
         const d = new Date(r.reservation.checkInDate);
         d.setHours(0, 0, 0, 0);
-        daysUntil = Math.round((d.getTime() - todayDate.getTime()) / 86_400_000);
+        daysUntil = Math.round(
+          (d.getTime() - todayDate.getTime()) / 86_400_000,
+        );
       }
-      const fullName = [r.reservation.firstName, r.reservation.lastName].filter(Boolean).join(" ");
+      const fullName = [r.reservation.firstName, r.reservation.lastName]
+        .filter(Boolean)
+        .join(" ");
       return {
         ...r.reservation,
         guestName: fullName,
@@ -1039,9 +1162,13 @@ router.get(
       if (r.profile.contractEndDate) {
         const d = new Date(r.profile.contractEndDate);
         d.setHours(0, 0, 0, 0);
-        daysUntil = Math.round((d.getTime() - todayDate.getTime()) / 86_400_000);
+        daysUntil = Math.round(
+          (d.getTime() - todayDate.getTime()) / 86_400_000,
+        );
       }
-      const fullName = [r.profile.firstName, r.profile.lastName].filter(Boolean).join(" ");
+      const fullName = [r.profile.firstName, r.profile.lastName]
+        .filter(Boolean)
+        .join(" ");
       return {
         id: r.profile.id,
         profileId: r.profile.profileId,

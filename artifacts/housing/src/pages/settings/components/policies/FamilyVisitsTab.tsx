@@ -10,7 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormDescription,
+} from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { TabsContent } from "@/components/ui/tabs";
 import {
@@ -21,18 +27,42 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { HeartHandshake, Plus, Trash2, Pencil, ArrowUp, ArrowDown, RotateCcw, FileCheck } from "lucide-react";
+import {
+  HeartHandshake,
+  Plus,
+  Trash2,
+  Pencil,
+  ArrowUp,
+  ArrowDown,
+  RotateCcw,
+  FileCheck,
+} from "lucide-react";
 import type { PoliciesSectionState } from "./usePoliciesSectionState";
 
 export function renderFamilyVisitsTab(s: PoliciesSectionState) {
-  const { form, ar, currentSignaturePolicy, handleOpenAddStep, handleOpenEditStep, handleMoveStepUp, handleMoveStepDown, handleDeleteStep, handleResetWorkflow } = s;
+  const {
+    form,
+    ar,
+    currentSignaturePolicy,
+    handleOpenAddStep,
+    handleOpenEditStep,
+    handleMoveStepUp,
+    handleMoveStepDown,
+    handleDeleteStep,
+    handleResetWorkflow,
+  } = s;
   return (
-<TabsContent value="family_visits" className="space-y-4 focus-visible:outline-none">
+    <TabsContent
+      value="family_visits"
+      className="space-y-4 focus-visible:outline-none"
+    >
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <HeartHandshake className="w-4 h-4 text-pink-500" />
-            {ar ? "2. سياسة وضوابط الزيارات العائلية (Family Visit Policy)" : "2. Family Visit Policy"}
+            {ar
+              ? "2. سياسة وضوابط الزيارات العائلية (Family Visit Policy)"
+              : "2. Family Visit Policy"}
           </CardTitle>
           <CardDescription>
             {ar
@@ -47,11 +77,15 @@ export function renderFamilyVisitsTab(s: PoliciesSectionState) {
               name="visitMaxNights"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-semibold">{ar ? "الحد الأقصى لليالي الزيارة" : "Max Nights / Visit"}</FormLabel>
+                  <FormLabel className="text-xs font-semibold">
+                    {ar ? "الحد الأقصى لليالي الزيارة" : "Max Nights / Visit"}
+                  </FormLabel>
                   <FormControl>
                     <Input type="number" min={1} max={60} {...field} />
                   </FormControl>
-                  <FormDescription className="text-[11px]">{ar ? "افتراضياً 7 ليالٍ" : "Default 7 nights"}</FormDescription>
+                  <FormDescription className="text-[11px]">
+                    {ar ? "افتراضياً 7 ليالٍ" : "Default 7 nights"}
+                  </FormDescription>
                 </FormItem>
               )}
             />
@@ -61,11 +95,15 @@ export function renderFamilyVisitsTab(s: PoliciesSectionState) {
               name="visitMaxVisitsPerYear"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-semibold">{ar ? "الحد الأقصى للزيارات سنوياً" : "Max Visits / Year"}</FormLabel>
+                  <FormLabel className="text-xs font-semibold">
+                    {ar ? "الحد الأقصى للزيارات سنوياً" : "Max Visits / Year"}
+                  </FormLabel>
                   <FormControl>
                     <Input type="number" min={1} max={20} {...field} />
                   </FormControl>
-                  <FormDescription className="text-[11px]">{ar ? "افتراضياً زيارتان سنوياً" : "Default 2 visits/year"}</FormDescription>
+                  <FormDescription className="text-[11px]">
+                    {ar ? "افتراضياً زيارتان سنوياً" : "Default 2 visits/year"}
+                  </FormDescription>
                 </FormItem>
               )}
             />
@@ -75,11 +113,17 @@ export function renderFamilyVisitsTab(s: PoliciesSectionState) {
               name="visitMinServiceMonths"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-semibold">{ar ? "الحد الأدنى للخدمة (شهور)" : "Min Service (Months)"}</FormLabel>
+                  <FormLabel className="text-xs font-semibold">
+                    {ar ? "الحد الأدنى للخدمة (شهور)" : "Min Service (Months)"}
+                  </FormLabel>
                   <FormControl>
                     <Input type="number" min={0} max={60} {...field} />
                   </FormControl>
-                  <FormDescription className="text-[11px]">{ar ? "أشهر خدمة قبل الاستحقاق" : "Months of service required"}</FormDescription>
+                  <FormDescription className="text-[11px]">
+                    {ar
+                      ? "أشهر خدمة قبل الاستحقاق"
+                      : "Months of service required"}
+                  </FormDescription>
                 </FormItem>
               )}
             />
@@ -89,11 +133,15 @@ export function renderFamilyVisitsTab(s: PoliciesSectionState) {
               name="visitCooldownDays"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-semibold">{ar ? "فترة التهدئة الفاصلة (أيام)" : "Cooldown Days"}</FormLabel>
+                  <FormLabel className="text-xs font-semibold">
+                    {ar ? "فترة التهدئة الفاصلة (أيام)" : "Cooldown Days"}
+                  </FormLabel>
                   <FormControl>
                     <Input type="number" min={0} max={365} {...field} />
                   </FormControl>
-                  <FormDescription className="text-[11px]">{ar ? "الفاصل بين الزيارات" : "Days between visits"}</FormDescription>
+                  <FormDescription className="text-[11px]">
+                    {ar ? "الفاصل بين الزيارات" : "Days between visits"}
+                  </FormDescription>
                 </FormItem>
               )}
             />
@@ -106,7 +154,9 @@ export function renderFamilyVisitsTab(s: PoliciesSectionState) {
               <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card mt-2">
                 <div className="space-y-0.5 pe-4">
                   <FormLabel className="text-xs font-bold">
-                    {ar ? "إلزامية إدخال الرقم القومي لجميع أفراد الأسرة والمرافقين" : "Require National ID for All Family Companions"}
+                    {ar
+                      ? "إلزامية إدخال الرقم القومي لجميع أفراد الأسرة والمرافقين"
+                      : "Require National ID for All Family Companions"}
                   </FormLabel>
                   <FormDescription className="text-[11px]">
                     {ar
@@ -115,7 +165,10 @@ export function renderFamilyVisitsTab(s: PoliciesSectionState) {
                   </FormDescription>
                 </div>
                 <FormControl>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
                 </FormControl>
               </FormItem>
             )}
@@ -126,11 +179,19 @@ export function renderFamilyVisitsTab(s: PoliciesSectionState) {
             name="familyVisitPolicyText"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs font-semibold">{ar ? "نص وبنود لائحة الزيارات العائلية التفصيلية" : "Family Visit Policy Guidelines (Text)"}</FormLabel>
+                <FormLabel className="text-xs font-semibold">
+                  {ar
+                    ? "نص وبنود لائحة الزيارات العائلية التفصيلية"
+                    : "Family Visit Policy Guidelines (Text)"}
+                </FormLabel>
                 <FormControl>
                   <Textarea
                     rows={3}
-                    placeholder={ar ? "أدخل نص التعليمات والاشتراطات الخاصة بالاستضافة العائلية..." : "Enter details for family hosting policy..."}
+                    placeholder={
+                      ar
+                        ? "أدخل نص التعليمات والاشتراطات الخاصة بالاستضافة العائلية..."
+                        : "Enter details for family hosting policy..."
+                    }
                     {...field}
                   />
                 </FormControl>
@@ -183,19 +244,37 @@ export function renderFamilyVisitsTab(s: PoliciesSectionState) {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead className="w-16 font-bold text-xs text-center">{ar ? "الترتيب" : "Order"}</TableHead>
-                  <TableHead className="font-bold text-xs">{ar ? "المسمى العربي" : "Arabic Title"}</TableHead>
-                  <TableHead className="font-bold text-xs">{ar ? "المسمى الإنجليزي" : "English Title"}</TableHead>
-                  <TableHead className="font-bold text-xs">{ar ? "الوظيفة / الصلاحية المطلوبة" : "Required Role"}</TableHead>
-                  <TableHead className="font-bold text-xs">{ar ? "ملاحظات المسار" : "Description"}</TableHead>
-                  <TableHead className="font-bold text-xs text-end w-36">{ar ? "الإجراءات والترتيب" : "Actions"}</TableHead>
+                  <TableHead className="w-16 font-bold text-xs text-center">
+                    {ar ? "الترتيب" : "Order"}
+                  </TableHead>
+                  <TableHead className="font-bold text-xs">
+                    {ar ? "المسمى العربي" : "Arabic Title"}
+                  </TableHead>
+                  <TableHead className="font-bold text-xs">
+                    {ar ? "المسمى الإنجليزي" : "English Title"}
+                  </TableHead>
+                  <TableHead className="font-bold text-xs">
+                    {ar ? "الوظيفة / الصلاحية المطلوبة" : "Required Role"}
+                  </TableHead>
+                  <TableHead className="font-bold text-xs">
+                    {ar ? "ملاحظات المسار" : "Description"}
+                  </TableHead>
+                  <TableHead className="font-bold text-xs text-end w-36">
+                    {ar ? "الإجراءات والترتيب" : "Actions"}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {currentSignaturePolicy.map((step, idx) => (
-                  <TableRow key={step.id || `step_${idx}`} className="hover:bg-muted/30">
+                  <TableRow
+                    key={step.id || `step_${idx}`}
+                    className="hover:bg-muted/30"
+                  >
                     <TableCell className="text-center font-bold">
-                      <Badge variant="outline" className="h-6 w-6 rounded-full p-0 flex items-center justify-center bg-pink-50 text-pink-700 border-pink-300">
+                      <Badge
+                        variant="outline"
+                        className="h-6 w-6 rounded-full p-0 flex items-center justify-center bg-pink-50 text-pink-700 border-pink-300"
+                      >
                         {step.stepOrder}
                       </Badge>
                     </TableCell>
@@ -206,7 +285,10 @@ export function renderFamilyVisitsTab(s: PoliciesSectionState) {
                       {step.labelEn}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="font-mono text-[11px] bg-muted">
+                      <Badge
+                        variant="secondary"
+                        className="font-mono text-[11px] bg-muted"
+                      >
                         {step.roleRequired}
                       </Badge>
                     </TableCell>

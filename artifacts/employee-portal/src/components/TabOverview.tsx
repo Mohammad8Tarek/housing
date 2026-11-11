@@ -1,7 +1,30 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
-import { ShieldCheck, Users, Home, QrCode, UtensilsCrossed, Bus, FileText, Wrench, ChevronRight, ChevronLeft, CheckCircle2, MessageCircle, Phone, Mail, Download, Loader2, Star, Smile, Meh, Frown, Lock, HeartHandshake } from "lucide-react";
+import {
+  ShieldCheck,
+  Users,
+  Home,
+  QrCode,
+  UtensilsCrossed,
+  Bus,
+  FileText,
+  Wrench,
+  ChevronRight,
+  ChevronLeft,
+  CheckCircle2,
+  MessageCircle,
+  Phone,
+  Mail,
+  Download,
+  Loader2,
+  Star,
+  Smile,
+  Meh,
+  Frown,
+  Lock,
+  HeartHandshake,
+} from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
 import { ResidentQRCode } from "./ResidentQRCode";
@@ -56,10 +79,7 @@ export default function TabOverview({
     (isRtl ? "موظف" : "Employee");
 
   const staffCode = String(
-    employee?.profileId ||
-    (employee as any)?.employeeId ||
-    employee?.id ||
-    ""
+    employee?.profileId || (employee as any)?.employeeId || employee?.id || "",
   );
 
   const [greeting, setGreeting] = useState(() => getTimeGreeting(isRtl));
@@ -118,12 +138,14 @@ export default function TabOverview({
   const [unratedRequest, setUnratedRequest] = useState<any>(null);
   const [supportContacts, setSupportContacts] = useState<any[]>([]);
   const [housingRatingStatus, setHousingRatingStatus] = useState<any>(null);
-  const [selectedHousingRating, setSelectedHousingRating] = useState<string>("");
+  const [selectedHousingRating, setSelectedHousingRating] =
+    useState<string>("");
   const [selectedHousingScore, setSelectedHousingScore] = useState<number>(0);
   const [hoveredStar, setHoveredStar] = useState<number>(0);
   const [housingRatingComment, setHousingRatingComment] = useState<string>("");
   const [isSubmittingRating, setIsSubmittingRating] = useState<boolean>(false);
-  const [ratingSubmittedSuccess, setRatingSubmittedSuccess] = useState<boolean>(false);
+  const [ratingSubmittedSuccess, setRatingSubmittedSuccess] =
+    useState<boolean>(false);
 
   const handleHousingRatingSubmit = async () => {
     if (!selectedHousingRating) return;
@@ -143,7 +165,9 @@ export default function TabOverview({
       if (data?.success) {
         setRatingSubmittedSuccess(true);
         setHousingRatingStatus({ eligible: false });
-        toast.success(isRtl ? "تم إرسال تقييمك بنجاح" : "Rating submitted successfully");
+        toast.success(
+          isRtl ? "تم إرسال تقييمك بنجاح" : "Rating submitted successfully",
+        );
       } else {
         toast.error(
           data?.message ||
@@ -161,13 +185,26 @@ export default function TabOverview({
   useEffect(() => {
     const loadOverviewData = async () => {
       try {
-        const [notifRes, docRes, roomRes, mntRes, contactsRes, ratingStatusRes] = await Promise.all([
+        const [
+          notifRes,
+          docRes,
+          roomRes,
+          mntRes,
+          contactsRes,
+          ratingStatusRes,
+        ] = await Promise.all([
           apiFetch("/api/portal-notifications/my", { credentials: "include" }),
           apiFetch("/api/portal-data/documents", { credentials: "include" }),
           apiFetch("/api/portal-data/roommates", { credentials: "include" }),
-          apiFetch("/api/portal-data/my-maintenance", { credentials: "include" }),
-          apiFetch("/api/portal-data/support-contacts", { credentials: "include" }),
-          apiFetch("/api/portal-data/housing-rating-status", { credentials: "include" }),
+          apiFetch("/api/portal-data/my-maintenance", {
+            credentials: "include",
+          }),
+          apiFetch("/api/portal-data/support-contacts", {
+            credentials: "include",
+          }),
+          apiFetch("/api/portal-data/housing-rating-status", {
+            credentials: "include",
+          }),
         ]);
 
         if (ratingStatusRes.ok) {
@@ -182,8 +219,8 @@ export default function TabOverview({
           if (cData?.contacts) {
             setSupportContacts(
               (cData.contacts || []).filter(
-                (c: any) => c.name || c.phone || c.email
-              )
+                (c: any) => c.name || c.phone || c.email,
+              ),
             );
           }
         }
@@ -211,11 +248,14 @@ export default function TabOverview({
 
         if (mntRes.ok) {
           const mntData = await mntRes.json().catch(() => null);
-          const reqs = Array.isArray(mntData) ? mntData : mntData?.requests || [];
+          const reqs = Array.isArray(mntData)
+            ? mntData
+            : mntData?.requests || [];
           const unrated = reqs.find(
             (r: any) =>
-              ["resolved", "closed", "completed", "done"].includes((r.status || "").toLowerCase()) &&
-              !r.rating,
+              ["resolved", "closed", "completed", "done"].includes(
+                (r.status || "").toLowerCase(),
+              ) && !r.rating,
           );
           setUnratedRequest(unrated || null);
         }
@@ -250,19 +290,27 @@ export default function TabOverview({
             </div>
             <div className="min-w-0">
               <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 truncate">
-                <span>{isRtl ? "خدمة مكتملة بانتظار تقييمك!" : "Completed Service Awaiting Rating!"}</span>
+                <span>
+                  {isRtl
+                    ? "خدمة مكتملة بانتظار تقييمك!"
+                    : "Completed Service Awaiting Rating!"}
+                </span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono shrink-0">
                   #{unratedRequest.id}
                 </span>
               </h4>
               <p className="text-[11px] text-muted2 mt-0.5 truncate">
-                {unratedRequest.problemType || unratedRequest.description || (isRtl ? "طلب صيانة" : "Maintenance request")}
+                {unratedRequest.problemType ||
+                  unratedRequest.description ||
+                  (isRtl ? "طلب صيانة" : "Maintenance request")}
               </p>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => setLocation("/request-details?id=" + unratedRequest.id)}
+            onClick={() =>
+              setLocation("/request-details?id=" + unratedRequest.id)
+            }
             className="shrink-0 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Star className="w-3.5 h-3.5 fill-white" />
@@ -279,7 +327,9 @@ export default function TabOverview({
               <CheckCircle2 className="w-6 h-6 shrink-0" />
               <div>
                 <h4 className="text-xs font-bold text-foreground">
-                  {isRtl ? "تم استلام تقييمك بنجاح، شكراً لك!" : "Thank you! Your rating has been received."}
+                  {isRtl
+                    ? "تم استلام تقييمك بنجاح، شكراً لك!"
+                    : "Thank you! Your rating has been received."}
                 </h4>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {isRtl
@@ -299,8 +349,10 @@ export default function TabOverview({
                     <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
                       <span>
                         {isRtl
-                          ? (housingRatingStatus?.config?.titleAr || "استطلاع جودة السكن الأسبوعي")
-                          : (housingRatingStatus?.config?.titleEn || "Weekly Housing Quality Pulse")}
+                          ? housingRatingStatus?.config?.titleAr ||
+                            "استطلاع جودة السكن الأسبوعي"
+                          : housingRatingStatus?.config?.titleEn ||
+                            "Weekly Housing Quality Pulse"}
                       </span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
                         {isRtl ? "سري تماماً" : "100% Anonymous"}
@@ -308,8 +360,10 @@ export default function TabOverview({
                     </h4>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       {isRtl
-                        ? (housingRatingStatus?.config?.questionAr || "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟")
-                        : (housingRatingStatus?.config?.questionEn || "How satisfied are you with housing conditions, cleanliness & services this week?")}
+                        ? housingRatingStatus?.config?.questionAr ||
+                          "ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟"
+                        : housingRatingStatus?.config?.questionEn ||
+                          "How satisfied are you with housing conditions, cleanliness & services this week?"}
                     </p>
                   </div>
                 </div>
@@ -320,7 +374,8 @@ export default function TabOverview({
                 <div className="pt-1 space-y-2">
                   <div className="flex items-center justify-center gap-2 p-3 bg-muted/30 rounded-xl border border-border/50">
                     {[1, 2, 3, 4, 5].map((star) => {
-                      const isActive = (hoveredStar || selectedHousingScore) >= star;
+                      const isActive =
+                        (hoveredStar || selectedHousingScore) >= star;
                       return (
                         <button
                           key={star}
@@ -329,8 +384,10 @@ export default function TabOverview({
                           onMouseLeave={() => setHoveredStar(0)}
                           onClick={() => {
                             setSelectedHousingScore(star);
-                            if (star >= 4) setSelectedHousingRating("satisfied");
-                            else if (star === 3) setSelectedHousingRating("neutral");
+                            if (star >= 4)
+                              setSelectedHousingRating("satisfied");
+                            else if (star === 3)
+                              setSelectedHousingRating("neutral");
                             else setSelectedHousingRating("dissatisfied");
                           }}
                           className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
@@ -340,7 +397,7 @@ export default function TabOverview({
                               "w-8 h-8 transition-colors",
                               isActive
                                 ? "text-amber-400 fill-amber-400 filter drop-shadow-[0_2px_4px_rgba(245,158,11,0.4)]"
-                                : "text-muted-foreground/40 hover:text-amber-300"
+                                : "text-muted-foreground/40 hover:text-amber-300",
                             )}
                           />
                         </button>
@@ -351,7 +408,9 @@ export default function TabOverview({
                   <div className="text-center text-xs font-semibold">
                     {selectedHousingScore === 5 && (
                       <span className="text-emerald-600 dark:text-emerald-400">
-                        {isRtl ? "⭐⭐⭐⭐⭐ ممتاز جداً" : "⭐⭐⭐⭐⭐ Excellent"}
+                        {isRtl
+                          ? "⭐⭐⭐⭐⭐ ممتاز جداً"
+                          : "⭐⭐⭐⭐⭐ Excellent"}
                       </span>
                     )}
                     {selectedHousingScore === 4 && (
@@ -361,7 +420,9 @@ export default function TabOverview({
                     )}
                     {selectedHousingScore === 3 && (
                       <span className="text-amber-500">
-                        {isRtl ? "⭐⭐⭐ مقبول / متوسط" : "⭐⭐⭐ Average / Fair"}
+                        {isRtl
+                          ? "⭐⭐⭐ مقبول / متوسط"
+                          : "⭐⭐⭐ Average / Fair"}
                       </span>
                     )}
                     {selectedHousingScore === 2 && (
@@ -376,7 +437,9 @@ export default function TabOverview({
                     )}
                     {!selectedHousingScore && (
                       <span className="text-muted-foreground text-[11px]">
-                        {isRtl ? "اضغط على النجوم للتقييم من 1 إلى 5" : "Tap the stars to rate from 1 to 5"}
+                        {isRtl
+                          ? "اضغط على النجوم للتقييم من 1 إلى 5"
+                          : "Tap the stars to rate from 1 to 5"}
                       </span>
                     )}
                   </div>
@@ -394,10 +457,17 @@ export default function TabOverview({
                       "flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer",
                       selectedHousingRating === "satisfied"
                         ? "border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-xs"
-                        : "border-border hover:border-emerald-500/50 hover:bg-emerald-500/5 text-foreground"
+                        : "border-border hover:border-emerald-500/50 hover:bg-emerald-500/5 text-foreground",
                     )}
                   >
-                    <Smile className={cn("w-6 h-6", selectedHousingRating === "satisfied" ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")} />
+                    <Smile
+                      className={cn(
+                        "w-6 h-6",
+                        selectedHousingRating === "satisfied"
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-muted-foreground",
+                      )}
+                    />
                     <span>{isRtl ? "راضي" : "Satisfied"}</span>
                   </button>
 
@@ -411,10 +481,17 @@ export default function TabOverview({
                       "flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer",
                       selectedHousingRating === "neutral"
                         ? "border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300 shadow-xs"
-                        : "border-border hover:border-amber-500/50 hover:bg-amber-500/5 text-foreground"
+                        : "border-border hover:border-amber-500/50 hover:bg-amber-500/5 text-foreground",
                     )}
                   >
-                    <Meh className={cn("w-6 h-6", selectedHousingRating === "neutral" ? "text-amber-500" : "text-muted-foreground")} />
+                    <Meh
+                      className={cn(
+                        "w-6 h-6",
+                        selectedHousingRating === "neutral"
+                          ? "text-amber-500"
+                          : "text-muted-foreground",
+                      )}
+                    />
                     <span>{isRtl ? "متوسط" : "Neutral"}</span>
                   </button>
 
@@ -428,10 +505,17 @@ export default function TabOverview({
                       "flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer",
                       selectedHousingRating === "dissatisfied"
                         ? "border-rose-500 bg-rose-500/15 text-rose-700 dark:text-rose-300 shadow-xs"
-                        : "border-border hover:border-rose-500/50 hover:bg-rose-500/5 text-foreground"
+                        : "border-border hover:border-rose-500/50 hover:bg-rose-500/5 text-foreground",
                     )}
                   >
-                    <Frown className={cn("w-6 h-6", selectedHousingRating === "dissatisfied" ? "text-rose-500" : "text-muted-foreground")} />
+                    <Frown
+                      className={cn(
+                        "w-6 h-6",
+                        selectedHousingRating === "dissatisfied"
+                          ? "text-rose-500"
+                          : "text-muted-foreground",
+                      )}
+                    />
                     <span>{isRtl ? "غير راضي" : "Dissatisfied"}</span>
                   </button>
                 </div>
@@ -445,12 +529,12 @@ export default function TabOverview({
                     onChange={(e) => setHousingRatingComment(e.target.value)}
                     placeholder={
                       isRtl
-                        ? (housingRatingStatus?.config?.commentRequired
-                            ? "اكتب ملاحظاتك ومقترحاتك (مطلوب - الهوية سرية 100%)..."
-                            : "اكتب أي ملاحظة أو مقترح (اختياري - لن تظهر هويتك لمدير السكن)...")
-                        : (housingRatingStatus?.config?.commentRequired
-                            ? "Write your feedback or suggestions (Required - anonymous)..."
-                            : "Write your feedback or suggestions (optional - identity remains anonymous)...")
+                        ? housingRatingStatus?.config?.commentRequired
+                          ? "اكتب ملاحظاتك ومقترحاتك (مطلوب - الهوية سرية 100%)..."
+                          : "اكتب أي ملاحظة أو مقترح (اختياري - لن تظهر هويتك لمدير السكن)..."
+                        : housingRatingStatus?.config?.commentRequired
+                          ? "Write your feedback or suggestions (Required - anonymous)..."
+                          : "Write your feedback or suggestions (optional - identity remains anonymous)..."
                     }
                     rows={2}
                     className="w-full text-xs rounded-xl border border-input bg-background/50 px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
@@ -462,24 +546,28 @@ export default function TabOverview({
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                   <Lock className="w-3 h-3 text-muted-foreground/70" />
-                  {isRtl ? "بياناتك محمية وسرية 100%" : "100% Anonymous & Secure"}
+                  {isRtl
+                    ? "بياناتك محمية وسرية 100%"
+                    : "100% Anonymous & Secure"}
                 </span>
 
                 <button
                   type="button"
                   disabled={
                     !selectedHousingRating ||
-                    (housingRatingStatus?.config?.commentRequired && !housingRatingComment.trim()) ||
+                    (housingRatingStatus?.config?.commentRequired &&
+                      !housingRatingComment.trim()) ||
                     isSubmittingRating
                   }
                   onClick={handleHousingRatingSubmit}
                   className={cn(
                     "px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs",
                     !selectedHousingRating ||
-                    (housingRatingStatus?.config?.commentRequired && !housingRatingComment.trim()) ||
-                    isSubmittingRating
+                      (housingRatingStatus?.config?.commentRequired &&
+                        !housingRatingComment.trim()) ||
+                      isSubmittingRating
                       ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
-                      : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95"
+                      : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95",
                   )}
                 >
                   {isSubmittingRating ? (
@@ -732,7 +820,9 @@ export default function TabOverview({
           </div>
           <div className="min-w-0">
             <h4 className="text-xs font-bold text-foreground truncate">
-              {isRtl ? "محادثة الموارد البشرية وإدارة السكن" : "HR & Housing Support Chat"}
+              {isRtl
+                ? "محادثة الموارد البشرية وإدارة السكن"
+                : "HR & Housing Support Chat"}
             </h4>
             <p className="text-[11px] text-muted-foreground truncate mt-0.5">
               {isRtl
@@ -754,7 +844,9 @@ export default function TabOverview({
           <div className="flex items-center justify-between px-1">
             <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-primary" />
-              {isRtl ? "مسؤولو الموارد البشرية وإدارة السكن" : "Official HR & Housing Contacts"}
+              {isRtl
+                ? "مسؤولو الموارد البشرية وإدارة السكن"
+                : "Official HR & Housing Contacts"}
             </h3>
             <span className="text-[10px] font-medium text-muted-foreground">
               {isRtl ? "تواصل مباشر" : "Direct Support"}
@@ -773,7 +865,8 @@ export default function TabOverview({
                       {isRtl ? c.roleAr : c.roleEn}
                     </span>
                     <h4 className="text-xs font-bold text-foreground truncate">
-                      {c.name || (isRtl ? "المسؤول المعتمد" : "Authorized Contact")}
+                      {c.name ||
+                        (isRtl ? "المسؤول المعتمد" : "Authorized Contact")}
                     </h4>
                     {c.title && (
                       <p className="text-[11px] text-muted-foreground truncate mt-0.5">
@@ -813,7 +906,9 @@ export default function TabOverview({
                       title={c.email}
                     >
                       <Mail className="w-3.5 h-3.5" />
-                      <span className="text-[10px]">{isRtl ? "إيميل" : "Email"}</span>
+                      <span className="text-[10px]">
+                        {isRtl ? "إيميل" : "Email"}
+                      </span>
                     </a>
                   )}
                 </div>
@@ -883,7 +978,12 @@ export default function TabOverview({
                 {gatePass?.fullName || employee?.fullName || firstName}
               </h3>
               <p className="text-xs font-mono text-muted-foreground mt-0.5">
-                ID: {gatePass?.employeeId || staffCode} · {gatePass?.roomNumber || room?.roomNumber ? `${isRtl ? "غرفة" : "Room"} ${gatePass?.roomNumber || room?.roomNumber}` : (isRtl ? "تصريح موظف" : "Staff Pass")}
+                ID: {gatePass?.employeeId || staffCode} ·{" "}
+                {gatePass?.roomNumber || room?.roomNumber
+                  ? `${isRtl ? "غرفة" : "Room"} ${gatePass?.roomNumber || room?.roomNumber}`
+                  : isRtl
+                    ? "تصريح موظف"
+                    : "Staff Pass"}
               </p>
             </div>
 
@@ -929,7 +1029,9 @@ export default function TabOverview({
                 className="text-xs font-semibold text-primary hover:underline flex items-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>{isRtl ? "حفظ رمز الـ QR على الهاتف" : "Download Pass QR"}</span>
+                <span>
+                  {isRtl ? "حفظ رمز الـ QR على الهاتف" : "Download Pass QR"}
+                </span>
               </button>
             )}
 

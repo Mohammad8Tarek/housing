@@ -1,12 +1,24 @@
 import { Router } from "express";
 import { db, withTenant } from "@workspace/db";
-import { profilesTable, profilePortalAccountsTable, propertiesTable } from "@workspace/db";
+import {
+  profilesTable,
+  profilePortalAccountsTable,
+  propertiesTable,
+} from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { logActivity } from "../../lib/activity-logger.js";
 import { portalLoginRateLimit } from "../../middlewares/rate-limit.js";
-import { MAX_FAILED, LOCK_MINUTES, isProfileActiveForPortal, portalSession, requirePortalAuth, LoginSchema, ChangePasswordSchema } from "./shared.js";
+import {
+  MAX_FAILED,
+  LOCK_MINUTES,
+  isProfileActiveForPortal,
+  portalSession,
+  requirePortalAuth,
+  LoginSchema,
+  ChangePasswordSchema,
+} from "./shared.js";
 
 const router: Router = Router();
 
@@ -51,9 +63,7 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
             const [acc] = await tenantDb
               .select()
               .from(profilePortalAccountsTable)
-              .where(
-                eq(profilePortalAccountsTable.profileId, profileId.trim()),
-              )
+              .where(eq(profilePortalAccountsTable.profileId, profileId.trim()))
               .orderBy(sql`id DESC`)
               .limit(1);
             return { emp, acc, propertyId: p.id };
@@ -289,8 +299,10 @@ router.get("/me", requirePortalAuth, async (req, res): Promise<void> => {
       fullName: `${result.profile.firstName} ${result.profile.lastName}`,
       firstName: result.profile.firstName,
       lastName: result.profile.lastName,
-      jobTitle: result.profile.jobTitle || (result.profile as any).position || "",
-      position: result.profile.jobTitle || (result.profile as any).position || "",
+      jobTitle:
+        result.profile.jobTitle || (result.profile as any).position || "",
+      position:
+        result.profile.jobTitle || (result.profile as any).position || "",
       department: result.profile.department || "",
       nationality: result.profile.nationality || null,
       phone: result.profile.phone || "",

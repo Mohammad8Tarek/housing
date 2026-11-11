@@ -12,27 +12,31 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 // Portal Notifications — stored per-tenant (inside withTenant schema)
-export const portalNotificationsTable = pgTable("portal_notifications", {
-  id: serial("id").primaryKey(),
-  propertyId: integer("property_id").notNull(),
-  title: text("title").notNull(),
-  titleAr: text("title_ar"),
-  message: text("message").notNull(),
-  messageAr: text("message_ar"),
-  type: text("type").notNull().default("announcement"), // activity | evaluation | document | announcement
-  priority: text("priority").notNull().default("medium"), // low | medium | high
-  targetAll: boolean("target_all").notNull().default(true),
-  department: text("department"), // null = all departments
-  createdBy: integer("created_by"), // admin userId
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }),
-}, (table) => [
-  index("idx_portal_notifications_property_id").on(table.propertyId),
-  index("idx_portal_notifications_type").on(table.type),
-  index("idx_portal_notifications_created_at").on(table.createdAt),
-]);
+export const portalNotificationsTable = pgTable(
+  "portal_notifications",
+  {
+    id: serial("id").primaryKey(),
+    propertyId: integer("property_id").notNull(),
+    title: text("title").notNull(),
+    titleAr: text("title_ar"),
+    message: text("message").notNull(),
+    messageAr: text("message_ar"),
+    type: text("type").notNull().default("announcement"), // activity | evaluation | document | announcement
+    priority: text("priority").notNull().default("medium"), // low | medium | high
+    targetAll: boolean("target_all").notNull().default(true),
+    department: text("department"), // null = all departments
+    createdBy: integer("created_by"), // admin userId
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_portal_notifications_property_id").on(table.propertyId),
+    index("idx_portal_notifications_type").on(table.type),
+    index("idx_portal_notifications_created_at").on(table.createdAt),
+  ],
+);
 
 // Read receipts — which profiles read which notification
 export const portalNotificationReadsTable = pgTable(

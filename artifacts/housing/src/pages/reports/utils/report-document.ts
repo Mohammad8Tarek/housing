@@ -29,7 +29,30 @@ export interface ReportDocumentParams {
 }
 
 export function buildReportDocumentHtml(p: ReportDocumentParams): string {
-  const { allPagesHtml, autoPrint, baseFontSizePt, cellPadding, customSectionsHtml, dir, initialShowKpis, initialShowSigs, isArabic, kpiCards, lang, operaCode, orientation, printFontSizePt, printPadding, propName, reportTitle, seqWidthPct, tableLetterSpacing, tableLineHeight, tableRows, totalPages } = p;
+  const {
+    allPagesHtml,
+    autoPrint,
+    baseFontSizePt,
+    cellPadding,
+    customSectionsHtml,
+    dir,
+    initialShowKpis,
+    initialShowSigs,
+    isArabic,
+    kpiCards,
+    lang,
+    operaCode,
+    orientation,
+    printFontSizePt,
+    printPadding,
+    propName,
+    reportTitle,
+    seqWidthPct,
+    tableLetterSpacing,
+    tableLineHeight,
+    tableRows,
+    totalPages,
+  } = p;
   return `<!DOCTYPE html>
 <html class="notranslate" lang="${lang}" dir="${dir}">
 <head>
@@ -153,8 +176,8 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
       width: ${orientation === "landscape" ? "297mm" : "210mm"};
       max-width: ${orientation === "landscape" ? "297mm" : "210mm"};
       min-height: ${orientation === "landscape" ? "210mm" : "297mm"};
-      height: ${tableRows.length === 0 && customSectionsHtml ? "auto" : (orientation === "landscape" ? "210mm" : "297mm")};
-      max-height: ${tableRows.length === 0 && customSectionsHtml ? "none" : (orientation === "landscape" ? "210mm" : "297mm")};
+      height: ${tableRows.length === 0 && customSectionsHtml ? "auto" : orientation === "landscape" ? "210mm" : "297mm"};
+      max-height: ${tableRows.length === 0 && customSectionsHtml ? "none" : orientation === "landscape" ? "210mm" : "297mm"};
       background: #ffffff;
       padding: 4mm 6mm;
       box-shadow: 0 8px 30px rgba(0,0,0,0.3);
@@ -811,17 +834,21 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
         <span>🏨</span>
         <span>${escapeHtml(reportTitle)}</span>
       </div>
-      <div class="bar-meta">${escapeHtml(propName)} · ${tableRows.length} ${isArabic ? "سجل" : "records"} · ${totalPages} ${isArabic ? (totalPages === 1 ? "صفحة" : "صفحات") : (totalPages === 1 ? "page" : "pages")} · <span id="metaOrient">${orientation === "landscape" ? (isArabic ? "أفقي (Landscape)" : "Landscape") : (isArabic ? "رأسي (Portrait)" : "Portrait")}</span> · <span style="font-family: monospace;">[${operaCode}]</span></div>
+      <div class="bar-meta">${escapeHtml(propName)} · ${tableRows.length} ${isArabic ? "سجل" : "records"} · ${totalPages} ${isArabic ? (totalPages === 1 ? "صفحة" : "صفحات") : totalPages === 1 ? "page" : "pages"} · <span id="metaOrient">${orientation === "landscape" ? (isArabic ? "أفقي (Landscape)" : "Landscape") : isArabic ? "رأسي (Portrait)" : "Portrait"}</span> · <span style="font-family: monospace;">[${operaCode}]</span></div>
     </div>
     <div class="bar-actions">
       <button class="btn btn-primary" onclick="window.print()">🖨️ ${isArabic ? "طباعة / حفظ كـ PDF" : "Print / Save as PDF"}</button>
-      <button class="btn btn-outline" id="orientBtn" onclick="toggleOrientation()">📄 ${isArabic ? (orientation === "landscape" ? "أفقي (انقر للرأسي)" : "رأسي (انقر للأفقي)") : (orientation === "landscape" ? "Landscape (Click for Portrait)" : "Portrait (Click for Landscape)")}</button>
-      ${kpiCards.length > 0 ? `
+      <button class="btn btn-outline" id="orientBtn" onclick="toggleOrientation()">📄 ${isArabic ? (orientation === "landscape" ? "أفقي (انقر للرأسي)" : "رأسي (انقر للأفقي)") : orientation === "landscape" ? "Landscape (Click for Portrait)" : "Portrait (Click for Landscape)"}</button>
+      ${
+        kpiCards.length > 0
+          ? `
       <button class="btn btn-outline" id="kpiToggleBtn" onclick="toggleKpis()">
-        📊 ${isArabic ? (initialShowKpis ? "الإحصائيات: ظاهرة" : "الإحصائيات: مخفية") : (initialShowKpis ? "KPIs: Shown" : "KPIs: Hidden")}
-      </button>` : ""}
+        📊 ${isArabic ? (initialShowKpis ? "الإحصائيات: ظاهرة" : "الإحصائيات: مخفية") : initialShowKpis ? "KPIs: Shown" : "KPIs: Hidden"}
+      </button>`
+          : ""
+      }
       <button class="btn btn-outline" id="sigToggleBtn" onclick="toggleSignatures()">
-        ✍️ ${isArabic ? (initialShowSigs ? "التوقيعات: ظاهرة" : "التوقيعات: مخفية") : (initialShowSigs ? "Signatures: Shown" : "Signatures: Hidden")}
+        ✍️ ${isArabic ? (initialShowSigs ? "التوقيعات: ظاهرة" : "التوقيعات: مخفية") : initialShowSigs ? "Signatures: Shown" : "Signatures: Hidden"}
       </button>
       <button class="btn btn-close" onclick="window.close()">❌ ${isArabic ? "إغلاق" : "Close"}</button>
     </div>
@@ -853,13 +880,13 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
       });
       if (orientBtn) {
         orientBtn.innerHTML = currentOrientation === "portrait"
-          ? "📄 ${isArabic ? 'رأسي (انقر للأفقي)' : 'Portrait (Click for Landscape)'}"
-          : "📄 ${isArabic ? 'أفقي (انقر للرأسي)' : 'Landscape (Click for Portrait)'}";
+          ? "📄 ${isArabic ? "رأسي (انقر للأفقي)" : "Portrait (Click for Landscape)"}"
+          : "📄 ${isArabic ? "أفقي (انقر للرأسي)" : "Landscape (Click for Portrait)"}";
       }
       if (metaOrient) {
         metaOrient.innerHTML = currentOrientation === "portrait"
-          ? "${isArabic ? 'رأسي (Portrait)' : 'Portrait'}"
-          : "${isArabic ? 'أفقي (Landscape)' : 'Landscape'}";
+          ? "${isArabic ? "رأسي (Portrait)" : "Portrait"}"
+          : "${isArabic ? "أفقي (Landscape)" : "Landscape"}";
       }
       const existingStyle = document.getElementById("dynamicPageOrientation");
       if (existingStyle) existingStyle.remove();
@@ -877,10 +904,10 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
       kpisVisible = !kpisVisible;
       if (kpisVisible) {
         grid.style.removeProperty("display");
-        if (btn) btn.innerHTML = "📊 ${isArabic ? 'الإحصائيات: ظاهرة' : 'KPIs: Shown'}";
+        if (btn) btn.innerHTML = "📊 ${isArabic ? "الإحصائيات: ظاهرة" : "KPIs: Shown"}";
       } else {
         grid.style.setProperty("display", "none", "important");
-        if (btn) btn.innerHTML = "📊 ${isArabic ? 'الإحصائيات: مخفية' : 'KPIs: Hidden'}";
+        if (btn) btn.innerHTML = "📊 ${isArabic ? "الإحصائيات: مخفية" : "KPIs: Hidden"}";
       }
     }
 
@@ -892,10 +919,10 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
       sigsVisible = !sigsVisible;
       if (sigsVisible) {
         sec.style.removeProperty("display");
-        if (btn) btn.innerHTML = "✍️ ${isArabic ? 'التوقيعات: ظاهرة' : 'Signatures: Shown'}";
+        if (btn) btn.innerHTML = "✍️ ${isArabic ? "التوقيعات: ظاهرة" : "Signatures: Shown"}";
       } else {
         sec.style.setProperty("display", "none", "important");
-        if (btn) btn.innerHTML = "✍️ ${isArabic ? 'التوقيعات: مخفية' : 'Signatures: Hidden'}";
+        if (btn) btn.innerHTML = "✍️ ${isArabic ? "التوقيعات: مخفية" : "Signatures: Hidden"}";
       }
     }
 
@@ -907,7 +934,9 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
       document.title = reportFullDocTitle;
     };
 
-    ${autoPrint ? `
+    ${
+      autoPrint
+        ? `
     function triggerPrintWhenReady() {
       const imgs = Array.from(document.images);
       const imgPromises = imgs.map(function(img) {
@@ -928,7 +957,9 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
     } else {
       window.addEventListener("load", triggerPrintWhenReady);
     }
-    ` : ""}
+    `
+        : ""
+    }
   </script>
 </body>
 </html>`;

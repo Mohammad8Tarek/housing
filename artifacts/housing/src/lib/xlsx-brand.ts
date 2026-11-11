@@ -22,7 +22,11 @@ export function applySunriseSheetStyle(
   if (!ref) return;
   const range = XLSX.utils.decode_range(ref);
   const headerRow = opts.headerRow ?? range.s.r;
-  const align = { horizontal: opts.rtl ? "right" : "left", vertical: "center", wrapText: true };
+  const align = {
+    horizontal: opts.rtl ? "right" : "left",
+    vertical: "center",
+    wrapText: true,
+  };
 
   for (let r = headerRow; r <= range.e.r; r++) {
     const isHeader = r === headerRow;
@@ -32,15 +36,25 @@ export function applySunriseSheetStyle(
       const cell = ws[addr] ?? (ws[addr] = { t: "s", v: "" });
       cell.s = isHeader
         ? {
-            font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
+            font: {
+              name: "Calibri",
+              sz: 11,
+              bold: true,
+              color: { rgb: "FFFFFF" },
+            },
             fill: { patternType: "solid", fgColor: { rgb: TEAL } },
             alignment: { ...align, horizontal: "center" },
             border,
           }
         : {
             font: { name: "Calibri", sz: 10, color: { rgb: INK } },
-            ...(zebra ? { fill: { patternType: "solid", fgColor: { rgb: TEAL_TINT } } } : {}),
-            alignment: typeof cell.v === "number" ? { ...align, horizontal: "center" } : align,
+            ...(zebra
+              ? { fill: { patternType: "solid", fgColor: { rgb: TEAL_TINT } } }
+              : {}),
+            alignment:
+              typeof cell.v === "number"
+                ? { ...align, horizontal: "center" }
+                : align,
             border,
           };
     }
@@ -86,8 +100,16 @@ export function writeSunriseWorkbook(
         const cell = ws[XLSX.utils.encode_cell({ r, c })];
         if (cell) {
           cell.s = {
-            font: { name: "Calibri", sz: r === range.s.r ? 14 : 11, bold: r === range.s.r, color: { rgb: r === range.s.r ? TEAL : INK } },
-            alignment: { horizontal: opts.rtl ? "right" : "left", vertical: "center" },
+            font: {
+              name: "Calibri",
+              sz: r === range.s.r ? 14 : 11,
+              bold: r === range.s.r,
+              color: { rgb: r === range.s.r ? TEAL : INK },
+            },
+            alignment: {
+              horizontal: opts.rtl ? "right" : "left",
+              vertical: "center",
+            },
           };
         }
       }

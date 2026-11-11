@@ -10,13 +10,31 @@ import {
 } from "@workspace/db";
 import { eq, and, sql, or, not, ilike } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { CreateUserBody, UpdateUserBody, UpdateUserParams, DeleteUserParams } from "@workspace/api-zod";
+import {
+  CreateUserBody,
+  UpdateUserBody,
+  UpdateUserParams,
+  DeleteUserParams,
+} from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { requireAuth, requirePermission, hasPermission, loadAuthUser, effectivePermissions, normalizePermission, invalidateAuthUserCache } from "../middlewares/permissions.js";
+import {
+  requireAuth,
+  requirePermission,
+  hasPermission,
+  loadAuthUser,
+  effectivePermissions,
+  normalizePermission,
+  invalidateAuthUserCache,
+} from "../middlewares/permissions.js";
 import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
 import { getPasswordPolicy, validatePassword } from "../lib/password-policy.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, IdParams, UsersBulkBody, LastPropertyBody } from "../validation/schemas.js";
+import {
+  CommonListQuery,
+  IdParams,
+  UsersBulkBody,
+  LastPropertyBody,
+} from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -47,12 +65,17 @@ function validateNoPrivilegeEscalation(
   targetPropertyIds?: number[],
   targetPermissions?: string[],
 ): { valid: boolean; error?: string; errorEn?: string } {
-  if (!actor) return { valid: false, error: "المستخدم غير مصرح", errorEn: "Unauthenticated" };
+  if (!actor)
+    return {
+      valid: false,
+      error: "المستخدم غير مصرح",
+      errorEn: "Unauthenticated",
+    };
 
   const isActorRoot =
     actor.isSystemAdmin ||
     (actor.roles ?? []).some((r: string) =>
-      ["super_admin", "system_admin"].includes(String(r).trim().toLowerCase())
+      ["super_admin", "system_admin"].includes(String(r).trim().toLowerCase()),
     );
 
   // If actor is super_admin or system_admin, they possess unrestricted root authority
@@ -63,29 +86,36 @@ function validateNoPrivilegeEscalation(
   // 1. Role Escalation Check
   if (targetRoles && Array.isArray(targetRoles)) {
     const attemptsSystemRole = targetRoles.some((r) =>
-      ["super_admin", "system_admin"].includes(String(r).trim().toLowerCase())
+      ["super_admin", "system_admin"].includes(String(r).trim().toLowerCase()),
     );
     if (attemptsSystemRole) {
       return {
         valid: false,
-        error: "لا يمكنك منح دور مدير نظام عام أو تقني لعدم امتلاكك صلاحية الـ Super Admin",
+        error:
+          "لا يمكنك منح دور مدير نظام عام أو تقني لعدم امتلاكك صلاحية الـ Super Admin",
         errorEn: "You cannot grant Super Admin or System Admin roles",
       };
     }
   }
 
   // 2. Property Escalation Check
-  if (targetPropertyIds && Array.isArray(targetPropertyIds) && targetPropertyIds.length > 0) {
+  if (
+    targetPropertyIds &&
+    Array.isArray(targetPropertyIds) &&
+    targetPropertyIds.length > 0
+  ) {
     const actorProps = new Set(
       Array.isArray(actor.propertyIds)
         ? actor.propertyIds.map(Number)
         : actor.propertyId
           ? [Number(actor.propertyId)]
-          : []
+          : [],
     );
     const hasGlobalProps = hasPermission(actor, "properties", "view");
     if (!hasGlobalProps) {
-      const unauthorizedProps = targetPropertyIds.filter((pid) => !actorProps.has(Number(pid)));
+      const unauthorizedProps = targetPropertyIds.filter(
+        (pid) => !actorProps.has(Number(pid)),
+      );
       if (unauthorizedProps.length > 0) {
         return {
           valid: false,
@@ -97,7 +127,11 @@ function validateNoPrivilegeEscalation(
   }
 
   // 3. Permission Escalation Check
-  if (targetPermissions && Array.isArray(targetPermissions) && targetPermissions.length > 0) {
+  if (
+    targetPermissions &&
+    Array.isArray(targetPermissions) &&
+    targetPermissions.length > 0
+  ) {
     const actorEffective = effectivePermissions(actor);
     if (actorEffective.has("*")) {
       return { valid: true };
@@ -110,8 +144,12 @@ function validateNoPrivilegeEscalation(
       if (!norm) continue;
 
       const hasDirect = actorEffective.has(norm);
-      const hasDot = norm.includes(":") ? actorEffective.has(norm.replace(":", ".")) : false;
-      const hasColon = norm.includes(".") ? actorEffective.has(norm.replace(".", ":")) : false;
+      const hasDot = norm.includes(":")
+        ? actorEffective.has(norm.replace(":", "."))
+        : false;
+      const hasColon = norm.includes(".")
+        ? actorEffective.has(norm.replace(".", ":"))
+        : false;
 
       if (!hasDirect && !hasDot && !hasColon) {
         unownedPerms.push(rawPerm);
@@ -174,10 +212,18 @@ router.get(
   validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
     const authUser = (req as any).authUser;
-    const isSystemAdmin = (req.session as any)?.isSystemAdmin || Boolean(authUser?.isSystemAdmin);
-    const sessionPropertyId = (req.session as any)?.propertyId || authUser?.propertyId;
-    const hasGlobalPropertiesView = Boolean(authUser && (hasPermission(authUser, "properties", "view") || hasPermission(authUser, "dashboard", "audit")));
-    const requestedPid = req.query.propertyId ? Number(req.query.propertyId) : null;
+    const isSystemAdmin =
+      (req.session as any)?.isSystemAdmin || Boolean(authUser?.isSystemAdmin);
+    const sessionPropertyId =
+      (req.session as any)?.propertyId || authUser?.propertyId;
+    const hasGlobalPropertiesView = Boolean(
+      authUser &&
+      (hasPermission(authUser, "properties", "view") ||
+        hasPermission(authUser, "dashboard", "audit")),
+    );
+    const requestedPid = req.query.propertyId
+      ? Number(req.query.propertyId)
+      : null;
 
     // Server-side pagination params
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
@@ -194,7 +240,10 @@ router.get(
     const filters = [];
     if (!isSystemAdmin) {
       if (!hasGlobalPropertiesView) {
-        if (requestedPid && (authUser?.propertyIds ?? []).includes(requestedPid)) {
+        if (
+          requestedPid &&
+          (authUser?.propertyIds ?? []).includes(requestedPid)
+        ) {
           filters.push(eq(usersTable.propertyId, requestedPid));
         } else if (sessionPropertyId) {
           filters.push(eq(usersTable.propertyId, Number(sessionPropertyId)));
@@ -207,9 +256,9 @@ router.get(
           or(
             sql`'super_admin' = ANY(${usersTable.roles})`,
             sql`'system_admin' = ANY(${usersTable.roles})`,
-            sql`'SYSTEM_ADMIN' = ANY(${usersTable.roles})`
-          )!
-        )
+            sql`'SYSTEM_ADMIN' = ANY(${usersTable.roles})`,
+          )!,
+        ),
       );
     } else if (requestedPid) {
       filters.push(eq(usersTable.propertyId, requestedPid));
@@ -221,8 +270,8 @@ router.get(
         or(
           ilike(usersTable.username, q),
           ilike(usersTable.email, q),
-          ilike(usersTable.phone, q)
-        )
+          ilike(usersTable.phone, q),
+        ),
       );
     }
 
@@ -236,21 +285,21 @@ router.get(
         filters.push(
           or(
             sql`${usersTable.lockedUntil} > NOW()`,
-            sql`UPPER(${usersTable.status}) = 'LOCKED'`
-          )
+            sql`UPPER(${usersTable.status}) = 'LOCKED'`,
+          ),
         );
       } else if (normStatus === "ACTIVE") {
         filters.push(
           and(
             or(
               sql`UPPER(${usersTable.status}) = 'ACTIVE'`,
-              sql`${usersTable.status} IS NULL`
+              sql`${usersTable.status} IS NULL`,
             ),
             or(
               sql`${usersTable.lockedUntil} IS NULL`,
-              sql`${usersTable.lockedUntil} <= NOW()`
-            )
-          )
+              sql`${usersTable.lockedUntil} <= NOW()`,
+            ),
+          ),
         );
       } else {
         filters.push(sql`UPPER(${usersTable.status}) = ${normStatus}`);
@@ -264,7 +313,7 @@ router.get(
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(usersTable)
       .where(whereClause);
-      
+
     const totalRows = countResult?.count ?? 0;
 
     const summaryRows = await db
@@ -277,7 +326,10 @@ router.get(
         has_signature: userSignaturesTable.id,
       })
       .from(usersTable)
-      .leftJoin(userSignaturesTable, eq(usersTable.id, userSignaturesTable.userId))
+      .leftJoin(
+        userSignaturesTable,
+        eq(usersTable.id, userSignaturesTable.userId),
+      )
       .where(whereClause);
 
     const summary = summaryRows.reduce(
@@ -296,11 +348,24 @@ router.get(
           acc.customPermissionUsers += 1;
           acc.customPermissionTotal += permissions.length;
         }
-        if (roles.some((r: string) => String(r).toLowerCase() === "super_admin")) acc.superAdmin += 1;
-        if (roles.some((r: string) => String(r).toLowerCase() === "admin")) acc.admin += 1;
-        if (roles.some((r: string) => String(r).toLowerCase() === "manager")) acc.manager += 1;
-        if (roles.some((r: string) => String(r).toLowerCase() === "receptionist")) acc.receptionist += 1;
-        if (roles.some((r: string) => String(r).toLowerCase() === "maintenance_staff")) acc.maintenance += 1;
+        if (
+          roles.some((r: string) => String(r).toLowerCase() === "super_admin")
+        )
+          acc.superAdmin += 1;
+        if (roles.some((r: string) => String(r).toLowerCase() === "admin"))
+          acc.admin += 1;
+        if (roles.some((r: string) => String(r).toLowerCase() === "manager"))
+          acc.manager += 1;
+        if (
+          roles.some((r: string) => String(r).toLowerCase() === "receptionist")
+        )
+          acc.receptionist += 1;
+        if (
+          roles.some(
+            (r: string) => String(r).toLowerCase() === "maintenance_staff",
+          )
+        )
+          acc.maintenance += 1;
         return acc;
       },
       {
@@ -339,7 +404,10 @@ router.get(
         has_signature: userSignaturesTable.id,
       })
       .from(usersTable)
-      .leftJoin(userSignaturesTable, eq(usersTable.id, userSignaturesTable.userId))
+      .leftJoin(
+        userSignaturesTable,
+        eq(usersTable.id, userSignaturesTable.userId),
+      )
       .where(whereClause)
       .orderBy(usersTable.id)
       .limit(limit)
@@ -350,22 +418,22 @@ router.get(
     const actualRows = rows || [];
     const safeUsers = actualRows.map((u: any) => {
       return {
-      id: u.id,
-      propertyId: u.property_id,
-      propertyIds: u.property_ids ?? [],
-      username: u.username,
-      email: u.email ?? null,
-      phone: u.phone ?? null,
-      jobTitle: u.job_title ?? null,
-      nationalId: u.national_id ?? null,
-      roles: u.roles ?? [],
-      permissions: u.permissions ?? [],
-      hasSignature: !!u.has_signature,
-      status: normalizeUserStatus(u.status, u.locked_until),
-      failedLoginAttempts: u.failed_login_attempts ?? 0,
-      lockedUntil: u.locked_until ?? null,
-      createdAt: u.created_at,
-    };
+        id: u.id,
+        propertyId: u.property_id,
+        propertyIds: u.property_ids ?? [],
+        username: u.username,
+        email: u.email ?? null,
+        phone: u.phone ?? null,
+        jobTitle: u.job_title ?? null,
+        nationalId: u.national_id ?? null,
+        roles: u.roles ?? [],
+        permissions: u.permissions ?? [],
+        hasSignature: !!u.has_signature,
+        status: normalizeUserStatus(u.status, u.locked_until),
+        failedLoginAttempts: u.failed_login_attempts ?? 0,
+        lockedUntil: u.locked_until ?? null,
+        createdAt: u.created_at,
+      };
     });
 
     // Return paginated response with metadata
@@ -469,10 +537,13 @@ router.post(
       actor,
       userData.roles,
       pids,
-      userData.permissions
+      userData.permissions,
     );
     if (!escalationCheck.valid) {
-      res.status(403).json({ error: escalationCheck.error, errorEn: escalationCheck.errorEn });
+      res.status(403).json({
+        error: escalationCheck.error,
+        errorEn: escalationCheck.errorEn,
+      });
       return;
     }
 
@@ -580,10 +651,13 @@ router.patch(
       actor,
       updateData.roles,
       Array.isArray(propertyIds) ? propertyIds : undefined,
-      updateData.permissions
+      updateData.permissions,
     );
     if (!escalationCheck.valid) {
-      res.status(403).json({ error: escalationCheck.error, errorEn: escalationCheck.errorEn });
+      res.status(403).json({
+        error: escalationCheck.error,
+        errorEn: escalationCheck.errorEn,
+      });
       return;
     }
 
@@ -618,7 +692,11 @@ router.patch(
         extraData.lockedUntil = null;
       }
     }
-    if (password && typeof password === "string" && password.trim().length > 0) {
+    if (
+      password &&
+      typeof password === "string" &&
+      password.trim().length > 0
+    ) {
       const cleanPassword = password.trim();
       // ─── Validate password against policy ───────────────────────────
       const policy = await getPasswordPolicy(
@@ -805,7 +883,9 @@ router.delete(
 
     const requesterIsSystemAdmin = (req.session as any)?.isSystemAdmin;
     if (isSystemAdminRoles(targetUser.roles ?? []) && !requesterIsSystemAdmin) {
-      res.status(403).json({ error: "Permission denied: Cannot delete system admin" });
+      res
+        .status(403)
+        .json({ error: "Permission denied: Cannot delete system admin" });
       return;
     }
 
@@ -828,7 +908,9 @@ router.delete(
           await tx
             .update(familyVisitApprovalStepsTable)
             .set({ signedByUserId: null })
-            .where(eq(familyVisitApprovalStepsTable.signedByUserId, params.data.id));
+            .where(
+              eq(familyVisitApprovalStepsTable.signedByUserId, params.data.id),
+            );
         } catch {}
 
         // 4. Clear requester on hosting requests
@@ -836,7 +918,9 @@ router.delete(
           await tx
             .update(familyVisitRequestsTable)
             .set({ requesterUserId: null as any })
-            .where(eq(familyVisitRequestsTable.requesterUserId, params.data.id));
+            .where(
+              eq(familyVisitRequestsTable.requesterUserId, params.data.id),
+            );
         } catch {}
 
         // 5. Delete the user
@@ -889,7 +973,9 @@ router.post(
       };
 
       if (!Array.isArray(ids) || ids.length === 0) {
-        res.status(400).json({ error: "ids must be a non-empty array of user IDs" });
+        res
+          .status(400)
+          .json({ error: "ids must be a non-empty array of user IDs" });
         return;
       }
 
@@ -926,7 +1012,11 @@ router.post(
           severity: "info",
         });
       } else if (action === "properties" && Array.isArray(propertyIds)) {
-        const check = validateNoPrivilegeEscalation(actor, undefined, propertyIds);
+        const check = validateNoPrivilegeEscalation(
+          actor,
+          undefined,
+          propertyIds,
+        );
         if (!check.valid) {
           res.status(403).json({ error: check.error, errorEn: check.errorEn });
           return;
@@ -986,7 +1076,9 @@ router.post(
           severity: "info",
         });
       } else {
-        res.status(400).json({ error: "Invalid action or missing required parameters" });
+        res
+          .status(400)
+          .json({ error: "Invalid action or missing required parameters" });
         return;
       }
 
@@ -994,7 +1086,10 @@ router.post(
       res.json({ success: true, updatedCount });
     } catch (err: any) {
       console.error("Bulk users operation failed:", err);
-      res.status(500).json({ error: "Failed to perform bulk operation", details: err.message });
+      res.status(500).json({
+        error: "Failed to perform bulk operation",
+        details: err.message,
+      });
     }
   },
 );

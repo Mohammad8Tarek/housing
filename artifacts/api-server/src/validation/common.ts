@@ -5,7 +5,8 @@ export const zId = z.coerce.number().int().positive();
 
 /** Optional positive integer; empty string / null become undefined. */
 export const zOptionalId = z.preprocess(
-  (v) => (v === "" || v === null || v === undefined || v === "all" ? undefined : v),
+  (v) =>
+    v === "" || v === null || v === undefined || v === "all" ? undefined : v,
   z.coerce.number().int().positive().optional(),
 );
 
@@ -37,7 +38,8 @@ export const zDateString = z
   .trim()
   .max(40)
   .refine(
-    (v) => /^\d{1,2}[\/-]\d{1,2}[\/-]\d{4}$/.test(v) || !Number.isNaN(Date.parse(v)),
+    (v) =>
+      /^\d{1,2}[\/-]\d{1,2}[\/-]\d{4}$/.test(v) || !Number.isNaN(Date.parse(v)),
     "Invalid date format",
   );
 

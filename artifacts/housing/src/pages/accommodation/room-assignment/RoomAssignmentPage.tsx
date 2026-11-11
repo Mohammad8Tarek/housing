@@ -1,4 +1,7 @@
-import { recommendBestRooms, checkPolicyCompliance } from "@/lib/room-recommender";
+import {
+  recommendBestRooms,
+  checkPolicyCompliance,
+} from "@/lib/room-recommender";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -10,12 +13,7 @@ import {
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
@@ -69,16 +67,21 @@ export default function RoomAssignment() {
 
   const [empSearch, setEmpSearch] = useState("");
   const [empResults, setEmpResults] = useState<ProfileResult[]>([]);
-  const [selectedProfile, setSelectedProfile] =
-    useState<ProfileResult | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<ProfileResult | null>(
+    null,
+  );
   const [isFamilyHousing, setIsFamilyHousing] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchPropertyId, setSearchPropertyId] = useState<string>(
-    activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all"
+    activePropertyId && activePropertyId !== "all"
+      ? String(activePropertyId)
+      : "all",
   );
   const [targetPropertyId, setTargetPropertyId] = useState<string>(() =>
-    activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : ""
+    activePropertyId && activePropertyId !== "all"
+      ? String(activePropertyId)
+      : "",
   );
 
   const { data: _pData } = useListProperties({
@@ -100,28 +103,46 @@ export default function RoomAssignment() {
     }
   }, [activePropertyId, allProperties]);
 
-  const effectiveTargetPropId = Number(targetPropertyId) || (typeof activePropertyId === "number" ? activePropertyId : 1);
+  const effectiveTargetPropId =
+    Number(targetPropertyId) ||
+    (typeof activePropertyId === "number" ? activePropertyId : 1);
 
-  const { settings, profilesList, roomsQuery, rooms, buildings, floors, allAssignments } =
-    useRoomAssignmentQueries({ activePropertyId, effectiveTargetPropId });
+  const {
+    settings,
+    profilesList,
+    roomsQuery,
+    rooms,
+    buildings,
+    floors,
+    allAssignments,
+  } = useRoomAssignmentQueries({ activePropertyId, effectiveTargetPropId });
 
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
-  const targetProp = allProperties.find((p: any) => p.id === effectiveTargetPropId) || activeProp;
+  const targetProp =
+    allProperties.find((p: any) => p.id === effectiveTargetPropId) ||
+    activeProp;
 
-  const [transferType, setTransferType] = useState<"PERMANENT" | "TASK_FORCE">("PERMANENT");
-  const [archiveSourceProfile, setArchiveSourceProfile] = useState<boolean>(true);
-  const [crossPropertyModalOpen, setCrossPropertyModalOpen] = useState<boolean>(false);
+  const [transferType, setTransferType] = useState<"PERMANENT" | "TASK_FORCE">(
+    "PERMANENT",
+  );
+  const [archiveSourceProfile, setArchiveSourceProfile] =
+    useState<boolean>(true);
+  const [crossPropertyModalOpen, setCrossPropertyModalOpen] =
+    useState<boolean>(false);
   const [customPhone, setCustomPhone] = useState("");
   const [policyOverride, setPolicyOverride] = useState<boolean>(false);
   const [policyOverrideReason, setPolicyOverrideReason] = useState<string>("");
   const [policyApprovedBy, setPolicyApprovedBy] = useState<string>("");
-  const [policyExceptionModalOpen, setPolicyExceptionModalOpen] = useState<boolean>(false);
+  const [policyExceptionModalOpen, setPolicyExceptionModalOpen] =
+    useState<boolean>(false);
   const isCrossProperty = Boolean(
     selectedProfile &&
-    (
-      (selectedProfile.propertyId && Number(selectedProfile.propertyId) !== effectiveTargetPropId) ||
-      (selectedProfile.propertyName && targetProp?.name && selectedProfile.propertyName.trim().toLowerCase() !== targetProp?.name.trim().toLowerCase())
-    )
+    ((selectedProfile.propertyId &&
+      Number(selectedProfile.propertyId) !== effectiveTargetPropId) ||
+      (selectedProfile.propertyName &&
+        targetProp?.name &&
+        selectedProfile.propertyName.trim().toLowerCase() !==
+          targetProp?.name.trim().toLowerCase())),
   );
 
   const searchRef = useRef<HTMLDivElement>(null);
@@ -159,7 +180,8 @@ export default function RoomAssignment() {
   const [lastAssignment, setLastAssignment] = useState<any>(null);
 
   // Vacation temporary assignment prompt state
-  const [vacationPromptData, setVacationPromptData] = useState<VacationPromptData | null>(null);
+  const [vacationPromptData, setVacationPromptData] =
+    useState<VacationPromptData | null>(null);
 
   const printHousingLetter = async () => {
     const chosenAr = ar;
@@ -191,7 +213,9 @@ export default function RoomAssignment() {
 
   useEffect(() => {
     try {
-      const urlRoomId = new URLSearchParams(window.location.search).get("roomId");
+      const urlRoomId = new URLSearchParams(window.location.search).get(
+        "roomId",
+      );
       if (urlRoomId && rooms.length > 0) {
         const rm = rooms.find((r) => r.id === parseInt(urlRoomId));
         if (rm) {
@@ -210,16 +234,14 @@ export default function RoomAssignment() {
   const canOverrideSingleOccupancy = Boolean(
     isSuperAdmin ||
     isAdmin ||
-    (typeof hasRole === "function" && (
-      hasRole("super_admin") ||
-      hasRole("admin") ||
-      hasRole("housing_manager") ||
-      hasRole("manager")
-    )) ||
-    (typeof can === "function" && (
-      can("accommodation", "override_single_occupancy") ||
-      can("reservations", "override_single_occupancy")
-    ))
+    (typeof hasRole === "function" &&
+      (hasRole("super_admin") ||
+        hasRole("admin") ||
+        hasRole("housing_manager") ||
+        hasRole("manager"))) ||
+    (typeof can === "function" &&
+      (can("accommodation", "override_single_occupancy") ||
+        can("reservations", "override_single_occupancy"))),
   );
 
   // Active assignments indexed by roomId
@@ -236,14 +258,33 @@ export default function RoomAssignment() {
 
   // Single occupant rooms: capacity > 1 and currently occupied by exactly 1 person
   const singleOccupantRoomsMap = useMemo(
-    () => buildSingleOccupantRoomsMap(rooms, roomActiveAssignmentsMap, entireRoomOccupiedSet, ar),
+    () =>
+      buildSingleOccupantRoomsMap(
+        rooms,
+        roomActiveAssignmentsMap,
+        entireRoomOccupiedSet,
+        ar,
+      ),
     [rooms, roomActiveAssignmentsMap, entireRoomOccupiedSet, ar],
   );
 
   // Bed occupants map for currently selected room
   const selectedRoomBedMap = useMemo(
-    () => buildSelectedRoomBedMap(selectedRoomId, rooms, roomActiveAssignmentsMap, entireRoomOccupiedSet, ar),
-    [selectedRoomId, rooms, roomActiveAssignmentsMap, entireRoomOccupiedSet, ar],
+    () =>
+      buildSelectedRoomBedMap(
+        selectedRoomId,
+        rooms,
+        roomActiveAssignmentsMap,
+        entireRoomOccupiedSet,
+        ar,
+      ),
+    [
+      selectedRoomId,
+      rooms,
+      roomActiveAssignmentsMap,
+      entireRoomOccupiedSet,
+      ar,
+    ],
   );
 
   // Build set of occupied bed numbers for the currently selected room
@@ -251,7 +292,9 @@ export default function RoomAssignment() {
     return new Set<number>(Array.from(selectedRoomBedMap.keys()));
   }, [selectedRoomBedMap]);
 
-  const buildingMap: Record<number, string> = Object.fromEntries(buildings.map((b) => [b.id, b.name]));
+  const buildingMap: Record<number, string> = Object.fromEntries(
+    buildings.map((b) => [b.id, b.name]),
+  );
   const floorMap: Record<number, FloorInfo> = Object.fromEntries(
     floors.map((f) => [f.id, { name: f.floorNumber, number: f.floorNumber }]),
   );
@@ -260,7 +303,12 @@ export default function RoomAssignment() {
   const availableRooms = getAvailableRooms(rooms);
 
   // الغرف بعد تطبيق الفلاتر
-  const filteredRooms = filterRooms(availableRooms, searchBuilding, searchFloor, searchRoomNumber);
+  const filteredRooms = filterRooms(
+    availableRooms,
+    searchBuilding,
+    searchFloor,
+    searchRoomNumber,
+  );
 
   const recommendation = useMemo(() => {
     if (!selectedProfile || !rooms.length) return null;
@@ -277,7 +325,14 @@ export default function RoomAssignment() {
         isFamily: isFamilyHousing,
       },
     });
-  }, [selectedProfile, rooms, allAssignments, profilesList, settings, isFamilyHousing]);
+  }, [
+    selectedProfile,
+    rooms,
+    allAssignments,
+    profilesList,
+    settings,
+    isFamilyHousing,
+  ]);
 
   // Pre-sort filtered rooms so recommended ones appear first
   const sortedFilteredRooms = useMemo(
@@ -304,7 +359,8 @@ export default function RoomAssignment() {
   const isMultiBed = bedOptions.length > 1;
 
   const policyCheck = useMemo(() => {
-    if (!selectedProfile || !selectedRoom) return { compliant: true, violations: [] };
+    if (!selectedProfile || !selectedRoom)
+      return { compliant: true, violations: [] };
     return checkPolicyCompliance({
       profile: selectedProfile,
       room: selectedRoom,
@@ -313,7 +369,14 @@ export default function RoomAssignment() {
       policySettings: settings,
       isEntireRoom,
     });
-  }, [selectedProfile, selectedRoom, allAssignments, profilesList, settings, isEntireRoom]);
+  }, [
+    selectedProfile,
+    selectedRoom,
+    allAssignments,
+    profilesList,
+    settings,
+    isEntireRoom,
+  ]);
 
   const createMutation = useCreateAssignment({
     mutation: {
@@ -341,8 +404,12 @@ export default function RoomAssignment() {
         }
         toast.success(
           isCrossProperty
-            ? (ar ? "تم تسكين الموظف ونقل بياناته بنجاح بين الفنادق" : "Employee accommodated and synchronized successfully across properties")
-            : (ar ? "تم التسكين بنجاح" : "Assignment created successfully")
+            ? ar
+              ? "تم تسكين الموظف ونقل بياناته بنجاح بين الفنادق"
+              : "Employee accommodated and synchronized successfully across properties"
+            : ar
+              ? "تم التسكين بنجاح"
+              : "Assignment created successfully",
         );
         // Show key issuance prompt
         setLastAssignment(data);
@@ -351,10 +418,18 @@ export default function RoomAssignment() {
       onError: async (err: any) => {
         let description = err.message;
         try {
-          const body = err?.data || (await err?.response?.clone?.()?.json?.().catch(() => null)) || {};
+          const body =
+            err?.data ||
+            (await err?.response
+              ?.clone?.()
+              ?.json?.()
+              .catch(() => null)) ||
+            {};
           if (body?.code === "BED_OCCUPANT_ON_VACATION" && body?.canOverride) {
             setVacationPromptData({
-              occupantName: body.occupantName || (ar ? "الموظف الأصلي" : "Original Occupant"),
+              occupantName:
+                body.occupantName ||
+                (ar ? "الموظف الأصلي" : "Original Occupant"),
               vacationEndDate: body.vacationEndDate,
             });
             return;
@@ -377,7 +452,8 @@ export default function RoomAssignment() {
     }
     if (
       selectedProfile &&
-      empSearch === `${selectedProfile.firstName} ${selectedProfile.lastName} (${selectedProfile.profileId})`
+      empSearch ===
+        `${selectedProfile.firstName} ${selectedProfile.lastName} (${selectedProfile.profileId})`
     ) {
       setShowDropdown(false);
       return;
@@ -443,11 +519,24 @@ export default function RoomAssignment() {
       );
       return;
     }
-    if (selectedRoom && selectedRoom.capacity > 1 && !isEntireRoom && !selectedBed) {
-      toast.error(ar ? "الرجاء تحديد السرير الذي سيسكن فيه الموظف" : "Please select bed number");
+    if (
+      selectedRoom &&
+      selectedRoom.capacity > 1 &&
+      !isEntireRoom &&
+      !selectedBed
+    ) {
+      toast.error(
+        ar
+          ? "الرجاء تحديد السرير الذي سيسكن فيه الموظف"
+          : "Please select bed number",
+      );
       return;
     }
-    if (selectedBed && occupiedBeds.has(parseInt(selectedBed)) && !isEntireRoom) {
+    if (
+      selectedBed &&
+      occupiedBeds.has(parseInt(selectedBed)) &&
+      !isEntireRoom
+    ) {
       toast.error(
         ar
           ? "السرير المحدد مشغول حالياً بنزيل آخر. لا يمكن التسكين عليه."
@@ -455,7 +544,11 @@ export default function RoomAssignment() {
       );
       return;
     }
-    if (selectedRoom && singleOccupantRoomsMap.has(selectedRoom.id) && !canOverrideSingleOccupancy) {
+    if (
+      selectedRoom &&
+      singleOccupantRoomsMap.has(selectedRoom.id) &&
+      !canOverrideSingleOccupancy
+    ) {
       toast.error(
         ar
           ? "تسكين نزيل إضافي في غرفة يشغلها شخص بمفرده يتطلب صلاحية إدارية استثنائية (override_single_occupancy)."
@@ -463,7 +556,12 @@ export default function RoomAssignment() {
       );
       return;
     }
-    if (isEntireRoom && selectedRoom && selectedRoom.capacity > 1 && !canOverrideSingleOccupancy) {
+    if (
+      isEntireRoom &&
+      selectedRoom &&
+      selectedRoom.capacity > 1 &&
+      !canOverrideSingleOccupancy
+    ) {
       toast.error(
         ar
           ? "حجز الغرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية."
@@ -487,18 +585,25 @@ export default function RoomAssignment() {
     executeAssignment();
   };
 
-  const executeAssignment = (archiveOverride?: boolean, exceptionData?: { reason?: string; approvedBy?: string }) => {
+  const executeAssignment = (
+    archiveOverride?: boolean,
+    exceptionData?: { reason?: string; approvedBy?: string },
+  ) => {
     if (!selectedProfile || !selectedRoomId) return;
-    const finalArchive = archiveOverride !== undefined ? archiveOverride : archiveSourceProfile;
+    const finalArchive =
+      archiveOverride !== undefined ? archiveOverride : archiveSourceProfile;
     const finalTransferType = finalArchive ? "PERMANENT" : "TASK_FORCE";
 
     const effReason = exceptionData?.reason || policyOverrideReason;
     const effApprovedBy = exceptionData?.approvedBy || policyApprovedBy;
-    const isException = policyOverride || Boolean(exceptionData?.reason || exceptionData?.approvedBy);
+    const isException =
+      policyOverride ||
+      Boolean(exceptionData?.reason || exceptionData?.approvedBy);
 
-    const finalNotes = isException && effReason
-      ? `${notes ? notes + " | " : ""}[استثناء سياسة: ${effReason}${effApprovedBy ? ` | المعتمد: ${effApprovedBy}` : ""}]`
-      : (notes || undefined);
+    const finalNotes =
+      isException && effReason
+        ? `${notes ? notes + " | " : ""}[استثناء سياسة: ${effReason}${effApprovedBy ? ` | المعتمد: ${effApprovedBy}` : ""}]`
+        : notes || undefined;
 
     createMutation.mutate({
       data: {
@@ -509,7 +614,15 @@ export default function RoomAssignment() {
         expectedCheckOutDate: expectedCheckOut
           ? new Date(expectedCheckOut).toISOString()
           : undefined,
-        bedNumber: isEntireRoom ? (selectedBed ? parseInt(selectedBed) : 1) : (selectedBed ? parseInt(selectedBed) : (selectedRoom?.capacity === 1 ? 1 : undefined)),
+        bedNumber: isEntireRoom
+          ? selectedBed
+            ? parseInt(selectedBed)
+            : 1
+          : selectedBed
+            ? parseInt(selectedBed)
+            : selectedRoom?.capacity === 1
+              ? 1
+              : undefined,
         isEntireRoom: isEntireRoom,
         notes: finalNotes,
         hasPolicyException: isException || undefined,
@@ -518,7 +631,9 @@ export default function RoomAssignment() {
         sourcePropertyId: selectedProfile.propertyId,
         transferType: isCrossProperty ? finalTransferType : undefined,
         archiveSourceProfile: isCrossProperty ? finalArchive : undefined,
-        checkoutPreviousAssignment: isCrossProperty && Boolean((selectedProfile as any).accommodationRoom),
+        checkoutPreviousAssignment:
+          isCrossProperty &&
+          Boolean((selectedProfile as any).accommodationRoom),
         phone: customPhone.trim() || undefined,
       } as any,
     });
@@ -533,7 +648,7 @@ export default function RoomAssignment() {
       toast.error(
         ar
           ? "يرجى تحديد تاريخ خروج متوقع للتسكين المؤقت لضمان عدم التعارض مع عودة المقيم الأصلي"
-          : "Please set an expected check-out date for the temporary assignment"
+          : "Please set an expected check-out date for the temporary assignment",
       );
       return;
     }
@@ -545,13 +660,25 @@ export default function RoomAssignment() {
         roomId: parseInt(selectedRoomId),
         checkInDate: new Date(checkInDate).toISOString(),
         expectedCheckOutDate: new Date(checkout).toISOString(),
-        bedNumber: selectedBed ? parseInt(selectedBed) : (selectedRoom?.capacity === 1 ? 1 : undefined),
+        bedNumber: selectedBed
+          ? parseInt(selectedBed)
+          : selectedRoom?.capacity === 1
+            ? 1
+            : undefined,
         notes: notes || undefined,
         isTemporaryVacationOverride: true,
         sourcePropertyId: selectedProfile.propertyId,
-        transferType: isCrossProperty ? (archiveSourceProfile ? "PERMANENT" : "TASK_FORCE") : undefined,
-        archiveSourceProfile: isCrossProperty ? archiveSourceProfile : undefined,
-        checkoutPreviousAssignment: isCrossProperty && Boolean((selectedProfile as any).accommodationRoom),
+        transferType: isCrossProperty
+          ? archiveSourceProfile
+            ? "PERMANENT"
+            : "TASK_FORCE"
+          : undefined,
+        archiveSourceProfile: isCrossProperty
+          ? archiveSourceProfile
+          : undefined,
+        checkoutPreviousAssignment:
+          isCrossProperty &&
+          Boolean((selectedProfile as any).accommodationRoom),
         phone: customPhone.trim() || undefined,
       } as any,
     });
@@ -572,7 +699,11 @@ export default function RoomAssignment() {
     // Pick first free bed
     const freeBed = findFirstFreeBed(best, allAssignments);
     if (freeBed) setSelectedBed(String(freeBed));
-    toast.success(ar ? `تم اختيار الغرفة المقترحة رقم ${best.roomNumber} بنجاح` : `Selected room ${best.roomNumber}`);
+    toast.success(
+      ar
+        ? `تم اختيار الغرفة المقترحة رقم ${best.roomNumber} بنجاح`
+        : `Selected room ${best.roomNumber}`,
+    );
   };
 
   /** Room picker change: reset full-lock, default the bed and sync filters to the picked room. */
@@ -617,9 +748,7 @@ export default function RoomAssignment() {
     }
     setPolicyOverride(true);
     toast.success(
-      ar
-        ? "تم تسجيل الاستثناء الإداري بنجاح"
-        : "Policy exception recorded",
+      ar ? "تم تسجيل الاستثناء الإداري بنجاح" : "Policy exception recorded",
     );
     setPolicyExceptionModalOpen(false);
     if (isCrossProperty) {

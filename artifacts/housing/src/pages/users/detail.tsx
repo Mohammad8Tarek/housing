@@ -10,7 +10,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, ArrowRight, ShieldCheck, Building2, Pen, Trash2, RefreshCw, AlertTriangle, UserX, History, User } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ShieldCheck,
+  Building2,
+  Pen,
+  Trash2,
+  RefreshCw,
+  AlertTriangle,
+  UserX,
+  History,
+  User,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUserDetailPageState } from "./detail/useUserDetailPageState";
 import { renderDetailHeader } from "./detail/DetailHeader";
@@ -24,15 +36,32 @@ import { ActiveTab } from "./detail/detail.constants";
 
 export default function UserDetailPage() {
   const s = useUserDetailPageState();
-  const { setLocation, ar, buildNavHref, activeTab, handleTabChange, user, isUserLoading, isUserError, selectedPropertyIds, deleteConfirmOpen, setDeleteConfirmOpen, signaturePreview, diffStats, deleteMutation, handleDeleteUser } = s;
-
+  const {
+    setLocation,
+    ar,
+    buildNavHref,
+    activeTab,
+    handleTabChange,
+    user,
+    isUserLoading,
+    isUserError,
+    selectedPropertyIds,
+    deleteConfirmOpen,
+    setDeleteConfirmOpen,
+    signaturePreview,
+    diffStats,
+    deleteMutation,
+    handleDeleteUser,
+  } = s;
 
   if (isUserLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <RefreshCw className="w-8 h-8 animate-spin text-[#C9A24D]" />
         <p className="text-sm font-medium text-muted-foreground">
-          {ar ? "جاري تحميل ملف وحوكمة المستخدم..." : "Loading user governance profile..."}
+          {ar
+            ? "جاري تحميل ملف وحوكمة المستخدم..."
+            : "Loading user governance profile..."}
         </p>
       </div>
     );
@@ -49,7 +78,9 @@ export default function UserDetailPage() {
             {ar ? "المستخدم غير موجود" : "User Not Found"}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {ar ? "تعذر العثور على المستخدم المطلوب أو قد تم حذفه." : "The requested user could not be found or was deleted."}
+            {ar
+              ? "تعذر العثور على المستخدم المطلوب أو قد تم حذفه."
+              : "The requested user could not be found or was deleted."}
           </p>
         </div>
         <Button
@@ -57,13 +88,16 @@ export default function UserDetailPage() {
           onClick={() => setLocation(buildNavHref("/users"))}
           className="mt-2"
         >
-          {ar ? <ArrowRight className="w-4 h-4 me-2" /> : <ArrowLeft className="w-4 h-4 me-2" />}
+          {ar ? (
+            <ArrowRight className="w-4 h-4 me-2" />
+          ) : (
+            <ArrowLeft className="w-4 h-4 me-2" />
+          )}
           {ar ? "العودة لقائمة المستخدمين" : "Back to Users"}
         </Button>
       </div>
     );
   }
-
 
   return (
     <div className="space-y-6 pb-20 max-w-7xl mx-auto px-2 sm:px-4">
@@ -85,7 +119,7 @@ export default function UserDetailPage() {
             id: "permissions",
             label: ar ? "مصفوفة الصلاحيات والحوكمة" : "Access & Permissions",
             icon: ShieldCheck,
-            badge: diffStats.isIdentical ? null : (ar ? "مخصص" : "Custom"),
+            badge: diffStats.isIdentical ? null : ar ? "مخصص" : "Custom",
           },
           {
             id: "properties",
@@ -114,10 +148,15 @@ export default function UserDetailPage() {
                 "flex items-center gap-2 py-3 px-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap cursor-pointer",
                 isSelected
                   ? "border-[#C9A24D] text-[#C9A24D] bg-[#C9A24D]/5 rounded-t-lg"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40",
               )}
             >
-              <tab.icon className={cn("w-4 h-4", isSelected ? "text-[#C9A24D]" : "text-muted-foreground")} />
+              <tab.icon
+                className={cn(
+                  "w-4 h-4",
+                  isSelected ? "text-[#C9A24D]" : "text-muted-foreground",
+                )}
+              />
               <span>{tab.label}</span>
               {tab.badge && (
                 <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-[#C9A24D] text-white">
@@ -137,37 +176,27 @@ export default function UserDetailPage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* ── TAB 1: PROFILE & GENERAL ── */}
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {activeTab === "profile" && (
-        renderProfileTab(s)
-      )}
+      {activeTab === "profile" && renderProfileTab(s)}
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* ── TAB 2: ACCESS & PERMISSIONS MATRIX ── */}
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {activeTab === "permissions" && (
-        renderPermissionsTab(s)
-      )}
+      {activeTab === "permissions" && renderPermissionsTab(s)}
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* ── TAB 3: HOTELS & PROPERTIES SCOPE ── */}
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {activeTab === "properties" && (
-        renderPropertiesTab(s)
-      )}
+      {activeTab === "properties" && renderPropertiesTab(s)}
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* ── TAB 4: DIGITAL SIGNATURE ── */}
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {activeTab === "signature" && (
-        renderSignatureTab(s)
-      )}
+      {activeTab === "signature" && renderSignatureTab(s)}
 
       {/* ══════════════════════════════════════════════════════════════════ */}
       {/* ── TAB 5: SECURITY & AUDIT TRAIL ── */}
       {/* ══════════════════════════════════════════════════════════════════ */}
-      {activeTab === "audit" && (
-        renderAuditTab(s)
-      )}
+      {activeTab === "audit" && renderAuditTab(s)}
 
       {/* ── Delete User Confirmation Alert Dialog ── */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>

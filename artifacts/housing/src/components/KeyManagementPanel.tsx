@@ -10,7 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Key, Wifi, WifiOff, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import {
+  Key,
+  Wifi,
+  WifiOff,
+  CheckCircle,
+  XCircle,
+  Loader2,
+} from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import {
   getKeysQueryKey,
@@ -405,9 +412,7 @@ export default function KeyManagementPanel({
               htmlFor="duplicateKey"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700"
             >
-              {ar
-                ? "إصدار كنسخة إضافية"
-                : "Issue as Duplicate Key"}
+              {ar ? "إصدار كنسخة إضافية" : "Issue as Duplicate Key"}
             </label>
           </div>
 

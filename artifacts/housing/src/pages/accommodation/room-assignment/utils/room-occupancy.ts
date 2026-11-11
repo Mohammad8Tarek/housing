@@ -3,7 +3,9 @@ import { matchesSearch } from "@/lib/search-utils";
 import type { OccupantInfo, Recommendation } from "../types";
 
 /** Active assignments indexed by roomId. */
-export function buildRoomActiveAssignmentsMap(allAssignments: Assignment[]): Map<number, any[]> {
+export function buildRoomActiveAssignmentsMap(
+  allAssignments: Assignment[],
+): Map<number, any[]> {
   const map = new Map<number, any[]>();
   for (const a of allAssignments) {
     if (a.status === "ACTIVE") {
@@ -16,13 +18,13 @@ export function buildRoomActiveAssignmentsMap(allAssignments: Assignment[]): Map
 }
 
 /** Set of rooms occupied entirely by a single resident. */
-export function buildEntireRoomOccupiedSet(allAssignments: Assignment[]): Set<number> {
+export function buildEntireRoomOccupiedSet(
+  allAssignments: Assignment[],
+): Set<number> {
   const set = new Set<number>();
   allAssignments
     .filter(
-      (a: any) =>
-        a.status === "ACTIVE" &&
-        (a.isEntireRoom || a.is_entire_room),
+      (a: any) => a.status === "ACTIVE" && (a.isEntireRoom || a.is_entire_room),
     )
     .forEach((a: any) => set.add(Number(a.roomId)));
   return set;
@@ -48,8 +50,18 @@ export function buildSingleOccupantRoomsMap(
     if (effectiveOcc === 1 || (isEntire && cap > 1)) {
       const first = activeList[0];
       const name = first
-        ? [first.profileFirstName || first.firstName, first.profileLastName || first.lastName].filter(Boolean).join(" ") || first.employeeName || first.profileName || (ar ? "نزيل مسكن" : "Resident")
-        : (ar ? "نزيل بمفرده" : "Single Resident");
+        ? [
+            first.profileFirstName || first.firstName,
+            first.profileLastName || first.lastName,
+          ]
+            .filter(Boolean)
+            .join(" ") ||
+          first.employeeName ||
+          first.profileName ||
+          (ar ? "نزيل مسكن" : "Resident")
+        : ar
+          ? "نزيل بمفرده"
+          : "Single Resident";
       map.set(rId, { residentName: name });
     }
   }
@@ -74,14 +86,22 @@ export function buildSelectedRoomBedMap(
 
   if (isEntire) {
     for (let b = 1; b <= cap; b++) {
-      map.set(b, { residentName: ar ? "محجوز (غرفة كاملة)" : "Occupied (Full Room)" });
+      map.set(b, {
+        residentName: ar ? "محجوز (غرفة كاملة)" : "Occupied (Full Room)",
+      });
     }
     return map;
   }
 
   const unassigned: string[] = [];
   for (const a of activeList) {
-    const name = [a.profileFirstName || a.firstName, a.profileLastName || a.lastName].filter(Boolean).join(" ") || a.employeeName || a.profileName || (ar ? "نزيل مسكن" : "Resident");
+    const name =
+      [a.profileFirstName || a.firstName, a.profileLastName || a.lastName]
+        .filter(Boolean)
+        .join(" ") ||
+      a.employeeName ||
+      a.profileName ||
+      (ar ? "نزيل مسكن" : "Resident");
     if (a.bedNumber != null && Number(a.bedNumber) > 0) {
       map.set(Number(a.bedNumber), { residentName: name });
     } else {
@@ -108,7 +128,13 @@ export function getAvailableRooms(rooms: Room[]): Room[] {
   return rooms
     .filter((r) => {
       const s = r.status?.toLowerCase() || "";
-      return !["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(s);
+      return ![
+        "maintenance",
+        "out_of_service",
+        "out_of_order",
+        "oos",
+        "ooo",
+      ].includes(s);
     })
     .sort((a, b) => {
       const aFull = a.currentOccupancy >= a.capacity;
@@ -134,7 +160,12 @@ export function filterRooms(
     if (searchFloor !== "all" && String(fId) !== String(searchFloor))
       return false;
     if (searchRoomNumber.trim()) {
-      if (!matchesSearch([r.roomNumber, r.roomType, r.bedType, r.features], searchRoomNumber)) {
+      if (
+        !matchesSearch(
+          [r.roomNumber, r.roomType, r.bedType, r.features],
+          searchRoomNumber,
+        )
+      ) {
         return false;
       }
     }
@@ -143,7 +174,10 @@ export function filterRooms(
 }
 
 /** Pre-sort filtered rooms so recommended ones appear first. */
-export function sortRoomsByRecommendation(filteredRooms: Room[], recommendation: Recommendation): Room[] {
+export function sortRoomsByRecommendation(
+  filteredRooms: Room[],
+  recommendation: Recommendation,
+): Room[] {
   if (!recommendation) return filteredRooms;
   return [...filteredRooms].sort((a, b) => {
     const isRecA = recommendation.recommendedMap[a.id]?.levelMatch ? 1 : 0;
@@ -156,10 +190,18 @@ export function sortRoomsByRecommendation(filteredRooms: Room[], recommendation:
 }
 
 /** Returns the first bed in a room that has no active occupant (undefined when none). */
-export function findFirstFreeBed(room: Room, allAssignments: Assignment[]): number | undefined {
+export function findFirstFreeBed(
+  room: Room,
+  allAssignments: Assignment[],
+): number | undefined {
   const bCap = room.capacity || 1;
-  const curOccs = (allAssignments || []).filter(
-    (a: any) => a.status === "ACTIVE" && a.roomId === room.id && a.bedNumber != null
-  ).map((a: any) => a.bedNumber);
-  return Array.from({ length: bCap }, (_, i) => i + 1).find(b => !curOccs.includes(b));
+  const curOccs = (allAssignments || [])
+    .filter(
+      (a: any) =>
+        a.status === "ACTIVE" && a.roomId === room.id && a.bedNumber != null,
+    )
+    .map((a: any) => a.bedNumber);
+  return Array.from({ length: bCap }, (_, i) => i + 1).find(
+    (b) => !curOccs.includes(b),
+  );
 }

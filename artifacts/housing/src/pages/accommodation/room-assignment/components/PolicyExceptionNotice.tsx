@@ -36,20 +36,29 @@ export function PolicyExceptionNotice({
           <div>
             <span className="font-bold text-sm block">
               {policyOverride
-                ? (ar ? "تم اعتماد الاستثناء الإداري للسياسة" : "Policy Exception Approved")
-                : (ar ? "تنبيه: التسكين يتعارض مع سياسات السكن المعتمدة" : "Notice: Allocation Conflicts with Housing Policy")}
+                ? ar
+                  ? "تم اعتماد الاستثناء الإداري للسياسة"
+                  : "Policy Exception Approved"
+                : ar
+                  ? "تنبيه: التسكين يتعارض مع سياسات السكن المعتمدة"
+                  : "Notice: Allocation Conflicts with Housing Policy"}
             </span>
             <ul className="text-xs list-disc list-inside mt-1 space-y-1">
               {policyCheck.violations.map((v, idx) => (
-                <li key={idx} className="font-medium text-amber-900 dark:text-amber-300">
+                <li
+                  key={idx}
+                  className="font-medium text-amber-900 dark:text-amber-300"
+                >
                   {ar ? v.messageAr : v.messageEn}
                 </li>
               ))}
             </ul>
             {policyOverride && policyOverrideReason && (
               <p className="text-xs mt-2 text-emerald-800 dark:text-emerald-300 bg-emerald-100/60 dark:bg-emerald-900/40 p-2 rounded-md font-medium">
-                <strong>{ar ? "سبب الاستثناء:" : "Reason:"}</strong> {policyOverrideReason}
-                {policyApprovedBy && ` — ${ar ? "المعتمد:" : "Approved by:"} ${policyApprovedBy}`}
+                <strong>{ar ? "سبب الاستثناء:" : "Reason:"}</strong>{" "}
+                {policyOverrideReason}
+                {policyApprovedBy &&
+                  ` — ${ar ? "المعتمد:" : "Approved by:"} ${policyApprovedBy}`}
               </p>
             )}
           </div>
@@ -68,8 +77,12 @@ export function PolicyExceptionNotice({
         >
           <ShieldAlert className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
           {policyOverride
-            ? (ar ? "تعديل الاستثناء" : "Edit Exception")
-            : (ar ? "طلب اعتماد استثناء" : "Approve Exception")}
+            ? ar
+              ? "تعديل الاستثناء"
+              : "Edit Exception"
+            : ar
+              ? "طلب اعتماد استثناء"
+              : "Approve Exception"}
         </Button>
       </div>
     </div>

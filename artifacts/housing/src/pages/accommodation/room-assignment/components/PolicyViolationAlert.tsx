@@ -24,7 +24,9 @@ export function PolicyViolationAlert({
         <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
         <div className="space-y-1 text-xs">
           <p className="font-bold text-sm">
-            {ar ? "تنبيه: الغرفة المحددة تخالف سياسة التسكين المعتمدة" : "Policy Violation Alert: Selected room violates housing policy"}
+            {ar
+              ? "تنبيه: الغرفة المحددة تخالف سياسة التسكين المعتمدة"
+              : "Policy Violation Alert: Selected room violates housing policy"}
           </p>
           <ul className="list-disc pe-4 ps-4 space-y-0.5">
             {policyCheck.violations.map((v, idx) => (
@@ -42,12 +44,18 @@ export function PolicyViolationAlert({
             className="rounded text-amber-600 focus:ring-amber-500"
           />
           <span>
-            {ar ? "تأكيد التجاوز والاستثناء الإداري من السياسة (Administrative Override)" : "Confirm administrative override of housing policy"}
+            {ar
+              ? "تأكيد التجاوز والاستثناء الإداري من السياسة (Administrative Override)"
+              : "Confirm administrative override of housing policy"}
           </span>
         </label>
         {policyOverride && (
           <Input
-            placeholder={ar ? "سبب الاستثناء وتصريح الإدارة (إلزامي)..." : "Reason for administrative override (Mandatory)..."}
+            placeholder={
+              ar
+                ? "سبب الاستثناء وتصريح الإدارة (إلزامي)..."
+                : "Reason for administrative override (Mandatory)..."
+            }
             value={policyOverrideReason}
             onChange={(e) => setPolicyOverrideReason(e.target.value)}
             className="text-xs bg-white dark:bg-zinc-900 border-amber-300"

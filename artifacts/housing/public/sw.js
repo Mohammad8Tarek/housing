@@ -16,7 +16,7 @@ self.addEventListener("activate", (event) => {
             client.navigate(client.url);
           }
         });
-      })
+      }),
   );
 });
 
@@ -24,4 +24,3 @@ self.addEventListener("fetch", (event) => {
   // Always bypass cache and fetch directly from network
   event.respondWith(fetch(event.request));
 });
-

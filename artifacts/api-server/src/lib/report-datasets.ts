@@ -9,12 +9,19 @@ import type { ReportDatasets } from "@workspace/report-rows";
 
 type DatasetKey = Exclude<keyof ReportDatasets, "settings">;
 
-const SOURCES: Record<DatasetKey, { path: string; pageSize: number; extra?: Record<string, string> }> = {
+const SOURCES: Record<
+  DatasetKey,
+  { path: string; pageSize: number; extra?: Record<string, string> }
+> = {
   buildings: { path: "/buildings", pageSize: 1000 },
   floors: { path: "/floors", pageSize: 5000 },
   rooms: { path: "/rooms", pageSize: 5000 },
   profiles: { path: "/profiles", pageSize: 5000 },
-  assignments: { path: "/assignments", pageSize: 5000, extra: { status: "ALL" } },
+  assignments: {
+    path: "/assignments",
+    pageSize: 5000,
+    extra: { status: "ALL" },
+  },
   reservations: { path: "/reservations", pageSize: 5000 },
   maintenance: { path: "/maintenance", pageSize: 5000 },
   hostings: { path: "/hostings", pageSize: 5000 },
@@ -23,7 +30,14 @@ const SOURCES: Record<DatasetKey, { path: string; pageSize: number; extra?: Reco
   vacations: { path: "/reports/vacations", pageSize: 5000 },
 };
 
-const FORWARD_HEADERS = ["cookie", "authorization", "x-session-id", "x-property-id", "accept-language", "user-agent"];
+const FORWARD_HEADERS = [
+  "cookie",
+  "authorization",
+  "x-session-id",
+  "x-property-id",
+  "accept-language",
+  "user-agent",
+];
 const TTL_MS = 15_000;
 const MAX_PAGES = 200;
 const cache = new Map<string, { at: number; rows: Promise<any> }>();
@@ -40,11 +54,16 @@ function rowsOf(body: any): any[] {
 
 function callerKey(req: Request): string {
   const h = createHash("sha256");
-  for (const name of ["cookie", "authorization", "x-session-id"]) h.update(String(req.headers[name] ?? "") + "\n");
+  for (const name of ["cookie", "authorization", "x-session-id"])
+    h.update(String(req.headers[name] ?? "") + "\n");
   return h.digest("hex");
 }
 
-async function fetchAll(req: Request, key: DatasetKey, propertyId: number): Promise<any[]> {
+async function fetchAll(
+  req: Request,
+  key: DatasetKey,
+  propertyId: number,
+): Promise<any[]> {
   const src = SOURCES[key];
   const base = `http://127.0.0.1:${process.env.PORT || 4000}/api`;
   const headers: Record<string, string> = { accept: "application/json" };
@@ -53,7 +72,12 @@ async function fetchAll(req: Request, key: DatasetKey, propertyId: number): Prom
     if (typeof v === "string") headers[name] = v;
   }
   const url = (page: number) => {
-    const qs = new URLSearchParams({ propertyId: String(propertyId), ...src.extra, page: String(page), limit: String(src.pageSize) });
+    const qs = new URLSearchParams({
+      propertyId: String(propertyId),
+      ...src.extra,
+      page: String(page),
+      limit: String(src.pageSize),
+    });
     return `${base}${src.path}?${qs}`;
   };
   // A failing list counts as empty, as it did in the browser.
@@ -64,10 +88,19 @@ async function fetchAll(req: Request, key: DatasetKey, propertyId: number): Prom
 
   const first = await get(1);
   const rows = rowsOf(first);
-  const total = Array.isArray(first) ? NaN : Number(first?.pagination?.total ?? first?.total);
-  if (!Number.isFinite(total) || rows.length >= total || rows.length < src.pageSize) return rows;
+  const total = Array.isArray(first)
+    ? NaN
+    : Number(first?.pagination?.total ?? first?.total);
+  if (
+    !Number.isFinite(total) ||
+    rows.length >= total ||
+    rows.length < src.pageSize
+  )
+    return rows;
   const pages = Math.min(Math.ceil(total / src.pageSize), MAX_PAGES);
-  const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, i) => get(i + 2)));
+  const rest = await Promise.all(
+    Array.from({ length: pages - 1 }, (_, i) => get(i + 2)),
+  );
   const seen = new Set<unknown>();
   return rows.concat(...rest.map(rowsOf)).filter((r: any) => {
     if (r?.id == null) return true;
@@ -83,7 +116,10 @@ async function fetchSettings(req: Request, propertyId: number): Promise<any> {
     const v = req.headers[name];
     if (typeof v === "string") headers[name] = v;
   }
-  const r = await fetch(`http://127.0.0.1:${process.env.PORT || 4000}/api/settings?propertyId=${propertyId}`, { headers });
+  const r = await fetch(
+    `http://127.0.0.1:${process.env.PORT || 4000}/api/settings?propertyId=${propertyId}`,
+    { headers },
+  );
   return r.ok ? r.json() : {};
 }
 
@@ -105,7 +141,13 @@ export async function loadReportDatasets(
       const ck = `${who}|${propertyId}|${k}`;
       let entry = cache.get(ck);
       if (!entry) {
-        entry = { at: now, rows: k === "settings" ? fetchSettings(req, propertyId) : fetchAll(req, k, propertyId) };
+        entry = {
+          at: now,
+          rows:
+            k === "settings"
+              ? fetchSettings(req, propertyId)
+              : fetchAll(req, k, propertyId),
+        };
         cache.set(ck, entry);
         entry.rows.catch(() => cache.delete(ck));
       }

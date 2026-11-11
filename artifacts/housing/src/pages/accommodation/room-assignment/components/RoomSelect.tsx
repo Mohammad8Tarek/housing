@@ -47,10 +47,7 @@ export function RoomSelect({
           </span>
         )}
       </label>
-      <Select
-        value={selectedRoomId}
-        onValueChange={onChange}
-      >
+      <Select value={selectedRoomId} onValueChange={onChange}>
         <SelectTrigger>
           <SelectValue
             placeholder={
@@ -81,9 +78,11 @@ export function RoomSelect({
           ) : (
             sortedFilteredRooms.map((r) => {
               const isEntireReserved = entireRoomOccupiedSet.has(r.id);
-              const isFull = r.currentOccupancy >= r.capacity || isEntireReserved;
+              const isFull =
+                r.currentOccupancy >= r.capacity || isEntireReserved;
               const isSingleOccRoom = singleOccupantRoomsMap.has(r.id);
-              const isBlockedBySingleOcc = isSingleOccRoom && !canOverrideSingleOccupancy;
+              const isBlockedBySingleOcc =
+                isSingleOccRoom && !canOverrideSingleOccupancy;
               const isDisabled = isFull || isBlockedBySingleOcc;
               const building = buildingMap[r.buildingId] ?? "—";
               const floor = floorMap[r.floorId];
@@ -116,15 +115,21 @@ export function RoomSelect({
                       </span>
                     )}
                     <Badge
-                      variant={isFull ? "destructive" : isBlockedBySingleOcc ? "outline" : "outline"}
+                      variant={
+                        isFull
+                          ? "destructive"
+                          : isBlockedBySingleOcc
+                            ? "outline"
+                            : "outline"
+                      }
                       className={`text-[9px] h-4 py-0 ${
                         isEntireReserved
                           ? "bg-purple-700 text-white border-purple-800"
                           : isBlockedBySingleOcc
-                          ? "bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30"
-                          : isSingleOccRoom
-                          ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300"
-                          : ""
+                            ? "bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30"
+                            : isSingleOccRoom
+                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300"
+                              : ""
                       }`}
                     >
                       {isEntireReserved
@@ -132,29 +137,33 @@ export function RoomSelect({
                           ? "محجوزة بالكامل (فردي)"
                           : "ENTIRE ROOM"
                         : isFull
-                        ? ar
-                          ? "ممتلئة"
-                          : "FULL"
-                        : isBlockedBySingleOcc
-                        ? ar
-                          ? "شخص بمفرده (يتطلب صلاحية)"
-                          : "SINGLE OCCUPANT (REQ. PERM)"
-                        : isSingleOccRoom
-                        ? ar
-                          ? "شخص بمفرده (مسموح بالصلاحية)"
-                          : "SINGLE OCCUPANT (AUTH)"
-                        : r.roomType}
+                          ? ar
+                            ? "ممتلئة"
+                            : "FULL"
+                          : isBlockedBySingleOcc
+                            ? ar
+                              ? "شخص بمفرده (يتطلب صلاحية)"
+                              : "SINGLE OCCUPANT (REQ. PERM)"
+                            : isSingleOccRoom
+                              ? ar
+                                ? "شخص بمفرده (مسموح بالصلاحية)"
+                                : "SINGLE OCCUPANT (AUTH)"
+                              : r.roomType}
                     </Badge>
                     {r.classification && (
                       <span
                         className={`text-[9px] px-1.5 py-0.2 rounded font-semibold border ${
                           r.classification.toLowerCase().includes("deluxe")
                             ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                            : r.classification.toLowerCase().includes("superior")
-                            ? "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
-                            : r.classification.toLowerCase().includes("family")
-                            ? "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
-                            : "bg-muted text-foreground border-border"
+                            : r.classification
+                                  .toLowerCase()
+                                  .includes("superior")
+                              ? "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                              : r.classification
+                                    .toLowerCase()
+                                    .includes("family")
+                                ? "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                                : "bg-muted text-foreground border-border"
                         }`}
                       >
                         {r.classification}

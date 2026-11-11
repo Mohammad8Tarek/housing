@@ -1,5 +1,11 @@
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
 import { Building2, BedDouble, ArrowUpRight } from "lucide-react";
@@ -40,12 +46,18 @@ export function BuildingCapacityMatrix({
             {ar ? "مصفوفة استيعاب وإشغال المباني" : "Building Capacity Matrix"}
           </CardTitle>
           <CardDescription className="text-xs mt-0.5">
-            {ar ? "معدلات الإشغال والأسرة الشاغرة لكل منشأة سكنية" : "Live occupancy & vacant beds per residential building"}
+            {ar
+              ? "معدلات الإشغال والأسرة الشاغرة لكل منشأة سكنية"
+              : "Live occupancy & vacant beds per residential building"}
           </CardDescription>
         </div>
         <Link href={buildNavHref("/housing")}>
-          <Badge variant="outline" className="text-xs cursor-pointer hover:bg-accent gap-1 py-1">
-            {ar ? "إدارة المباني" : "Manage Buildings"} <ArrowUpRight className="w-3 h-3" />
+          <Badge
+            variant="outline"
+            className="text-xs cursor-pointer hover:bg-accent gap-1 py-1"
+          >
+            {ar ? "إدارة المباني" : "Manage Buildings"}{" "}
+            <ArrowUpRight className="w-3 h-3" />
           </Badge>
         </Link>
       </CardHeader>
@@ -72,7 +84,8 @@ export function BuildingCapacityMatrix({
                         {b.buildingName}
                       </h4>
                       <p className="text-[11px] text-muted-foreground">
-                        {b.totalRooms} {ar ? "غرفة" : "rooms"} · {b.totalCapacity} {ar ? "سرير" : "beds"}
+                        {b.totalRooms} {ar ? "غرفة" : "rooms"} ·{" "}
+                        {b.totalCapacity} {ar ? "سرير" : "beds"}
                       </p>
                     </div>
                   </div>
@@ -83,8 +96,8 @@ export function BuildingCapacityMatrix({
                       isHigh
                         ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
                         : isMedium
-                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                        : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
                     )}
                   >
                     {b.occupancyRate}%
@@ -101,8 +114,8 @@ export function BuildingCapacityMatrix({
                         isHigh
                           ? "bg-gradient-to-r from-amber-500 to-rose-500"
                           : isMedium
-                          ? "bg-gradient-to-r from-primary to-amber-500"
-                          : "bg-gradient-to-r from-teal-500 to-emerald-500",
+                            ? "bg-gradient-to-r from-primary to-amber-500"
+                            : "bg-gradient-to-r from-teal-500 to-emerald-500",
                       )}
                     />
                   </div>
@@ -113,11 +126,17 @@ export function BuildingCapacityMatrix({
                   <span className="flex items-center gap-1">
                     <BedDouble className="w-3 h-3 text-muted-foreground" />
                     {ar ? "شاغر:" : "Vacant:"}{" "}
-                    <strong className="text-foreground font-mono">{vacantBeds}</strong> {ar ? "سرير" : "beds"}
+                    <strong className="text-foreground font-mono">
+                      {vacantBeds}
+                    </strong>{" "}
+                    {ar ? "سرير" : "beds"}
                   </span>
                   <span>
                     {ar ? "مشغول:" : "Occupied:"}{" "}
-                    <strong className="text-foreground font-mono">{b.occupiedRooms}</strong> / {b.totalRooms}
+                    <strong className="text-foreground font-mono">
+                      {b.occupiedRooms}
+                    </strong>{" "}
+                    / {b.totalRooms}
                   </span>
                 </div>
               </div>

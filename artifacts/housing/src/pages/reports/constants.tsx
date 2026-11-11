@@ -1,4 +1,29 @@
-import { TrendingUp, Building2, Users, BedDouble, Wrench, Hotel, Clock, Home, PackageCheck, FileBarChart2, UserCheck, LogOut, ClipboardCheck, AlertOctagon, CalendarRange, ArrowLeftRight, Briefcase, ShieldCheck, ShieldAlert, Star, Droplets, Scale, Palmtree, HeartHandshake } from "lucide-react";
+import {
+  TrendingUp,
+  Building2,
+  Users,
+  BedDouble,
+  Wrench,
+  Hotel,
+  Clock,
+  Home,
+  PackageCheck,
+  FileBarChart2,
+  UserCheck,
+  LogOut,
+  ClipboardCheck,
+  AlertOctagon,
+  CalendarRange,
+  ArrowLeftRight,
+  Briefcase,
+  ShieldCheck,
+  ShieldAlert,
+  Star,
+  Droplets,
+  Scale,
+  Palmtree,
+  HeartHandshake,
+} from "lucide-react";
 import { Tab, TabConfig } from "./types";
 
 export const TABS: TabConfig[] = [

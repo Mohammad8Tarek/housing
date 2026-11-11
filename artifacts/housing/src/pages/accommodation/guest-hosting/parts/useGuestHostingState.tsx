@@ -24,7 +24,13 @@ import { useColumnVisibility } from "@/components/ui/column-chooser";
 import { printLuxuryReport } from "@/lib/pdf-utils";
 import { exportExcel } from "@/pages/reports/utils/export";
 import { usePermission } from "@/hooks/use-permission";
-import { ProfileResult, Companion, defaultCompanion, MAX_DOCUMENT_IMAGE_SIZE, ALLOWED_DOCUMENT_IMAGE_TYPES } from "./GuestHostingPage.constants";
+import {
+  ProfileResult,
+  Companion,
+  defaultCompanion,
+  MAX_DOCUMENT_IMAGE_SIZE,
+  ALLOWED_DOCUMENT_IMAGE_TYPES,
+} from "./GuestHostingPage.constants";
 
 export function useGuestHostingState() {
   const { activePropertyId, properties, setActivePropertyId } = useProperty();
@@ -72,8 +78,9 @@ export function useGuestHostingState() {
   /* Profile search */
   const [empSearch, setEmpSearch] = useState("");
   const [empResults, setEmpResults] = useState<ProfileResult[]>([]);
-  const [selectedProfile, setSelectedProfile] =
-    useState<ProfileResult | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<ProfileResult | null>(
+    null,
+  );
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchPropertyId, setSearchPropertyId] = useState(() =>
@@ -95,7 +102,12 @@ export function useGuestHostingState() {
     isError,
     refetch,
   } = useListHostings(
-    { propertyId: activePropertyId, page: currentPage, limit: pageSize, excludeStatus: "PENDING" } as any,
+    {
+      propertyId: activePropertyId,
+      page: currentPage,
+      limit: pageSize,
+      excludeStatus: "PENDING",
+    } as any,
     {
       query: {
         queryKey: ["listHostings", activePropertyId, currentPage, pageSize],
@@ -103,10 +115,15 @@ export function useGuestHostingState() {
       },
     },
   );
-  
-  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
-  const hostings: any[] = Array.isArray(_hWrapper) ? _hWrapper : (((_hWrapper as any)?.data as any[]) || []);
-  const paginationTotal: number = Array.isArray(_hWrapper) ? _hWrapper.length : (((_hWrapper as any)?.pagination?.total as number) ?? hostings.length);
+
+  const numericPropertyId =
+    typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const hostings: any[] = Array.isArray(_hWrapper)
+    ? _hWrapper
+    : ((_hWrapper as any)?.data as any[]) || [];
+  const paginationTotal: number = Array.isArray(_hWrapper)
+    ? _hWrapper.length
+    : (((_hWrapper as any)?.pagination?.total as number) ?? hostings.length);
 
   useEffect(() => {
     if (!numericPropertyId || !(hostings as any[])?.length) return;
@@ -151,9 +168,16 @@ export function useGuestHostingState() {
   const requestPropertyId = Number(searchPropertyId) || numericPropertyId;
   const { data: _rData } = useListRooms(
     { propertyId: numericPropertyId },
-    { query: { queryKey: ["listRooms", numericPropertyId], enabled: !!numericPropertyId } as any },
+    {
+      query: {
+        queryKey: ["listRooms", numericPropertyId],
+        enabled: !!numericPropertyId,
+      } as any,
+    },
   );
-  const rooms: any[] = Array.isArray(_rData) ? _rData : (((_rData as any)?.data as any[]) || []);
+  const rooms: any[] = Array.isArray(_rData)
+    ? _rData
+    : ((_rData as any)?.data as any[]) || [];
   const { data: _requestRoomsWrapper } = useListRooms(
     { propertyId: requestPropertyId },
     {
@@ -163,15 +187,31 @@ export function useGuestHostingState() {
       } as any,
     },
   );
-  const requestRooms: any[] = Array.isArray(_requestRoomsWrapper) ? _requestRoomsWrapper : (((_requestRoomsWrapper as any)?.data as any[]) || []);
+  const requestRooms: any[] = Array.isArray(_requestRoomsWrapper)
+    ? _requestRoomsWrapper
+    : ((_requestRoomsWrapper as any)?.data as any[]) || [];
   const { data: _eDataWrapper } = useListProfiles(
     { propertyId: numericPropertyId ?? undefined, limit: 1000 } as any,
-    { query: { queryKey: ["listProfiles", numericPropertyId], enabled: !!numericPropertyId } as any },
+    {
+      query: {
+        queryKey: ["listProfiles", numericPropertyId],
+        enabled: !!numericPropertyId,
+      } as any,
+    },
   );
-  const profiles: any[] = Array.isArray(_eDataWrapper) ? _eDataWrapper : (((_eDataWrapper as any)?.profiles as any[]) || ((_eDataWrapper as any)?.data as any[]) || []);
+  const profiles: any[] = Array.isArray(_eDataWrapper)
+    ? _eDataWrapper
+    : ((_eDataWrapper as any)?.profiles as any[]) ||
+      ((_eDataWrapper as any)?.data as any[]) ||
+      [];
   const { data: settings } = useGetSettings(
     { propertyId: numericPropertyId },
-    { query: { queryKey: ["getSettings", numericPropertyId], enabled: !!numericPropertyId } as any },
+    {
+      query: {
+        queryKey: ["getSettings", numericPropertyId],
+        enabled: !!numericPropertyId,
+      } as any,
+    },
   );
   const modalRooms =
     requestPropertyId === activePropertyId ? rooms : requestRooms;
@@ -464,7 +504,10 @@ export function useGuestHostingState() {
         age: c.isChild && c.age ? parseInt(c.age) : null,
       }));
 
-    if (new Date(form.expectedTo).getTime() < new Date(form.expectedFrom).getTime()) {
+    if (
+      new Date(form.expectedTo).getTime() <
+      new Date(form.expectedFrom).getTime()
+    ) {
       toast.error(
         ar
           ? "تاريخ نهاية الاستضافة يجب أن يكون بعد تاريخ البداية"
@@ -483,7 +526,9 @@ export function useGuestHostingState() {
     }
 
     if (formRoomId) {
-      const selectedRoom = (rooms as any[]).find((r) => r.id === parseInt(formRoomId));
+      const selectedRoom = (rooms as any[]).find(
+        (r) => r.id === parseInt(formRoomId),
+      );
       if (selectedRoom) {
         const totalGuests = Math.max(1, validCompanions.length || 1);
         if (totalGuests > (selectedRoom.capacity || 1)) {
@@ -542,7 +587,8 @@ export function useGuestHostingState() {
 
   const pagedHostIds = pagedHostings.map((h: any) => h.id);
   const allHostPageSelected =
-    pagedHostIds.length > 0 && pagedHostIds.every((id: any) => selectedRows.has(id));
+    pagedHostIds.length > 0 &&
+    pagedHostIds.every((id: any) => selectedRows.has(id));
   const toggleSelectAllHost = () => {
     if (allHostPageSelected) {
       setSelectedRows((prev) => {
@@ -566,9 +612,7 @@ export function useGuestHostingState() {
     });
   };
 
-  const dateText = (
-    value: string | null | undefined,
-  ) => formatDate(value);
+  const dateText = (value: string | null | undefined) => formatDate(value);
 
   const getHostProfile = (h: any) =>
     h.profile ?? profileMap[h.profileId] ?? null;
@@ -817,21 +861,31 @@ export function useGuestHostingState() {
     const propName = activeProp?.name ?? "";
 
     const empName = ar
-      ? (hostProfile ? `${hostProfile.firstNameAr || hostProfile.firstName} ${hostProfile.lastNameAr || hostProfile.lastName}` : "—")
-      : (hostProfile ? `${hostProfile.firstName} ${hostProfile.lastName}` : "—");
+      ? hostProfile
+        ? `${hostProfile.firstNameAr || hostProfile.firstName} ${hostProfile.lastNameAr || hostProfile.lastName}`
+        : "—"
+      : hostProfile
+        ? `${hostProfile.firstName} ${hostProfile.lastName}`
+        : "—";
 
     const hostDept = ar
-      ? (hostProfile?.departmentAr || hostProfile?.department || "—")
-      : (hostProfile?.department || "—");
+      ? hostProfile?.departmentAr || hostProfile?.department || "—"
+      : hostProfile?.department || "—";
 
     const hostJob = ar
-      ? (hostProfile?.jobTitleAr || hostProfile?.jobTitle || "—")
-      : (hostProfile?.jobTitle || "—");
+      ? hostProfile?.jobTitleAr || hostProfile?.jobTitle || "—"
+      : hostProfile?.jobTitle || "—";
 
     const roomText = [
       room?.buildingName,
-      room?.floorNumber != null ? (ar ? `الطابق ${room.floorNumber}` : `Floor ${room.floorNumber}`) : "",
-    ].filter(Boolean).join(" — ");
+      room?.floorNumber != null
+        ? ar
+          ? `الطابق ${room.floorNumber}`
+          : `Floor ${room.floorNumber}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" — ");
 
     const infoGridHtml = `
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; background: #fafbfc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px;">
@@ -860,17 +914,22 @@ export function useGuestHostingState() {
           <div style="font-size: 9pt; font-weight: 700; color: #0f2a44;">${escapeHtml(formatDate(hosting.expectedTo))}</div>
         </div>
       </div>
-      ${hosting.notes ? `
+      ${
+        hosting.notes
+          ? `
         <div style="margin-bottom: 14px; padding: 10px 14px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px; font-size: 8pt;">
           <strong style="color: #b45309;">${ar ? "ملاحظات الاستضافة:" : "Hosting Notes:"}</strong> ${escapeHtml(hosting.notes)}
         </div>
-      ` : ""}
+      `
+          : ""
+      }
     `;
 
     const compRows = (companions || []).map((c, i) => ({
       "#": i + 1,
       [ar ? "الاسم" : "Name"]: c.name || "—",
-      [ar ? "الفئة" : "Type"]: c.isChild === 1 ? (ar ? "طفل" : "Child") : (ar ? "بالغ" : "Adult"),
+      [ar ? "الفئة" : "Type"]:
+        c.isChild === 1 ? (ar ? "طفل" : "Child") : ar ? "بالغ" : "Adult",
       [ar ? "صلة القرابة" : "Relationship"]: c.relation || "—",
       [ar ? "رقم الهوية / الجواز" : "ID / Passport"]: c.idNumber || "—",
       [ar ? "نوع الوثيقة" : "Doc Type"]: c.documentType || "—",
@@ -879,26 +938,54 @@ export function useGuestHostingState() {
 
     await printLuxuryReport({
       activeTab: "hostings",
-      title: ar ? "ملف استضافة الضيوف والمرافقين المعتمد" : "Certified Guest & Companion Hosting Dossier",
+      title: ar
+        ? "ملف استضافة الضيوف والمرافقين المعتمد"
+        : "Certified Guest & Companion Hosting Dossier",
       language: ar ? "ar" : "en",
       properties,
       activePropertyId,
       settings,
       customSectionsHtml: infoGridHtml,
-      rows: compRows.length > 0 ? compRows : [{
-        "#": 1,
-        [ar ? "الاسم" : "Name"]: hosting.guestName || "—",
-        [ar ? "الفئة" : "Type"]: ar ? "الضيف الرئيسي" : "Primary Guest",
-        [ar ? "صلة القرابة" : "Relationship"]: hosting.relation || "—",
-        [ar ? "رقم الهوية / الجواز" : "ID / Passport"]: hosting.guestId || "—",
-        [ar ? "نوع الوثيقة" : "Doc Type"]: hosting.idType || "—",
-        [ar ? "العمر" : "Age"]: "—",
-      }],
+      rows:
+        compRows.length > 0
+          ? compRows
+          : [
+              {
+                "#": 1,
+                [ar ? "الاسم" : "Name"]: hosting.guestName || "—",
+                [ar ? "الفئة" : "Type"]: ar ? "الضيف الرئيسي" : "Primary Guest",
+                [ar ? "صلة القرابة" : "Relationship"]: hosting.relation || "—",
+                [ar ? "رقم الهوية / الجواز" : "ID / Passport"]:
+                  hosting.guestId || "—",
+                [ar ? "نوع الوثيقة" : "Doc Type"]: hosting.idType || "—",
+                [ar ? "العمر" : "Age"]: "—",
+              },
+            ],
       kpiCards: [
-        { label: "Total Guests", labelAr: "إجمالي الضيوف", value: hosting.guestsCount || (companions?.length || 0) + 1, color: "gold" },
-        { label: "Daily Rate", labelAr: "سعر الليلة", value: `${hosting.dailyRate || 0} EGP`, color: "blue" },
-        { label: "Total Fee", labelAr: "الإجمالي المستحق", value: `${hosting.totalAmount || 0} EGP`, color: "green" },
-        { label: "Status", labelAr: "حالة الطلب", value: hosting.status || (ar ? "معتمد" : "Approved"), color: "purple" },
+        {
+          label: "Total Guests",
+          labelAr: "إجمالي الضيوف",
+          value: hosting.guestsCount || (companions?.length || 0) + 1,
+          color: "gold",
+        },
+        {
+          label: "Daily Rate",
+          labelAr: "سعر الليلة",
+          value: `${hosting.dailyRate || 0} EGP`,
+          color: "blue",
+        },
+        {
+          label: "Total Fee",
+          labelAr: "الإجمالي المستحق",
+          value: `${hosting.totalAmount || 0} EGP`,
+          color: "green",
+        },
+        {
+          label: "Status",
+          labelAr: "حالة الطلب",
+          value: hosting.status || (ar ? "معتمد" : "Approved"),
+          color: "purple",
+        },
       ],
       orientation: "portrait",
     });

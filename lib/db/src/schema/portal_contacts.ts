@@ -1,23 +1,32 @@
-import { pgTable, text, serial, integer, timestamp, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  timestamp,
+  index,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const portalContactsTable = pgTable("portal_contacts", {
-  id: serial("id").primaryKey(),
-  propertyId: integer("property_id"),
-  nameAr: text("name_ar").notNull(),
-  nameEn: text("name_en").notNull(),
-  roleAr: text("role_ar"),
-  roleEn: text("role_en"),
-  email: text("email"),
-  phone: text("phone"),
-  extension: text("extension"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-}, (table) => [
-  index("idx_portal_contacts_property_id").on(table.propertyId),
-]);
+export const portalContactsTable = pgTable(
+  "portal_contacts",
+  {
+    id: serial("id").primaryKey(),
+    propertyId: integer("property_id"),
+    nameAr: text("name_ar").notNull(),
+    nameEn: text("name_en").notNull(),
+    roleAr: text("role_ar"),
+    roleEn: text("role_en"),
+    email: text("email"),
+    phone: text("phone"),
+    extension: text("extension"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("idx_portal_contacts_property_id").on(table.propertyId)],
+);
 
 export const insertPortalContactSchema = createInsertSchema(
   portalContactsTable,

@@ -77,9 +77,18 @@ export function BulkCheckoutDialog({
               {ar ? "سبب المغادرة الجماعية" : "Bulk Check-out Reason"}
               <span className="text-destructive font-bold">*</span>
             </Label>
-            <Select value={bulkCheckoutReason} onValueChange={setBulkCheckoutReason}>
+            <Select
+              value={bulkCheckoutReason}
+              onValueChange={setBulkCheckoutReason}
+            >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder={ar ? "اختر سبب المغادرة الجماعية (إلزامي)..." : "Select bulk reason (Mandatory)..."} />
+                <SelectValue
+                  placeholder={
+                    ar
+                      ? "اختر سبب المغادرة الجماعية (إلزامي)..."
+                      : "Select bulk reason (Mandatory)..."
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {CHECKOUT_REASONS.map((r) => (
@@ -91,9 +100,15 @@ export function BulkCheckoutDialog({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>{ar ? "ملاحظات خروج جماعي (اختياري)" : "Notes (Optional)"}</Label>
+            <Label>
+              {ar ? "ملاحظات خروج جماعي (اختياري)" : "Notes (Optional)"}
+            </Label>
             <Input
-              placeholder={ar ? "سبب أو تفاصيل المغادرة الجماعية..." : "Reason or details..."}
+              placeholder={
+                ar
+                  ? "سبب أو تفاصيل المغادرة الجماعية..."
+                  : "Reason or details..."
+              }
               value={bulkCheckoutNotes}
               onChange={(e) => setBulkCheckoutNotes(e.target.value)}
             />
@@ -116,11 +131,17 @@ export function BulkCheckoutDialog({
               className="gap-1.5"
             >
               {bulkCheckoutLoading ? (
-                ar ? "جاري الخروج..." : "Checking out..."
+                ar ? (
+                  "جاري الخروج..."
+                ) : (
+                  "Checking out..."
+                )
               ) : (
                 <>
                   <LogOut className="w-4 h-4" />
-                  {ar ? `تأكيد خروج (${selectedCount})` : `Confirm Checkout (${selectedCount})`}
+                  {ar
+                    ? `تأكيد خروج (${selectedCount})`
+                    : `Confirm Checkout (${selectedCount})`}
                 </>
               )}
             </Button>
