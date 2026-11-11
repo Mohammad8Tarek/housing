@@ -8,13 +8,11 @@ import {
   useCreateReservation,
   useDeleteReservation,
   useUpdateReservation,
-  useListRooms,
   useListBuildings,
   useListFloors,
   useListProperties,
   useListAssignments,
   useCreateAssignment,
-  useListProfiles,
   useGetSettings,
   getListReservationsQueryKey,
   getListRoomsQueryKey,
@@ -74,6 +72,7 @@ import { CancelReservationDialog } from "./components/CancelReservationDialog";
 import { DeleteReservationDialog } from "./components/DeleteReservationDialog";
 import { KeyPromptDialog } from "./components/KeyPromptDialog";
 import { CrossPropertyConfirmDialog } from "./components/CrossPropertyConfirmDialog";
+import { useAllRows } from "@/lib/use-all-rows";
 
 export default function ReservationsPage() {
   const { activePropertyId } = useProperty();
@@ -325,15 +324,10 @@ export default function ReservationsPage() {
     (Array.isArray(_resWrapper) ? _resWrapper : []);
   const paginationTotal = (_resWrapper as any)?.pagination?.total || 0;
 
-  const { data: _rData } = useListRooms(
-    { propertyId: currentPropId, limit: 1000 } as any,
-    {
-      query: {
-        queryKey: ["/api/rooms", currentPropId],
-        enabled: !!currentPropId,
-        staleTime: 30000,
-      } as any,
-    },
+  const { data: _rData } = useAllRows(
+    "/api/rooms",
+    { propertyId: currentPropId },
+    { enabled: !!currentPropId, staleTime: 30000 },
   );
   const rooms: any[] = Array.isArray(_rData)
     ? _rData
@@ -386,15 +380,10 @@ export default function ReservationsPage() {
     return map;
   }, [rooms]);
 
-  const { data: _profData } = useListProfiles(
-    { propertyId: currentPropId, limit: 1000 } as any,
-    {
-      query: {
-        queryKey: ["/api/profiles", currentPropId],
-        enabled: !!currentPropId,
-        staleTime: 60000,
-      } as any,
-    },
+  const { data: _profData } = useAllRows(
+    "/api/profiles",
+    { propertyId: currentPropId },
+    { enabled: !!currentPropId, staleTime: 60000 },
   );
   const profilesList =
     (_profData as any)?.profiles || (_profData as any)?.data || [];

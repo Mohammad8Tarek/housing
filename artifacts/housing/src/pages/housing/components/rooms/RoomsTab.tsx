@@ -40,6 +40,7 @@ import { statusNorm } from "../../utils";
 import { DataPagination } from "@/components/DataPagination";
 import { RoomsTable } from "./RoomsTable";
 import { RoomModals } from "./RoomModals";
+import { useAllRows } from "@/lib/use-all-rows";
 
 type Props = {
   propertyId: number;
@@ -146,10 +147,9 @@ export function RoomsTab({
   const rLoading = rLoadingQuery && rData.length === 0;
 
   // Fetch all rooms for reliable client-side duplicate room number check
-  const { data: _allRoomsRaw } = useListRooms({
+  const { data: _allRoomsRaw } = useAllRows("/api/rooms", {
     propertyId,
-    limit: 1000,
-  } as any);
+  });
   const allPropertyRooms = (_allRoomsRaw as any)?.data || rData;
 
   const openAddRoom = () => {

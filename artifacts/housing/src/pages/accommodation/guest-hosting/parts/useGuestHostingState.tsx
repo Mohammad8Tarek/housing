@@ -10,7 +10,6 @@ import {
   useDeleteHosting,
   useUpdateHosting,
   useListRooms,
-  useListProfiles,
   getListHostingsQueryKey,
   useGetSettings,
 } from "@workspace/api-client-react";
@@ -31,6 +30,7 @@ import {
   MAX_DOCUMENT_IMAGE_SIZE,
   ALLOWED_DOCUMENT_IMAGE_TYPES,
 } from "./GuestHostingPage.constants";
+import { useAllRows } from "@/lib/use-all-rows";
 
 export function useGuestHostingState() {
   const { activePropertyId, properties, setActivePropertyId } = useProperty();
@@ -190,14 +190,10 @@ export function useGuestHostingState() {
   const requestRooms: any[] = Array.isArray(_requestRoomsWrapper)
     ? _requestRoomsWrapper
     : ((_requestRoomsWrapper as any)?.data as any[]) || [];
-  const { data: _eDataWrapper } = useListProfiles(
-    { propertyId: numericPropertyId ?? undefined, limit: 1000 } as any,
-    {
-      query: {
-        queryKey: ["listProfiles", numericPropertyId],
-        enabled: !!numericPropertyId,
-      } as any,
-    },
+  const { data: _eDataWrapper } = useAllRows(
+    "/api/profiles",
+    { propertyId: numericPropertyId ?? undefined },
+    { enabled: !!numericPropertyId },
   );
   const profiles: any[] = Array.isArray(_eDataWrapper)
     ? _eDataWrapper

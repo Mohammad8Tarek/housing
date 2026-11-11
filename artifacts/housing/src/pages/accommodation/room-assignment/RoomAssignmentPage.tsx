@@ -107,15 +107,8 @@ export default function RoomAssignment() {
     Number(targetPropertyId) ||
     (typeof activePropertyId === "number" ? activePropertyId : 1);
 
-  const {
-    settings,
-    profilesList,
-    roomsQuery,
-    rooms,
-    buildings,
-    floors,
-    allAssignments,
-  } = useRoomAssignmentQueries({ activePropertyId, effectiveTargetPropId });
+  const { settings, profilesList, rooms, buildings, floors, allAssignments } =
+    useRoomAssignmentQueries({ activePropertyId, effectiveTargetPropId });
 
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
   const targetProp =
@@ -387,7 +380,9 @@ export default function RoomAssignment() {
           }),
         });
         queryClient.invalidateQueries({
-          queryKey: getListRoomsQueryKey(roomsQuery),
+          queryKey: getListRoomsQueryKey({
+            propertyId: effectiveTargetPropId,
+          }),
         });
         if (isCrossProperty && selectedProfile?.propertyId) {
           queryClient.invalidateQueries({

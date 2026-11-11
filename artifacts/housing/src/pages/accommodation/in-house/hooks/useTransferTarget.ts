@@ -1,12 +1,12 @@
 import { useMemo, useEffect } from "react";
 import {
-  useListRooms,
   useListBuildings,
   useListAssignments,
 } from "@workspace/api-client-react";
 import { useQuery } from "@tanstack/react-query";
 import { recommendBestRooms } from "@/lib/room-recommender";
 import { getProfileDisplayName } from "@/lib/profile-display-utils";
+import { useAllRows } from "@/lib/use-all-rows";
 
 type Params = {
   transferPropertyId: string;
@@ -47,14 +47,10 @@ export function useTransferTarget({
     transferPropertyId && transferPropertyId !== String(activePropertyId)
       ? Number(transferPropertyId)
       : numericPropertyId;
-  const { data: _targetRoomsWrapper } = useListRooms(
-    { propertyId: targetPropId, limit: 1000 } as any,
-    {
-      query: {
-        queryKey: ["listRooms", targetPropId],
-        enabled: !!targetPropId,
-      } as any,
-    },
+  const { data: _targetRoomsWrapper } = useAllRows(
+    "/api/rooms",
+    { propertyId: targetPropId },
+    { enabled: !!targetPropId },
   );
   const targetRooms: any[] = Array.isArray(_targetRoomsWrapper)
     ? _targetRoomsWrapper

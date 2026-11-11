@@ -4,8 +4,6 @@ import {
   useCreateMaintenance,
   useUpdateMaintenance,
   useDeleteMaintenance,
-  useListRooms,
-  useListProfiles,
   useListAssignments,
   getListMaintenanceQueryKey,
   listMaintenance,
@@ -47,6 +45,7 @@ import {
   exportTicketsExcel,
   exportSelectedTicketsExcel as exportSelectedTicketsExcelUtil,
 } from "./utils/ticket-export";
+import { useAllRows } from "@/lib/use-all-rows";
 
 // Newest report first, then highest id (same order as the API).
 function newestTicketFirst(a: any, b: any) {
@@ -317,19 +316,15 @@ export default function Tickets() {
   }, [propertyWorkers, form.category]);
 
   // Pre-load profiles for employee mapping and current user match
-  const { data: _eDataWrapper } = useListProfiles(
+  const { data: _eDataWrapper } = useAllRows(
+    "/api/profiles",
     {
       propertyId:
         activePropertyId && activePropertyId !== "all"
           ? activePropertyId
           : undefined,
-      limit: 1000,
-    } as any,
-    {
-      query: {
-        enabled: !!activePropertyId && activePropertyId !== "all",
-      } as any,
     },
+    { enabled: !!activePropertyId && activePropertyId !== "all" },
   );
   const profiles: any[] = Array.isArray(_eDataWrapper)
     ? _eDataWrapper
@@ -468,19 +463,15 @@ export default function Tickets() {
     limit: pageSize,
   };
 
-  const { data: _roomsWrapper } = useListRooms(
+  const { data: _roomsWrapper } = useAllRows(
+    "/api/rooms",
     {
       propertyId:
         activePropertyId && activePropertyId !== "all"
           ? activePropertyId
           : undefined,
-      limit: 1000,
-    } as any,
-    {
-      query: {
-        enabled: !!activePropertyId && activePropertyId !== "all",
-      } as any,
     },
+    { enabled: !!activePropertyId && activePropertyId !== "all" },
   );
   const rooms: any[] = Array.isArray(_roomsWrapper)
     ? _roomsWrapper
@@ -490,9 +481,10 @@ export default function Tickets() {
   const selectedModalPropId =
     parseInt(formPropertyId, 10) ||
     (activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
-  const { data: _modalRoomsWrapper } = useListRooms(
-    { propertyId: selectedModalPropId, limit: 1000 } as any,
-    { query: { enabled: !!selectedModalPropId } as any },
+  const { data: _modalRoomsWrapper } = useAllRows(
+    "/api/rooms",
+    { propertyId: selectedModalPropId },
+    { enabled: !!selectedModalPropId },
   );
   const modalRooms: any[] = Array.isArray(_modalRoomsWrapper)
     ? _modalRoomsWrapper

@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   useListAssignments,
-  useListRooms,
   useListBuildings,
   useListFloors,
   useListProfiles,
@@ -38,6 +37,7 @@ import { differenceInDays } from "date-fns";
 import { formatDate } from "@/lib/date-utils";
 import { Link } from "wouter";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
+import { useAllRows } from "@/lib/use-all-rows";
 
 interface ProfileProfilePopupProps {
   profileId: number | null;
@@ -96,9 +96,10 @@ export function ProfileProfilePopup({
     },
   );
 
-  const { data: _rData } = useListRooms(
-    { propertyId: effectivePropId, limit: 1000 } as any,
-    { query: { enabled: !!effectivePropId } as any },
+  const { data: _rData } = useAllRows(
+    "/api/rooms",
+    { propertyId: effectivePropId },
+    { enabled: !!effectivePropId },
   );
   const rooms: any[] = Array.isArray(_rData)
     ? _rData
