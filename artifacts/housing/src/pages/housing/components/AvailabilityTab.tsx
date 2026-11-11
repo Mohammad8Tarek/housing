@@ -25,8 +25,6 @@ type Props = {
   onSelectRoom: (room: any) => void;
 };
 
-
-
 export function AvailabilityTab({
   propertyId,
   buildings,
@@ -42,15 +40,19 @@ export function AvailabilityTab({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  const { data: _rDataWrapper, isLoading: rLoadingQuery, isFetching: rFetching } = useListRooms(
-    { 
-      propertyId, 
-      limit: pageSize, 
-      page: currentPage, 
+  const {
+    data: _rDataWrapper,
+    isLoading: rLoadingQuery,
+    isFetching: rFetching,
+  } = useListRooms(
+    {
+      propertyId,
+      limit: pageSize,
+      page: currentPage,
       search: debouncedSearch,
-      status: statusFilter === "all" ? undefined : statusFilter
+      status: statusFilter === "all" ? undefined : statusFilter,
     } as any,
-    { query: { keepPreviousData: true } as any }
+    { query: { keepPreviousData: true } as any },
   );
 
   const rData = (_rDataWrapper as any)?.data || [];
@@ -80,19 +82,29 @@ export function AvailabilityTab({
             <SelectItem value="room_and_bed_vacant">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
-                <span>{ar ? "روم آند بد فيكنت (الكل)" : "Room & Bed Vacant"}</span>
+                <span>
+                  {ar ? "روم آند بد فيكنت (الكل)" : "Room & Bed Vacant"}
+                </span>
               </div>
             </SelectItem>
             <SelectItem value="room_vacant">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                <span>{ar ? "روم فيكنت (غرف فارغة بالكامل)" : "Room Vacant (Only Full Rooms)"}</span>
+                <span>
+                  {ar
+                    ? "روم فيكنت (غرف فارغة بالكامل)"
+                    : "Room Vacant (Only Full Rooms)"}
+                </span>
               </div>
             </SelectItem>
             <SelectItem value="bed_vacant">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-teal-500 shrink-0" />
-                <span>{ar ? "بد فيكنت (أسِرّة شاغرة)" : "Bed Vacant (Only Vacant Beds)"}</span>
+                <span>
+                  {ar
+                    ? "بد فيكنت (أسِرّة شاغرة)"
+                    : "Bed Vacant (Only Vacant Beds)"}
+                </span>
               </div>
             </SelectItem>
             <SelectItem value="dirty">

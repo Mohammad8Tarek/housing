@@ -1,8 +1,20 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useListProperties } from "@workspace/api-client-react";
 import { useAuth } from "./AuthContext";
 import { usePermission } from "@/hooks/use-permission";
-import { type PropertyInfo, getPropertySlug, findPropertyBySlug, extractPropertySlugFromPath, resolveInitialPropertyId } from "@/lib/property-slug";
+import {
+  type PropertyInfo,
+  getPropertySlug,
+  findPropertyBySlug,
+  extractPropertySlugFromPath,
+  resolveInitialPropertyId,
+} from "@/lib/property-slug";
 
 export type Property = PropertyInfo;
 
@@ -46,8 +58,10 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     );
 
   // Selecting 'all' properties or browsing properties is allowed for Super Admin or users with properties.view permission
-  const canSeeAllProperties = isSuperAdmin || canView("properties") || can("properties", "view");
-  const canSelectAllProperties = isSuperAdmin || canView("properties") || can("properties", "view");
+  const canSeeAllProperties =
+    isSuperAdmin || canView("properties") || can("properties", "view");
+  const canSelectAllProperties =
+    isSuperAdmin || canView("properties") || can("properties", "view");
 
   const { data: _pData } = useListProperties({
     query: {
@@ -84,7 +98,9 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         return initialFromSlug;
       }
 
-      const urlProp = new URLSearchParams(window.location.search).get("property");
+      const urlProp = new URLSearchParams(window.location.search).get(
+        "property",
+      );
       if (urlProp === "all") return isSuperAdmin ? "all" : undefined;
       if (urlProp && !isNaN(Number(urlProp))) return Number(urlProp);
     }
@@ -118,7 +134,9 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
           // If non-super admin attempted to enter 'all', immediately force fallback to their authorized property
           const fallback =
             userPropertyIds[0] ||
-            (allProperties.length > 0 ? (allProperties[0] as Property).id : undefined);
+            (allProperties.length > 0
+              ? (allProperties[0] as Property).id
+              : undefined);
           if (fallback && activePropertyId !== fallback) {
             setActivePropertyIdState(fallback);
             localStorage.setItem("activePropertyId", String(fallback));
@@ -176,14 +194,21 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
         (activePropertyId === "all" ||
           !userPropertyIds.includes(activePropertyId as number))
       ) {
-        const fallback = userPropertyIds[0] || (properties[0]?.id);
+        const fallback = userPropertyIds[0] || properties[0]?.id;
         if (fallback) {
           setActivePropertyIdState(fallback);
           localStorage.setItem("activePropertyId", String(fallback));
         }
       }
     }
-  }, [user, canSeeAllProperties, isSuperAdmin, activePropertyId, userPropertyIds, allProperties]);
+  }, [
+    user,
+    canSeeAllProperties,
+    isSuperAdmin,
+    activePropertyId,
+    userPropertyIds,
+    allProperties,
+  ]);
 
   const setActivePropertyId = (id: number | "all") => {
     if (id === "all") {
@@ -201,7 +226,9 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
 
   const effectiveId =
     activePropertyId === "all"
-      ? (isSuperAdmin ? "all" : (userPropertyIds[0] || properties[0]?.id))
+      ? isSuperAdmin
+        ? "all"
+        : userPropertyIds[0] || properties[0]?.id
       : activePropertyId ||
         user?.propertyId ||
         (properties.length > 0 ? properties[0].id : undefined);
@@ -214,9 +241,11 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
   const propertySlug =
     effectiveId === "all"
       ? "all"
-      : (activeProperty
-          ? getPropertySlug(activeProperty)
-          : (properties.length > 0 ? getPropertySlug(properties[0]) : "taal_housing"));
+      : activeProperty
+        ? getPropertySlug(activeProperty)
+        : properties.length > 0
+          ? getPropertySlug(properties[0])
+          : "taal_housing";
 
   // Clean any old ?property= query param from the URL to keep paths clean
   useEffect(() => {
@@ -225,7 +254,11 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
       const url = new URL(window.location.href);
       if (url.searchParams.has("property")) {
         url.searchParams.delete("property");
-        window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+        window.history.replaceState(
+          {},
+          "",
+          url.pathname + url.search + url.hash,
+        );
       }
     } catch {}
   }, [effectiveId]);
@@ -234,7 +267,9 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handlePopState = () => {
       const pathSlug = extractPropertySlugFromPath();
-      const querySlug = new URLSearchParams(window.location.search).get("property");
+      const querySlug = new URLSearchParams(window.location.search).get(
+        "property",
+      );
       const targetSlug = pathSlug || querySlug;
       if (!targetSlug || allProperties.length === 0) return;
       const clean = targetSlug.trim().toLowerCase();

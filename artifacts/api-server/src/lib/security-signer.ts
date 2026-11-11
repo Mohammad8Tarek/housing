@@ -7,7 +7,10 @@ const SIGNATURE_TOLERANCE_MS = 5 * 60 * 1000; // 5 minutes replay protection
 /**
  * Deterministic cryptographic checksum compatible across Node and Browser environments
  */
-export function computeSecurityChecksum(data: string, secret: string = SECURITY_SECRET): string {
+export function computeSecurityChecksum(
+  data: string,
+  secret: string = SECURITY_SECRET,
+): string {
   let h1 = 0x811c9dc5;
   let h2 = 0x9e3779b9;
   const combined = `${data}:${secret}`;
@@ -81,7 +84,10 @@ export function decodeSecureToken(
   if (isNaN(numericId) || numericId <= 0) return null;
 
   const expectedData = `${type}:${numericId}`;
-  const expectedChecksum = computeSecurityChecksum(expectedData, SECURITY_SECRET);
+  const expectedChecksum = computeSecurityChecksum(
+    expectedData,
+    SECURITY_SECRET,
+  );
 
   if (checksum !== expectedChecksum) {
     return null;

@@ -8,7 +8,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { ALL_COUNTRIES, POPULAR_COUNTRIES, Country, findCountry } from "@/lib/countries";
+import {
+  ALL_COUNTRIES,
+  POPULAR_COUNTRIES,
+  Country,
+  findCountry,
+} from "@/lib/countries";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
@@ -48,7 +53,7 @@ export function NationalitySelect({
   // Optional custom lookup values defined in Settings
   const { data: dbNationalities = [] } = useLookupValues(
     propertyId || 0,
-    LOOKUP_CATEGORIES.NATIONALITY
+    LOOKUP_CATEGORIES.NATIONALITY,
   );
 
   const selectedCountry = React.useMemo(() => {
@@ -82,7 +87,7 @@ export function NationalitySelect({
         c.code.toLowerCase() === normSearchEn
       );
     },
-    [cleanSearch, normSearchAr, normSearchEn]
+    [cleanSearch, normSearchAr, normSearchEn],
   );
 
   // Filtered countries
@@ -140,7 +145,7 @@ export function NationalitySelect({
           className={cn(
             "w-full justify-between h-9 px-3 font-normal text-start bg-background hover:bg-muted/50 border-input",
             !value && "text-muted-foreground",
-            className
+            className,
           )}
         >
           <span className="truncate flex items-center gap-1.5 flex-1 min-w-0">
@@ -149,7 +154,9 @@ export function NationalitySelect({
             ) : (
               <>
                 <Globe className="w-3.5 h-3.5 opacity-50 shrink-0" />
-                <span className="truncate">{placeholder || defaultPlaceholder}</span>
+                <span className="truncate">
+                  {placeholder || defaultPlaceholder}
+                </span>
               </>
             )}
           </span>
@@ -212,14 +219,16 @@ export function NationalitySelect({
                     onClick={() => handleSelect(n.value)}
                     className={cn(
                       "w-full flex items-center justify-between px-2.5 py-1.5 rounded text-start hover:bg-accent hover:text-accent-foreground transition-colors",
-                      isSelected && "bg-primary/10 text-primary font-medium"
+                      isSelected && "bg-primary/10 text-primary font-medium",
                     )}
                   >
                     <span className="flex items-center gap-2 truncate">
                       <span>🏷️</span>
                       <span className="truncate">{n.value}</span>
                     </span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                    {isSelected && (
+                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                    )}
                   </button>
                 );
               })}
@@ -241,7 +250,7 @@ export function NationalitySelect({
                     onClick={() => handleSelect(c.value)}
                     className={cn(
                       "w-full flex items-center justify-between px-2.5 py-1.5 rounded text-start hover:bg-accent hover:text-accent-foreground transition-colors",
-                      isSelected && "bg-primary/10 text-primary font-medium"
+                      isSelected && "bg-primary/10 text-primary font-medium",
                     )}
                   >
                     <span className="flex items-center gap-2 truncate">
@@ -250,7 +259,9 @@ export function NationalitySelect({
                         {isAr ? c.demonymAr : c.demonymEn}
                       </span>
                     </span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                    {isSelected && (
+                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                    )}
                   </button>
                 );
               })}
@@ -274,7 +285,7 @@ export function NationalitySelect({
                     onClick={() => handleSelect(c.value)}
                     className={cn(
                       "w-full flex items-center justify-between px-2.5 py-1.5 rounded text-start hover:bg-accent hover:text-accent-foreground transition-colors",
-                      isSelected && "bg-primary/10 text-primary font-medium"
+                      isSelected && "bg-primary/10 text-primary font-medium",
                     )}
                   >
                     <span className="flex items-center gap-2 truncate">
@@ -283,7 +294,9 @@ export function NationalitySelect({
                         {isAr ? c.demonymAr : c.demonymEn}
                       </span>
                     </span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                    {isSelected && (
+                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                    )}
                   </button>
                 );
               })
@@ -295,20 +308,26 @@ export function NationalitySelect({
           </div>
 
           {/* Allow custom entry if user typed something not matched */}
-          {allowCustom && cleanSearch && !filteredAll.some((c) => c.value.toLowerCase() === cleanSearch.toLowerCase()) && (
-            <div className="p-1 pt-1.5">
-              <button
-                type="button"
-                onClick={() => handleSelect(cleanSearch)}
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded text-start bg-primary/5 hover:bg-primary/10 text-primary font-medium transition-colors"
-              >
-                <span>➕</span>
-                <span className="truncate">
-                  {isAr ? `استخدام "${cleanSearch}" كجنسية مخصصة` : `Use "${cleanSearch}" as custom nationality`}
-                </span>
-              </button>
-            </div>
-          )}
+          {allowCustom &&
+            cleanSearch &&
+            !filteredAll.some(
+              (c) => c.value.toLowerCase() === cleanSearch.toLowerCase(),
+            ) && (
+              <div className="p-1 pt-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleSelect(cleanSearch)}
+                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded text-start bg-primary/5 hover:bg-primary/10 text-primary font-medium transition-colors"
+                >
+                  <span>➕</span>
+                  <span className="truncate">
+                    {isAr
+                      ? `استخدام "${cleanSearch}" كجنسية مخصصة`
+                      : `Use "${cleanSearch}" as custom nationality`}
+                  </span>
+                </button>
+              </div>
+            )}
         </div>
       </PopoverContent>
     </Popover>

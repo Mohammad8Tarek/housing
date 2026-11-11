@@ -1,5 +1,11 @@
 import { Router } from "express";
-import { db, propertiesTable, usersTable, pool, invalidateSchemaCache } from "@workspace/db";
+import {
+  db,
+  propertiesTable,
+  usersTable,
+  pool,
+  invalidateSchemaCache,
+} from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
@@ -13,7 +19,11 @@ import {
   UpdatePropertyResponse,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
-import { requirePermission, requireAuth, hasPermission } from "../middlewares/permissions.js";
+import {
+  requirePermission,
+  requireAuth,
+  hasPermission,
+} from "../middlewares/permissions.js";
 import { su } from "../lib/request-utils.js";
 import { provisionTenantSchema } from "../lib/migrations/index.js";
 import { validate } from "../middlewares/validate.js";
@@ -73,7 +83,8 @@ async function assignExistingUsersToProperty(
   userIdsOrUsernames: (number | string)[],
   propertyId: number,
 ): Promise<string[]> {
-  if (!Array.isArray(userIdsOrUsernames) || userIdsOrUsernames.length === 0) return [];
+  if (!Array.isArray(userIdsOrUsernames) || userIdsOrUsernames.length === 0)
+    return [];
   const assignedUsernames: string[] = [];
 
   for (const item of userIdsOrUsernames) {
@@ -97,7 +108,9 @@ async function assignExistingUsersToProperty(
 
       if (existingUser) {
         const curIds = (existingUser.propertyIds || []).map(Number);
-        const newIds = curIds.includes(propertyId) ? curIds : [...curIds, propertyId];
+        const newIds = curIds.includes(propertyId)
+          ? curIds
+          : [...curIds, propertyId];
         await db
           .update(usersTable)
           .set({
@@ -109,7 +122,10 @@ async function assignExistingUsersToProperty(
         assignedUsernames.push(existingUser.username);
       }
     } catch (err: any) {
-      console.error(`[Properties] Error assigning user ${item} to property ${propertyId}:`, err);
+      console.error(
+        `[Properties] Error assigning user ${item} to property ${propertyId}:`,
+        err,
+      );
     }
   }
 
@@ -159,7 +175,9 @@ router.post(
 
       // Normalize code server-side (frontend sends uppercase, but the API
       // must not depend on that — UNIQUE is case-sensitive in Postgres).
-      const normalizedCode = String(propData.code ?? "").trim().toUpperCase();
+      const normalizedCode = String(propData.code ?? "")
+        .trim()
+        .toUpperCase();
       if (!normalizedCode) {
         res.status(400).json({ error: "Property code is required" });
         return;
@@ -197,7 +215,8 @@ router.post(
       // CREATE SCHEMA IF NOT EXISTS + per-table IF NOT EXISTS.)
       // eslint-disable-next-line no-await-in-loop
       for (let attempt = 0; attempt < 100; attempt++) {
-        const candidate = attempt === 0 ? schemaName : `${schemaName}_${attempt + 1}`;
+        const candidate =
+          attempt === 0 ? schemaName : `${schemaName}_${attempt + 1}`;
         const [schemaClash] = await db
           .select({ id: propertiesTable.id })
           .from(propertiesTable)
@@ -232,7 +251,8 @@ router.post(
           .where(eq(propertiesTable.id, property.id))
           .catch(() => {});
         res.status(500).json({
-          error: "Failed to provision property storage. Property was not created.",
+          error:
+            "Failed to provision property storage. Property was not created.",
         });
         return;
       }
@@ -243,21 +263,32 @@ router.post(
         try {
           await ensurePropertyAdmin(adminUsername, adminPassword, property.id);
         } catch (userErr: any) {
-          console.error("[Properties] Error setting up admin user:", userErr?.message || userErr);
+          console.error(
+            "[Properties] Error setting up admin user:",
+            userErr?.message || userErr,
+          );
         }
       }
 
       // Assign existing user(s) to this new property (without needing password)
-      const rawAssigned = (parsed.data as any)?.assignedUserIds ?? req.body?.assignedUserIds ?? req.body?.assignedUserId;
+      const rawAssigned =
+        (parsed.data as any)?.assignedUserIds ??
+        req.body?.assignedUserIds ??
+        req.body?.assignedUserId;
       const assignedUserIds: (number | string)[] = Array.isArray(rawAssigned)
         ? rawAssigned
-        : rawAssigned !== undefined && rawAssigned !== null && rawAssigned !== ""
-        ? [rawAssigned]
-        : [];
+        : rawAssigned !== undefined &&
+            rawAssigned !== null &&
+            rawAssigned !== ""
+          ? [rawAssigned]
+          : [];
 
       if (assignedUserIds.length > 0) {
         try {
-          const assignedNames = await assignExistingUsersToProperty(assignedUserIds, property.id);
+          const assignedNames = await assignExistingUsersToProperty(
+            assignedUserIds,
+            property.id,
+          );
           if (assignedNames.length > 0) {
             await logActivity({
               req,
@@ -270,7 +301,10 @@ router.post(
             });
           }
         } catch (userErr: any) {
-          console.error("[Properties] Error assigning existing users:", userErr?.message || userErr);
+          console.error(
+            "[Properties] Error assigning existing users:",
+            userErr?.message || userErr,
+          );
         }
       }
 
@@ -340,46 +374,52 @@ router.post(
       res.status(201).json(GetPropertyResponse.parse(sp));
     } catch (err: any) {
       console.error("[POST /properties] error:", err?.message ?? err);
-      res.status(500).json({ error: err?.message || "Failed to create property" });
+      res
+        .status(500)
+        .json({ error: err?.message || "Failed to create property" });
     }
   },
 );
 
-router.get("/properties/:id", requireAuth, validate({ params: IdParams }),
+router.get(
+  "/properties/:id",
+  requireAuth,
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
-  const params = GetPropertyParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
+    const params = GetPropertyParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
 
-  const [property] = await db
-    .select()
-    .from(propertiesTable)
-    .where(eq(propertiesTable.id, params.data.id));
-  if (!property) {
-    res.status(404).json({ error: "Property not found" });
-    return;
-  }
-  const authUser = (req as any).authUser;
-  if (
-    !authUser?.isSystemAdmin &&
-    !(authUser?.propertyIds ?? []).includes(property.id)
-  ) {
-    res.status(403).json({ error: "Access denied to this property" });
-    return;
-  }
+    const [property] = await db
+      .select()
+      .from(propertiesTable)
+      .where(eq(propertiesTable.id, params.data.id));
+    if (!property) {
+      res.status(404).json({ error: "Property not found" });
+      return;
+    }
+    const authUser = (req as any).authUser;
+    if (
+      !authUser?.isSystemAdmin &&
+      !(authUser?.propertyIds ?? []).includes(property.id)
+    ) {
+      res.status(403).json({ error: "Access denied to this property" });
+      return;
+    }
 
-  const s = {
-    ...property,
-    createdAt:
-      property.createdAt instanceof Date &&
-      typeof property.createdAt.toISOString === "function"
-        ? property.createdAt.toISOString()
-        : property.createdAt,
-  };
-  res.json(GetPropertyResponse.parse(s));
-});
+    const s = {
+      ...property,
+      createdAt:
+        property.createdAt instanceof Date &&
+        typeof property.createdAt.toISOString === "function"
+          ? property.createdAt.toISOString()
+          : property.createdAt,
+    };
+    res.json(GetPropertyResponse.parse(s));
+  },
+);
 
 router.patch(
   "/properties/:id",
@@ -400,11 +440,14 @@ router.patch(
 
     const { adminUsername, adminPassword, ...propData } = parsed.data as any;
 
-    const rawCode = propData.code !== undefined ? propData.code : (req.body as any)?.code;
+    const rawCode =
+      propData.code !== undefined ? propData.code : (req.body as any)?.code;
 
     // Same duplicate-code guard as create (excluding this property itself).
     if (rawCode !== undefined) {
-      const normalizedCode = String(rawCode ?? "").trim().toUpperCase();
+      const normalizedCode = String(rawCode ?? "")
+        .trim()
+        .toUpperCase();
       if (!normalizedCode) {
         res.status(400).json({ error: "Property code is required" });
         return;
@@ -442,21 +485,30 @@ router.patch(
       try {
         await ensurePropertyAdmin(adminUsername, adminPassword, params.data.id);
       } catch (userErr: any) {
-        console.error("[Properties] Error setting up admin user on update:", userErr?.message || userErr);
+        console.error(
+          "[Properties] Error setting up admin user on update:",
+          userErr?.message || userErr,
+        );
       }
     }
 
     // Assign existing user(s) to this property on update
-    const rawAssigned = (parsed.data as any)?.assignedUserIds ?? req.body?.assignedUserIds ?? req.body?.assignedUserId;
+    const rawAssigned =
+      (parsed.data as any)?.assignedUserIds ??
+      req.body?.assignedUserIds ??
+      req.body?.assignedUserId;
     const assignedUserIds: (number | string)[] = Array.isArray(rawAssigned)
       ? rawAssigned
       : rawAssigned !== undefined && rawAssigned !== null && rawAssigned !== ""
-      ? [rawAssigned]
-      : [];
+        ? [rawAssigned]
+        : [];
 
     if (assignedUserIds.length > 0) {
       try {
-        const assignedNames = await assignExistingUsersToProperty(assignedUserIds, params.data.id);
+        const assignedNames = await assignExistingUsersToProperty(
+          assignedUserIds,
+          params.data.id,
+        );
         if (assignedNames.length > 0) {
           await logActivity({
             req,
@@ -469,7 +521,10 @@ router.patch(
           });
         }
       } catch (userErr: any) {
-        console.error("[Properties] Error assigning existing users on update:", userErr?.message || userErr);
+        console.error(
+          "[Properties] Error assigning existing users on update:",
+          userErr?.message || userErr,
+        );
       }
     }
 
@@ -497,26 +552,61 @@ router.patch(
             housing_manager_2_email = COALESCE($16, housing_manager_2_email)
         `,
           [
-            propData.hrContact1Name !== undefined ? propData.hrContact1Name : null,
-            propData.hrContact1Title !== undefined ? propData.hrContact1Title : null,
-            propData.hrContact1Phone !== undefined ? propData.hrContact1Phone : null,
-            propData.hrContact1Email !== undefined ? propData.hrContact1Email : null,
-            propData.hrContact2Name !== undefined ? propData.hrContact2Name : null,
-            propData.hrContact2Title !== undefined ? propData.hrContact2Title : null,
-            propData.hrContact2Phone !== undefined ? propData.hrContact2Phone : null,
-            propData.hrContact2Email !== undefined ? propData.hrContact2Email : null,
-            propData.housingManager1Name !== undefined ? propData.housingManager1Name : null,
-            propData.housingManager1Title !== undefined ? propData.housingManager1Title : null,
-            propData.housingManager1Phone !== undefined ? propData.housingManager1Phone : null,
-            propData.housingManager1Email !== undefined ? propData.housingManager1Email : null,
-            propData.housingManager2Name !== undefined ? propData.housingManager2Name : null,
-            propData.housingManager2Title !== undefined ? propData.housingManager2Title : null,
-            propData.housingManager2Phone !== undefined ? propData.housingManager2Phone : null,
-            propData.housingManager2Email !== undefined ? propData.housingManager2Email : null,
+            propData.hrContact1Name !== undefined
+              ? propData.hrContact1Name
+              : null,
+            propData.hrContact1Title !== undefined
+              ? propData.hrContact1Title
+              : null,
+            propData.hrContact1Phone !== undefined
+              ? propData.hrContact1Phone
+              : null,
+            propData.hrContact1Email !== undefined
+              ? propData.hrContact1Email
+              : null,
+            propData.hrContact2Name !== undefined
+              ? propData.hrContact2Name
+              : null,
+            propData.hrContact2Title !== undefined
+              ? propData.hrContact2Title
+              : null,
+            propData.hrContact2Phone !== undefined
+              ? propData.hrContact2Phone
+              : null,
+            propData.hrContact2Email !== undefined
+              ? propData.hrContact2Email
+              : null,
+            propData.housingManager1Name !== undefined
+              ? propData.housingManager1Name
+              : null,
+            propData.housingManager1Title !== undefined
+              ? propData.housingManager1Title
+              : null,
+            propData.housingManager1Phone !== undefined
+              ? propData.housingManager1Phone
+              : null,
+            propData.housingManager1Email !== undefined
+              ? propData.housingManager1Email
+              : null,
+            propData.housingManager2Name !== undefined
+              ? propData.housingManager2Name
+              : null,
+            propData.housingManager2Title !== undefined
+              ? propData.housingManager2Title
+              : null,
+            propData.housingManager2Phone !== undefined
+              ? propData.housingManager2Phone
+              : null,
+            propData.housingManager2Email !== undefined
+              ? propData.housingManager2Email
+              : null,
           ],
         );
       } catch (e: any) {
-        console.warn("[Properties] Sync to tenant settings skipped:", e?.message || e);
+        console.warn(
+          "[Properties] Sync to tenant settings skipped:",
+          e?.message || e,
+        );
       }
     }
 

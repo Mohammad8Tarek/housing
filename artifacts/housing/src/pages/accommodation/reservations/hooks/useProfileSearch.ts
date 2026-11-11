@@ -8,14 +8,21 @@ interface UseProfileSearchArgs {
 }
 
 /** Debounced existing-profile search (cross-property aware) used by the wizard. */
-export function useProfileSearch({ activePropertyId, onProfileSelected }: UseProfileSearchArgs) {
-  const [selectedProfile, setSelectedProfile] = useState<ProfileResult | null>(null);
+export function useProfileSearch({
+  activePropertyId,
+  onProfileSelected,
+}: UseProfileSearchArgs) {
+  const [selectedProfile, setSelectedProfile] = useState<ProfileResult | null>(
+    null,
+  );
   const [empSearch, setEmpSearch] = useState("");
   const [empResults, setEmpResults] = useState<ProfileResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchPropertyId, setSearchPropertyId] = useState<string>(
-    activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all"
+    activePropertyId && activePropertyId !== "all"
+      ? String(activePropertyId)
+      : "all",
   );
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,9 +45,14 @@ export function useProfileSearch({ activePropertyId, onProfileSelected }: UsePro
         const effectivePropId =
           searchPropertyId && searchPropertyId !== "all"
             ? searchPropertyId
-            : (activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "");
+            : activePropertyId && activePropertyId !== "all"
+              ? String(activePropertyId)
+              : "";
         const pp = effectivePropId ? `&propertyId=${effectivePropId}` : "";
-        const resp = await fetch(`/api/profiles/search?q=${encodeURIComponent(empSearch.trim())}${pp}`, { credentials: "include" });
+        const resp = await fetch(
+          `/api/profiles/search?q=${encodeURIComponent(empSearch.trim())}${pp}`,
+          { credentials: "include" },
+        );
         setEmpResults(await resp.json());
         setShowDropdown(true);
       } catch {
@@ -53,7 +65,8 @@ export function useProfileSearch({ activePropertyId, onProfileSelected }: UsePro
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowDropdown(false);
+      if (searchRef.current && !searchRef.current.contains(e.target as Node))
+        setShowDropdown(false);
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
@@ -73,11 +86,17 @@ export function useProfileSearch({ activePropertyId, onProfileSelected }: UsePro
   };
 
   return {
-    selectedProfile, setSelectedProfile,
-    empSearch, setEmpSearch,
-    empResults, isSearching, showDropdown,
-    searchPropertyId, setSearchPropertyId,
+    selectedProfile,
+    setSelectedProfile,
+    empSearch,
+    setEmpSearch,
+    empResults,
+    isSearching,
+    showDropdown,
+    searchPropertyId,
+    setSearchPropertyId,
     searchRef,
-    selectProfile, clearProfile,
+    selectProfile,
+    clearProfile,
   };
 }

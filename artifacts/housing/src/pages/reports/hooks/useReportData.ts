@@ -17,8 +17,15 @@ import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 // "currentAssignments" = stays in progress only (bounded by bed capacity);
 // "assignments" = full history, which grows forever.
 type HeavyList =
-  | "profiles" | "assignments" | "currentAssignments" | "reservations" | "maintenance"
-  | "hostings" | "equipmentInventory" | "gateLogs" | "vacations";
+  | "profiles"
+  | "assignments"
+  | "currentAssignments"
+  | "reservations"
+  | "maintenance"
+  | "hostings"
+  | "equipmentInventory"
+  | "gateLogs"
+  | "vacations";
 const TAB_LISTS: Record<string, HeavyList[]> = {
   analytics: [], // computed by the API (useServerAnalytics)
   manager_flash: [], // computed by the API (ManagerFlashTab)
@@ -54,49 +61,121 @@ export function useReportData(
   const { data: settings } = useGetSettings(
     { propertyId: propId },
     // Same cache entry as AppLayout (default key), so settings load once.
-    { query: { queryKey: getGetSettingsQueryKey({ propertyId: propId }), enabled: !!propId } },
+    {
+      query: {
+        queryKey: getGetSettingsQueryKey({ propertyId: propId }),
+        enabled: !!propId,
+      },
+    },
   );
 
   // Every list is loaded completely (all pages), so reports never drop rows
   // once a property grows past the server's per-request limit.
   const needs = new Set<string>(TAB_LISTS[activeTab] ?? []);
-  const useAll = (key: string, path: string, pageSize: number, extra: Record<string, string> = {}, need?: HeavyList) =>
+  const useAll = (
+    key: string,
+    path: string,
+    pageSize: number,
+    extra: Record<string, string> = {},
+    need?: HeavyList,
+  ) =>
     useQuery({
       queryKey: [key, propId, "report-all", extra],
-      queryFn: () => fetchAllPages<any>(path, { propertyId: propId, ...extra }, pageSize),
+      queryFn: () =>
+        fetchAllPages<any>(path, { propertyId: propId, ...extra }, pageSize),
       enabled: !!propId && (!need || needs.has(need)),
     });
   // Endpoints that used plain fetch before and treat failures as "no rows".
-  const useAllOrEmpty = (key: string, path: string, pageSize: number, need: HeavyList) =>
+  const useAllOrEmpty = (
+    key: string,
+    path: string,
+    pageSize: number,
+    need: HeavyList,
+  ) =>
     useQuery({
       queryKey: [key, propId, "report-all"],
-      queryFn: () => fetchAllPages<any>(path, { propertyId: propId }, pageSize).catch(() => []),
+      queryFn: () =>
+        fetchAllPages<any>(path, { propertyId: propId }, pageSize).catch(
+          () => [],
+        ),
       enabled: !!propId && needs.has(need),
     });
 
   const { data: buildings = [] } = useAll("buildings", "/api/buildings", 1000);
   const { data: floors = [] } = useAll("floors", "/api/floors", 5000);
-  const { data: rooms = [], isLoading: roomLoad } = useAll("rooms", "/api/rooms", 5000);
-  const { data: profiles = [], isLoading: empLoad } = useAll("profiles", "/api/profiles", 5000, {}, "profiles");
-  const { data: history, isLoading: histLoad } = useAll("assignments", "/api/assignments", 5000, { status: "ALL" }, "assignments");
+  const { data: rooms = [], isLoading: roomLoad } = useAll(
+    "rooms",
+    "/api/rooms",
+    5000,
+  );
+  const { data: profiles = [], isLoading: empLoad } = useAll(
+    "profiles",
+    "/api/profiles",
+    5000,
+    {},
+    "profiles",
+  );
+  const { data: history, isLoading: histLoad } = useAll(
+    "assignments",
+    "/api/assignments",
+    5000,
+    { status: "ALL" },
+    "assignments",
+  );
   // Same rows and order (id desc) as filtering the full history.
   const { data: current, isLoading: curLoad } = useQuery({
     queryKey: ["assignments", propId, "report-current"],
     queryFn: async () => {
       const lists = await Promise.all(
-        CURRENT_STATUSES.map((status) => fetchAllPages<any>("/api/assignments", { propertyId: propId, status }, 5000)),
+        CURRENT_STATUSES.map((status) =>
+          fetchAllPages<any>(
+            "/api/assignments",
+            { propertyId: propId, status },
+            5000,
+          ),
+        ),
       );
       return lists.flat().sort((a: any, b: any) => Number(b.id) - Number(a.id));
     },
-    enabled: !!propId && needs.has("currentAssignments") && !needs.has("assignments"),
+    enabled:
+      !!propId && needs.has("currentAssignments") && !needs.has("assignments"),
   });
-  const assignments: any[] = (needs.has("assignments") ? history : current) ?? EMPTY_ROWS;
+  const assignments: any[] =
+    (needs.has("assignments") ? history : current) ?? EMPTY_ROWS;
   const assLoad = histLoad || curLoad;
-  const { data: reservations = [], isLoading: resLoad } = useAll("reservations", "/api/reservations", 5000, {}, "reservations");
-  const { data: maintenance = [], isLoading: mntLoad } = useAll("maintenance", "/api/maintenance", 5000, {}, "maintenance");
-  const { data: hostings = [], isLoading: hostLoad } = useAll("hostings", "/api/hostings", 5000, {}, "hostings");
-  const { data: equipmentInventory = [], isLoading: invLoad } = useAllOrEmpty("room-inventory", "/api/room-inventory", 5000, "equipmentInventory");
-  const { data: gateLogs = [], isLoading: gateLoad } = useAllOrEmpty("gate-logs", "/api/gate/logs", 2000, "gateLogs");
+  const { data: reservations = [], isLoading: resLoad } = useAll(
+    "reservations",
+    "/api/reservations",
+    5000,
+    {},
+    "reservations",
+  );
+  const { data: maintenance = [], isLoading: mntLoad } = useAll(
+    "maintenance",
+    "/api/maintenance",
+    5000,
+    {},
+    "maintenance",
+  );
+  const { data: hostings = [], isLoading: hostLoad } = useAll(
+    "hostings",
+    "/api/hostings",
+    5000,
+    {},
+    "hostings",
+  );
+  const { data: equipmentInventory = [], isLoading: invLoad } = useAllOrEmpty(
+    "room-inventory",
+    "/api/room-inventory",
+    5000,
+    "equipmentInventory",
+  );
+  const { data: gateLogs = [], isLoading: gateLoad } = useAllOrEmpty(
+    "gate-logs",
+    "/api/gate/logs",
+    2000,
+    "gateLogs",
+  );
 
   const { data: _vacData, isLoading: vacLoad } = useQuery({
     queryKey: ["report-vacations", propId],
@@ -135,7 +214,15 @@ export function useReportData(
   }, [propId]);
 
   const isLoading =
-    roomLoad || empLoad || assLoad || resLoad || mntLoad || hostLoad || invLoad || gateLoad || vacLoad;
+    roomLoad ||
+    empLoad ||
+    assLoad ||
+    resLoad ||
+    mntLoad ||
+    hostLoad ||
+    invLoad ||
+    gateLoad ||
+    vacLoad;
 
   const { buildingMap, floorMap, roomMap, empMap } = useMemo(
     () => buildReportMaps({ buildings, floors, rooms, profiles }),

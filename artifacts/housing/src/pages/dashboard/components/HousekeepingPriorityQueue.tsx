@@ -1,5 +1,11 @@
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
 import { Sparkles, BedDouble, ArrowUpRight, CheckCircle2 } from "lucide-react";
@@ -42,17 +48,25 @@ export function HousekeepingPriorityQueue({
             </div>
             <div>
               <CardTitle className="text-base font-bold text-foreground">
-                {ar ? "طابور جاهزية ونظافة الغرف" : "Housekeeping Turnover Queue"}
+                {ar
+                  ? "طابور جاهزية ونظافة الغرف"
+                  : "Housekeeping Turnover Queue"}
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
-                {ar ? "متابعة تجهيز ونظافة الغرف للقادمين الجدد" : "Room turnover & cleaning priority list"}
+                {ar
+                  ? "متابعة تجهيز ونظافة الغرف للقادمين الجدد"
+                  : "Room turnover & cleaning priority list"}
               </CardDescription>
             </div>
           </div>
 
           <Link href={buildNavHref("/housekeeping")}>
-            <Badge variant="outline" className="text-xs cursor-pointer hover:bg-accent gap-1 py-1">
-              {ar ? "جدول النظافة" : "Turnover Board"} <ArrowUpRight className="w-3 h-3" />
+            <Badge
+              variant="outline"
+              className="text-xs cursor-pointer hover:bg-accent gap-1 py-1"
+            >
+              {ar ? "جدول النظافة" : "Turnover Board"}{" "}
+              <ArrowUpRight className="w-3 h-3" />
             </Badge>
           </Link>
         </div>
@@ -62,19 +76,25 @@ export function HousekeepingPriorityQueue({
         {/* KPI Pills */}
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <span className="text-[10px] text-muted-foreground block">{ar ? "بحاجة لنظافة" : "Pending Clean"}</span>
+            <span className="text-[10px] text-muted-foreground block">
+              {ar ? "بحاجة لنظافة" : "Pending Clean"}
+            </span>
             <span className="text-sm sm:text-base font-extrabold text-amber-600 dark:text-amber-400 font-mono">
               {pendingClean || dirtyRooms.length}
             </span>
           </div>
           <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-            <span className="text-[10px] text-muted-foreground block">{ar ? "جاهزة ومتاحة" : "Clean & Ready"}</span>
+            <span className="text-[10px] text-muted-foreground block">
+              {ar ? "جاهزة ومتاحة" : "Clean & Ready"}
+            </span>
             <span className="text-sm sm:text-base font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
               {readyCount}
             </span>
           </div>
           <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
-            <span className="text-[10px] text-muted-foreground block">{ar ? "معدل الجاهزية" : "Clean Rate"}</span>
+            <span className="text-[10px] text-muted-foreground block">
+              {ar ? "معدل الجاهزية" : "Clean Rate"}
+            </span>
             <span className="text-sm sm:text-base font-extrabold text-primary font-mono">
               {cleanRate}%
             </span>
@@ -96,7 +116,8 @@ export function HousekeepingPriorityQueue({
                         {ar ? "الغرفة" : "Room"} {r.roomNumber}
                       </p>
                       <p className="text-[10px] text-muted-foreground truncate">
-                        {r.buildingName || (ar ? "المبنى الرئيسي" : "Main Building")}
+                        {r.buildingName ||
+                          (ar ? "المبنى الرئيسي" : "Main Building")}
                       </p>
                     </div>
                   </div>
@@ -120,7 +141,9 @@ export function HousekeepingPriorityQueue({
             <div className="py-6 flex flex-col items-center justify-center text-center text-muted-foreground gap-1.5">
               <CheckCircle2 className="w-7 h-7 text-emerald-500 opacity-80" />
               <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                {ar ? "كافة الغرف نظيفة وجاهزة تماماً!" : "All rooms are clean & turnover complete!"}
+                {ar
+                  ? "كافة الغرف نظيفة وجاهزة تماماً!"
+                  : "All rooms are clean & turnover complete!"}
               </p>
             </div>
           )}

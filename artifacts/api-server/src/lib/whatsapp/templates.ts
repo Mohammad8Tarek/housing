@@ -1,5 +1,3 @@
-
-
 export const DEFAULT_WELCOME_AR = `{مرحباً بك|أهلاً وسهلاً بك|تحياتنا الطيبة لك|عزيزنا} أ/ {employee_name} في {property_name} 🌴✨
 
 {يسعدنا إبلاغك بأنه تم إتمام وتأكيد إجراءات تسكينك بنجاح|نحيطك علماً باعتماد تفاصيل تسكينك وإقامتك المعتمدة|تم الانتهاء من تجهيز وتأكيد غرفة إقامتك بنجاح}:
@@ -117,7 +115,10 @@ export function resolveSpintax(text: string): string {
  * Avoids any zero-width characters (like \u200B) which trigger Meta's automated spam classification.
  * Natural variation is achieved cleanly via Spintax ({opt1|opt2}) in message templates.
  */
-export function injectAntiBanFingerprint(text: string, _seed?: string | number): string {
+export function injectAntiBanFingerprint(
+  text: string,
+  _seed?: string | number,
+): string {
   if (!text || typeof text !== "string") return text;
   return text.trim();
 }
@@ -143,7 +144,7 @@ export function normalizePhoneNumber(rawPhone: string): string {
  */
 export function compileWhatsAppTemplate(
   template: string,
-  vars: Record<string, string | number | undefined | null>
+  vars: Record<string, string | number | undefined | null>,
 ): string {
   let result = template;
   for (const [key, val] of Object.entries(vars)) {
@@ -162,7 +163,7 @@ export function compileWhatsAppTemplate(
 export function isArabicProfile(
   nationality?: string | null,
   firstName?: string | null,
-  lastName?: string | null
+  lastName?: string | null,
 ): boolean {
   if (nationality && nationality.trim()) {
     const raw = nationality.trim().toLowerCase();
@@ -174,11 +175,48 @@ export function isArabicProfile(
 
     // 2. Exact matches for 2/3 letter country codes
     const shortCodes = new Set([
-      "eg", "egy", "ksa", "uae", "kw", "kwt", "qa", "qat", 
-      "bh", "bhr", "om", "omn", "ye", "yem", "jo", "jor", 
-      "lb", "lbn", "sy", "syr", "iq", "irq", "ps", "pse", 
-      "sd", "sdn", "ly", "lby", "tn", "tun", "dz", "dza", 
-      "ma", "mar", "mr", "mrt", "so", "som", "dj", "dji", "km", "com"
+      "eg",
+      "egy",
+      "ksa",
+      "uae",
+      "kw",
+      "kwt",
+      "qa",
+      "qat",
+      "bh",
+      "bhr",
+      "om",
+      "omn",
+      "ye",
+      "yem",
+      "jo",
+      "jor",
+      "lb",
+      "lbn",
+      "sy",
+      "syr",
+      "iq",
+      "irq",
+      "ps",
+      "pse",
+      "sd",
+      "sdn",
+      "ly",
+      "lby",
+      "tn",
+      "tun",
+      "dz",
+      "dza",
+      "ma",
+      "mar",
+      "mr",
+      "mrt",
+      "so",
+      "som",
+      "dj",
+      "dji",
+      "km",
+      "com",
     ]);
     if (shortCodes.has(raw)) {
       return true;
@@ -186,29 +224,73 @@ export function isArabicProfile(
 
     // 3. Whole-word matching for Arabic country names and demonyms
     const arabicWords = [
-      "egypt", "egyptian", "egyptians",
-      "saudi", "saudi arabia", "saudis",
-      "united arab emirates", "emirates", "emirati", "emiratis",
-      "kuwait", "kuwaiti", "kuwaitis",
-      "qatar", "qatari", "qataris",
-      "bahrain", "bahraini", "bahrainis",
-      "oman", "omani", "omanis",
-      "yemen", "yemeni", "yemenis",
-      "jordan", "jordanian", "jordanians",
-      "lebanon", "lebanese",
-      "syria", "syrian", "syrians",
-      "iraq", "iraqi", "iraqis",
-      "palestine", "palestinian", "palestinians",
-      "sudan", "sudanese",
-      "libya", "libyan", "libyans",
-      "tunisia", "tunisian", "tunisians",
-      "algeria", "algerian", "algerians",
-      "morocco", "moroccan", "moroccans",
-      "mauritania", "mauritanian", "mauritanians",
-      "somalia", "somali", "somalis",
-      "djibouti", "djiboutian", "djiboutians",
-      "comoros", "comorian", "comorians",
-      "arab", "arabic"
+      "egypt",
+      "egyptian",
+      "egyptians",
+      "saudi",
+      "saudi arabia",
+      "saudis",
+      "united arab emirates",
+      "emirates",
+      "emirati",
+      "emiratis",
+      "kuwait",
+      "kuwaiti",
+      "kuwaitis",
+      "qatar",
+      "qatari",
+      "qataris",
+      "bahrain",
+      "bahraini",
+      "bahrainis",
+      "oman",
+      "omani",
+      "omanis",
+      "yemen",
+      "yemeni",
+      "yemenis",
+      "jordan",
+      "jordanian",
+      "jordanians",
+      "lebanon",
+      "lebanese",
+      "syria",
+      "syrian",
+      "syrians",
+      "iraq",
+      "iraqi",
+      "iraqis",
+      "palestine",
+      "palestinian",
+      "palestinians",
+      "sudan",
+      "sudanese",
+      "libya",
+      "libyan",
+      "libyans",
+      "tunisia",
+      "tunisian",
+      "tunisians",
+      "algeria",
+      "algerian",
+      "algerians",
+      "morocco",
+      "moroccan",
+      "moroccans",
+      "mauritania",
+      "mauritanian",
+      "mauritanians",
+      "somalia",
+      "somali",
+      "somalis",
+      "djibouti",
+      "djiboutian",
+      "djiboutians",
+      "comoros",
+      "comorian",
+      "comorians",
+      "arab",
+      "arabic",
     ];
 
     const regex = new RegExp(`\\b(${arabicWords.join("|")})\\b`, "i");

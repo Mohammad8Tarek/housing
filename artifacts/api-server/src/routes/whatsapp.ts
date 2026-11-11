@@ -4,230 +4,303 @@ import { getTenantId } from "../lib/request-utils.js";
 import { requireAnyPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { safeSchemaName } from "../lib/pg-ident.js";
-import { BroadcastPreviewBody, BroadcastSendBody, WhatsAppConfigBody, WhatsAppLogsQuery, WhatsAppTestBody, WhatsAppConnectBody } from "../validation/schemas.js";
-import { getWhatsAppSession, connectPropertyWhatsApp, disconnectPropertyWhatsApp, executeSendHumanLike, compileWhatsAppTemplate, DEFAULT_WELCOME_AR, DEFAULT_WELCOME_EN, DEFAULT_RESERVATION_AR, DEFAULT_RESERVATION_EN, sendWhatsAppBroadcast, BroadcastRecipient, getPendingQueueCount, processOutboxQueue } from "../lib/whatsapp-engine.js";
+import {
+  BroadcastPreviewBody,
+  BroadcastSendBody,
+  WhatsAppConfigBody,
+  WhatsAppLogsQuery,
+  WhatsAppTestBody,
+  WhatsAppConnectBody,
+} from "../validation/schemas.js";
+import {
+  getWhatsAppSession,
+  connectPropertyWhatsApp,
+  disconnectPropertyWhatsApp,
+  executeSendHumanLike,
+  compileWhatsAppTemplate,
+  DEFAULT_WELCOME_AR,
+  DEFAULT_WELCOME_EN,
+  DEFAULT_RESERVATION_AR,
+  DEFAULT_RESERVATION_EN,
+  sendWhatsAppBroadcast,
+  BroadcastRecipient,
+  getPendingQueueCount,
+  processOutboxQueue,
+} from "../lib/whatsapp-engine.js";
 
 const router = Router();
 
 // GET /api/whatsapp/status - جلب حالة الاتصال الحالية والكود المربع
-router.get("/status", requireAnyPermission(["whatsapp", "view"], ["settings", "view"]), async (req, res) => {
-  try {
-    const propertyId = getTenantId(req) || 1;
-    const session = await getWhatsAppSession(propertyId);
+router.get(
+  "/status",
+  requireAnyPermission(["whatsapp", "view"], ["settings", "view"]),
+  async (req, res) => {
+    try {
+      const propertyId = getTenantId(req) || 1;
+      const session = await getWhatsAppSession(propertyId);
 
-    // Also check DB for persisted config
-    const dbRes = await pool.query(
-      `SELECT status, phone_number, qr_code, is_auto_send_enabled, provider, meta_phone_number_id, meta_waba_id, meta_access_token, updated_at
+      // Also check DB for persisted config
+      const dbRes = await pool.query(
+        `SELECT status, phone_number, qr_code, is_auto_send_enabled, provider, meta_phone_number_id, meta_waba_id, meta_access_token, updated_at
        FROM public.property_whatsapp_configs
        WHERE property_id = $1`,
-      [propertyId]
-    );
-    const dbRow = dbRes.rows[0];
-    const provider = dbRow?.provider || "baileys";
-    const hasMetaConfig = Boolean(dbRow?.meta_phone_number_id && dbRow?.meta_access_token);
+        [propertyId],
+      );
+      const dbRow = dbRes.rows[0];
+      const provider = dbRow?.provider || "baileys";
+      const hasMetaConfig = Boolean(
+        dbRow?.meta_phone_number_id && dbRow?.meta_access_token,
+      );
 
-    // Only consider DB QR code if it was updated in the last 75 seconds (WhatsApp QR expiry)
-    let effectiveQr: string | null = session.qrCode || null;
-    if (!effectiveQr && dbRow?.status === "pairing" && dbRow?.qr_code && dbRow?.updated_at) {
-      const ageMs = Date.now() - new Date(dbRow.updated_at).getTime();
-      if (ageMs < 75000) {
-        effectiveQr = dbRow.qr_code;
-      }
-    }
-
-    let effectiveStatus = session.status;
-    if (provider === "meta_cloud") {
-      effectiveStatus = hasMetaConfig ? "connected" : "disconnected";
-    } else {
-      if (session.status === "disconnected") {
-        if (dbRow?.status === "connected") {
-          effectiveStatus = "connected";
-        } else if (effectiveQr) {
-          effectiveStatus = "pairing";
-        } else {
-          effectiveStatus = "disconnected";
+      // Only consider DB QR code if it was updated in the last 75 seconds (WhatsApp QR expiry)
+      let effectiveQr: string | null = session.qrCode || null;
+      if (
+        !effectiveQr &&
+        dbRow?.status === "pairing" &&
+        dbRow?.qr_code &&
+        dbRow?.updated_at
+      ) {
+        const ageMs = Date.now() - new Date(dbRow.updated_at).getTime();
+        if (ageMs < 75000) {
+          effectiveQr = dbRow.qr_code;
         }
       }
+
+      let effectiveStatus = session.status;
+      if (provider === "meta_cloud") {
+        effectiveStatus = hasMetaConfig ? "connected" : "disconnected";
+      } else {
+        if (session.status === "disconnected") {
+          if (dbRow?.status === "connected") {
+            effectiveStatus = "connected";
+          } else if (effectiveQr) {
+            effectiveStatus = "pairing";
+          } else {
+            effectiveStatus = "disconnected";
+          }
+        }
+      }
+
+      const effectivePhone =
+        provider === "meta_cloud"
+          ? dbRow?.phone_number || (hasMetaConfig ? "Meta Cloud Active" : null)
+          : session.phoneNumber || dbRow?.phone_number || null;
+      const pendingQueueCount = await getPendingQueueCount(propertyId);
+
+      res.json({
+        success: true,
+        provider,
+        status: effectiveStatus,
+        phoneNumber: effectivePhone,
+        qrCode: provider === "meta_cloud" ? null : effectiveQr,
+        pairingCode:
+          provider === "meta_cloud" ? null : session.pairingCode || null,
+        isAutoSendEnabled: dbRow ? dbRow.is_auto_send_enabled : true,
+        metaPhoneNumberId: dbRow?.meta_phone_number_id || "",
+        metaWabaId: dbRow?.meta_waba_id || "",
+        hasMetaToken: Boolean(dbRow?.meta_access_token),
+        pendingQueueCount,
+        updatedAt: dbRow?.updated_at || null,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
     }
-
-    const effectivePhone = provider === "meta_cloud"
-      ? (dbRow?.phone_number || (hasMetaConfig ? "Meta Cloud Active" : null))
-      : (session.phoneNumber || dbRow?.phone_number || null);
-    const pendingQueueCount = await getPendingQueueCount(propertyId);
-
-    res.json({
-      success: true,
-      provider,
-      status: effectiveStatus,
-      phoneNumber: effectivePhone,
-      qrCode: provider === "meta_cloud" ? null : effectiveQr,
-      pairingCode: provider === "meta_cloud" ? null : (session.pairingCode || null),
-      isAutoSendEnabled: dbRow ? dbRow.is_auto_send_enabled : true,
-      metaPhoneNumberId: dbRow?.meta_phone_number_id || "",
-      metaWabaId: dbRow?.meta_waba_id || "",
-      hasMetaToken: Boolean(dbRow?.meta_access_token),
-      pendingQueueCount,
-      updatedAt: dbRow?.updated_at || null,
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+  },
+);
 
 // POST /api/whatsapp/queue/process - معالجة فورية لطابور الرسائل المعلقة
-router.post("/queue/process", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), async (req, res) => {
-  try {
-    const propertyId = getTenantId(req) || 1;
-    const result = await processOutboxQueue(propertyId);
-    res.json({
-      success: true,
-      ...result,
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+router.post(
+  "/queue/process",
+  requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]),
+  async (req, res) => {
+    try {
+      const propertyId = getTenantId(req) || 1;
+      const result = await processOutboxQueue(propertyId);
+      res.json({
+        success: true,
+        ...result,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
 
 // POST /api/whatsapp/connect - بدء عملية الربط وتوليد رمز QR أو كود الاقتران
-router.post("/connect", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), validate({ body: WhatsAppConnectBody }),
+router.post(
+  "/connect",
+  requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]),
+  validate({ body: WhatsAppConnectBody }),
   async (req, res) => {
-  try {
-    const propertyId = getTenantId(req) || 1;
-    const rawPhone = req.body?.phoneNumber;
-    const phoneNumber = typeof rawPhone === "string" && rawPhone.trim().length > 0 ? rawPhone.trim() : undefined;
-    const resetSession = Boolean(req.body?.resetSession);
-    const session = await connectPropertyWhatsApp(propertyId, true, phoneNumber, resetSession);
+    try {
+      const propertyId = getTenantId(req) || 1;
+      const rawPhone = req.body?.phoneNumber;
+      const phoneNumber =
+        typeof rawPhone === "string" && rawPhone.trim().length > 0
+          ? rawPhone.trim()
+          : undefined;
+      const resetSession = Boolean(req.body?.resetSession);
+      const session = await connectPropertyWhatsApp(
+        propertyId,
+        true,
+        phoneNumber,
+        resetSession,
+      );
 
-    // Wait up to 4.5 seconds for QR code or pairing code generation so client receives it immediately
-    let qrCode = session.qrCode;
-    let pairingCode = session.pairingCode;
-    if (!qrCode && !pairingCode && session.status !== "connected") {
-      for (let i = 0; i < 9; i++) {
-        await new Promise((r) => setTimeout(r, 500));
-        const s = await getWhatsAppSession(propertyId);
-        if (s.qrCode || s.pairingCode || s.status === "connected") {
-          qrCode = s.qrCode;
-          pairingCode = s.pairingCode;
-          break;
+      // Wait up to 4.5 seconds for QR code or pairing code generation so client receives it immediately
+      let qrCode = session.qrCode;
+      let pairingCode = session.pairingCode;
+      if (!qrCode && !pairingCode && session.status !== "connected") {
+        for (let i = 0; i < 9; i++) {
+          await new Promise((r) => setTimeout(r, 500));
+          const s = await getWhatsAppSession(propertyId);
+          if (s.qrCode || s.pairingCode || s.status === "connected") {
+            qrCode = s.qrCode;
+            pairingCode = s.pairingCode;
+            break;
+          }
         }
       }
-    }
 
-    res.json({
-      success: true,
-      status: session.status,
-      phoneNumber: session.phoneNumber || null,
-      qrCode: qrCode || session.qrCode || null,
-      pairingCode: pairingCode || session.pairingCode || null,
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+      res.json({
+        success: true,
+        status: session.status,
+        phoneNumber: session.phoneNumber || null,
+        qrCode: qrCode || session.qrCode || null,
+        pairingCode: pairingCode || session.pairingCode || null,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
 
 // POST /api/whatsapp/disconnect - قطع الاتصال وتسجيل الخروج
-router.post("/disconnect", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), async (req, res) => {
-  try {
-    const propertyId = getTenantId(req) || 1;
-    await disconnectPropertyWhatsApp(propertyId);
+router.post(
+  "/disconnect",
+  requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]),
+  async (req, res) => {
+    try {
+      const propertyId = getTenantId(req) || 1;
+      await disconnectPropertyWhatsApp(propertyId);
 
-    res.json({
-      success: true,
-      status: "disconnected",
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+      res.json({
+        success: true,
+        status: "disconnected",
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
 
 // GET /api/whatsapp/config - استرجاع قوالب وإعدادات الواتساب
-router.get("/config", requireAnyPermission(["whatsapp", "view"], ["settings", "view"]), async (req, res): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req) || 1;
-    const dbRes = await pool.query(
-      `SELECT * FROM public.property_whatsapp_configs WHERE property_id = $1`,
-      [propertyId]
-    );
+router.get(
+  "/config",
+  requireAnyPermission(["whatsapp", "view"], ["settings", "view"]),
+  async (req, res): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req) || 1;
+      const dbRes = await pool.query(
+        `SELECT * FROM public.property_whatsapp_configs WHERE property_id = $1`,
+        [propertyId],
+      );
 
-    if (dbRes.rows.length === 0) {
-      return res.json({
+      if (dbRes.rows.length === 0) {
+        return res.json({
+          success: true,
+          config: {
+            propertyId,
+            isAutoSendEnabled: true,
+            provider: "baileys",
+            welcomeTemplateAr: DEFAULT_WELCOME_AR,
+            welcomeTemplateEn: DEFAULT_WELCOME_EN,
+            isReservationSendEnabled: true,
+            reservationTemplateAr: DEFAULT_RESERVATION_AR,
+            reservationTemplateEn: DEFAULT_RESERVATION_EN,
+            supervisorContact: "",
+            metaPhoneNumberId: "",
+            metaWabaId: "",
+            hasMetaToken: false,
+          },
+        });
+      }
+
+      const row = dbRes.rows[0];
+      const rawWelcomeAr = row.welcome_template_ar || "";
+      const cleanWelcomeAr =
+        rawWelcomeAr && !rawWelcomeAr.includes("???")
+          ? rawWelcomeAr
+          : DEFAULT_WELCOME_AR;
+      const rawResAr = row.reservation_template_ar || "";
+      const cleanResAr =
+        rawResAr && !rawResAr.includes("???")
+          ? rawResAr
+          : DEFAULT_RESERVATION_AR;
+
+      res.json({
         success: true,
         config: {
-          propertyId,
-          isAutoSendEnabled: true,
-          provider: "baileys",
-          welcomeTemplateAr: DEFAULT_WELCOME_AR,
-          welcomeTemplateEn: DEFAULT_WELCOME_EN,
-          isReservationSendEnabled: true,
-          reservationTemplateAr: DEFAULT_RESERVATION_AR,
-          reservationTemplateEn: DEFAULT_RESERVATION_EN,
-          supervisorContact: "",
-          metaPhoneNumberId: "",
-          metaWabaId: "",
-          hasMetaToken: false,
+          propertyId: row.property_id,
+          status: row.status,
+          provider: row.provider || "baileys",
+          phoneNumber: row.phone_number,
+          isAutoSendEnabled: row.is_auto_send_enabled,
+          welcomeTemplateAr: cleanWelcomeAr,
+          welcomeTemplateEn: row.welcome_template_en || DEFAULT_WELCOME_EN,
+          isReservationSendEnabled: row.is_reservation_send_enabled ?? true,
+          reservationTemplateAr: cleanResAr,
+          reservationTemplateEn:
+            row.reservation_template_en || DEFAULT_RESERVATION_EN,
+          supervisorContact: row.supervisor_contact || "",
+          metaPhoneNumberId: row.meta_phone_number_id || "",
+          metaWabaId: row.meta_waba_id || "",
+          hasMetaToken: Boolean(row.meta_access_token),
         },
       });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
     }
-
-    const row = dbRes.rows[0];
-    const rawWelcomeAr = row.welcome_template_ar || "";
-    const cleanWelcomeAr = (rawWelcomeAr && !rawWelcomeAr.includes("???")) ? rawWelcomeAr : DEFAULT_WELCOME_AR;
-    const rawResAr = row.reservation_template_ar || "";
-    const cleanResAr = (rawResAr && !rawResAr.includes("???")) ? rawResAr : DEFAULT_RESERVATION_AR;
-
-    res.json({
-      success: true,
-      config: {
-        propertyId: row.property_id,
-        status: row.status,
-        provider: row.provider || "baileys",
-        phoneNumber: row.phone_number,
-        isAutoSendEnabled: row.is_auto_send_enabled,
-        welcomeTemplateAr: cleanWelcomeAr,
-        welcomeTemplateEn: row.welcome_template_en || DEFAULT_WELCOME_EN,
-        isReservationSendEnabled: row.is_reservation_send_enabled ?? true,
-        reservationTemplateAr: cleanResAr,
-        reservationTemplateEn: row.reservation_template_en || DEFAULT_RESERVATION_EN,
-        supervisorContact: row.supervisor_contact || "",
-        metaPhoneNumberId: row.meta_phone_number_id || "",
-        metaWabaId: row.meta_waba_id || "",
-        hasMetaToken: Boolean(row.meta_access_token),
-      },
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+  },
+);
 
 // PUT /api/whatsapp/config - حفظ وتحديث قوالب وإعدادات الواتساب
-router.put("/config", requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]), validate({ body: WhatsAppConfigBody }), async (req, res) => {
-  try {
-    const propertyId = getTenantId(req) || 1;
-    const {
-      provider,
-      metaAccessToken,
-      metaPhoneNumberId,
-      metaWabaId,
-      isAutoSendEnabled,
-      welcomeTemplateAr,
-      welcomeTemplateEn,
-      isReservationSendEnabled,
-      reservationTemplateAr,
-      reservationTemplateEn,
-      supervisorContact,
-    } = req.body;
+router.put(
+  "/config",
+  requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]),
+  validate({ body: WhatsAppConfigBody }),
+  async (req, res) => {
+    try {
+      const propertyId = getTenantId(req) || 1;
+      const {
+        provider,
+        metaAccessToken,
+        metaPhoneNumberId,
+        metaWabaId,
+        isAutoSendEnabled,
+        welcomeTemplateAr,
+        welcomeTemplateEn,
+        isReservationSendEnabled,
+        reservationTemplateAr,
+        reservationTemplateEn,
+        supervisorContact,
+      } = req.body;
 
-    const existingRes = await pool.query(
-      `SELECT meta_access_token FROM public.property_whatsapp_configs WHERE property_id = $1`,
-      [propertyId]
-    );
-    const existingToken = existingRes.rows[0]?.meta_access_token || null;
-    let finalToken = existingToken;
-    if (typeof metaAccessToken === "string" && metaAccessToken.trim() && !metaAccessToken.includes("•")) {
-      finalToken = metaAccessToken.trim();
-    }
+      const existingRes = await pool.query(
+        `SELECT meta_access_token FROM public.property_whatsapp_configs WHERE property_id = $1`,
+        [propertyId],
+      );
+      const existingToken = existingRes.rows[0]?.meta_access_token || null;
+      let finalToken = existingToken;
+      if (
+        typeof metaAccessToken === "string" &&
+        metaAccessToken.trim() &&
+        !metaAccessToken.includes("•")
+      ) {
+        finalToken = metaAccessToken.trim();
+      }
 
-    const query = `
+      const query = `
       INSERT INTO public.property_whatsapp_configs
         (property_id, provider, meta_access_token, meta_phone_number_id, meta_waba_id,
          is_auto_send_enabled, welcome_template_ar, welcome_template_en,
@@ -250,192 +323,236 @@ router.put("/config", requireAnyPermission(["whatsapp", "edit"], ["settings", "e
       RETURNING *
     `;
 
-    const result = await pool.query(query, [
-      propertyId,
-      provider === "meta_cloud" ? "meta_cloud" : "baileys",
-      finalToken,
-      metaPhoneNumberId ? String(metaPhoneNumberId).trim() : null,
-      metaWabaId ? String(metaWabaId).trim() : null,
-      isAutoSendEnabled !== undefined ? Boolean(isAutoSendEnabled) : true,
-      welcomeTemplateAr || DEFAULT_WELCOME_AR,
-      welcomeTemplateEn || DEFAULT_WELCOME_EN,
-      isReservationSendEnabled !== undefined ? Boolean(isReservationSendEnabled) : true,
-      reservationTemplateAr || DEFAULT_RESERVATION_AR,
-      reservationTemplateEn || DEFAULT_RESERVATION_EN,
-      supervisorContact || "",
-    ]);
+      const result = await pool.query(query, [
+        propertyId,
+        provider === "meta_cloud" ? "meta_cloud" : "baileys",
+        finalToken,
+        metaPhoneNumberId ? String(metaPhoneNumberId).trim() : null,
+        metaWabaId ? String(metaWabaId).trim() : null,
+        isAutoSendEnabled !== undefined ? Boolean(isAutoSendEnabled) : true,
+        welcomeTemplateAr || DEFAULT_WELCOME_AR,
+        welcomeTemplateEn || DEFAULT_WELCOME_EN,
+        isReservationSendEnabled !== undefined
+          ? Boolean(isReservationSendEnabled)
+          : true,
+        reservationTemplateAr || DEFAULT_RESERVATION_AR,
+        reservationTemplateEn || DEFAULT_RESERVATION_EN,
+        supervisorContact || "",
+      ]);
 
-    res.json({
-      success: true,
-      config: result.rows[0],
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+      res.json({
+        success: true,
+        config: result.rows[0],
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
 
 // POST /api/whatsapp/test - إرسال رسالة تجريبية
-router.post("/test", requireAnyPermission(["whatsapp", "create"], ["whatsapp", "edit"], ["settings", "edit"]), validate({ body: WhatsAppTestBody }), async (req, res): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req) || 1;
-    const { phone, message, language } = req.body;
+router.post(
+  "/test",
+  requireAnyPermission(
+    ["whatsapp", "create"],
+    ["whatsapp", "edit"],
+    ["settings", "edit"],
+  ),
+  validate({ body: WhatsAppTestBody }),
+  async (req, res): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req) || 1;
+      const { phone, message, language } = req.body;
 
-    if (!phone || !phone.trim()) {
-      return res.status(400).json({ success: false, error: "رقم الهاتف مطلوب" });
-    }
+      if (!phone || !phone.trim()) {
+        return res
+          .status(400)
+          .json({ success: false, error: "رقم الهاتف مطلوب" });
+      }
 
-    const configRes = await pool.query(
-      `SELECT * FROM public.property_whatsapp_configs WHERE property_id = $1`,
-      [propertyId]
-    );
-    const row = configRes.rows[0];
-    const isMetaCloud = row?.provider === "meta_cloud";
+      const configRes = await pool.query(
+        `SELECT * FROM public.property_whatsapp_configs WHERE property_id = $1`,
+        [propertyId],
+      );
+      const row = configRes.rows[0];
+      const isMetaCloud = row?.provider === "meta_cloud";
 
-    let textToSend = message;
-    if (!textToSend || !textToSend.trim()) {
-      // Use template with mock data
-      const isEn = language === "en";
-      const template = isEn
-        ? row?.welcome_template_en || "Test message from Sunrise Housing"
-        : row?.welcome_template_ar || "رسالة تجريبية من نظام إدارة سكن صن رايز";
+      let textToSend = message;
+      if (!textToSend || !textToSend.trim()) {
+        // Use template with mock data
+        const isEn = language === "en";
+        const template = isEn
+          ? row?.welcome_template_en || "Test message from Sunrise Housing"
+          : row?.welcome_template_ar ||
+            "رسالة تجريبية من نظام إدارة سكن صن رايز";
 
-      const mockVars = {
-        employee_name: isEn ? "Mohamed Tarek" : "محمد طارق",
-        profile_id: "10575",
-        employee_id: "10575",
-        property_name: isEn ? "Sunrise Resort Housing" : "منتجع سكن صن رايز",
-        building_name: isEn ? "Building 3" : "المبنى رقم 3",
-        floor_name: isEn ? "Second Floor" : "الدور الثاني",
-        room_number: "204",
-        bed_label: "Bed A",
-        checkin_date: new Date().toISOString().split("T")[0],
-        portal_url: process.env.PORTAL_URL || "https://resident.sunrise-resorts.com/portal/",
-        supervisor_contact: row?.supervisor_contact || "+201000000000",
-      };
+        const mockVars = {
+          employee_name: isEn ? "Mohamed Tarek" : "محمد طارق",
+          profile_id: "10575",
+          employee_id: "10575",
+          property_name: isEn ? "Sunrise Resort Housing" : "منتجع سكن صن رايز",
+          building_name: isEn ? "Building 3" : "المبنى رقم 3",
+          floor_name: isEn ? "Second Floor" : "الدور الثاني",
+          room_number: "204",
+          bed_label: "Bed A",
+          checkin_date: new Date().toISOString().split("T")[0],
+          portal_url:
+            process.env.PORTAL_URL ||
+            "https://resident.sunrise-resorts.com/portal/",
+          supervisor_contact: row?.supervisor_contact || "+201000000000",
+        };
 
-      textToSend = compileWhatsAppTemplate(template, mockVars);
-    }
+        textToSend = compileWhatsAppTemplate(template, mockVars);
+      }
 
-    if (!isMetaCloud) {
-      const session = await getWhatsAppSession(propertyId);
-      if (session.status !== "connected" || !session.sock) {
+      if (!isMetaCloud) {
+        const session = await getWhatsAppSession(propertyId);
+        if (session.status !== "connected" || !session.sock) {
+          return res.status(400).json({
+            success: false,
+            error:
+              "خدمة الواتساب غير متصلة حالياً. يرجى الضغط على زر (ربط الواتساب) ومسح رمز الـ QR بهاتفك أولاً.",
+          });
+        }
+      }
+
+      const sendRes = await executeSendHumanLike(
+        propertyId,
+        phone,
+        textToSend,
+        "TEST",
+        "Test Recipient",
+      );
+
+      if (!sendRes.success) {
+        if (sendRes.reason === "NOT_REGISTERED") {
+          return res.status(400).json({
+            success: false,
+            error: "الرقم المدخل غير مسجل على تطبيق الواتساب أو غير صحيح.",
+          });
+        }
+        if (sendRes.reason === "NOT_CONNECTED") {
+          return res.status(400).json({
+            success: false,
+            error:
+              "خدمة الواتساب غير متصلة حالياً. يرجى إعادة ربط الواتساب أولاً.",
+          });
+        }
         return res.status(400).json({
           success: false,
-          error: "خدمة الواتساب غير متصلة حالياً. يرجى الضغط على زر (ربط الواتساب) ومسح رمز الـ QR بهاتفك أولاً.",
+          error: sendRes.reason || "فشل إرسال الرسالة إلى الواتساب.",
         });
       }
-    }
 
-    const sendRes = await executeSendHumanLike(
-      propertyId,
-      phone,
-      textToSend,
-      "TEST",
-      "Test Recipient"
-    );
-
-    if (!sendRes.success) {
-      if (sendRes.reason === "NOT_REGISTERED") {
-        return res.status(400).json({
-          success: false,
-          error: "الرقم المدخل غير مسجل على تطبيق الواتساب أو غير صحيح.",
-        });
-      }
-      if (sendRes.reason === "NOT_CONNECTED") {
-        return res.status(400).json({
-          success: false,
-          error: "خدمة الواتساب غير متصلة حالياً. يرجى إعادة ربط الواتساب أولاً.",
-        });
-      }
-      return res.status(400).json({
-        success: false,
-        error: sendRes.reason || "فشل إرسال الرسالة إلى الواتساب.",
+      res.json({
+        success: true,
+        message:
+          "تم إرسال الرسالة التجريبية عبر الواتساب بنجاح! تفقد شات الواتساب.",
       });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
     }
-
-    res.json({
-      success: true,
-      message: "تم إرسال الرسالة التجريبية عبر الواتساب بنجاح! تفقد شات الواتساب.",
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+  },
+);
 
 // GET /api/whatsapp/logs - سجل الرسائل المرسلة
-router.get("/logs", requireAnyPermission(["whatsapp", "view"], ["whatsapp", "export"], ["settings", "view"]), validate({ query: WhatsAppLogsQuery }), async (req, res) => {
-  try {
-    const propertyId = getTenantId(req) || 1;
-    const page = Math.max(1, parseInt(String(req.query.page || "1"), 10));
-    const limit = Math.min(100, Math.max(5, parseInt(String(req.query.limit || "10"), 10)));
-    const offset = (page - 1) * limit;
+router.get(
+  "/logs",
+  requireAnyPermission(
+    ["whatsapp", "view"],
+    ["whatsapp", "export"],
+    ["settings", "view"],
+  ),
+  validate({ query: WhatsAppLogsQuery }),
+  async (req, res) => {
+    try {
+      const propertyId = getTenantId(req) || 1;
+      const page = Math.max(1, parseInt(String(req.query.page || "1"), 10));
+      const limit = Math.min(
+        100,
+        Math.max(5, parseInt(String(req.query.limit || "10"), 10)),
+      );
+      const offset = (page - 1) * limit;
 
-    const totalRes = await pool.query(
-      `SELECT COUNT(*) as count FROM public.whatsapp_delivery_logs WHERE property_id = $1`,
-      [propertyId]
-    );
-    const total = parseInt(totalRes.rows[0]?.count || "0", 10);
+      const totalRes = await pool.query(
+        `SELECT COUNT(*) as count FROM public.whatsapp_delivery_logs WHERE property_id = $1`,
+        [propertyId],
+      );
+      const total = parseInt(totalRes.rows[0]?.count || "0", 10);
 
-    const logsRes = await pool.query(
-      `SELECT * FROM public.whatsapp_delivery_logs
+      const logsRes = await pool.query(
+        `SELECT * FROM public.whatsapp_delivery_logs
        WHERE property_id = $1
        ORDER BY id DESC
        LIMIT $2 OFFSET $3`,
-      [propertyId, limit, offset]
-    );
+        [propertyId, limit, offset],
+      );
 
-    res.json({
-      success: true,
-      logs: logsRes.rows,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+      res.json({
+        success: true,
+        logs: logsRes.rows,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
 
 // POST /api/whatsapp/broadcast/preview - معاينة المستلمين لرسالة جماعية
-router.post("/broadcast/preview", requireAnyPermission(["whatsapp", "view"], ["accommodation", "view"]), validate({ body: BroadcastPreviewBody }), async (req, res) => {
-  try {
-    const propertyId = getTenantId(req) || 1;
-    const { targetType, buildingId, floorId, roomIds, profileIds } = req.body;
+router.post(
+  "/broadcast/preview",
+  requireAnyPermission(["whatsapp", "view"], ["accommodation", "view"]),
+  validate({ body: BroadcastPreviewBody }),
+  async (req, res) => {
+    try {
+      const propertyId = getTenantId(req) || 1;
+      const { targetType, buildingId, floorId, roomIds, profileIds } = req.body;
 
-    // Resolve tenant schema name
-    const propRes = await pool.query(
-      `SELECT schema_name, display_name, name FROM public.properties WHERE id = $1`,
-      [propertyId]
-    );
-    const schemaName = safeSchemaName(propRes.rows[0]?.schema_name);
+      // Resolve tenant schema name
+      const propRes = await pool.query(
+        `SELECT schema_name, display_name, name FROM public.properties WHERE id = $1`,
+        [propertyId],
+      );
+      const schemaName = safeSchemaName(propRes.rows[0]?.schema_name);
 
-    const whereConditions: string[] = [`a.status = 'ACTIVE'`];
-    const params: any[] = [];
+      const whereConditions: string[] = [`a.status = 'ACTIVE'`];
+      const params: any[] = [];
 
-    if (targetType === "BUILDING" && buildingId) {
-      params.push(parseInt(String(buildingId), 10));
-      whereConditions.push(`r.building_id = $${params.length}`);
-    } else if (targetType === "FLOOR" && floorId) {
-      params.push(parseInt(String(floorId), 10));
-      whereConditions.push(`r.floor_id = $${params.length}`);
-    } else if (targetType === "ROOMS" && Array.isArray(roomIds) && roomIds.length > 0) {
-      const validRoomIds = roomIds.map(Number).filter((n) => !isNaN(n));
-      if (validRoomIds.length > 0) {
-        params.push(validRoomIds);
-        whereConditions.push(`a.room_id = ANY($${params.length})`);
+      if (targetType === "BUILDING" && buildingId) {
+        params.push(parseInt(String(buildingId), 10));
+        whereConditions.push(`r.building_id = $${params.length}`);
+      } else if (targetType === "FLOOR" && floorId) {
+        params.push(parseInt(String(floorId), 10));
+        whereConditions.push(`r.floor_id = $${params.length}`);
+      } else if (
+        targetType === "ROOMS" &&
+        Array.isArray(roomIds) &&
+        roomIds.length > 0
+      ) {
+        const validRoomIds = roomIds.map(Number).filter((n) => !isNaN(n));
+        if (validRoomIds.length > 0) {
+          params.push(validRoomIds);
+          whereConditions.push(`a.room_id = ANY($${params.length})`);
+        }
+      } else if (
+        (targetType === "INDIVIDUALS" || targetType === "SELECTED") &&
+        Array.isArray(profileIds) &&
+        profileIds.length > 0
+      ) {
+        const validProfileIds = profileIds.map(Number).filter((n) => !isNaN(n));
+        if (validProfileIds.length > 0) {
+          params.push(validProfileIds);
+          whereConditions.push(`a.profile_id = ANY($${params.length})`);
+        }
       }
-    } else if ((targetType === "INDIVIDUALS" || targetType === "SELECTED") && Array.isArray(profileIds) && profileIds.length > 0) {
-      const validProfileIds = profileIds.map(Number).filter((n) => !isNaN(n));
-      if (validProfileIds.length > 0) {
-        params.push(validProfileIds);
-        whereConditions.push(`a.profile_id = ANY($${params.length})`);
-      }
-    }
 
-    const query = `
+      const query = `
       SELECT 
         p.id as profile_id,
         p.first_name,
@@ -456,113 +573,138 @@ router.post("/broadcast/preview", requireAnyPermission(["whatsapp", "view"], ["a
       ORDER BY b.name ASC, r.room_number ASC, p.first_name ASC
     `;
 
-    const result = await pool.query(query, params);
+      const result = await pool.query(query, params);
 
-    // De-duplicate if person has multiple active assignments
-    const seenProfiles = new Set<number>();
-    const recipients: any[] = [];
-    let readyCount = 0;
-    let missingPhoneCount = 0;
+      // De-duplicate if person has multiple active assignments
+      const seenProfiles = new Set<number>();
+      const recipients: any[] = [];
+      let readyCount = 0;
+      let missingPhoneCount = 0;
 
-    for (const row of result.rows) {
-      if (seenProfiles.has(row.profile_id)) continue;
-      seenProfiles.add(row.profile_id);
+      for (const row of result.rows) {
+        if (seenProfiles.has(row.profile_id)) continue;
+        seenProfiles.add(row.profile_id);
 
-      const cleanPhone = (row.phone || "").trim();
-      const hasValidPhone = Boolean(cleanPhone && cleanPhone.replace(/[^0-9]/g, "").length >= 8);
-      if (hasValidPhone) {
-        readyCount++;
-      } else {
-        missingPhoneCount++;
+        const cleanPhone = (row.phone || "").trim();
+        const hasValidPhone = Boolean(
+          cleanPhone && cleanPhone.replace(/[^0-9]/g, "").length >= 8,
+        );
+        if (hasValidPhone) {
+          readyCount++;
+        } else {
+          missingPhoneCount++;
+        }
+
+        recipients.push({
+          profileId: row.profile_id,
+          name:
+            `${row.first_name || ""} ${row.last_name || ""}`.trim() ||
+            `Employee #${row.profile_id}`,
+          phone: cleanPhone,
+          hasPhone: hasValidPhone,
+          nationality: row.nationality || "",
+          department: row.department || "",
+          roomId: row.room_id,
+          roomNumber: row.room_number || "",
+          buildingName: row.building_name || "",
+          floorName: row.floor_name ? `الدور ${row.floor_name}` : "",
+        });
       }
 
-      recipients.push({
-        profileId: row.profile_id,
-        name: `${row.first_name || ""} ${row.last_name || ""}`.trim() || `Employee #${row.profile_id}`,
-        phone: cleanPhone,
-        hasPhone: hasValidPhone,
-        nationality: row.nationality || "",
-        department: row.department || "",
-        roomId: row.room_id,
-        roomNumber: row.room_number || "",
-        buildingName: row.building_name || "",
-        floorName: row.floor_name ? `الدور ${row.floor_name}` : "",
+      res.json({
+        success: true,
+        totalMatched: recipients.length,
+        readyCount,
+        missingPhoneCount,
+        recipients,
       });
+    } catch (err: any) {
+      console.error(
+        "[POST /api/whatsapp/broadcast/preview] error:",
+        err.message,
+      );
+      res.status(500).json({ success: false, error: err.message });
     }
-
-    res.json({
-      success: true,
-      totalMatched: recipients.length,
-      readyCount,
-      missingPhoneCount,
-      recipients,
-    });
-  } catch (err: any) {
-    console.error("[POST /api/whatsapp/broadcast/preview] error:", err.message);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+  },
+);
 
 // POST /api/whatsapp/broadcast/send - إطلاق إرسال الرسالة الجماعية
-router.post("/broadcast/send", requireAnyPermission(["whatsapp", "create"], ["accommodation", "edit"]), validate({ body: BroadcastSendBody }), async (req, res): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req) || 1;
-    const { recipients, messageText } = req.body;
+router.post(
+  "/broadcast/send",
+  requireAnyPermission(["whatsapp", "create"], ["accommodation", "edit"]),
+  validate({ body: BroadcastSendBody }),
+  async (req, res): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req) || 1;
+      const { recipients, messageText } = req.body;
 
-    if (!messageText || !messageText.trim()) {
-      return res.status(400).json({ success: false, error: "نص الرسالة مطلوب" });
-    }
+      if (!messageText || !messageText.trim()) {
+        return res
+          .status(400)
+          .json({ success: false, error: "نص الرسالة مطلوب" });
+      }
 
-    if (!Array.isArray(recipients) || recipients.length === 0) {
-      return res.status(400).json({ success: false, error: "قائمة المستلمين فارغة" });
-    }
+      if (!Array.isArray(recipients) || recipients.length === 0) {
+        return res
+          .status(400)
+          .json({ success: false, error: "قائمة المستلمين فارغة" });
+      }
 
-    // Filter only those with phone
-    const validRecipients: BroadcastRecipient[] = recipients
-      .filter((r: any) => r && r.phone && String(r.phone).trim().replace(/[^0-9]/g, "").length >= 8)
-      .map((r: any) => ({
-        profileId: Number(r.profileId),
-        name: String(r.name || ""),
-        phone: String(r.phone).trim(),
-        roomNumber: r.roomNumber ? String(r.roomNumber) : undefined,
-        buildingName: r.buildingName ? String(r.buildingName) : undefined,
-        floorName: r.floorName ? String(r.floorName) : undefined,
-      }));
+      // Filter only those with phone
+      const validRecipients: BroadcastRecipient[] = recipients
+        .filter(
+          (r: any) =>
+            r &&
+            r.phone &&
+            String(r.phone)
+              .trim()
+              .replace(/[^0-9]/g, "").length >= 8,
+        )
+        .map((r: any) => ({
+          profileId: Number(r.profileId),
+          name: String(r.name || ""),
+          phone: String(r.phone).trim(),
+          roomNumber: r.roomNumber ? String(r.roomNumber) : undefined,
+          buildingName: r.buildingName ? String(r.buildingName) : undefined,
+          floorName: r.floorName ? String(r.floorName) : undefined,
+        }));
 
-    if (validRecipients.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "لا يوجد مستلمون بأرقام هواتف صالحة لإرسال الرسالة إليهم",
+      if (validRecipients.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: "لا يوجد مستلمون بأرقام هواتف صالحة لإرسال الرسالة إليهم",
+        });
+      }
+
+      const session = await getWhatsAppSession(propertyId);
+      if (session.status !== "connected" && !session.sock) {
+        return res.status(400).json({
+          success: false,
+          error:
+            "خدمة الواتساب غير متصلة حالياً. يرجى التأكد من ربط الحساب أولاً من الإعدادات.",
+        });
+      }
+
+      const result = await sendWhatsAppBroadcast({
+        propertyId,
+        recipients: validRecipients,
+        messageText: messageText.trim(),
       });
-    }
 
-    const session = await getWhatsAppSession(propertyId);
-    if (session.status !== "connected" && !session.sock) {
-      return res.status(400).json({
-        success: false,
-        error: "خدمة الواتساب غير متصلة حالياً. يرجى التأكد من ربط الحساب أولاً من الإعدادات.",
+      res.json({
+        success: true,
+        message: `تم جدولة إرسال ${result.queued} رسالة في الخلفية بنظام الأمان ضد الحظر.`,
+        stats: {
+          totalRequested: recipients.length,
+          queued: result.queued,
+          skippedNoPhone: recipients.length - validRecipients.length,
+        },
       });
+    } catch (err: any) {
+      console.error("[POST /api/whatsapp/broadcast/send] error:", err.message);
+      res.status(500).json({ success: false, error: err.message });
     }
-
-    const result = await sendWhatsAppBroadcast({
-      propertyId,
-      recipients: validRecipients,
-      messageText: messageText.trim(),
-    });
-
-    res.json({
-      success: true,
-      message: `تم جدولة إرسال ${result.queued} رسالة في الخلفية بنظام الأمان ضد الحظر.`,
-      stats: {
-        totalRequested: recipients.length,
-        queued: result.queued,
-        skippedNoPhone: recipients.length - validRecipients.length,
-      },
-    });
-  } catch (err: any) {
-    console.error("[POST /api/whatsapp/broadcast/send] error:", err.message);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+  },
+);
 
 export default router;

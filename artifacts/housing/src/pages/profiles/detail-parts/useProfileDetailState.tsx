@@ -13,11 +13,24 @@ import {
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { useProperty } from "@/context/PropertyContext";
-import { User, Briefcase, Building2, Phone, Calendar, MapPin, Globe2, Shield, Clock } from "lucide-react";
+import {
+  User,
+  Briefcase,
+  Building2,
+  Phone,
+  Calendar,
+  MapPin,
+  Globe2,
+  Shield,
+  Clock,
+} from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
 import { generateHousingLetterPdf } from "@/lib/pdf-utils";
 import { usePrintLanguage } from "@/lib/PrintLanguageDialog";
-import { getProfileDisplayJobTitle, getProfileDisplayDepartment } from "@/lib/profile-display-utils";
+import {
+  getProfileDisplayJobTitle,
+  getProfileDisplayDepartment,
+} from "@/lib/profile-display-utils";
 
 export function useProfileDetailState() {
   const { id } = useParams();
@@ -29,7 +42,8 @@ export function useProfileDetailState() {
   const { langDialogOpen, openDialog, handleSelect, handleCancel } =
     usePrintLanguage();
 
-  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const numericPropertyId =
+    typeof activePropertyId === "number" ? activePropertyId : undefined;
   const { data: settings } = useGetSettings(
     { propertyId: numericPropertyId },
     { query: { enabled: !!numericPropertyId } as any },
@@ -53,10 +67,13 @@ export function useProfileDetailState() {
     enabled: !!profileId,
   });
 
-  const effectivePropId = (profile?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined)) as number | undefined;
+  const effectivePropId = (profile?.propertyId ||
+    (activePropertyId !== "all" ? activePropertyId : undefined)) as
+    | number
+    | undefined;
   const [vacationModalOpen, setVacationModalOpen] = useState(false);
   const [vacationStartDate, setVacationStartDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [vacationEndDate, setVacationEndDate] = useState("");
   const [vacationNotes, setVacationNotes] = useState("");
@@ -72,7 +89,11 @@ export function useProfileDetailState() {
 
   const handleConfirmVacationFromDetail = async () => {
     if (!vacationStartDate || !vacationEndDate) {
-      toast.error(ar ? "يرجى تحديد تاريخ البدء وتاريخ الانتهاء" : "Please select start and end dates");
+      toast.error(
+        ar
+          ? "يرجى تحديد تاريخ البدء وتاريخ الانتهاء"
+          : "Please select start and end dates",
+      );
       return;
     }
     setVacationSubmitting(true);
@@ -88,7 +109,9 @@ export function useProfileDetailState() {
         }),
       });
       if (res.status === 404) {
-        const patchUrl = effectivePropId ? `/api/profiles/${id}?propertyId=${effectivePropId}` : `/api/profiles/${id}`;
+        const patchUrl = effectivePropId
+          ? `/api/profiles/${id}?propertyId=${effectivePropId}`
+          : `/api/profiles/${id}`;
         res = await fetch(patchUrl, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -102,9 +125,15 @@ export function useProfileDetailState() {
         });
       }
       if (!res.ok) throw new Error();
-      toast.success(ar ? "تم تسجيل خروج الموظف في إجازة بنجاح" : "Vacation recorded successfully");
+      toast.success(
+        ar
+          ? "تم تسجيل خروج الموظف في إجازة بنجاح"
+          : "Vacation recorded successfully",
+      );
       setVacationModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["profile", profileId, activePropertyId] });
+      queryClient.invalidateQueries({
+        queryKey: ["profile", profileId, activePropertyId],
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
     } catch {
@@ -122,7 +151,9 @@ export function useProfileDetailState() {
         body: JSON.stringify({ propertyId: effectivePropId }),
       });
       if (res.status === 404) {
-        const patchUrl = effectivePropId ? `/api/profiles/${id}?propertyId=${effectivePropId}` : `/api/profiles/${id}`;
+        const patchUrl = effectivePropId
+          ? `/api/profiles/${id}?propertyId=${effectivePropId}`
+          : `/api/profiles/${id}`;
         res = await fetch(patchUrl, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -136,8 +167,14 @@ export function useProfileDetailState() {
         });
       }
       if (!res.ok) throw new Error();
-      toast.success(ar ? "تم تسجيل عودة الموظف من الإجازة بنجاح (مقيم بالسكن)" : "Returned from vacation");
-      queryClient.invalidateQueries({ queryKey: ["profile", profileId, activePropertyId] });
+      toast.success(
+        ar
+          ? "تم تسجيل عودة الموظف من الإجازة بنجاح (مقيم بالسكن)"
+          : "Returned from vacation",
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["profile", profileId, activePropertyId],
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
     } catch {
@@ -146,28 +183,38 @@ export function useProfileDetailState() {
   };
 
   const { data: _pData } = useListProperties();
-  const properties: any[] = Array.isArray(_pData) ? _pData : (((_pData as any)?.data as any[]) || []);
+  const properties: any[] = Array.isArray(_pData)
+    ? _pData
+    : ((_pData as any)?.data as any[]) || [];
   const activeProp = properties.find((p: any) => p.id === activePropertyId);
-  
+
   const fileRef = useRef<HTMLInputElement>(null);
   const idFileRef = useRef<HTMLInputElement>(null);
-  
+
   const [deletingDocIndex, setDeletingDocIndex] = useState<number | null>(null);
-  const [previewDoc, setPreviewDoc] = useState<{ fileName: string; fileType: string; fileData: string } | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{
+    fileName: string;
+    fileType: string;
+    fileData: string;
+  } | null>(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
 
   const handleIdImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    
+
     setUploading(true);
-    
+
     const newDocs: any[] = [];
     let processedCount = 0;
-    
-    files.forEach(file => {
+
+    files.forEach((file) => {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error(ar ? `${file.name} كبير جداً (الأقصى 5 ميجا)` : `${file.name} is too large (max 5MB)`);
+        toast.error(
+          ar
+            ? `${file.name} كبير جداً (الأقصى 5 ميجا)`
+            : `${file.name} is too large (max 5MB)`,
+        );
         processedCount++;
         if (processedCount === files.length) finishUpload(newDocs);
         return;
@@ -177,14 +224,14 @@ export function useProfileDetailState() {
         newDocs.push({
           fileName: file.name,
           fileType: file.type || "image/jpeg",
-          fileData: reader.result as string
+          fileData: reader.result as string,
         });
         processedCount++;
         if (processedCount === files.length) finishUpload(newDocs);
       };
       reader.readAsDataURL(file);
     });
-    
+
     const finishUpload = async (addedDocs: any[]) => {
       if (!addedDocs.length) {
         setUploading(false);
@@ -194,13 +241,15 @@ export function useProfileDetailState() {
         const currentDocs = (profile as any)?.idDocuments || [];
         const payload = {
           propertyId: effectivePropId,
-          idDocuments: [...currentDocs, ...addedDocs].map(d => ({
+          idDocuments: [...currentDocs, ...addedDocs].map((d) => ({
             fileName: d.fileName,
             fileType: d.fileType,
-            fileData: d.fileData
-          }))
+            fileData: d.fileData,
+          })),
         };
-        const url = effectivePropId ? `/api/profiles/${profileId}?propertyId=${effectivePropId}` : `/api/profiles/${profileId}`;
+        const url = effectivePropId
+          ? `/api/profiles/${profileId}?propertyId=${effectivePropId}`
+          : `/api/profiles/${profileId}`;
         const res = await fetch(url, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -226,7 +275,9 @@ export function useProfileDetailState() {
       : `Are you sure you want to delete "${docToDelete?.fileName || "this document"}"?`;
     if (!window.confirm(confirmMsg)) return;
 
-    const updatedDocs = currentDocs.filter((_: any, idx: number) => idx !== docIndex);
+    const updatedDocs = currentDocs.filter(
+      (_: any, idx: number) => idx !== docIndex,
+    );
     setDeletingDocIndex(docIndex);
     try {
       const payload = {
@@ -237,14 +288,18 @@ export function useProfileDetailState() {
           fileData: d.fileData,
         })),
       };
-      const url = effectivePropId ? `/api/profiles/${profileId}?propertyId=${effectivePropId}` : `/api/profiles/${profileId}`;
+      const url = effectivePropId
+        ? `/api/profiles/${profileId}?propertyId=${effectivePropId}`
+        : `/api/profiles/${profileId}`;
       const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed");
-      toast.success(ar ? "تم حذف المستند بنجاح" : "Document deleted successfully");
+      toast.success(
+        ar ? "تم حذف المستند بنجاح" : "Document deleted successfully",
+      );
       refetch();
     } catch {
       toast.error(ar ? "فشل حذف المستند" : "Failed to delete document");
@@ -252,8 +307,6 @@ export function useProfileDetailState() {
       setDeletingDocIndex(null);
     }
   };
-
-
 
   const handleDownloadDoc = (doc: any) => {
     if (!doc.fileData) return;
@@ -293,34 +346,45 @@ export function useProfileDetailState() {
     enabled: !!effectivePropId && !!portalProfileIdForQuery,
   });
 
-  const { data: allAssignments, isLoading: assignmentsLoading } = useListAssignments(
-    { propertyId: effectivePropId, profileId: Number(profileId) } as any,
-    { query: { enabled: !!profileId && !!effectivePropId } as any },
-  );
+  const { data: allAssignments, isLoading: assignmentsLoading } =
+    useListAssignments(
+      { propertyId: effectivePropId, profileId: Number(profileId) } as any,
+      { query: { enabled: !!profileId && !!effectivePropId } as any },
+    );
 
   const { data: _rData } = useListRooms(
     { propertyId: effectivePropId, limit: 1000 } as any,
     { query: { enabled: !!effectivePropId } as any },
   );
-  const rooms: any[] = Array.isArray(_rData) ? _rData : (((_rData as any)?.data as any[]) || []);
+  const rooms: any[] = Array.isArray(_rData)
+    ? _rData
+    : ((_rData as any)?.data as any[]) || [];
   const { data: _bData } = useListBuildings(
     { propertyId: effectivePropId } as any,
     { query: { enabled: !!effectivePropId } as any },
   );
-  const buildings: any[] = Array.isArray(_bData) ? _bData : (((_bData as any)?.data as any[]) || []);
+  const buildings: any[] = Array.isArray(_bData)
+    ? _bData
+    : ((_bData as any)?.data as any[]) || [];
   const { data: _fData } = useListFloors(
     { propertyId: effectivePropId } as any,
     { query: { enabled: !!effectivePropId } as any },
   );
-  const floors: any[] = Array.isArray(_fData) ? _fData : (((_fData as any)?.data as any[]) || []);
+  const floors: any[] = Array.isArray(_fData)
+    ? _fData
+    : ((_fData as any)?.data as any[]) || [];
 
   const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));
-  const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
-  const floorMap = Object.fromEntries(floors.map((f: any) => [f.id, f.floorNumber]));
+  const buildingMap = Object.fromEntries(
+    buildings.map((b: any) => [b.id, b.name]),
+  );
+  const floorMap = Object.fromEntries(
+    floors.map((f: any) => [f.id, f.floorNumber]),
+  );
 
   const rawAssignments: any[] = Array.isArray(allAssignments)
     ? allAssignments
-    : ((allAssignments as any)?.data || []);
+    : (allAssignments as any)?.data || [];
 
   const profileAssignments = rawAssignments
     .filter((a: any) => Number(a.profileId) === Number(profileId))
@@ -332,8 +396,9 @@ export function useProfileDetailState() {
 
   // Active current housing is an ACTIVE assignment without a checkout date, or the latest active one
   const currentAssignment =
-    profileAssignments.find((a: any) => a.status === "ACTIVE" && !a.checkOutDate) ||
-    profileAssignments.find((a: any) => a.status === "ACTIVE");
+    profileAssignments.find(
+      (a: any) => a.status === "ACTIVE" && !a.checkOutDate,
+    ) || profileAssignments.find((a: any) => a.status === "ACTIVE");
 
   // All other assignments for this profile constitute their housing history
   const pastAssignments = profileAssignments.filter(
@@ -567,9 +632,22 @@ export type ProfileDetailState = ReturnType<typeof useProfileDetailState>;
 
 // Values derived after ProfileDetail's loading/empty early returns (moved verbatim); the
 // narrowed inputs (profileId, profile) are passed in non-null.
-export function buildProfileDetailView(s: ProfileDetailState, profileId: NonNullable<ProfileDetailState["profileId"]>, profile: NonNullable<ProfileDetailState["profile"]>) {
-  const { activePropertyId, ar, setResetOpen, setSetPwOpen, setPwSaving, setAccessSaving, pwForm, setPwForm, refetchPortalAccount } = s;
-
+export function buildProfileDetailView(
+  s: ProfileDetailState,
+  profileId: NonNullable<ProfileDetailState["profileId"]>,
+  profile: NonNullable<ProfileDetailState["profile"]>,
+) {
+  const {
+    activePropertyId,
+    ar,
+    setResetOpen,
+    setSetPwOpen,
+    setPwSaving,
+    setAccessSaving,
+    pwForm,
+    setPwForm,
+    refetchPortalAccount,
+  } = s;
 
   const emp = profile as any;
 
@@ -594,7 +672,9 @@ export function buildProfileDetailView(s: ProfileDetailState, profileId: NonNull
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Request failed");
       toast.success(
-        ar ? "تمت إعادة تعيين كلمة المرور بنجاح" : "Password Reset Successfully",
+        ar
+          ? "تمت إعادة تعيين كلمة المرور بنجاح"
+          : "Password Reset Successfully",
         {
           description: `${ar ? "كلمة المرور الجديدة" : "New password"}: ${data.temporaryPassword || "1234"}`,
         },
@@ -726,11 +806,21 @@ export function buildProfileDetailView(s: ProfileDetailState, profileId: NonNull
     {
       icon: <Briefcase className="w-4 h-4" />,
       label: ar ? "القسم" : "Department",
-      value: emp.employmentType === "THIRD_PARTY" ? null : getProfileDisplayDepartment(emp, ar),
+      value:
+        emp.employmentType === "THIRD_PARTY"
+          ? null
+          : getProfileDisplayDepartment(emp, ar),
     },
     {
       icon: <Briefcase className="w-4 h-4" />,
-      label: emp.employmentType === "THIRD_PARTY" ? (ar ? "الوظيفة / المهنة" : "Job / Role") : (ar ? "المسمى الوظيفي" : "Job Title"),
+      label:
+        emp.employmentType === "THIRD_PARTY"
+          ? ar
+            ? "الوظيفة / المهنة"
+            : "Job / Role"
+          : ar
+            ? "المسمى الوظيفي"
+            : "Job Title",
       value: getProfileDisplayJobTitle(emp, ar),
     },
     {
@@ -741,26 +831,46 @@ export function buildProfileDetailView(s: ProfileDetailState, profileId: NonNull
     {
       icon: <Briefcase className="w-4 h-4" />,
       label: ar ? "نوع التوظيف" : "Employment Type",
-      value: emp.employmentType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : (ar ? "داخلي" : "Internal"),
+      value:
+        emp.employmentType === "THIRD_PARTY"
+          ? ar
+            ? "طرف ثالث"
+            : "Third Party"
+          : ar
+            ? "داخلي"
+            : "Internal",
     },
     {
       icon: <Building2 className="w-4 h-4" />,
-      label: emp.employmentType === "THIRD_PARTY" ? (ar ? "اسم الشركة" : "Company Name") : (ar ? "أين يعمل / الفندق" : "Works At / Hotel"),
-      value: emp.companyName || (emp.employmentType === "INTERNAL" ? (ar ? "الفندق" : "Hotel") : null),
+      label:
+        emp.employmentType === "THIRD_PARTY"
+          ? ar
+            ? "اسم الشركة"
+            : "Company Name"
+          : ar
+            ? "أين يعمل / الفندق"
+            : "Works At / Hotel",
+      value:
+        emp.companyName ||
+        (emp.employmentType === "INTERNAL" ? (ar ? "الفندق" : "Hotel") : null),
     },
     {
       icon: <Calendar className="w-4 h-4" />,
       label: ar ? "تاريخ التعيين" : "Hire Date",
-      value: emp.employmentType === "THIRD_PARTY" ? null : (emp.hireDate
-        ? formatDate(emp.hireDate)
-        : null),
+      value:
+        emp.employmentType === "THIRD_PARTY"
+          ? null
+          : emp.hireDate
+            ? formatDate(emp.hireDate)
+            : null,
     },
     {
       icon: <Clock className="w-4 h-4 text-amber-500" />,
       label: ar ? "تاريخ انتهاء العقد" : "Contract End Date",
-      value: emp.employmentType !== "THIRD_PARTY" && emp.contractEndDate
-        ? formatDate(emp.contractEndDate)
-        : null,
+      value:
+        emp.employmentType !== "THIRD_PARTY" && emp.contractEndDate
+          ? formatDate(emp.contractEndDate)
+          : null,
     },
     {
       icon: <MapPin className="w-4 h-4" />,

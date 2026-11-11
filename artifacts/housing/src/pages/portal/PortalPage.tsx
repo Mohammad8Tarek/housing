@@ -8,7 +8,17 @@ import PortalReports from "@/components/PortalReports";
 import PortalCategoriesAndTags from "@/components/PortalCategoriesAndTags";
 import PortalFoodTransport from "@/components/PortalFoodTransport";
 import PortalChat from "@/components/PortalChat";
-import { Star, Trophy, MessageSquare, Globe, BarChart3, Users, Palette, UtensilsCrossed, MessageCircle } from "lucide-react";
+import {
+  Star,
+  Trophy,
+  MessageSquare,
+  Globe,
+  BarChart3,
+  Users,
+  Palette,
+  UtensilsCrossed,
+  MessageCircle,
+} from "lucide-react";
 
 import { PortalContactsSection } from "./components/PortalContactsSection";
 import { EvaluationsSection } from "./components/EvaluationsSection";
@@ -110,7 +120,12 @@ export function PortalPage() {
           value="analytics"
           className="animate-in fade-in slide-in-from-bottom-2 duration-300"
         >
-          <PortalAnalyticsDashboard onViewReports={() => { setReportType(undefined); setActiveTab("reports"); }} />
+          <PortalAnalyticsDashboard
+            onViewReports={() => {
+              setReportType(undefined);
+              setActiveTab("reports");
+            }}
+          />
         </TabsContent>
 
         <TabsContent
@@ -130,7 +145,12 @@ export function PortalPage() {
         >
           <Card>
             <CardContent className="pt-6">
-              <EvaluationsSection onViewReport={() => { setReportType("evaluations"); setActiveTab("reports"); }} />
+              <EvaluationsSection
+                onViewReport={() => {
+                  setReportType("evaluations");
+                  setActiveTab("reports");
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -207,4 +227,3 @@ export function PortalPage() {
     </div>
   );
 }
-

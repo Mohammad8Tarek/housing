@@ -36,7 +36,11 @@ import {
   Search,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useListBuildings, useListFloors, useListRooms } from "@workspace/api-client-react";
+import {
+  useListBuildings,
+  useListFloors,
+  useListRooms,
+} from "@workspace/api-client-react";
 
 interface BroadcastWhatsAppDialogProps {
   open: boolean;
@@ -100,8 +104,12 @@ export function BroadcastWhatsAppDialog({
   const numPropId = propertyId ? Number(propertyId) : null;
 
   // Targeting states
-  const [targetType, setTargetType] = useState<"ALL" | "BUILDING" | "FLOOR" | "ROOMS" | "SELECTED">(
-    initialTargetMode === "selected" && selectedProfileIds.length > 0 ? "SELECTED" : "ALL"
+  const [targetType, setTargetType] = useState<
+    "ALL" | "BUILDING" | "FLOOR" | "ROOMS" | "SELECTED"
+  >(
+    initialTargetMode === "selected" && selectedProfileIds.length > 0
+      ? "SELECTED"
+      : "ALL",
   );
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>("");
   const [selectedFloorId, setSelectedFloorId] = useState<string>("");
@@ -123,32 +131,53 @@ export function BroadcastWhatsAppDialog({
   }>({ totalMatched: 0, readyCount: 0, missingPhoneCount: 0, recipients: [] });
 
   // Data lookups
-  const { data: buildingsData } = useListBuildings({ propertyId: numPropId || undefined });
-  const buildings = Array.isArray(buildingsData) ? buildingsData : (buildingsData as any)?.data || [];
+  const { data: buildingsData } = useListBuildings({
+    propertyId: numPropId || undefined,
+  });
+  const buildings = Array.isArray(buildingsData)
+    ? buildingsData
+    : (buildingsData as any)?.data || [];
 
-  const { data: floorsData } = useListFloors({ propertyId: numPropId || undefined });
-  const floors = Array.isArray(floorsData) ? floorsData : (floorsData as any)?.data || [];
+  const { data: floorsData } = useListFloors({
+    propertyId: numPropId || undefined,
+  });
+  const floors = Array.isArray(floorsData)
+    ? floorsData
+    : (floorsData as any)?.data || [];
 
-  const { data: roomsData } = useListRooms({ propertyId: numPropId || undefined, limit: 1000 } as any);
-  const rooms = Array.isArray(roomsData) ? roomsData : (roomsData as any)?.data || [];
+  const { data: roomsData } = useListRooms({
+    propertyId: numPropId || undefined,
+    limit: 1000,
+  } as any);
+  const rooms = Array.isArray(roomsData)
+    ? roomsData
+    : (roomsData as any)?.data || [];
 
   // Filter floors by selected building
   const availableFloors = useMemo(() => {
     if (!selectedBuildingId) return floors;
-    return floors.filter((f: any) => String(f.buildingId) === String(selectedBuildingId));
+    return floors.filter(
+      (f: any) => String(f.buildingId) === String(selectedBuildingId),
+    );
   }, [floors, selectedBuildingId]);
 
   // Filter rooms
   const availableRooms = useMemo(() => {
     let list = rooms;
     if (selectedBuildingId) {
-      list = list.filter((r: any) => String(r.buildingId) === String(selectedBuildingId));
+      list = list.filter(
+        (r: any) => String(r.buildingId) === String(selectedBuildingId),
+      );
     }
     if (selectedFloorId) {
-      list = list.filter((r: any) => String(r.floorId) === String(selectedFloorId));
+      list = list.filter(
+        (r: any) => String(r.floorId) === String(selectedFloorId),
+      );
     }
     if (roomFilterSearch.trim()) {
-      list = list.filter((r: any) => String(r.roomNumber).includes(roomFilterSearch.trim()));
+      list = list.filter((r: any) =>
+        String(r.roomNumber).includes(roomFilterSearch.trim()),
+      );
     }
     return list;
   }, [rooms, selectedBuildingId, selectedFloorId, roomFilterSearch]);
@@ -180,12 +209,15 @@ export function BroadcastWhatsAppDialog({
         payload.profileIds = selectedProfileIds;
       }
 
-      const res = await fetch(`/api/whatsapp/broadcast/preview?propertyId=${numPropId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        `/api/whatsapp/broadcast/preview?propertyId=${numPropId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        },
+      );
 
       if (res.ok) {
         const data = await res.json();
@@ -207,7 +239,14 @@ export function BroadcastWhatsAppDialog({
     if (open) {
       fetchPreview();
     }
-  }, [open, numPropId, targetType, selectedBuildingId, selectedFloorId, selectedRoomIds]);
+  }, [
+    open,
+    numPropId,
+    targetType,
+    selectedBuildingId,
+    selectedFloorId,
+    selectedRoomIds,
+  ]);
 
   // Insert variable tag into message
   const insertTag = (tag: string) => {
@@ -223,14 +262,16 @@ export function BroadcastWhatsAppDialog({
         r.name.toLowerCase().includes(q) ||
         r.roomNumber.toLowerCase().includes(q) ||
         (r.buildingName && r.buildingName.toLowerCase().includes(q)) ||
-        (r.phone && r.phone.includes(q))
+        (r.phone && r.phone.includes(q)),
     );
   }, [previewData.recipients, recipientSearch]);
 
   // Handle Send Broadcast
   const handleSendBroadcast = async () => {
     if (!messageText.trim()) {
-      toast.error(ar ? "يرجى كتابة نص الرسالة أولاً" : "Please enter message text");
+      toast.error(
+        ar ? "يرجى كتابة نص الرسالة أولاً" : "Please enter message text",
+      );
       return;
     }
 
@@ -239,22 +280,25 @@ export function BroadcastWhatsAppDialog({
       toast.error(
         ar
           ? "لا يوجد أي مستلم لديه رقم هاتف واتساب مسجل في التحديد الحالي!"
-          : "No recipients with valid WhatsApp phone in this selection!"
+          : "No recipients with valid WhatsApp phone in this selection!",
       );
       return;
     }
 
     setIsSending(true);
     try {
-      const res = await fetch(`/api/whatsapp/broadcast/send?propertyId=${numPropId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          recipients: eligibleRecipients,
-          messageText,
-        }),
-      });
+      const res = await fetch(
+        `/api/whatsapp/broadcast/send?propertyId=${numPropId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            recipients: eligibleRecipients,
+            messageText,
+          }),
+        },
+      );
 
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -264,11 +308,14 @@ export function BroadcastWhatsAppDialog({
       toast.success(
         ar
           ? `🚀 تم جدولة إرسال ${data.stats?.queued || eligibleRecipients.length} رسالة جماعية في الخلفية بأمان!`
-          : `🚀 Broadcast queued successfully for ${data.stats?.queued || eligibleRecipients.length} recipients!`
+          : `🚀 Broadcast queued successfully for ${data.stats?.queued || eligibleRecipients.length} recipients!`,
       );
       onOpenChange(false);
     } catch (err: any) {
-      toast.error(err.message || (ar ? "حدث خطأ أثناء إرسال الرسائل" : "Error sending broadcast"));
+      toast.error(
+        err.message ||
+          (ar ? "حدث خطأ أثناء إرسال الرسائل" : "Error sending broadcast"),
+      );
     } finally {
       setIsSending(false);
     }
@@ -285,8 +332,13 @@ export function BroadcastWhatsAppDialog({
               </div>
               <div>
                 <DialogTitle className="text-lg font-bold flex items-center gap-2">
-                  {ar ? "إرسال رسالة جماعية (واتساب)" : "Broadcast WhatsApp Message"}
-                  <Badge variant="outline" className="text-[11px] font-medium bg-emerald-50 text-emerald-700 border-emerald-300">
+                  {ar
+                    ? "إرسال رسالة جماعية (واتساب)"
+                    : "Broadcast WhatsApp Message"}
+                  <Badge
+                    variant="outline"
+                    className="text-[11px] font-medium bg-emerald-50 text-emerald-700 border-emerald-300"
+                  >
                     <ShieldCheck className="w-3 h-3 mr-1 rtl:ml-1" />
                     {ar ? "نظام آمن ضد الحظر" : "Anti-Ban Protected"}
                   </Badge>
@@ -324,10 +376,16 @@ export function BroadcastWhatsAppDialog({
               >
                 <div className="flex items-center justify-between">
                   <Users className="w-4 h-4 text-emerald-600" />
-                  {targetType === "ALL" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                  {targetType === "ALL" && (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  )}
                 </div>
-                <span className="text-xs font-bold">{ar ? "جميع المقيمين" : "All In-House"}</span>
-                <span className="text-[10px] text-muted-foreground">{ar ? "كامل السكن" : "Full Property"}</span>
+                <span className="text-xs font-bold">
+                  {ar ? "جميع المقيمين" : "All In-House"}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {ar ? "كامل السكن" : "Full Property"}
+                </span>
               </button>
 
               <button
@@ -345,10 +403,16 @@ export function BroadcastWhatsAppDialog({
               >
                 <div className="flex items-center justify-between">
                   <Building className="w-4 h-4 text-emerald-600" />
-                  {targetType === "BUILDING" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                  {targetType === "BUILDING" && (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  )}
                 </div>
-                <span className="text-xs font-bold">{ar ? "حسب المبنى" : "By Building"}</span>
-                <span className="text-[10px] text-muted-foreground">{ar ? "مبنى محدد" : "Single Building"}</span>
+                <span className="text-xs font-bold">
+                  {ar ? "حسب المبنى" : "By Building"}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {ar ? "مبنى محدد" : "Single Building"}
+                </span>
               </button>
 
               <button
@@ -365,10 +429,16 @@ export function BroadcastWhatsAppDialog({
               >
                 <div className="flex items-center justify-between">
                   <Layers className="w-4 h-4 text-emerald-600" />
-                  {targetType === "FLOOR" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                  {targetType === "FLOOR" && (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  )}
                 </div>
-                <span className="text-xs font-bold">{ar ? "حسب الدور" : "By Floor"}</span>
-                <span className="text-[10px] text-muted-foreground">{ar ? "دور معين" : "Single Floor"}</span>
+                <span className="text-xs font-bold">
+                  {ar ? "حسب الدور" : "By Floor"}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {ar ? "دور معين" : "Single Floor"}
+                </span>
               </button>
 
               <button
@@ -382,20 +452,33 @@ export function BroadcastWhatsAppDialog({
               >
                 <div className="flex items-center justify-between">
                   <DoorClosed className="w-4 h-4 text-emerald-600" />
-                  {targetType === "ROOMS" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                  {targetType === "ROOMS" && (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  )}
                 </div>
-                <span className="text-xs font-bold">{ar ? "غرف معينة" : "Specific Rooms"}</span>
-                <span className="text-[10px] text-muted-foreground">{ar ? "تحديد غرف" : "Pick Rooms"}</span>
+                <span className="text-xs font-bold">
+                  {ar ? "غرف معينة" : "Specific Rooms"}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {ar ? "تحديد غرف" : "Pick Rooms"}
+                </span>
               </button>
             </div>
 
             {/* Target Criteria Sub-selectors */}
             {targetType === "BUILDING" && (
               <div className="p-3 bg-muted/30 rounded-lg border flex flex-col gap-1.5 animate-in fade-in-50">
-                <Label className="text-xs font-medium">{ar ? "اختر المبنى المطلوب:" : "Select Building:"}</Label>
-                <Select value={selectedBuildingId} onValueChange={setSelectedBuildingId}>
+                <Label className="text-xs font-medium">
+                  {ar ? "اختر المبنى المطلوب:" : "Select Building:"}
+                </Label>
+                <Select
+                  value={selectedBuildingId}
+                  onValueChange={setSelectedBuildingId}
+                >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder={ar ? "اختر مبنى..." : "Select building..."} />
+                    <SelectValue
+                      placeholder={ar ? "اختر مبنى..." : "Select building..."}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {buildings.map((b: any) => (
@@ -411,28 +494,52 @@ export function BroadcastWhatsAppDialog({
             {targetType === "FLOOR" && (
               <div className="p-3 bg-muted/30 rounded-lg border grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in-50">
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium">{ar ? "المبنى:" : "Building:"}</Label>
-                  <Select value={selectedBuildingId} onValueChange={(val) => { setSelectedBuildingId(val); setSelectedFloorId(""); }}>
+                  <Label className="text-xs font-medium">
+                    {ar ? "المبنى:" : "Building:"}
+                  </Label>
+                  <Select
+                    value={selectedBuildingId}
+                    onValueChange={(val) => {
+                      setSelectedBuildingId(val);
+                      setSelectedFloorId("");
+                    }}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder={ar ? "اختر المبنى..." : "Select building..."} />
+                      <SelectValue
+                        placeholder={
+                          ar ? "اختر المبنى..." : "Select building..."
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {buildings.map((b: any) => (
-                        <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                        <SelectItem key={b.id} value={String(b.id)}>
+                          {b.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium">{ar ? "الدور / الطابق:" : "Floor:"}</Label>
-                  <Select value={selectedFloorId} onValueChange={setSelectedFloorId} disabled={!selectedBuildingId}>
+                  <Label className="text-xs font-medium">
+                    {ar ? "الدور / الطابق:" : "Floor:"}
+                  </Label>
+                  <Select
+                    value={selectedFloorId}
+                    onValueChange={setSelectedFloorId}
+                    disabled={!selectedBuildingId}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder={ar ? "اختر الدور..." : "Select floor..."} />
+                      <SelectValue
+                        placeholder={ar ? "اختر الدور..." : "Select floor..."}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {availableFloors.map((f: any) => (
                         <SelectItem key={f.id} value={String(f.id)}>
-                          {ar ? `الدور ${f.floorNumber}` : `Floor ${f.floorNumber}`}
+                          {ar
+                            ? `الدور ${f.floorNumber}`
+                            : `Floor ${f.floorNumber}`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -444,9 +551,16 @@ export function BroadcastWhatsAppDialog({
             {targetType === "ROOMS" && (
               <div className="p-3 bg-muted/30 rounded-lg border space-y-2 animate-in fade-in-50">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">{ar ? "حدد الغرف المطلوبة:" : "Select Rooms:"}</Label>
+                  <Label className="text-xs font-medium">
+                    {ar ? "حدد الغرف المطلوبة:" : "Select Rooms:"}
+                  </Label>
                   {selectedRoomIds.length > 0 && (
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedRoomIds([])} className="h-6 text-[11px] text-destructive">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedRoomIds([])}
+                      className="h-6 text-[11px] text-destructive"
+                    >
                       {ar ? "إلغاء تحديد الكل" : "Clear All"}
                     </Button>
                   )}
@@ -454,7 +568,9 @@ export function BroadcastWhatsAppDialog({
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder={ar ? "تصفية برقم الغرفة..." : "Filter room number..."}
+                    placeholder={
+                      ar ? "تصفية برقم الغرفة..." : "Filter room number..."
+                    }
                     value={roomFilterSearch}
                     onChange={(e) => setRoomFilterSearch(e.target.value)}
                     className="h-8 pl-8 text-xs"
@@ -469,7 +585,9 @@ export function BroadcastWhatsAppDialog({
                         type="button"
                         onClick={() => {
                           setSelectedRoomIds((prev) =>
-                            isSelected ? prev.filter((id) => id !== r.id) : [...prev, r.id]
+                            isSelected
+                              ? prev.filter((id) => id !== r.id)
+                              : [...prev, r.id],
                           );
                         }}
                         className={`px-2.5 py-1 rounded text-xs font-semibold border transition-all ${
@@ -491,29 +609,47 @@ export function BroadcastWhatsAppDialog({
           <div className="p-4 rounded-xl border bg-card/60 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                {ar ? "2. إحصائية المستلمين المطابقين" : "2. Matched Recipients"}
+                {ar
+                  ? "2. إحصائية المستلمين المطابقين"
+                  : "2. Matched Recipients"}
               </span>
-              <Button variant="ghost" size="sm" onClick={fetchPreview} disabled={isLoadingPreview} className="h-7 text-xs gap-1">
-                <RefreshCw className={`w-3 h-3 ${isLoadingPreview ? "animate-spin" : ""}`} />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchPreview}
+                disabled={isLoadingPreview}
+                className="h-7 text-xs gap-1"
+              >
+                <RefreshCw
+                  className={`w-3 h-3 ${isLoadingPreview ? "animate-spin" : ""}`}
+                />
                 {ar ? "تحديث المعاينة" : "Refresh"}
               </Button>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div className="p-3 rounded-lg border bg-background flex flex-col items-center justify-center text-center">
-                <span className="text-2xl font-extrabold text-foreground">{previewData.totalMatched}</span>
-                <span className="text-[11px] text-muted-foreground">{ar ? "إجمالي المطابقين" : "Total Matched"}</span>
+                <span className="text-2xl font-extrabold text-foreground">
+                  {previewData.totalMatched}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {ar ? "إجمالي المطابقين" : "Total Matched"}
+                </span>
               </div>
 
               <div className="p-3 rounded-lg border border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/20 flex flex-col items-center justify-center text-center">
-                <span className="text-2xl font-extrabold text-emerald-600">{previewData.readyCount}</span>
+                <span className="text-2xl font-extrabold text-emerald-600">
+                  {previewData.readyCount}
+                </span>
                 <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
                   {ar ? "جاهز للإرسال (واتساب)" : "Ready (With Phone)"}
                 </span>
               </div>
 
               <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-50/40 dark:bg-amber-950/20 flex flex-col items-center justify-center text-center">
-                <span className="text-2xl font-extrabold text-amber-600">{previewData.missingPhoneCount}</span>
+                <span className="text-2xl font-extrabold text-amber-600">
+                  {previewData.missingPhoneCount}
+                </span>
                 <span className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
                   {ar ? "بدون رقم هاتف" : "Missing Phone"}
                 </span>
@@ -536,7 +672,9 @@ export function BroadcastWhatsAppDialog({
             {previewData.recipients.length > 0 && (
               <div className="space-y-2 pt-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-muted-foreground">{ar ? "قائمة المستلمين:" : "Recipient List:"}</span>
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {ar ? "قائمة المستلمين:" : "Recipient List:"}
+                  </span>
                   <Input
                     placeholder={ar ? "بحث في القائمة..." : "Search list..."}
                     value={recipientSearch}
@@ -546,11 +684,18 @@ export function BroadcastWhatsAppDialog({
                 </div>
                 <div className="max-h-40 overflow-y-auto rounded-lg border border-border text-xs divide-y bg-background">
                   {displayedRecipients.map((r: any) => (
-                    <div key={r.profileId} className="p-2 flex items-center justify-between gap-2 hover:bg-muted/20">
+                    <div
+                      key={r.profileId}
+                      className="p-2 flex items-center justify-between gap-2 hover:bg-muted/20"
+                    >
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-semibold truncate">{r.name}</span>
-                        <Badge variant="outline" className="text-[10px] font-mono shrink-0">
-                          {r.buildingName ? `${r.buildingName} - ` : ""}غرفة {r.roomNumber}
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-mono shrink-0"
+                        >
+                          {r.buildingName ? `${r.buildingName} - ` : ""}غرفة{" "}
+                          {r.roomNumber}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -559,7 +704,10 @@ export function BroadcastWhatsAppDialog({
                             <Phone className="w-3 h-3" /> {r.phone}
                           </span>
                         ) : (
-                          <Badge variant="destructive" className="text-[10px] bg-amber-100 text-amber-800 border-amber-300">
+                          <Badge
+                            variant="destructive"
+                            className="text-[10px] bg-amber-100 text-amber-800 border-amber-300"
+                          >
                             {ar ? "لا يوجد هاتف" : "No Phone"}
                           </Badge>
                         )}
@@ -579,13 +727,17 @@ export function BroadcastWhatsAppDialog({
               </Label>
               <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 <span>{ar ? "عدد الحروف:" : "Characters:"}</span>
-                <span className="font-mono font-bold text-foreground">{messageText.length}</span>
+                <span className="font-mono font-bold text-foreground">
+                  {messageText.length}
+                </span>
               </div>
             </div>
 
             {/* Quick Presets */}
             <div className="space-y-1">
-              <span className="text-[11px] text-muted-foreground">{ar ? "نماذج رسائل سريعة:" : "Quick Templates:"}</span>
+              <span className="text-[11px] text-muted-foreground">
+                {ar ? "نماذج رسائل سريعة:" : "Quick Templates:"}
+              </span>
               <div className="flex flex-wrap gap-1.5">
                 {PRESET_MESSAGES.map((preset, idx) => (
                   <Button
@@ -593,7 +745,9 @@ export function BroadcastWhatsAppDialog({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setMessageText(ar ? preset.textAr : preset.textEn)}
+                    onClick={() =>
+                      setMessageText(ar ? preset.textAr : preset.textEn)
+                    }
                     className="h-7 text-xs gap-1 border-dashed hover:border-emerald-500 hover:text-emerald-700"
                   >
                     <Sparkles className="w-3 h-3 text-emerald-500" />
@@ -605,7 +759,9 @@ export function BroadcastWhatsAppDialog({
 
             {/* Variables Bar */}
             <div className="space-y-1">
-              <span className="text-[11px] text-muted-foreground">{ar ? "إدراج متغيرات ديناميكية:" : "Insert Variables:"}</span>
+              <span className="text-[11px] text-muted-foreground">
+                {ar ? "إدراج متغيرات ديناميكية:" : "Insert Variables:"}
+              </span>
               <div className="flex flex-wrap gap-1.5">
                 <Button
                   type="button"
@@ -614,7 +770,10 @@ export function BroadcastWhatsAppDialog({
                   onClick={() => insertTag("{name}")}
                   className="h-6 text-[11px] px-2 font-mono"
                 >
-                  {"{name}"} <span className="text-[9px] text-muted-foreground ml-1">({ar ? "الاسم" : "Name"})</span>
+                  {"{name}"}{" "}
+                  <span className="text-[9px] text-muted-foreground ml-1">
+                    ({ar ? "الاسم" : "Name"})
+                  </span>
                 </Button>
                 <Button
                   type="button"
@@ -623,7 +782,10 @@ export function BroadcastWhatsAppDialog({
                   onClick={() => insertTag("{room}")}
                   className="h-6 text-[11px] px-2 font-mono"
                 >
-                  {"{room}"} <span className="text-[9px] text-muted-foreground ml-1">({ar ? "الغرفة" : "Room"})</span>
+                  {"{room}"}{" "}
+                  <span className="text-[9px] text-muted-foreground ml-1">
+                    ({ar ? "الغرفة" : "Room"})
+                  </span>
                 </Button>
                 <Button
                   type="button"
@@ -632,7 +794,10 @@ export function BroadcastWhatsAppDialog({
                   onClick={() => insertTag("{building}")}
                   className="h-6 text-[11px] px-2 font-mono"
                 >
-                  {"{building}"} <span className="text-[9px] text-muted-foreground ml-1">({ar ? "المبنى" : "Building"})</span>
+                  {"{building}"}{" "}
+                  <span className="text-[9px] text-muted-foreground ml-1">
+                    ({ar ? "المبنى" : "Building"})
+                  </span>
                 </Button>
                 <Button
                   type="button"
@@ -641,7 +806,10 @@ export function BroadcastWhatsAppDialog({
                   onClick={() => insertTag("{property}")}
                   className="h-6 text-[11px] px-2 font-mono"
                 >
-                  {"{property}"} <span className="text-[9px] text-muted-foreground ml-1">({ar ? "السكن" : "Hotel"})</span>
+                  {"{property}"}{" "}
+                  <span className="text-[9px] text-muted-foreground ml-1">
+                    ({ar ? "السكن" : "Hotel"})
+                  </span>
                 </Button>
               </div>
             </div>
@@ -664,7 +832,9 @@ export function BroadcastWhatsAppDialog({
             <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
             <div className="space-y-0.5">
               <span className="font-bold text-foreground">
-                {ar ? "إرسال ذكي آمن ضد حظر الواتساب:" : "Anti-Ban Safe Pacing:"}
+                {ar
+                  ? "إرسال ذكي آمن ضد حظر الواتساب:"
+                  : "Anti-Ban Safe Pacing:"}
               </span>
               <p className="leading-normal">
                 {ar
@@ -676,13 +846,19 @@ export function BroadcastWhatsAppDialog({
         </div>
 
         <DialogFooter className="p-4 border-t bg-muted/30 sticky bottom-0 z-10 flex items-center justify-between sm:justify-between">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSending}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSending}
+          >
             {ar ? "إلغاء" : "Cancel"}
           </Button>
 
           <Button
             onClick={handleSendBroadcast}
-            disabled={isSending || !messageText.trim() || previewData.readyCount === 0}
+            disabled={
+              isSending || !messageText.trim() || previewData.readyCount === 0
+            }
             className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
           >
             {isSending ? (
@@ -693,7 +869,9 @@ export function BroadcastWhatsAppDialog({
             ) : (
               <>
                 <Send className="w-4 h-4" />
-                {ar ? `إرسال إلى ${previewData.readyCount} مقيم الآن` : `Send to ${previewData.readyCount} Residents`}
+                {ar
+                  ? `إرسال إلى ${previewData.readyCount} مقيم الآن`
+                  : `Send to ${previewData.readyCount} Residents`}
               </>
             )}
           </Button>

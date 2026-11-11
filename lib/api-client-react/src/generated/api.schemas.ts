@@ -606,38 +606,38 @@ export interface OccupancyByBuilding {
 }
 
 export type ListBuildingsParams = {
-propertyId?: number;
+  propertyId?: number;
 };
 
 export type ListFloorsParams = {
-buildingId?: number;
-propertyId?: number;
+  buildingId?: number;
+  propertyId?: number;
 };
 
 export type ListRoomsParams = {
-propertyId?: number;
-buildingId?: number;
-floorId?: number;
-status?: string;
+  propertyId?: number;
+  buildingId?: number;
+  floorId?: number;
+  status?: string;
 };
 
 export type ListProfilesParams = {
-propertyId?: number;
-status?: string;
-department?: string;
-search?: string;
-sortBy?: string;
-sortDir?: string;
+  propertyId?: number;
+  status?: string;
+  department?: string;
+  search?: string;
+  sortBy?: string;
+  sortDir?: string;
 };
 
 export type ListInHouseAssignmentsParams = {
-propertyId?: number;
-status?: string;
-search?: string;
-buildingId?: number;
-floorId?: number;
-page?: number;
-limit?: number;
+  propertyId?: number;
+  status?: string;
+  search?: string;
+  buildingId?: number;
+  floorId?: number;
+  page?: number;
+  limit?: number;
 };
 
 export type ListInHouseAssignments200Pagination = {
@@ -652,63 +652,62 @@ export type ListInHouseAssignments200 = {
 };
 
 export type ListAssignmentsParams = {
-propertyId?: number;
-status?: string;
-profileId?: number;
-roomId?: number;
+  propertyId?: number;
+  status?: string;
+  profileId?: number;
+  roomId?: number;
 };
 
 export type ListReservationsParams = {
-propertyId?: number;
-status?: string;
+  propertyId?: number;
+  status?: string;
 };
 
 export type ListHostingsParams = {
-propertyId?: number;
-status?: string;
+  propertyId?: number;
+  status?: string;
 };
 
 export type ListMaintenanceParams = {
-propertyId?: number;
-status?: string;
-priority?: string;
+  propertyId?: number;
+  status?: string;
+  priority?: string;
 };
 
 export type ListUsersParams = {
-propertyId?: number;
+  propertyId?: number;
 };
 
 export type ListActivityLogsParams = {
-propertyId?: number;
-module?: string;
-userId?: number;
-limit?: number;
+  propertyId?: number;
+  module?: string;
+  userId?: number;
+  limit?: number;
 };
 
 export type GetSettingsParams = {
-propertyId?: number;
+  propertyId?: number;
 };
 
 export type GetDashboardStatsParams = {
-propertyId?: number;
+  propertyId?: number;
 };
 
 export type GetDepartureAlertsParams = {
-propertyId?: number;
-threshold?: number;
+  propertyId?: number;
+  threshold?: number;
 };
 
 export type GetArrivalAlertsParams = {
-propertyId?: number;
-threshold?: number;
+  propertyId?: number;
+  threshold?: number;
 };
 
 export type GetOccupancyByBuildingParams = {
-propertyId?: number;
+  propertyId?: number;
 };
 
 export type GetRecentActivityParams = {
-propertyId?: number;
-limit?: number;
+  propertyId?: number;
+  limit?: number;
 };
-

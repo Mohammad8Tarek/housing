@@ -30,14 +30,26 @@ export function getProfileDisplayName(profile: any, ar: boolean): string {
   const thirdNameAr = profile.thirdNameAr || profile.third_name_ar || "";
   const fourthNameAr = profile.fourthNameAr || profile.fourth_name_ar || "";
 
-  const defaultTokens = [firstName, lastName, thirdName, fourthName].filter(Boolean);
+  const defaultTokens = [firstName, lastName, thirdName, fourthName].filter(
+    Boolean,
+  );
   const defaultJoined = defaultTokens.join(" ").trim();
 
-  const arTokens = [firstNameAr, lastNameAr, thirdNameAr, fourthNameAr].filter(Boolean);
+  const arTokens = [firstNameAr, lastNameAr, thirdNameAr, fourthNameAr].filter(
+    Boolean,
+  );
   const arJoined = arTokens.join(" ").trim();
 
-  const rawFullName = String(profile.fullName || profile.full_name || profile.name || "").trim();
-  const rawFullNameAr = String(profile.fullNameAr || profile.full_name_ar || profile.nameAr || profile.name_ar || "").trim();
+  const rawFullName = String(
+    profile.fullName || profile.full_name || profile.name || "",
+  ).trim();
+  const rawFullNameAr = String(
+    profile.fullNameAr ||
+      profile.full_name_ar ||
+      profile.nameAr ||
+      profile.name_ar ||
+      "",
+  ).trim();
 
   if (ar) {
     // 1. Primary: Arabic fields (الاسم الأول + الثاني + الثالث + الرابع)
@@ -78,7 +90,11 @@ export function getProfileDisplayName(profile: any, ar: boolean): string {
     }
 
     // 2. Fallback: If English has Arabic characters or is empty, check Arabic fields and transliterate to English
-    const arCandidate = arJoined || rawFullNameAr || (hasArabicCharacters(defaultJoined) ? defaultJoined : "") || (hasArabicCharacters(rawFullName) ? rawFullName : "");
+    const arCandidate =
+      arJoined ||
+      rawFullNameAr ||
+      (hasArabicCharacters(defaultJoined) ? defaultJoined : "") ||
+      (hasArabicCharacters(rawFullName) ? rawFullName : "");
 
     if (arCandidate) {
       return transliterateFullName(arCandidate, "en");
@@ -96,8 +112,16 @@ export function getProfileDisplayName(profile: any, ar: boolean): string {
  */
 export function getProfileDisplayJobTitle(profile: any, ar: boolean): string {
   if (!profile) return "—";
-  const title = String(profile.jobTitle || profile.job_title || profile.title || "").trim();
-  const titleAr = String(profile.jobTitleAr || profile.job_title_ar || profile.titleAr || profile.title_ar || "").trim();
+  const title = String(
+    profile.jobTitle || profile.job_title || profile.title || "",
+  ).trim();
+  const titleAr = String(
+    profile.jobTitleAr ||
+      profile.job_title_ar ||
+      profile.titleAr ||
+      profile.title_ar ||
+      "",
+  ).trim();
 
   if (ar) {
     if (titleAr) return titleAr;
@@ -116,7 +140,13 @@ export function getProfileDisplayJobTitle(profile: any, ar: boolean): string {
 export function getProfileDisplayDepartment(profile: any, ar: boolean): string {
   if (!profile) return "—";
   const dept = String(profile.department || profile.dept || "").trim();
-  const deptAr = String(profile.departmentAr || profile.department_ar || profile.deptAr || profile.dept_ar || "").trim();
+  const deptAr = String(
+    profile.departmentAr ||
+      profile.department_ar ||
+      profile.deptAr ||
+      profile.dept_ar ||
+      "",
+  ).trim();
 
   if (ar) {
     if (deptAr) return deptAr;

@@ -33,9 +33,21 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
-import { Plus, Trash2, Calendar, MapPin, Globe, BarChart3, Users, RefreshCw, CheckCircle } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Calendar,
+  MapPin,
+  Globe,
+  BarChart3,
+  Users,
+  RefreshCw,
+  CheckCircle,
+} from "lucide-react";
 
-export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void } = {}) {
+export function ActivitiesSection({
+  onViewReport,
+}: { onViewReport?: () => void } = {}) {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -374,44 +386,52 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
                   {ar ? act.titleAr : act.titleEn}
                 </CardTitle>
               </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {ar ? act.descriptionAr : act.descriptionEn}
-                  </p>
-                  <div className="flex flex-col gap-1.5 pt-2 border-t text-[11px]">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="w-3 h-3" /> {formatDate(act.startDate)}
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="w-3 h-3" />{" "}
-                      {ar ? act.locationAr : act.locationEn}
-                    </div>
-                    {/* Registration stats */}
-                    {act.maxParticipants && (
-                      <div className="flex items-center gap-2 pt-1">
-                        <Users className="w-3 h-3 text-primary" />
-                        <span className="text-muted-foreground">
-                          {ar ? "السعة القصوى:" : "Capacity:"}
-                        </span>
-                        <span className="font-semibold text-foreground">{act.maxParticipants}</span>
-                      </div>
-                    )}
-                    {act.registrationCount !== undefined && (
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-3 h-3 text-emerald-500" />
-                        <span className="text-muted-foreground">
-                          {ar ? "المسجلون:" : "Registered:"}
-                        </span>
-                        <span className="font-semibold text-emerald-600">{act.registrationCount}</span>
-                        {act.maxParticipants > 0 && (
-                          <span className="text-muted-foreground">
-                            ({Math.round((act.registrationCount / act.maxParticipants) * 100)}%)
-                          </span>
-                        )}
-                      </div>
-                    )}
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground line-clamp-2">
+                  {ar ? act.descriptionAr : act.descriptionEn}
+                </p>
+                <div className="flex flex-col gap-1.5 pt-2 border-t text-[11px]">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="w-3 h-3" /> {formatDate(act.startDate)}
                   </div>
-                </CardContent>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="w-3 h-3" />{" "}
+                    {ar ? act.locationAr : act.locationEn}
+                  </div>
+                  {/* Registration stats */}
+                  {act.maxParticipants && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <Users className="w-3 h-3 text-primary" />
+                      <span className="text-muted-foreground">
+                        {ar ? "السعة القصوى:" : "Capacity:"}
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        {act.maxParticipants}
+                      </span>
+                    </div>
+                  )}
+                  {act.registrationCount !== undefined && (
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-3 h-3 text-emerald-500" />
+                      <span className="text-muted-foreground">
+                        {ar ? "المسجلون:" : "Registered:"}
+                      </span>
+                      <span className="font-semibold text-emerald-600">
+                        {act.registrationCount}
+                      </span>
+                      {act.maxParticipants > 0 && (
+                        <span className="text-muted-foreground">
+                          (
+                          {Math.round(
+                            (act.registrationCount / act.maxParticipants) * 100,
+                          )}
+                          %)
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
             </Card>
           ))}
           {activities?.length === 0 && (
@@ -456,9 +476,7 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
               <Label>{ar ? "تاريخ البدء" : "Start Date"}</Label>
               <DateInput
                 value={form.startDate}
-                onChange={(iso) =>
-                  setForm((f) => ({ ...f, startDate: iso }))
-                }
+                onChange={(iso) => setForm((f) => ({ ...f, startDate: iso }))}
               />
             </div>
             <div className="space-y-2">
@@ -469,9 +487,7 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
               </Label>
               <DateInput
                 value={form.expiresAt}
-                onChange={(iso) =>
-                  setForm((f) => ({ ...f, expiresAt: iso }))
-                }
+                onChange={(iso) => setForm((f) => ({ ...f, expiresAt: iso }))}
               />
             </div>
             <div className="space-y-2">
@@ -590,7 +606,10 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
                 }
                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
               />
-              <Label htmlFor="form-isPublished" className="cursor-pointer text-xs font-semibold text-foreground">
+              <Label
+                htmlFor="form-isPublished"
+                className="cursor-pointer text-xs font-semibold text-foreground"
+              >
                 {ar
                   ? "نشر الفعالية فوراً في بوابة المقيمين (لتظهر للمقيمين)"
                   : "Publish immediately to Resident Portal (visible to residents)"}
@@ -796,7 +815,10 @@ export function ActivitiesSection({ onViewReport }: { onViewReport?: () => void 
                   }
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                 />
-                <Label htmlFor="edit-isPublished" className="cursor-pointer text-xs font-semibold text-foreground">
+                <Label
+                  htmlFor="edit-isPublished"
+                  className="cursor-pointer text-xs font-semibold text-foreground"
+                >
                   {ar
                     ? "نشر الفعالية في بوابة المقيمين (لتكون مرئية للمقيمين)"
                     : "Published in Resident Portal (visible to residents)"}

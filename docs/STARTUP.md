@@ -2,8 +2,8 @@
 
 ### ✅ الملفات المتوفرة:
 
-| الملف          | الوصف                       |
-| -------------- | --------------------------- |
+| الملف                          | الوصف                       |
+| ------------------------------ | --------------------------- |
 | `scripts/windows/backend.bat`  | تشغيل Backend (Batch)       |
 | `scripts/windows/backend.ps1`  | تشغيل Backend (PowerShell)  |
 | `scripts/windows/frontend.bat` | تشغيل Frontend (Batch)      |

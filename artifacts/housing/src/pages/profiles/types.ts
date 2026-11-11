@@ -81,5 +81,11 @@ export type EditEmpForm = {
   employmentType: string;
   companyName: string;
   contractEndDate?: string;
-  idDocuments?: { id?: number; fileName: string; fileType: string; fileData: string; uploadedAt?: string }[];
+  idDocuments?: {
+    id?: number;
+    fileName: string;
+    fileType: string;
+    fileData: string;
+    uploadedAt?: string;
+  }[];
 };

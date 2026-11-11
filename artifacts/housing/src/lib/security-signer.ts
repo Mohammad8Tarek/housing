@@ -3,7 +3,10 @@ const SECURITY_SECRET = "sunrise_housing_enterprise_sec_key_2026_!#9";
 /**
  * Deterministic cryptographic checksum compatible across Node and Browser environments
  */
-export function computeSecurityChecksum(data: string, secret: string = SECURITY_SECRET): string {
+export function computeSecurityChecksum(
+  data: string,
+  secret: string = SECURITY_SECRET,
+): string {
   let h1 = 0x811c9dc5;
   let h2 = 0x9e3779b9;
   const combined = `${data}:${secret}`;
@@ -52,7 +55,10 @@ export function generateRequestSignature(
 /**
  * Helper to build secure request headers for API calls
  */
-export function getSecurityHeaders(method: string = "GET", path: string = "/"): Record<string, string> {
+export function getSecurityHeaders(
+  method: string = "GET",
+  path: string = "/",
+): Record<string, string> {
   const timestamp = Date.now();
   return {
     "X-Security-Extension": "sunrise-policy-v1",

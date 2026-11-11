@@ -2,7 +2,10 @@
 // the browser and by GET /api/reports/rows on the server, so both produce
 // identical rows.
 import { matchesSearch } from "./search-utils";
-import { comparableDate, type ReportProcessorContext } from "./processors/context";
+import {
+  comparableDate,
+  type ReportProcessorContext,
+} from "./processors/context";
 import { REPORT_PROCESSORS } from "./processors";
 
 /** Raw lists, exactly as the list endpoints return them. */
@@ -57,7 +60,10 @@ export function buildReportMaps(
   d.buildings.forEach((b: any) => (buildingMap[b.id] = b.name));
   const floorMap: Record<number, string> = {};
   d.floors.forEach(
-    (f: any) => (floorMap[f.id] = f.floorNumber ? `Floor ${f.floorNumber}` : `Floor ${f.id}`),
+    (f: any) =>
+      (floorMap[f.id] = f.floorNumber
+        ? `Floor ${f.floorNumber}`
+        : `Floor ${f.id}`),
   );
   const roomMap: Record<number, any> = {};
   d.rooms.forEach((r: any) => (roomMap[r.id] = r));
@@ -83,7 +89,11 @@ export function buildReportRows(
     d.floors
       .filter((fl: any) => {
         if (!filteredBuildingIds.has(Number(fl.buildingId))) return false;
-        if (f.filterFloor !== "all" && f.filterFloor && Number(fl.id) !== Number(f.filterFloor))
+        if (
+          f.filterFloor !== "all" &&
+          f.filterFloor &&
+          Number(fl.id) !== Number(f.filterFloor)
+        )
           return false;
         return true;
       })

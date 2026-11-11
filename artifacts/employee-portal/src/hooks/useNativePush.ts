@@ -74,11 +74,14 @@ export function useNativePush({ enabled, onOpen }: Options) {
 
     (async () => {
       try {
-        const { PushNotifications } = await import("@capacitor/push-notifications");
+        const { PushNotifications } =
+          await import("@capacitor/push-notifications");
 
         const perm = await PushNotifications.checkPermissions();
         const status =
-          perm.receive === "granted" ? perm : await PushNotifications.requestPermissions();
+          perm.receive === "granted"
+            ? perm
+            : await PushNotifications.requestPermissions();
         if (status.receive !== "granted" || cancelled) return;
 
         if (Capacitor.getPlatform() === "android") {
@@ -102,14 +105,23 @@ export function useNativePush({ enabled, onOpen }: Options) {
           await PushNotifications.addListener("registrationError", (err) => {
             console.warn("[push] FCM registration error", err);
           }),
-          await PushNotifications.addListener("pushNotificationReceived", (n) => {
-            // App is in the foreground: surface it in-app.
-            if (n.title || n.body) toast(n.title || "", { description: n.body });
-          }),
-          await PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
-            const url = (action.notification?.data as Record<string, string> | undefined)?.url;
-            if (url && onOpen) onOpen(url);
-          }),
+          await PushNotifications.addListener(
+            "pushNotificationReceived",
+            (n) => {
+              // App is in the foreground: surface it in-app.
+              if (n.title || n.body)
+                toast(n.title || "", { description: n.body });
+            },
+          ),
+          await PushNotifications.addListener(
+            "pushNotificationActionPerformed",
+            (action) => {
+              const url = (
+                action.notification?.data as Record<string, string> | undefined
+              )?.url;
+              if (url && onOpen) onOpen(url);
+            },
+          ),
         );
 
         await PushNotifications.register();

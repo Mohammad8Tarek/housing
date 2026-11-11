@@ -77,15 +77,24 @@ export const HOSPITALITY_JOB_TITLES: TranslationItem[] = [
   { en: "Housing Attendant", ar: "عامل سكن العاملين" },
   { en: "Hotel Financial Controller", ar: "المدير المالي للفندق" },
   { en: "Senior Sales Manager", ar: "مدير مبيعات أول" },
-  { en: "Cluster Director Of Sales & Marketing", ar: "مدير عام المبيعات والتسويق للمجموعة" },
+  {
+    en: "Cluster Director Of Sales & Marketing",
+    ar: "مدير عام المبيعات والتسويق للمجموعة",
+  },
   { en: "Cluster IT Manager", ar: "مدير تكنولوجيا المعلومات للمجموعة" },
-  { en: "Asst.Information & Technology Manager", ar: "مساعد مدير تكنولوجيا المعلومات" },
+  {
+    en: "Asst.Information & Technology Manager",
+    ar: "مساعد مدير تكنولوجيا المعلومات",
+  },
   { en: "Asst. Security Manager", ar: "مساعد مدير الأمن" },
   { en: "Logistics Manager", ar: "مدير الخدمات اللوجستية" },
   { en: "Central Laundry Manager", ar: "مدير المغسلة المركزية" },
   { en: "SSH Assistant Entertainment Manager", ar: "مساعد مدير الترفيه" },
   { en: "Sports & Entertainment Manager", ar: "مدير الرياضة والترفيه" },
-  { en: "Area Hygiene and Sustainability SSH Manager", ar: "مدير سلامة الغذاء والاستدامة" },
+  {
+    en: "Area Hygiene and Sustainability SSH Manager",
+    ar: "مدير سلامة الغذاء والاستدامة",
+  },
   { en: "Landscape Specialist", ar: "أخصائي لاندسكيب وحدائق" },
   { en: "Master Butler Trainer", ar: "مدرب كبير الخدم" },
   { en: "TURKISH Chef Tal", ar: "شيف تركي" },
@@ -117,8 +126,14 @@ export const HOSPITALITY_JOB_TITLES: TranslationItem[] = [
   { en: "Guest Service Center Officer", ar: "مسؤول مركز خدمة النزلاء" },
   { en: "Guest Service Center Officer Expat", ar: "مسؤول مركز خدمة النزلاء" },
   { en: "Quality & Guest Service Manager", ar: "مدير الجودة وخدمة النزلاء" },
-  { en: "Quality & Guest Service Manager Expat", ar: "مدير الجودة وخدمة النزلاء" },
-  { en: "Guest Experience & Quality Supervisor", ar: "مشرف تجربة وجودة النزلاء" },
+  {
+    en: "Quality & Guest Service Manager Expat",
+    ar: "مدير الجودة وخدمة النزلاء",
+  },
+  {
+    en: "Guest Experience & Quality Supervisor",
+    ar: "مشرف تجربة وجودة النزلاء",
+  },
   { en: "Telephone Operator", ar: "موظف سنترال" },
 
   // Housekeeping
@@ -231,7 +246,10 @@ export const HOSPITALITY_JOB_TITLES: TranslationItem[] = [
   { en: "Cluster IT Manager", ar: "مدير تكنولوجيا المعلومات للمجموعة" },
   { en: "IT Manager", ar: "مدير تكنولوجيا المعلومات" },
   { en: "Information Technology Manager", ar: "مدير تكنولوجيا المعلومات" },
-  { en: "Information Technology Supervisor", ar: "مشرف أنظمة وتكنولوجيا المعلومات" },
+  {
+    en: "Information Technology Supervisor",
+    ar: "مشرف أنظمة وتكنولوجيا المعلومات",
+  },
   { en: "IT Supervisor", ar: "مشرف تكنولوجيا المعلومات" },
   { en: "IT Officer", ar: "مسؤول تكنولوجيا المعلومات" },
   { en: "IT Specialist", ar: "أخصائي نظم معلومات" },
@@ -249,18 +267,30 @@ export const HOSPITALITY_JOB_TITLES: TranslationItem[] = [
   { en: "Cluster General Manager", ar: "المدير العام للمجموعة" },
   { en: "Executive Assistant Manager", ar: "مساعد المدير التنفيذي" },
   { en: "Hotel Financial Controller", ar: "المراقب المالي للفندق" },
-  { en: "Cluster Director Of Sales & Marketing", ar: "مدير المبيعات والتسويق للمجموعة" },
+  {
+    en: "Cluster Director Of Sales & Marketing",
+    ar: "مدير المبيعات والتسويق للمجموعة",
+  },
   { en: "Senior Sales Manager", ar: "مدير مبيعات أول" },
   { en: "Learning And Development Manager", ar: "مدير التدريب والتطوير" },
   { en: "Employees Housing Manager", ar: "مدير سكن العاملين" },
   { en: "Logistics Manager", ar: "مدير الخدمات اللوجستية" },
   { en: "Taal Avenue Operation Manager", ar: "مدير تشغيل تال أفينيو" },
-  { en: "Area Hygiene and Sustainability SSH Manager", ar: "مدير الصحة والاستدامة بالمنطقة" },
+  {
+    en: "Area Hygiene and Sustainability SSH Manager",
+    ar: "مدير الصحة والاستدامة بالمنطقة",
+  },
   { en: "Central Laundry Manager", ar: "مدير المغسلة المركزية" },
   { en: "Asst. Human Resources Manager", ar: "مساعد مدير الموارد البشرية" },
   { en: "Guest Service Center Officer Expat", ar: "مسؤول مركز خدمة النزلاء" },
-  { en: "Guest Experience & Quality Supervisor", ar: "مشرف تجربة وجودة النزلاء" },
-  { en: "Quality & Guest Service Manager Expat", ar: "مدير الجودة وخدمة النزلاء" },
+  {
+    en: "Guest Experience & Quality Supervisor",
+    ar: "مشرف تجربة وجودة النزلاء",
+  },
+  {
+    en: "Quality & Guest Service Manager Expat",
+    ar: "مدير الجودة وخدمة النزلاء",
+  },
   { en: "Master Butler Trainer", ar: "مدرب كبار الضيوف (ماستر باتلر)" },
   { en: "Animation", ar: "فريق الأنيميشن والترفيه" },
   { en: "Singer", ar: "مطرب / مغني" },
@@ -268,7 +298,10 @@ export const HOSPITALITY_JOB_TITLES: TranslationItem[] = [
   { en: "SSH Assistant Entertainment Manager", ar: "مساعد مدير الترفيه" },
   { en: "Sports & Entertainment Manager", ar: "مدير الرياضة والترفيه" },
   { en: "Director Of Food & Beverage", ar: "مدير قطاع الأغذية والمشروبات" },
-  { en: "Assistant Food & Beverage Manager", ar: "مساعد مدير الأغذية والمشروبات" },
+  {
+    en: "Assistant Food & Beverage Manager",
+    ar: "مساعد مدير الأغذية والمشروبات",
+  },
   { en: "Executive Chef Expat", ar: "الشيف التنفيذي (أجنبي)" },
   { en: "Executive Sous Chef", ar: "مساعد الشيف التنفيذي" },
   { en: "Italian Chef", ar: "شيف إيطالي" },
@@ -278,7 +311,10 @@ export const HOSPITALITY_JOB_TITLES: TranslationItem[] = [
   { en: "Chief Stewarding", ar: "رئيس قسم الستيوارد" },
   { en: "Asst. Security Manager", ar: "مساعد مدير الأمن" },
   { en: "Cluster IT Manager", ar: "مدير تكنولوجيا المعلومات للمجموعة" },
-  { en: "Asst.Information & Technology Manager", ar: "مساعد مدير تكنولوجيا المعلومات" },
+  {
+    en: "Asst.Information & Technology Manager",
+    ar: "مساعد مدير تكنولوجيا المعلومات",
+  },
   { en: "IT Supervisor", ar: "مشرف تكنولوجيا المعلومات" },
 ];
 
@@ -298,16 +334,27 @@ for (const item of HOSPITALITY_JOB_TITLES) {
 }
 
 // Pre-sorted arrays for accurate partial matching (longer, more specific phrases first)
-const DEPT_ENTRIES_EN_TO_AR = Array.from(DEPT_MAP_EN_TO_AR.entries()).sort((a, b) => b[0].length - a[0].length);
-const DEPT_ENTRIES_AR_TO_EN = Array.from(DEPT_MAP_AR_TO_EN.entries()).sort((a, b) => b[0].length - a[0].length);
+const DEPT_ENTRIES_EN_TO_AR = Array.from(DEPT_MAP_EN_TO_AR.entries()).sort(
+  (a, b) => b[0].length - a[0].length,
+);
+const DEPT_ENTRIES_AR_TO_EN = Array.from(DEPT_MAP_AR_TO_EN.entries()).sort(
+  (a, b) => b[0].length - a[0].length,
+);
 
-const TITLE_ENTRIES_EN_TO_AR = Array.from(TITLE_MAP_EN_TO_AR.entries()).sort((a, b) => b[0].length - a[0].length);
-const TITLE_ENTRIES_AR_TO_EN = Array.from(TITLE_MAP_AR_TO_EN.entries()).sort((a, b) => b[0].length - a[0].length);
+const TITLE_ENTRIES_EN_TO_AR = Array.from(TITLE_MAP_EN_TO_AR.entries()).sort(
+  (a, b) => b[0].length - a[0].length,
+);
+const TITLE_ENTRIES_AR_TO_EN = Array.from(TITLE_MAP_AR_TO_EN.entries()).sort(
+  (a, b) => b[0].length - a[0].length,
+);
 
 /**
  * Translate Department between Arabic and English
  */
-export function translateDepartment(dept: string | null | undefined, targetLang: "ar" | "en"): string {
+export function translateDepartment(
+  dept: string | null | undefined,
+  targetLang: "ar" | "en",
+): string {
   if (!dept || !dept.trim()) return "";
   const cleaned = dept.trim();
 
@@ -333,7 +380,10 @@ export function translateDepartment(dept: string | null | undefined, targetLang:
 /**
  * Translate Job Title between Arabic and English
  */
-export function translateJobTitle(title: string | null | undefined, targetLang: "ar" | "en"): string {
+export function translateJobTitle(
+  title: string | null | undefined,
+  targetLang: "ar" | "en",
+): string {
   if (!title || !title.trim()) return "";
   const cleaned = title.trim();
 

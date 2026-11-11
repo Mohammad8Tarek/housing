@@ -21,8 +21,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileSpreadsheet, Download, Upload, AlertCircle, Loader2, Search, Check, RotateCcw, ShieldCheck, RefreshCw, PlusCircle } from "lucide-react";
-import { downloadLookupTemplate, parseJobTitlesFile, type ParseResult, type RowAction } from "@/lib/job-title-importer-engine";
+import {
+  FileSpreadsheet,
+  Download,
+  Upload,
+  AlertCircle,
+  Loader2,
+  Search,
+  Check,
+  RotateCcw,
+  ShieldCheck,
+  RefreshCw,
+  PlusCircle,
+} from "lucide-react";
+import {
+  downloadLookupTemplate,
+  parseJobTitlesFile,
+  type ParseResult,
+  type RowAction,
+} from "@/lib/job-title-importer-engine";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 
 interface JobTitlesImportDialogProps {
@@ -51,20 +68,22 @@ export function JobTitlesImportDialog({
   const { data: existingDepartments = [] } = useLookupValues(
     propertyId,
     LOOKUP_CATEGORIES.DEPARTMENT,
-    true
+    true,
   );
   const { data: existingJobTitles = [] } = useLookupValues(
     propertyId,
     LOOKUP_CATEGORIES.JOB_TITLE,
-    true
+    true,
   );
   const { data: existingCategoryLookups = [] } = useLookupValues(
     propertyId,
     category,
-    true
+    true,
   );
 
-  const [step, setStep] = useState<"upload" | "preview" | "importing" | "complete">("upload");
+  const [step, setStep] = useState<
+    "upload" | "preview" | "importing" | "complete"
+  >("upload");
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [actionFilter, setActionFilter] = useState<"all" | RowAction>("all");
@@ -111,10 +130,12 @@ export function JobTitlesImportDialog({
       toast.success(
         ar
           ? `تم تحليل الملف: ${result.createCount} جديد، ${result.updateCount} للتحديث، ${result.duplicateCount} مكرر سيتم تخطيه`
-          : `Analyzed: ${result.createCount} new, ${result.updateCount} to update, ${result.duplicateCount} duplicates skipped`
+          : `Analyzed: ${result.createCount} new, ${result.updateCount} to update, ${result.duplicateCount} duplicates skipped`,
       );
     } catch (err: any) {
-      toast.error(err.message || (ar ? "فشلت قراءة الملف" : "Failed to parse file"));
+      toast.error(
+        err.message || (ar ? "فشلت قراءة الملف" : "Failed to parse file"),
+      );
     } finally {
       setIsProcessingFile(false);
     }
@@ -126,14 +147,14 @@ export function JobTitlesImportDialog({
     // Filter down to actionable rows ONLY (Create & Update)
     // DUPLICATES ARE NEVER SENT TO BE INSERTED!
     const actionableRows = parseResult.rows.filter(
-      (r) => r.action === "create" || r.action === "update"
+      (r) => r.action === "create" || r.action === "update",
     );
 
     if (actionableRows.length === 0 && parseResult.newDepartmentsCount === 0) {
       toast.info(
         ar
           ? "جميع السجلات الموجودة في الملف مكررة ومطابقة للنظام مسبقاً، لا توجد تغييرات لإضافتها."
-          : "All records in the file already exist identically in the system. Nothing to import."
+          : "All records in the file already exist identically in the system. Nothing to import.",
       );
       return;
     }
@@ -145,7 +166,11 @@ export function JobTitlesImportDialog({
       // 1. Prepare batch items:
       // Unique departments that are new
       const existingDeptNames = new Set(
-        existingDepartments.map((d) => String(d.value || "").trim().toLowerCase())
+        existingDepartments.map((d) =>
+          String(d.value || "")
+            .trim()
+            .toLowerCase(),
+        ),
       );
 
       const batchItems: Array<{
@@ -174,7 +199,12 @@ export function JobTitlesImportDialog({
         setImportProgress(35);
 
         for (const row of actionableRows) {
-          const titleVal = (row.valueEn || row.jobTitle || row.valueAr || "").trim();
+          const titleVal = (
+            row.valueEn ||
+            row.jobTitle ||
+            row.valueAr ||
+            ""
+          ).trim();
           if (titleVal || row.valueAr) {
             batchItems.push({
               category: "job_title",
@@ -195,8 +225,14 @@ export function JobTitlesImportDialog({
               category,
               value: val || row.valueAr!,
               valueAr: row.valueAr ? row.valueAr.trim() : undefined,
-              parentValue: row.department || row.parentValue || (row.capacity ? String(row.capacity) : null),
-              extraValue: row.level || row.extraValue || (row.capacity ? String(row.capacity) : null),
+              parentValue:
+                row.department ||
+                row.parentValue ||
+                (row.capacity ? String(row.capacity) : null),
+              extraValue:
+                row.level ||
+                row.extraValue ||
+                (row.capacity ? String(row.capacity) : null),
             });
           }
         }
@@ -218,7 +254,10 @@ export function JobTitlesImportDialog({
 
       if (!resp.ok) {
         const errJson = await resp.json().catch(() => ({}));
-        throw new Error(errJson.error || (ar ? "فشل تنفيذ الاستيراد" : "Failed to execute import"));
+        throw new Error(
+          errJson.error ||
+            (ar ? "فشل تنفيذ الاستيراد" : "Failed to execute import"),
+        );
       }
 
       const resData = await resp.json();
@@ -231,17 +270,21 @@ export function JobTitlesImportDialog({
       setImportProgress(100);
       setStep("complete");
 
-      await queryClient.invalidateQueries({ queryKey: ["lookup-values", propertyId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["lookup-values", propertyId],
+      });
       await queryClient.invalidateQueries({ queryKey: ["/api/lookup-values"] });
       if (onSuccess) onSuccess();
 
       toast.success(
         ar
           ? `تم الاستيراد بنجاح! تم إنشاء ${resData.insertedCount}، تحديث ${resData.updatedCount}، ومنع تكرار ${parseResult.duplicateCount} سجل`
-          : `Import complete! ${resData.insertedCount} created, ${resData.updatedCount} updated, ${parseResult.duplicateCount} duplicates safely skipped.`
+          : `Import complete! ${resData.insertedCount} created, ${resData.updatedCount} updated, ${parseResult.duplicateCount} duplicates safely skipped.`,
       );
     } catch (err: any) {
-      toast.error(err.message || (ar ? "حدث خطأ أثناء الاستيراد" : "Error during import"));
+      toast.error(
+        err.message || (ar ? "حدث خطأ أثناء الاستيراد" : "Error during import"),
+      );
       setStep("preview");
     }
   };
@@ -269,8 +312,15 @@ export function JobTitlesImportDialog({
             </div>
             <div>
               <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                <span>{ar ? `استيراد ${categoryLabel || (category === "department" ? "أقسام العمل" : category === "room_type" ? "أنواع الغرف والسعة" : category === "room_classification" ? "تصنيفات الغرف" : category === "bed_type" ? "أنواع الأسرة" : category === "room_view" ? "إطلالات الغرف" : "الأقسام والمسميات الوظيفية")}` : `Import ${categoryLabel || (category === "department" ? "Departments" : category === "room_type" ? "Room Types & Capacity" : category === "room_classification" ? "Room Classifications" : category === "bed_type" ? "Bed Types" : category === "room_view" ? "Room Views" : "Departments & Job Titles")}`}</span>
-                <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+                <span>
+                  {ar
+                    ? `استيراد ${categoryLabel || (category === "department" ? "أقسام العمل" : category === "room_type" ? "أنواع الغرف والسعة" : category === "room_classification" ? "تصنيفات الغرف" : category === "bed_type" ? "أنواع الأسرة" : category === "room_view" ? "إطلالات الغرف" : "الأقسام والمسميات الوظيفية")}`
+                    : `Import ${categoryLabel || (category === "department" ? "Departments" : category === "room_type" ? "Room Types & Capacity" : category === "room_classification" ? "Room Classifications" : category === "bed_type" ? "Bed Types" : category === "room_view" ? "Room Views" : "Departments & Job Titles")}`}
+                </span>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] bg-primary/10 text-primary border-primary/20"
+                >
                   {ar ? "ثنائي اللغة بدون تكرار" : "Bilingual Smart Import"}
                 </Badge>
               </DialogTitle>
@@ -293,7 +343,9 @@ export function JobTitlesImportDialog({
                 <div className="space-y-1">
                   <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                     <Download className="w-4 h-4 text-primary" />
-                    {ar ? `تحميل نموذج ملف الاستيراد الجاهز` : "Download Pre-formatted Import Template"}
+                    {ar
+                      ? `تحميل نموذج ملف الاستيراد الجاهز`
+                      : "Download Pre-formatted Import Template"}
                   </h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {ar
@@ -306,7 +358,9 @@ export function JobTitlesImportDialog({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => downloadLookupTemplate(category, "xlsx", ar ? "ar" : "en")}
+                    onClick={() =>
+                      downloadLookupTemplate(category, "xlsx", ar ? "ar" : "en")
+                    }
                     className="gap-2 font-semibold text-xs h-9 shadow-xs"
                   >
                     <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
@@ -316,7 +370,9 @@ export function JobTitlesImportDialog({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => downloadLookupTemplate(category, "csv", ar ? "ar" : "en")}
+                    onClick={() =>
+                      downloadLookupTemplate(category, "csv", ar ? "ar" : "en")
+                    }
                     className="gap-1.5 font-semibold text-xs h-9"
                   >
                     CSV
@@ -345,8 +401,12 @@ export function JobTitlesImportDialog({
                 </div>
                 <h3 className="text-base font-bold text-foreground">
                   {isProcessingFile
-                    ? (ar ? "جاري قراءة وتحليل الملف ومقارنته بالنظام..." : "Reading and cross-referencing with database...")
-                    : (ar ? "اضغط لاختيار ملف Excel أو CSV أو اسحبه هنا" : "Click to select Excel or CSV file or drag & drop")}
+                    ? ar
+                      ? "جاري قراءة وتحليل الملف ومقارنته بالنظام..."
+                      : "Reading and cross-referencing with database..."
+                    : ar
+                      ? "اضغط لاختيار ملف Excel أو CSV أو اسحبه هنا"
+                      : "Click to select Excel or CSV file or drag & drop"}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1.5">
                   {ar
@@ -372,7 +432,9 @@ export function JobTitlesImportDialog({
                 <div className="p-3.5 rounded-xl border border-blue-500/20 bg-blue-500/5 space-y-1">
                   <div className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-blue-300">
                     <RefreshCw className="w-4 h-4 text-blue-600" />
-                    <span>{ar ? "تحديث تلقائي (Update Level)" : "Update Level"}</span>
+                    <span>
+                      {ar ? "تحديث تلقائي (Update Level)" : "Update Level"}
+                    </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     {ar
@@ -384,7 +446,9 @@ export function JobTitlesImportDialog({
                 <div className="p-3.5 rounded-xl border border-muted-foreground/20 bg-muted/40 space-y-1">
                   <div className="flex items-center gap-2 text-xs font-bold text-foreground">
                     <ShieldCheck className="w-4 h-4 text-primary" />
-                    <span>{ar ? "حظر التكرار (Zero Duplicates)" : "Zero Duplicates"}</span>
+                    <span>
+                      {ar ? "حظر التكرار (Zero Duplicates)" : "Zero Duplicates"}
+                    </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     {ar
@@ -413,8 +477,12 @@ export function JobTitlesImportDialog({
                   </p>
                   <span className="text-[10px] text-muted-foreground">
                     {parseResult.newDepartmentsCount > 0
-                      ? (ar ? `يتضمن ${parseResult.newDepartmentsCount} قسم جديد` : `Includes ${parseResult.newDepartmentsCount} new depts`)
-                      : (ar ? "سجلات غير مسجلة مسبقاً" : "New items to be added")}
+                      ? ar
+                        ? `يتضمن ${parseResult.newDepartmentsCount} قسم جديد`
+                        : `Includes ${parseResult.newDepartmentsCount} new depts`
+                      : ar
+                        ? "سجلات غير مسجلة مسبقاً"
+                        : "New items to be added"}
                   </span>
                 </div>
 
@@ -429,7 +497,9 @@ export function JobTitlesImportDialog({
                     {parseResult.updateCount}
                   </p>
                   <span className="text-[10px] text-muted-foreground">
-                    {ar ? "مسميات موجودة مع تعديل الـ Level" : "Existing titles with new level"}
+                    {ar
+                      ? "مسميات موجودة مع تعديل الـ Level"
+                      : "Existing titles with new level"}
                   </span>
                 </div>
 
@@ -444,7 +514,9 @@ export function JobTitlesImportDialog({
                     {parseResult.duplicateCount}
                   </p>
                   <span className="text-[10px] text-emerald-700/80 dark:text-emerald-400/80 font-semibold">
-                    {ar ? "محمية وممنوعة من التكرار" : "Protected from duplicate entry"}
+                    {ar
+                      ? "محمية وممنوعة من التكرار"
+                      : "Protected from duplicate entry"}
                   </span>
                 </div>
 
@@ -455,9 +527,13 @@ export function JobTitlesImportDialog({
                     </span>
                     <FileSpreadsheet className="w-3.5 h-3.5 text-muted-foreground" />
                   </div>
-                  <p className="text-2xl font-black text-foreground mt-1">{parseResult.totalRows}</p>
+                  <p className="text-2xl font-black text-foreground mt-1">
+                    {parseResult.totalRows}
+                  </p>
                   <span className="text-[10px] text-muted-foreground">
-                    {ar ? `${parseResult.departments.length} قسم مختلف` : `${parseResult.departments.length} distinct depts`}
+                    {ar
+                      ? `${parseResult.departments.length} قسم مختلف`
+                      : `${parseResult.departments.length} distinct depts`}
                   </span>
                 </div>
               </div>
@@ -467,7 +543,9 @@ export function JobTitlesImportDialog({
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground rtl:left-auto rtl:right-2.5" />
                   <Input
-                    placeholder={ar ? "بحث في المعاينة..." : "Search preview..."}
+                    placeholder={
+                      ar ? "بحث في المعاينة..." : "Search preview..."
+                    }
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="h-8 text-xs pl-8 rtl:pl-3 rtl:pr-8"
@@ -504,12 +582,15 @@ export function JobTitlesImportDialog({
                   </Button>
                   <Button
                     type="button"
-                    variant={actionFilter === "duplicate_skip" ? "default" : "outline"}
+                    variant={
+                      actionFilter === "duplicate_skip" ? "default" : "outline"
+                    }
                     size="sm"
                     onClick={() => setActionFilter("duplicate_skip")}
                     className="h-7 text-xs px-2.5 font-semibold text-muted-foreground"
                   >
-                    {ar ? "مكرر (تخطي)" : "Duplicates"} ({parseResult.duplicateCount})
+                    {ar ? "مكرر (تخطي)" : "Duplicates"} (
+                    {parseResult.duplicateCount})
                   </Button>
                   <Button
                     type="button"
@@ -532,31 +613,56 @@ export function JobTitlesImportDialog({
                 <Table>
                   <TableHeader className="bg-muted/60 sticky top-0 z-10">
                     <TableRow>
-                      <TableHead className="w-12 text-center text-xs font-bold">#</TableHead>
+                      <TableHead className="w-12 text-center text-xs font-bold">
+                        #
+                      </TableHead>
                       {category === "job_title" && (
-                        <TableHead className="text-xs font-bold">{ar ? "القسم" : "Department"}</TableHead>
+                        <TableHead className="text-xs font-bold">
+                          {ar ? "القسم" : "Department"}
+                        </TableHead>
                       )}
                       <TableHead className="text-xs font-bold">
-                        {category === "job_title" ? (ar ? "المسمى الوظيفي" : "Job Title") : (ar ? "الاسم (EN)" : "Name (EN)")}
+                        {category === "job_title"
+                          ? ar
+                            ? "المسمى الوظيفي"
+                            : "Job Title"
+                          : ar
+                            ? "الاسم (EN)"
+                            : "Name (EN)"}
                       </TableHead>
                       {category !== "job_title" && (
-                        <TableHead className="text-xs font-bold">{ar ? "الاسم (AR)" : "Name (AR)"}</TableHead>
+                        <TableHead className="text-xs font-bold">
+                          {ar ? "الاسم (AR)" : "Name (AR)"}
+                        </TableHead>
                       )}
                       <TableHead className="text-xs font-bold">
                         {category === "room_type"
-                          ? (ar ? "السعة" : "Capacity")
+                          ? ar
+                            ? "السعة"
+                            : "Capacity"
                           : category === "room_classification"
-                          ? (ar ? "المستوى" : "Target Level")
-                          : (ar ? "الدرجة / البيان" : "Level / Extra")}
+                            ? ar
+                              ? "المستوى"
+                              : "Target Level"
+                            : ar
+                              ? "الدرجة / البيان"
+                              : "Level / Extra"}
                       </TableHead>
-                      <TableHead className="text-xs font-bold w-44 text-center">{ar ? "الإجراء المتوقع" : "Action"}</TableHead>
+                      <TableHead className="text-xs font-bold w-44 text-center">
+                        {ar ? "الإجراء المتوقع" : "Action"}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredRows.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-6 text-xs text-muted-foreground">
-                          {ar ? "لا توجد نتائج مطابقة للبحث أو الفلتر" : "No matching rows found"}
+                        <TableCell
+                          colSpan={6}
+                          className="text-center py-6 text-xs text-muted-foreground"
+                        >
+                          {ar
+                            ? "لا توجد نتائج مطابقة للبحث أو الفلتر"
+                            : "No matching rows found"}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -567,8 +673,8 @@ export function JobTitlesImportDialog({
                             r.action === "duplicate_skip"
                               ? "bg-muted/20 opacity-65"
                               : r.action === "update"
-                              ? "bg-blue-500/5"
-                              : ""
+                                ? "bg-blue-500/5"
+                                : ""
                           }`}
                         >
                           <TableCell className="text-center text-muted-foreground font-mono">
@@ -585,7 +691,9 @@ export function JobTitlesImportDialog({
                           )}
                           <TableCell className="font-medium">
                             {r.valueEn || r.jobTitle || (
-                              <span className="text-muted-foreground italic">—</span>
+                              <span className="text-muted-foreground italic">
+                                —
+                              </span>
                             )}
                           </TableCell>
                           {category !== "job_title" && (
@@ -595,8 +703,13 @@ export function JobTitlesImportDialog({
                           )}
                           <TableCell>
                             {r.level || r.capacity ? (
-                              <Badge variant="outline" className="font-mono text-[10px] bg-muted/40">
-                                {category === "room_type" ? `${r.capacity || r.level} ${ar ? "أفراد" : "beds"}` : (r.level || r.capacity)}
+                              <Badge
+                                variant="outline"
+                                className="font-mono text-[10px] bg-muted/40"
+                              >
+                                {category === "room_type"
+                                  ? `${r.capacity || r.level} ${ar ? "أفراد" : "beds"}`
+                                  : r.level || r.capacity}
                               </Badge>
                             ) : (
                               <span className="text-muted-foreground">—</span>
@@ -610,10 +723,15 @@ export function JobTitlesImportDialog({
                               </Badge>
                             )}
                             {r.action === "update" && (
-                              <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 text-[10px] gap-1 font-semibold border-0" title={r.issues.join(", ")}>
+                              <Badge
+                                className="bg-blue-500/15 text-blue-700 dark:text-blue-300 hover:bg-blue-500/20 text-[10px] gap-1 font-semibold border-0"
+                                title={r.issues.join(", ")}
+                              >
                                 <RefreshCw className="w-3 h-3 text-blue-600" />
                                 {ar ? "تحديث الدرجة" : "Update Level"}
-                                {r.existingLevel ? ` (${r.existingLevel} ➔ ${r.level})` : ""}
+                                {r.existingLevel
+                                  ? ` (${r.existingLevel} ➔ ${r.level})`
+                                  : ""}
                               </Badge>
                             )}
                             {r.action === "duplicate_skip" && (
@@ -661,7 +779,9 @@ export function JobTitlesImportDialog({
               </div>
               <div className="space-y-1.5">
                 <h3 className="text-lg font-bold text-foreground">
-                  {ar ? "جاري إنشاء وتحديث السجلات وحظر المكررات..." : "Creating, updating records and preventing duplicates..."}
+                  {ar
+                    ? "جاري إنشاء وتحديث السجلات وحظر المكررات..."
+                    : "Creating, updating records and preventing duplicates..."}
                 </h3>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                   {ar
@@ -671,7 +791,9 @@ export function JobTitlesImportDialog({
               </div>
               <div className="max-w-md mx-auto space-y-1">
                 <Progress value={importProgress} className="h-2" />
-                <span className="text-[11px] text-muted-foreground font-mono">{importProgress}%</span>
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  {importProgress}%
+                </span>
               </div>
             </div>
           )}
@@ -684,7 +806,9 @@ export function JobTitlesImportDialog({
               </div>
               <div className="space-y-1">
                 <h3 className="text-xl font-bold text-foreground">
-                  {ar ? "اكتمل الاستيراد والتحديث بنجاح!" : "Import & Update Completed Successfully!"}
+                  {ar
+                    ? "اكتمل الاستيراد والتحديث بنجاح!"
+                    : "Import & Update Completed Successfully!"}
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   {ar
@@ -736,22 +860,32 @@ export function JobTitlesImportDialog({
             disabled={step === "importing"}
             className="text-xs font-semibold h-9"
           >
-            {step === "complete" ? (ar ? "إغلاق" : "Close") : (ar ? "إلغاء" : "Cancel")}
+            {step === "complete"
+              ? ar
+                ? "إغلاق"
+                : "Close"
+              : ar
+                ? "إلغاء"
+                : "Cancel"}
           </Button>
 
           {step === "preview" && parseResult && (
             <Button
               type="button"
               onClick={handleExecuteImport}
-              disabled={parseResult.createCount === 0 && parseResult.updateCount === 0}
+              disabled={
+                parseResult.createCount === 0 && parseResult.updateCount === 0
+              }
               className="gap-2 bg-gradient-to-r from-primary to-indigo-600 font-bold text-white shadow-md text-xs h-9 px-5"
             >
               <FileSpreadsheet className="w-4 h-4" />
               {parseResult.createCount === 0 && parseResult.updateCount === 0
-                ? (ar ? "لا توجد سجلات جديدة (الكل مكرر)" : "All records are duplicates")
-                : (ar
+                ? ar
+                  ? "لا توجد سجلات جديدة (الكل مكرر)"
+                  : "All records are duplicates"
+                : ar
                   ? `بدء الاستيراد (${parseResult.createCount} إنشاء + ${parseResult.updateCount} تحديث)`
-                  : `Start Import (${parseResult.createCount} Create + ${parseResult.updateCount} Update)`)}
+                  : `Start Import (${parseResult.createCount} Create + ${parseResult.updateCount} Update)`}
             </Button>
           )}
 

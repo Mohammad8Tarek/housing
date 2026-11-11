@@ -14,16 +14,29 @@ import { PREDEFINED_ROLES } from "./PoliciesSection.constants";
 import type { PoliciesSectionState } from "./usePoliciesSectionState";
 
 export function renderSignatureStepDialog(s: PoliciesSectionState) {
-  const { ar, existingJobTitles, isStepModalOpen, setIsStepModalOpen, editingStepIndex, stepForm, setStepForm, handleSaveStep } = s;
+  const {
+    ar,
+    existingJobTitles,
+    isStepModalOpen,
+    setIsStepModalOpen,
+    editingStepIndex,
+    stepForm,
+    setStepForm,
+    handleSaveStep,
+  } = s;
   return (
-<Dialog open={isStepModalOpen} onOpenChange={setIsStepModalOpen}>
+    <Dialog open={isStepModalOpen} onOpenChange={setIsStepModalOpen}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <FileCheck className="w-5 h-5 text-pink-600" />
             {editingStepIndex !== null
-              ? (ar ? "تعديل خطوة الاعتماد" : "Edit Signature Step")
-              : (ar ? "إضافة خطوة اعتماد جديدة" : "Add Approval Step")}
+              ? ar
+                ? "تعديل خطوة الاعتماد"
+                : "Edit Signature Step"
+              : ar
+                ? "إضافة خطوة اعتماد جديدة"
+                : "Add Approval Step"}
           </DialogTitle>
           <DialogDescription className="text-xs">
             {ar
@@ -36,7 +49,9 @@ export function renderSignatureStepDialog(s: PoliciesSectionState) {
           {/* Quick Preset Selector */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground">
-              {ar ? "اختر من الوظائف الشائعة أو القائمة:" : "Quick Preset Role:"}
+              {ar
+                ? "اختر من الوظائف الشائعة أو القائمة:"
+                : "Quick Preset Role:"}
             </label>
             <select
               className="w-full h-9 px-3 rounded-md border text-xs bg-background focus:outline-none focus:ring-1 focus:ring-primary"
@@ -70,7 +85,9 @@ export function renderSignatureStepDialog(s: PoliciesSectionState) {
                 ))}
               </optgroup>
               {existingJobTitles && existingJobTitles.length > 0 && (
-                <optgroup label={ar ? "المسميات المسجلة بالنظام" : "Lookup Job Titles"}>
+                <optgroup
+                  label={ar ? "المسميات المسجلة بالنظام" : "Lookup Job Titles"}
+                >
                   {existingJobTitles.map((jt: any) => (
                     <option key={jt.id || jt.value} value={jt.value}>
                       {ar ? jt.labelAr || jt.label : jt.label}
@@ -84,13 +101,18 @@ export function renderSignatureStepDialog(s: PoliciesSectionState) {
           {/* Role Required Code */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground">
-              {ar ? "كود / مفتاح الوظيفة (Role Key):" : "Role Key (System Identifier):"}
+              {ar
+                ? "كود / مفتاح الوظيفة (Role Key):"
+                : "Role Key (System Identifier):"}
             </label>
             <Input
               placeholder="e.g. housing_manager, general_manager"
               value={stepForm.roleRequired}
               onChange={(e) =>
-                setStepForm((prev) => ({ ...prev, roleRequired: e.target.value }))
+                setStepForm((prev) => ({
+                  ...prev,
+                  roleRequired: e.target.value,
+                }))
               }
               className="font-mono text-xs"
             />
@@ -134,13 +156,22 @@ export function renderSignatureStepDialog(s: PoliciesSectionState) {
           {/* Description / Instructions */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground">
-              {ar ? "ملاحظات وتوجيهات الخطوة (اختياري):" : "Step Notes / Guidance (Optional):"}
+              {ar
+                ? "ملاحظات وتوجيهات الخطوة (اختياري):"
+                : "Step Notes / Guidance (Optional):"}
             </label>
             <Input
-              placeholder={ar ? "مثال: مراجعة المستندات والأهلية..." : "e.g. Review documents and eligibility..."}
+              placeholder={
+                ar
+                  ? "مثال: مراجعة المستندات والأهلية..."
+                  : "e.g. Review documents and eligibility..."
+              }
               value={stepForm.description}
               onChange={(e) =>
-                setStepForm((prev) => ({ ...prev, description: e.target.value }))
+                setStepForm((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
               }
               className="text-xs"
             />

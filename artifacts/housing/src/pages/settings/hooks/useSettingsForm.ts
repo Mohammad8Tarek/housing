@@ -105,7 +105,7 @@ export const settingsSchema = z.object({
         capacity: z.coerce.number().min(1).max(20),
         allowEntire: z.boolean().default(false),
         description: z.string().optional(),
-      })
+      }),
     )
     .default([]),
   jobLevelPolicies: z
@@ -118,7 +118,7 @@ export const settingsSchema = z.object({
         allowedCapacities: z.array(z.coerce.number()).min(1),
         allowEntire: z.boolean().default(false),
         description: z.string().optional(),
-      })
+      }),
     )
     .default(DEFAULT_JOB_LEVEL_POLICIES),
   policyDepartmentClustering: z.boolean().default(true),
@@ -142,7 +142,7 @@ export const settingsSchema = z.object({
         labelAr: z.string(),
         labelEn: z.string(),
         isMandatory: z.boolean().default(true),
-      })
+      }),
     )
     .default([]),
 
@@ -287,14 +287,27 @@ export function useSettingsForm() {
 
     const payload = {
       ...data,
-      policyLevel0Capacity: l0?.allowedCapacities?.length ? Math.max(...l0.allowedCapacities) : data.policyLevel0Capacity,
-      policyLevel0AllowEntire: l0 != null ? l0.allowEntire : data.policyLevel0AllowEntire,
-      policyLevel1Capacity: l1?.allowedCapacities?.length ? Math.max(...l1.allowedCapacities) : data.policyLevel1Capacity,
-      policyLevel1AllowEntire: l1 != null ? l1.allowEntire : data.policyLevel1AllowEntire,
-      policyLevel2Capacity: l2?.allowedCapacities?.length ? Math.max(...l2.allowedCapacities) : data.policyLevel2Capacity,
-      policyLevel2AllowEntire: l2 != null ? l2.allowEntire : data.policyLevel2AllowEntire,
-      policyLevel3Capacity: l3?.allowedCapacities?.length ? Math.max(...l3.allowedCapacities) : data.policyLevel3Capacity,
-      policyLevel4Capacity: l4?.allowedCapacities?.length ? Math.max(...l4.allowedCapacities) : data.policyLevel4Capacity,
+      policyLevel0Capacity: l0?.allowedCapacities?.length
+        ? Math.max(...l0.allowedCapacities)
+        : data.policyLevel0Capacity,
+      policyLevel0AllowEntire:
+        l0 != null ? l0.allowEntire : data.policyLevel0AllowEntire,
+      policyLevel1Capacity: l1?.allowedCapacities?.length
+        ? Math.max(...l1.allowedCapacities)
+        : data.policyLevel1Capacity,
+      policyLevel1AllowEntire:
+        l1 != null ? l1.allowEntire : data.policyLevel1AllowEntire,
+      policyLevel2Capacity: l2?.allowedCapacities?.length
+        ? Math.max(...l2.allowedCapacities)
+        : data.policyLevel2Capacity,
+      policyLevel2AllowEntire:
+        l2 != null ? l2.allowEntire : data.policyLevel2AllowEntire,
+      policyLevel3Capacity: l3?.allowedCapacities?.length
+        ? Math.max(...l3.allowedCapacities)
+        : data.policyLevel3Capacity,
+      policyLevel4Capacity: l4?.allowedCapacities?.length
+        ? Math.max(...l4.allowedCapacities)
+        : data.policyLevel4Capacity,
       propertyId: selectedPropertyId,
     };
 

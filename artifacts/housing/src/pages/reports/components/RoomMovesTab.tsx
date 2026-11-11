@@ -3,7 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
-import { ArrowLeftRight, Clock, RefreshCw, Search, ShieldCheck, User, Wrench, TrendingUp, Sparkles } from "lucide-react";
+import {
+  ArrowLeftRight,
+  Clock,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  User,
+  Wrench,
+  TrendingUp,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
@@ -33,7 +43,10 @@ interface RoomMovesTabProps {
   activePropertyId?: number | string | null;
   properties?: any[];
   buildings?: any[];
-  onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
+  onRegisterExport?: (actions: {
+    exportExcel?: () => void;
+    exportPDF?: () => void;
+  }) => void;
 }
 
 export function RoomMovesTab({
@@ -44,7 +57,9 @@ export function RoomMovesTab({
   onRegisterExport,
 }: RoomMovesTabProps) {
   const [selectedProp, setSelectedProp] = useState<string>(
-    activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all"
+    activePropertyId && activePropertyId !== "all"
+      ? String(activePropertyId)
+      : "all",
   );
   const [selectedBuilding, setSelectedBuilding] = useState<string>("all");
   const [selectedReason, setSelectedReason] = useState<string>("all");
@@ -63,12 +78,27 @@ export function RoomMovesTab({
     { key: "oldRoom", header: "Old Room", headerAr: "الغرفة السابقة" },
     { key: "reason", header: "Reason", headerAr: "سبب النقل" },
     { key: "user", header: "User", headerAr: "بواسطة" },
-    { key: "datetime", header: "Date & Time", headerAr: "تاريخ ووقت النقل", type: "date" },
+    {
+      key: "datetime",
+      header: "Date & Time",
+      headerAr: "تاريخ ووقت النقل",
+      type: "date",
+    },
   ];
 
-  const queryPropertyId = selectedProp !== "all" ? selectedProp : (activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all");
+  const queryPropertyId =
+    selectedProp !== "all"
+      ? selectedProp
+      : activePropertyId && activePropertyId !== "all"
+        ? String(activePropertyId)
+        : "all";
 
-  const { data: responseData, isLoading, refetch, isFetching } = useQuery({
+  const {
+    data: responseData,
+    isLoading,
+    refetch,
+    isFetching,
+  } = useQuery({
     queryKey: [
       "room-moves-report",
       queryPropertyId,
@@ -82,12 +112,16 @@ export function RoomMovesTab({
     ],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (queryPropertyId && queryPropertyId !== "all") params.append("propertyId", queryPropertyId);
-      if (selectedBuilding && selectedBuilding !== "all") params.append("building", selectedBuilding);
-      if (selectedReason && selectedReason !== "all") params.append("reasonCode", selectedReason);
+      if (queryPropertyId && queryPropertyId !== "all")
+        params.append("propertyId", queryPropertyId);
+      if (selectedBuilding && selectedBuilding !== "all")
+        params.append("building", selectedBuilding);
+      if (selectedReason && selectedReason !== "all")
+        params.append("reasonCode", selectedReason);
       if (fromDate) params.append("fromDate", fromDate);
       if (toDate) params.append("toDate", toDate);
-      if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
+      if (debouncedSearch.trim())
+        params.append("search", debouncedSearch.trim());
       params.append("page", String(currentPage));
       params.append("limit", String(pageSize));
 
@@ -120,25 +154,37 @@ export function RoomMovesTab({
       [ar ? "القسم" : "Department"]: r.department || "-",
       [ar ? "الوظيفة" : "Job Title"]: r.jobTitle || "-",
       [ar ? "الغرفة السابقة" : "Old Room"]: r.oldRoomNumber || "-",
-      [ar ? "سرير قديم" : "Old Bed"]: r.oldBedNumber ? `#${r.oldBedNumber}` : "-",
+      [ar ? "سرير قديم" : "Old Bed"]: r.oldBedNumber
+        ? `#${r.oldBedNumber}`
+        : "-",
       [ar ? "المبنى القديم" : "Old Building"]: r.oldBuildingName || "-",
       [ar ? "فئة الغرفة القديمة" : "Old Room Type"]: r.oldRoomType || "-",
       [ar ? "الغرفة الجديدة" : "New Room"]: r.newRoomNumber || "-",
-      [ar ? "سرير جديد" : "New Bed"]: r.newBedNumber ? `#${r.newBedNumber}` : "-",
+      [ar ? "سرير جديد" : "New Bed"]: r.newBedNumber
+        ? `#${r.newBedNumber}`
+        : "-",
       [ar ? "المبنى الجديد" : "New Building"]: r.newBuildingName || "-",
       [ar ? "فئة الغرفة الجديدة" : "New Room Type"]: r.newRoomType || "-",
       [ar ? "كود السبب" : "Reason Code"]: r.reasonCode || "-",
       [ar ? "سبب النقل" : "Move Reason"]: r.moveReason || "-",
       [ar ? "منفذ الحركة (User)" : "Action By"]: r.actionByUsername || "-",
-      [ar ? "تاريخ وتوقيت النقل" : "Date & Time"]: formatDateTimeCell(r.createdAt),
+      [ar ? "تاريخ وتوقيت النقل" : "Date & Time"]: formatDateTimeCell(
+        r.createdAt,
+      ),
     }));
 
     const ws = XLSX.utils.json_to_sheet(excelRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Room Moves Report");
 
-    const propName = properties.find((p) => String(p.id) === String(queryPropertyId))?.name || "All_Properties";
-    writeSunriseWorkbook(wb, getExportFileName(`Room_Moves_Report_${propName}`, "xlsx"), { rtl: ar });
+    const propName =
+      properties.find((p) => String(p.id) === String(queryPropertyId))?.name ||
+      "All_Properties";
+    writeSunriseWorkbook(
+      wb,
+      getExportFileName(`Room_Moves_Report_${propName}`, "xlsx"),
+      { rtl: ar },
+    );
   };
 
   function formatDateTimeCell(dt: string | Date | null | undefined): string {
@@ -156,19 +202,29 @@ export function RoomMovesTab({
   const handlePrintReport = () => {
     const propName =
       queryPropertyId !== "all"
-        ? properties.find((p) => String(p.id) === String(queryPropertyId))?.displayName ||
-          properties.find((p) => String(p.id) === String(queryPropertyId))?.name ||
+        ? properties.find((p) => String(p.id) === String(queryPropertyId))
+            ?.displayName ||
+          properties.find((p) => String(p.id) === String(queryPropertyId))
+            ?.name ||
           `Property #${queryPropertyId}`
-        : ar ? "كافة الفنادق والسكنات" : "All Properties";
+        : ar
+          ? "كافة الفنادق والسكنات"
+          : "All Properties";
 
-    const rows = (allMovesList.length > 0 ? allMovesList : movesList).map((r: any, idx: number) => ({
-      newRoom: r.newRoomNumber ? `Rm ${r.newRoomNumber}${r.newBedNumber ? ` (B#${r.newBedNumber})` : ""}` : "-",
-      resident: r.residentName || "-",
-      oldRoom: r.oldRoomNumber ? `Rm ${r.oldRoomNumber}${r.oldBedNumber ? ` (B#${r.oldBedNumber})` : ""}` : "-",
-      reason: r.moveReason || r.reasonCode || "-",
-      user: r.actionByUsername || "System",
-      datetime: formatDateTimeCell(r.createdAt),
-    }));
+    const rows = (allMovesList.length > 0 ? allMovesList : movesList).map(
+      (r: any, idx: number) => ({
+        newRoom: r.newRoomNumber
+          ? `Rm ${r.newRoomNumber}${r.newBedNumber ? ` (B#${r.newBedNumber})` : ""}`
+          : "-",
+        resident: r.residentName || "-",
+        oldRoom: r.oldRoomNumber
+          ? `Rm ${r.oldRoomNumber}${r.oldBedNumber ? ` (B#${r.oldBedNumber})` : ""}`
+          : "-",
+        reason: r.moveReason || r.reasonCode || "-",
+        user: r.actionByUsername || "System",
+        datetime: formatDateTimeCell(r.createdAt),
+      }),
+    );
 
     if (!rows.length) {
       return;
@@ -257,7 +313,11 @@ export function RoomMovesTab({
             </div>
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
-              <span>{ar ? "سجل تدقيق كامل للغرف والأسرة" : "Full audit log of room transitions"}</span>
+              <span>
+                {ar
+                  ? "سجل تدقيق كامل للغرف والأسرة"
+                  : "Full audit log of room transitions"}
+              </span>
             </p>
           </div>
         </div>
@@ -277,7 +337,11 @@ export function RoomMovesTab({
               {stats.todayMoves}
             </div>
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
-              <span>{ar ? "تحركات مسجلة خلال تاريخ اليوم" : "Room moves registered today"}</span>
+              <span>
+                {ar
+                  ? "تحركات مسجلة خلال تاريخ اليوم"
+                  : "Room moves registered today"}
+              </span>
             </p>
           </div>
         </div>
@@ -297,7 +361,11 @@ export function RoomMovesTab({
               {stats.reasonsBreakdown?.MAINTENANCE || 0}
             </div>
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
-              <span>{ar ? "غرف تم إخلاؤها للصيانة العاجلة" : "Rooms vacated for urgent repair"}</span>
+              <span>
+                {ar
+                  ? "غرف تم إخلاؤها للصيانة العاجلة"
+                  : "Rooms vacated for urgent repair"}
+              </span>
             </p>
           </div>
         </div>
@@ -314,10 +382,15 @@ export function RoomMovesTab({
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black tracking-tight text-foreground">
-              {(stats.reasonsBreakdown?.UPGRADE || 0) + (stats.reasonsBreakdown?.SHIFT_CHANGE || 0)}
+              {(stats.reasonsBreakdown?.UPGRADE || 0) +
+                (stats.reasonsBreakdown?.SHIFT_CHANGE || 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
-              <span>{ar ? "ترقية درجات وتوافق ورديات" : "Job upgrades & shift changes"}</span>
+              <span>
+                {ar
+                  ? "ترقية درجات وتوافق ورديات"
+                  : "Job upgrades & shift changes"}
+              </span>
             </p>
           </div>
         </div>
@@ -332,12 +405,22 @@ export function RoomMovesTab({
               <Label className="text-xs font-medium text-muted-foreground">
                 {ar ? "السكن / الفندق" : "Property"}
               </Label>
-              <Select value={selectedProp} onValueChange={(val) => { setSelectedProp(val); setCurrentPage(1); }}>
+              <Select
+                value={selectedProp}
+                onValueChange={(val) => {
+                  setSelectedProp(val);
+                  setCurrentPage(1);
+                }}
+              >
                 <SelectTrigger className="text-xs h-9">
-                  <SelectValue placeholder={ar ? "كافة السكنات" : "All Properties"} />
+                  <SelectValue
+                    placeholder={ar ? "كافة السكنات" : "All Properties"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{ar ? "كافة السكنات والفنادق" : "All Properties"}</SelectItem>
+                  <SelectItem value="all">
+                    {ar ? "كافة السكنات والفنادق" : "All Properties"}
+                  </SelectItem>
                   {properties.map((p) => (
                     <SelectItem key={p.id} value={String(p.id)}>
                       {p.displayName || p.name}
@@ -352,12 +435,22 @@ export function RoomMovesTab({
               <Label className="text-xs font-medium text-muted-foreground">
                 {ar ? "المبنى" : "Building"}
               </Label>
-              <Select value={selectedBuilding} onValueChange={(val) => { setSelectedBuilding(val); setCurrentPage(1); }}>
+              <Select
+                value={selectedBuilding}
+                onValueChange={(val) => {
+                  setSelectedBuilding(val);
+                  setCurrentPage(1);
+                }}
+              >
                 <SelectTrigger className="text-xs h-9">
-                  <SelectValue placeholder={ar ? "كافة المباني" : "All Buildings"} />
+                  <SelectValue
+                    placeholder={ar ? "كافة المباني" : "All Buildings"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{ar ? "كافة المباني" : "All Buildings"}</SelectItem>
+                  <SelectItem value="all">
+                    {ar ? "كافة المباني" : "All Buildings"}
+                  </SelectItem>
                   {buildings.map((b) => (
                     <SelectItem key={b.id} value={b.name}>
                       {b.name}
@@ -372,17 +465,37 @@ export function RoomMovesTab({
               <Label className="text-xs font-medium text-muted-foreground">
                 {ar ? "سبب النقل" : "Move Reason"}
               </Label>
-              <Select value={selectedReason} onValueChange={(val) => { setSelectedReason(val); setCurrentPage(1); }}>
+              <Select
+                value={selectedReason}
+                onValueChange={(val) => {
+                  setSelectedReason(val);
+                  setCurrentPage(1);
+                }}
+              >
                 <SelectTrigger className="text-xs h-9">
-                  <SelectValue placeholder={ar ? "كافة الأسباب" : "All Reasons"} />
+                  <SelectValue
+                    placeholder={ar ? "كافة الأسباب" : "All Reasons"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{ar ? "كافة الأسباب" : "All Reasons"}</SelectItem>
-                  <SelectItem value="MAINTENANCE">{ar ? "صيانة وعطل (Maintenance)" : "Maintenance"}</SelectItem>
-                  <SelectItem value="UPGRADE">{ar ? "ترقية فئة السكن (Upgrade)" : "Upgrade"}</SelectItem>
-                  <SelectItem value="SHIFT_CHANGE">{ar ? "تغيير وردية (Shift Change)" : "Shift Change"}</SelectItem>
-                  <SelectItem value="REQUEST">{ar ? "طلب شخصي (Request)" : "Personal Request"}</SelectItem>
-                  <SelectItem value="ADMINISTRATIVE">{ar ? "إداري وتسكين عام" : "Administrative"}</SelectItem>
+                  <SelectItem value="all">
+                    {ar ? "كافة الأسباب" : "All Reasons"}
+                  </SelectItem>
+                  <SelectItem value="MAINTENANCE">
+                    {ar ? "صيانة وعطل (Maintenance)" : "Maintenance"}
+                  </SelectItem>
+                  <SelectItem value="UPGRADE">
+                    {ar ? "ترقية فئة السكن (Upgrade)" : "Upgrade"}
+                  </SelectItem>
+                  <SelectItem value="SHIFT_CHANGE">
+                    {ar ? "تغيير وردية (Shift Change)" : "Shift Change"}
+                  </SelectItem>
+                  <SelectItem value="REQUEST">
+                    {ar ? "طلب شخصي (Request)" : "Personal Request"}
+                  </SelectItem>
+                  <SelectItem value="ADMINISTRATIVE">
+                    {ar ? "إداري وتسكين عام" : "Administrative"}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -394,7 +507,10 @@ export function RoomMovesTab({
               </Label>
               <DateInput
                 value={fromDate}
-                onChange={(iso) => { setFromDate(iso); setCurrentPage(1); }}
+                onChange={(iso) => {
+                  setFromDate(iso);
+                  setCurrentPage(1);
+                }}
                 className="text-xs h-9"
               />
             </div>
@@ -406,7 +522,10 @@ export function RoomMovesTab({
               </Label>
               <DateInput
                 value={toDate}
-                onChange={(iso) => { setToDate(iso); setCurrentPage(1); }}
+                onChange={(iso) => {
+                  setToDate(iso);
+                  setCurrentPage(1);
+                }}
                 className="text-xs h-9"
               />
             </div>
@@ -433,7 +552,10 @@ export function RoomMovesTab({
           <Input
             type="text"
             value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
             placeholder={
               ar
                 ? "ابحث برقم الغرفة (قديمة أو جديدة)، اسم الموظف، كود الموظف، أو اسم المشرف المنفذ..."
@@ -450,7 +572,11 @@ export function RoomMovesTab({
           <div>
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <ArrowLeftRight className="w-4 h-4 text-primary" />
-              <span>{ar ? "كشف سجل حركات نقل الغرف (Room Moves Log)" : "Room Moves & Transfers PMS Manifest"}</span>
+              <span>
+                {ar
+                  ? "كشف سجل حركات نقل الغرف (Room Moves Log)"
+                  : "Room Moves & Transfers PMS Manifest"}
+              </span>
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               {ar
@@ -466,26 +592,47 @@ export function RoomMovesTab({
         {movesList.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground text-xs space-y-2">
             <ArrowLeftRight className="w-8 h-8 mx-auto opacity-30" />
-            <p>{ar ? "لا توجد حركات نقل مسجلة مطابقة لمعايير البحث." : "No room moves found matching current criteria."}</p>
+            <p>
+              {ar
+                ? "لا توجد حركات نقل مسجلة مطابقة لمعايير البحث."
+                : "No room moves found matching current criteria."}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 text-xs">
-                  <TableHead className="w-12 text-center font-bold">#</TableHead>
-                  <TableHead className="w-44 font-bold">{ar ? "الغرفة الجديدة (To)" : "New Room"}</TableHead>
-                  <TableHead className="w-56 font-bold">{ar ? "الموظف والمقيم" : "Resident / Staff"}</TableHead>
-                  <TableHead className="w-44 font-bold">{ar ? "الغرفة السابقة (From)" : "Old Room"}</TableHead>
-                  <TableHead className="font-bold">{ar ? "سبب النقل (Reason Code)" : "Move Reason"}</TableHead>
-                  <TableHead className="w-36 font-bold">{ar ? "المنفذ (User)" : "Action By"}</TableHead>
-                  <TableHead className="w-36 text-end font-bold">{ar ? "التاريخ والوقت" : "Date & Time"}</TableHead>
+                  <TableHead className="w-12 text-center font-bold">
+                    #
+                  </TableHead>
+                  <TableHead className="w-44 font-bold">
+                    {ar ? "الغرفة الجديدة (To)" : "New Room"}
+                  </TableHead>
+                  <TableHead className="w-56 font-bold">
+                    {ar ? "الموظف والمقيم" : "Resident / Staff"}
+                  </TableHead>
+                  <TableHead className="w-44 font-bold">
+                    {ar ? "الغرفة السابقة (From)" : "Old Room"}
+                  </TableHead>
+                  <TableHead className="font-bold">
+                    {ar ? "سبب النقل (Reason Code)" : "Move Reason"}
+                  </TableHead>
+                  <TableHead className="w-36 font-bold">
+                    {ar ? "المنفذ (User)" : "Action By"}
+                  </TableHead>
+                  <TableHead className="w-36 text-end font-bold">
+                    {ar ? "التاريخ والوقت" : "Date & Time"}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {movesList.map((m: any, idx: number) => {
                   return (
-                    <TableRow key={m.id || idx} className="hover:bg-muted/30 text-xs">
+                    <TableRow
+                      key={m.id || idx}
+                      className="hover:bg-muted/30 text-xs"
+                    >
                       {/* # Number */}
                       <TableCell className="text-center font-mono text-xs text-muted-foreground">
                         {(currentPage - 1) * pageSize + idx + 1}
@@ -499,8 +646,13 @@ export function RoomMovesTab({
                               {m.newRoomNumber}
                             </span>
                             {m.newBedNumber && (
-                              <Badge variant="outline" className="px-1.5 py-0 text-[10px] bg-primary/5 text-primary border-primary/30">
-                                {ar ? `سرير ${m.newBedNumber}` : `Bed ${m.newBedNumber}`}
+                              <Badge
+                                variant="outline"
+                                className="px-1.5 py-0 text-[10px] bg-primary/5 text-primary border-primary/30"
+                              >
+                                {ar
+                                  ? `سرير ${m.newBedNumber}`
+                                  : `Bed ${m.newBedNumber}`}
                               </Badge>
                             )}
                           </div>
@@ -536,8 +688,13 @@ export function RoomMovesTab({
                               {m.oldRoomNumber}
                             </span>
                             {m.oldBedNumber && (
-                              <Badge variant="outline" className="px-1 py-0 text-[9px] bg-muted text-muted-foreground">
-                                {ar ? `سرير ${m.oldBedNumber}` : `Bed ${m.oldBedNumber}`}
+                              <Badge
+                                variant="outline"
+                                className="px-1 py-0 text-[9px] bg-muted text-muted-foreground"
+                              >
+                                {ar
+                                  ? `سرير ${m.oldBedNumber}`
+                                  : `Bed ${m.oldBedNumber}`}
                               </Badge>
                             )}
                           </div>
@@ -589,7 +746,9 @@ export function RoomMovesTab({
         {/* Footer info matching reference image */}
         <div className="p-3 border-t bg-muted/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-muted-foreground">
           <div className="flex items-center gap-2">
-            <span className="font-mono">Filter: {fromDate || "All"} to {toDate || "All"}</span>
+            <span className="font-mono">
+              Filter: {fromDate || "All"} to {toDate || "All"}
+            </span>
             <span>•</span>
             <span>Reason: {selectedReason}</span>
             <span>•</span>
@@ -601,7 +760,10 @@ export function RoomMovesTab({
             pageSize={pageSize}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
-            onPageSizeChange={(newSize) => { setPageSize(newSize); setCurrentPage(1); }}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
           />
         </div>
       </div>
@@ -611,25 +773,49 @@ export function RoomMovesTab({
         onOpenChange={setIsStudioOpen}
         title="Room Moves & Transfers Report"
         titleAr="كشف حركات نقل وتغيير الغرف"
-        subtitle={ar ? "سجل تدقيق وإدارة انتقالات الموظفين بين الغرف والأسرة" : "PMS Room & Bed Movement Audit Trail"}
+        subtitle={
+          ar
+            ? "سجل تدقيق وإدارة انتقالات الموظفين بين الغرف والأسرة"
+            : "PMS Room & Bed Movement Audit Trail"
+        }
         propertyName={
           queryPropertyId !== "all"
-            ? properties.find((p) => String(p.id) === String(queryPropertyId))?.displayName ||
-              properties.find((p) => String(p.id) === String(queryPropertyId))?.name
+            ? properties.find((p) => String(p.id) === String(queryPropertyId))
+                ?.displayName ||
+              properties.find((p) => String(p.id) === String(queryPropertyId))
+                ?.name
             : undefined
         }
         availableColumns={studioColumns}
         allRows={studioRows}
         kpis={[
-          { label: "Total Moves", labelAr: "إجمالي حركات النقل", value: stats.totalMoves },
-          { label: "Today's Moves", labelAr: "حركات اليوم", value: stats.todayMoves },
-          { label: "Maintenance", labelAr: "بسبب الصيانة", value: stats.reasonsBreakdown?.MAINTENANCE || 0 },
-          { label: "Upgrades", labelAr: "بسبب الترقية", value: stats.reasonsBreakdown?.UPGRADE || 0 },
+          {
+            label: "Total Moves",
+            labelAr: "إجمالي حركات النقل",
+            value: stats.totalMoves,
+          },
+          {
+            label: "Today's Moves",
+            labelAr: "حركات اليوم",
+            value: stats.todayMoves,
+          },
+          {
+            label: "Maintenance",
+            labelAr: "بسبب الصيانة",
+            value: stats.reasonsBreakdown?.MAINTENANCE || 0,
+          },
+          {
+            label: "Upgrades",
+            labelAr: "بسبب الترقية",
+            value: stats.reasonsBreakdown?.UPGRADE || 0,
+          },
         ]}
         filtersSummary={{
           ...(fromDate ? { [ar ? "من تاريخ" : "From"]: fromDate } : {}),
           ...(toDate ? { [ar ? "إلى تاريخ" : "To"]: toDate } : {}),
-          ...(selectedReason !== "all" ? { [ar ? "السبب" : "Reason"]: selectedReason } : {}),
+          ...(selectedReason !== "all"
+            ? { [ar ? "السبب" : "Reason"]: selectedReason }
+            : {}),
         }}
         initialLanguage={ar ? "ar" : "en"}
       />

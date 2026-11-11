@@ -14,7 +14,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
-import { computeOccupancyForecast, type OccupancyForecast } from "@workspace/report-rows";
+import {
+  computeOccupancyForecast,
+  type OccupancyForecast,
+} from "@workspace/report-rows";
 import {
   Table,
   TableBody,
@@ -33,7 +36,14 @@ const BROWSER_TIME_ZONE = (() => {
 })();
 
 const emptyForecast = (ar: boolean) =>
-  computeOccupancyForecast({ ar, rooms: [], assignments: [], reservations: [], horizonDays: 0, buildingId: "all" });
+  computeOccupancyForecast({
+    ar,
+    rooms: [],
+    assignments: [],
+    reservations: [],
+    horizonDays: 0,
+    buildingId: "all",
+  });
 const EMPTY_FORECAST_AR = emptyForecast(true);
 const EMPTY_FORECAST_EN = emptyForecast(false);
 
@@ -48,7 +58,10 @@ interface OccupancyForecastTabProps {
   buildings: any[];
   onExportPDF?: () => void;
   onExportExcel?: () => void;
-  onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
+  onRegisterExport?: (actions: {
+    exportExcel?: () => void;
+    exportPDF?: () => void;
+  }) => void;
 }
 
 export function OccupancyForecastTab({
@@ -75,14 +88,20 @@ export function OccupancyForecastTab({
 
   const activePropObj = useMemo(() => {
     return properties.find(
-      (p: any) => String(p.id) === String(activePropertyId)
+      (p: any) => String(p.id) === String(activePropertyId),
     );
   }, [properties, activePropertyId]);
 
   // Computed by the API in the browser's time zone (same code as before, now
   // in @workspace/report-rows), so this tab needs no stay/reservation lists.
   const forecastQuery = useQuery({
-    queryKey: ["report-occupancy-forecast", propId, horizonDays, selectedBuildingId, ar],
+    queryKey: [
+      "report-occupancy-forecast",
+      propId,
+      horizonDays,
+      selectedBuildingId,
+      ar,
+    ],
     queryFn: () => {
       const qs = new URLSearchParams({
         propertyId: String(propId),
@@ -91,7 +110,9 @@ export function OccupancyForecastTab({
         buildingId: selectedBuildingId,
       });
       if (BROWSER_TIME_ZONE) qs.set("tz", BROWSER_TIME_ZONE);
-      return customFetch<OccupancyForecast>(`/api/reports/occupancy-forecast?${qs}`);
+      return customFetch<OccupancyForecast>(
+        `/api/reports/occupancy-forecast?${qs}`,
+      );
     },
     enabled: !!propId,
     placeholderData: keepPreviousData,
@@ -127,10 +148,17 @@ export function OccupancyForecastTab({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-bold tracking-tight">
-                  {ar ? "توقعات الإشغال والأسرة المتاحة" : "Occupancy & Bed Availability Forecast"}
+                  {ar
+                    ? "توقعات الإشغال والأسرة المتاحة"
+                    : "Occupancy & Bed Availability Forecast"}
                 </h2>
-                <Badge variant="outline" className="text-xs border-violet-400/40 text-violet-200 bg-violet-500/10">
-                  {ar ? `أفق ${horizonDays} يوماً` : `${horizonDays}-Day Horizon`}
+                <Badge
+                  variant="outline"
+                  className="text-xs border-violet-400/40 text-violet-200 bg-violet-500/10"
+                >
+                  {ar
+                    ? `أفق ${horizonDays} يوماً`
+                    : `${horizonDays}-Day Horizon`}
                 </Badge>
               </div>
               <p className="text-xs text-violet-200/80 mt-1">
@@ -149,7 +177,9 @@ export function OccupancyForecastTab({
               aria-label={ar ? "تصفية حسب المبنى" : "Filter by building"}
               className="bg-violet-950/60 text-white text-xs border border-violet-700/50 rounded-lg px-3 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-violet-400"
             >
-              <option value="all">{ar ? "كافة المباني (السكن بالكامل)" : "All Buildings"}</option>
+              <option value="all">
+                {ar ? "كافة المباني (السكن بالكامل)" : "All Buildings"}
+              </option>
               {buildings.map((b: any) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
@@ -163,7 +193,9 @@ export function OccupancyForecastTab({
                 type="button"
                 onClick={() => setHorizonDays(7)}
                 className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                  horizonDays === 7 ? "bg-violet-600 text-white shadow-xs" : "text-violet-300 hover:text-white"
+                  horizonDays === 7
+                    ? "bg-violet-600 text-white shadow-xs"
+                    : "text-violet-300 hover:text-white"
                 }`}
               >
                 {ar ? "7 أيام" : "7 Days"}
@@ -172,7 +204,9 @@ export function OccupancyForecastTab({
                 type="button"
                 onClick={() => setHorizonDays(14)}
                 className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                  horizonDays === 14 ? "bg-violet-600 text-white shadow-xs" : "text-violet-300 hover:text-white"
+                  horizonDays === 14
+                    ? "bg-violet-600 text-white shadow-xs"
+                    : "text-violet-300 hover:text-white"
                 }`}
               >
                 {ar ? "14 يوماً" : "14 Days"}
@@ -181,7 +215,9 @@ export function OccupancyForecastTab({
                 type="button"
                 onClick={() => setHorizonDays(30)}
                 className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                  horizonDays === 30 ? "bg-violet-600 text-white shadow-xs" : "text-violet-300 hover:text-white"
+                  horizonDays === 30
+                    ? "bg-violet-600 text-white shadow-xs"
+                    : "text-violet-300 hover:text-white"
                 }`}
               >
                 {ar ? "30 يوماً" : "30 Days"}
@@ -195,7 +231,9 @@ export function OccupancyForecastTab({
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
         <div className="border rounded-2xl p-3.5 bg-card/75 shadow-xs border-border/50 backdrop-blur-xl flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground mb-1">
-            <span>{ar ? "متوسط الإشغال المتوقع" : "Avg Projected Occupancy"}</span>
+            <span>
+              {ar ? "متوسط الإشغال المتوقع" : "Avg Projected Occupancy"}
+            </span>
             <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600">
               <TrendingUp className="w-3.5 h-3.5" />
             </div>
@@ -204,7 +242,9 @@ export function OccupancyForecastTab({
             {aggregateMetrics.avgOcc}%
           </p>
           <p className="text-[10px] text-muted-foreground mt-0.5">
-            {ar ? `خلال ${horizonDays} يوماً مقبلة` : `Across ${horizonDays} days`}
+            {ar
+              ? `خلال ${horizonDays} يوماً مقبلة`
+              : `Across ${horizonDays} days`}
           </p>
         </div>
 
@@ -218,7 +258,10 @@ export function OccupancyForecastTab({
           <p className="text-2xl font-extrabold tracking-tight text-rose-600 dark:text-rose-400">
             {aggregateMetrics.peakOcc}%
           </p>
-          <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title={aggregateMetrics.peakDate}>
+          <p
+            className="text-[10px] text-muted-foreground mt-0.5 truncate"
+            title={aggregateMetrics.peakDate}
+          >
             {aggregateMetrics.peakDate}
           </p>
         </div>
@@ -264,7 +307,9 @@ export function OccupancyForecastTab({
             {aggregateMetrics.minVacant}
           </p>
           <p className="text-[10px] text-muted-foreground mt-0.5">
-            {ar ? `من إجمالي ${totalCapacity} سرير` : `Of ${totalCapacity} total beds`}
+            {ar
+              ? `من إجمالي ${totalCapacity} سرير`
+              : `Of ${totalCapacity} total beds`}
           </p>
         </div>
 
@@ -279,14 +324,18 @@ export function OccupancyForecastTab({
               )}
             </div>
           </div>
-          <p className={`text-2xl font-extrabold tracking-tight ${
-            aggregateMetrics.netChange > 0
-              ? "text-emerald-600"
-              : aggregateMetrics.netChange < 0
-              ? "text-amber-600"
-              : "text-foreground"
-          }`}>
-            {aggregateMetrics.netChange > 0 ? `+${aggregateMetrics.netChange}` : aggregateMetrics.netChange}
+          <p
+            className={`text-2xl font-extrabold tracking-tight ${
+              aggregateMetrics.netChange > 0
+                ? "text-emerald-600"
+                : aggregateMetrics.netChange < 0
+                  ? "text-amber-600"
+                  : "text-foreground"
+            }`}
+          >
+            {aggregateMetrics.netChange > 0
+              ? `+${aggregateMetrics.netChange}`
+              : aggregateMetrics.netChange}
           </p>
           <p className="text-[10px] text-muted-foreground mt-0.5">
             {ar ? "فارق القادمين عن المغادرين" : "Arrivals minus departures"}
@@ -300,7 +349,9 @@ export function OccupancyForecastTab({
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-violet-600" />
             <h3 className="font-bold text-sm text-foreground">
-              {ar ? `المسار البياني لنسبة الإشغال المتوقعة (${horizonDays} يوماً)` : `Projected Occupancy Trendline (${horizonDays} Days)`}
+              {ar
+                ? `المسار البياني لنسبة الإشغال المتوقعة (${horizonDays} يوماً)`
+                : `Projected Occupancy Trendline (${horizonDays} Days)`}
             </h3>
           </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -326,8 +377,8 @@ export function OccupancyForecastTab({
               d.occPercent >= 90
                 ? "bg-rose-500"
                 : d.occPercent >= 75
-                ? "bg-amber-500"
-                : "bg-emerald-500";
+                  ? "bg-amber-500"
+                  : "bg-emerald-500";
             return (
               <div
                 key={d.dateIso}
@@ -339,12 +390,18 @@ export function OccupancyForecastTab({
                 <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-t h-16 flex items-end overflow-hidden">
                   <div
                     className={`w-full transition-all duration-500 rounded-t ${barColor}`}
-                    style={{ height: `${Math.max(10, Math.min(100, d.occPercent))}%` }}
+                    style={{
+                      height: `${Math.max(10, Math.min(100, d.occPercent))}%`,
+                    }}
                   />
                 </div>
                 <div className="text-center mt-2">
-                  <p className="text-[10px] font-semibold text-foreground truncate">{d.dayName.slice(0, 3)}</p>
-                  <p className="text-[9px] font-mono text-muted-foreground">{d.dateDisplay.slice(0, 5)}</p>
+                  <p className="text-[10px] font-semibold text-foreground truncate">
+                    {d.dayName.slice(0, 3)}
+                  </p>
+                  <p className="text-[9px] font-mono text-muted-foreground">
+                    {d.dateDisplay.slice(0, 5)}
+                  </p>
                 </div>
               </div>
             );
@@ -358,11 +415,15 @@ export function OccupancyForecastTab({
           <div className="flex items-center gap-2">
             <Building className="w-4 h-4 text-violet-600" />
             <h3 className="font-bold text-sm text-foreground">
-              {ar ? "جدول سجل التوقعات اليومية (Daily Forecast Ledger)" : "Daily Forecast Ledger"}
+              {ar
+                ? "جدول سجل التوقعات اليومية (Daily Forecast Ledger)"
+                : "Daily Forecast Ledger"}
             </h3>
           </div>
           <span className="text-xs text-muted-foreground">
-            {ar ? `إجمالي السعة المتاحة: ${totalCapacity} سرير` : `Total Capacity: ${totalCapacity} Beds`}
+            {ar
+              ? `إجمالي السعة المتاحة: ${totalCapacity} سرير`
+              : `Total Capacity: ${totalCapacity} Beds`}
           </span>
         </div>
 
@@ -370,60 +431,97 @@ export function OccupancyForecastTab({
           <Table>
             <TableHeader>
               <TableRow className="bg-[#0F2A44] hover:bg-[#0F2A44] text-white">
-                <TableHead className="text-white">{ar ? "التاريخ واليوم" : "Date & Day"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "الوصول المتوقع (+ Due In)" : "Expected Arrivals"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "المغادرة المتوقعة (- Due Out)" : "Expected Departures"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "صافي الحركة" : "Net Shift"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "الأسرة المشغولة" : "Projected Occupied"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "الأسرة الشاغرة" : "Projected Vacant"}</TableHead>
-                <TableHead className="text-white text-center min-w-[140px]">{ar ? "نسبة الإشغال" : "Occupancy Rate"}</TableHead>
-                <TableHead className="text-white text-center">{ar ? "مستوى الضغط" : "Demand Level"}</TableHead>
+                <TableHead className="text-white">
+                  {ar ? "التاريخ واليوم" : "Date & Day"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "الوصول المتوقع (+ Due In)" : "Expected Arrivals"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "المغادرة المتوقعة (- Due Out)" : "Expected Departures"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "صافي الحركة" : "Net Shift"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "الأسرة المشغولة" : "Projected Occupied"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "الأسرة الشاغرة" : "Projected Vacant"}
+                </TableHead>
+                <TableHead className="text-white text-center min-w-[140px]">
+                  {ar ? "نسبة الإشغال" : "Occupancy Rate"}
+                </TableHead>
+                <TableHead className="text-white text-center">
+                  {ar ? "مستوى الضغط" : "Demand Level"}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {forecastData.map((row) => (
-                <TableRow key={row.dateIso} className="hover:bg-slate-50/80 dark:hover:bg-slate-900/40">
+                <TableRow
+                  key={row.dateIso}
+                  className="hover:bg-slate-50/80 dark:hover:bg-slate-900/40"
+                >
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800/50 flex flex-col items-center justify-center text-[10px] font-bold text-violet-700 dark:text-violet-300 shrink-0">
                         <span>{row.dateDisplay.slice(0, 2)}</span>
                       </div>
                       <div>
-                        <p className="font-bold text-sm text-foreground">{row.dayName}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{row.dateDisplay}</p>
+                        <p className="font-bold text-sm text-foreground">
+                          {row.dayName}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-mono">
+                          {row.dateDisplay}
+                        </p>
                       </div>
                     </div>
                   </TableCell>
 
                   <TableCell className="text-center">
                     {row.dayArrivals > 0 ? (
-                      <Badge variant="secondary" className="font-mono bg-emerald-50 text-emerald-700 border-emerald-200 font-bold">
+                      <Badge
+                        variant="secondary"
+                        className="font-mono bg-emerald-50 text-emerald-700 border-emerald-200 font-bold"
+                      >
                         +{row.dayArrivals}
                       </Badge>
                     ) : (
-                      <span className="text-xs text-muted-foreground font-mono">0</span>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        0
+                      </span>
                     )}
                   </TableCell>
 
                   <TableCell className="text-center">
                     {row.dayDepartures > 0 ? (
-                      <Badge variant="secondary" className="font-mono bg-rose-50 text-rose-700 border-rose-200 font-bold">
+                      <Badge
+                        variant="secondary"
+                        className="font-mono bg-rose-50 text-rose-700 border-rose-200 font-bold"
+                      >
                         -{row.dayDepartures}
                       </Badge>
                     ) : (
-                      <span className="text-xs text-muted-foreground font-mono">0</span>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        0
+                      </span>
                     )}
                   </TableCell>
 
                   <TableCell className="text-center">
-                    <span className={`font-mono text-xs font-bold ${
-                      row.netMovement > 0
-                        ? "text-emerald-600"
-                        : row.netMovement < 0
-                        ? "text-rose-600"
-                        : "text-muted-foreground"
-                    }`}>
-                      {row.netMovement > 0 ? `+${row.netMovement}` : row.netMovement}
+                    <span
+                      className={`font-mono text-xs font-bold ${
+                        row.netMovement > 0
+                          ? "text-emerald-600"
+                          : row.netMovement < 0
+                            ? "text-rose-600"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {row.netMovement > 0
+                        ? `+${row.netMovement}`
+                        : row.netMovement}
                     </span>
                   </TableCell>
 
@@ -437,11 +535,10 @@ export function OccupancyForecastTab({
 
                   <TableCell className="text-center">
                     <div className="flex items-center gap-2 justify-center">
-                      <span className="font-mono font-bold text-xs w-10 text-right">{row.occPercent}%</span>
-                      <Progress
-                        value={row.occPercent}
-                        className="w-20 h-2"
-                      />
+                      <span className="font-mono font-bold text-xs w-10 text-right">
+                        {row.occPercent}%
+                      </span>
+                      <Progress value={row.occPercent} className="w-20 h-2" />
                     </div>
                   </TableCell>
 
@@ -452,19 +549,27 @@ export function OccupancyForecastTab({
                         row.demand === "CRITICAL"
                           ? "bg-rose-100 text-rose-800 border-rose-300 font-bold"
                           : row.demand === "HIGH"
-                          ? "bg-amber-100 text-amber-800 border-amber-300 font-semibold"
-                          : row.demand === "LOW"
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
-                          : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            ? "bg-amber-100 text-amber-800 border-amber-300 font-semibold"
+                            : row.demand === "LOW"
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
+                              : "bg-emerald-50 text-emerald-700 border-emerald-200"
                       }
                     >
                       {row.demand === "CRITICAL"
-                        ? (ar ? "ذروة إشغال" : "Peak Demand")
+                        ? ar
+                          ? "ذروة إشغال"
+                          : "Peak Demand"
                         : row.demand === "HIGH"
-                        ? (ar ? "إشغال مرتفع" : "High Demand")
-                        : row.demand === "LOW"
-                        ? (ar ? "إشغال منخفض" : "Low Demand")
-                        : (ar ? "إشغال طبيعي" : "Normal Demand")}
+                          ? ar
+                            ? "إشغال مرتفع"
+                            : "High Demand"
+                          : row.demand === "LOW"
+                            ? ar
+                              ? "إشغال منخفض"
+                              : "Low Demand"
+                            : ar
+                              ? "إشغال طبيعي"
+                              : "Normal Demand"}
                     </Badge>
                   </TableCell>
                 </TableRow>

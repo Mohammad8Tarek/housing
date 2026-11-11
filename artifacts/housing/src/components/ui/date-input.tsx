@@ -263,16 +263,32 @@ export function DateInput({
 
   const presets: { key: string; label: string; iso: string }[] = [];
   if (isAllowed(todayIso)) {
-    presets.push({ key: "today", label: ar ? "اليوم" : "Today", iso: todayIso });
+    presets.push({
+      key: "today",
+      label: ar ? "اليوم" : "Today",
+      iso: todayIso,
+    });
   }
   if (isAllowed(tomorrowIso)) {
-    presets.push({ key: "tomorrow", label: ar ? "غداً" : "Tomorrow", iso: tomorrowIso });
+    presets.push({
+      key: "tomorrow",
+      label: ar ? "غداً" : "Tomorrow",
+      iso: tomorrowIso,
+    });
   }
   if (isAllowed(plus7Iso)) {
-    presets.push({ key: "plus7", label: ar ? "+7 أيام" : "+7 Days", iso: plus7Iso });
+    presets.push({
+      key: "plus7",
+      label: ar ? "+7 أيام" : "+7 Days",
+      iso: plus7Iso,
+    });
   }
   if (isAllowed(plus30Iso)) {
-    presets.push({ key: "plus30", label: ar ? "+30 يوم" : "+30 Days", iso: plus30Iso });
+    presets.push({
+      key: "plus30",
+      label: ar ? "+30 يوم" : "+30 Days",
+      iso: plus30Iso,
+    });
   }
 
   // Year options for the year selector
@@ -292,7 +308,9 @@ export function DateInput({
   const monthsList = ar ? MONTHS_AR : MONTHS_EN;
 
   return (
-    <div className={cn("relative inline-block w-full min-w-[140px]", className)}>
+    <div
+      className={cn("relative inline-block w-full min-w-[140px]", className)}
+    >
       <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverAnchor asChild>
           <div className="relative flex items-center w-full group/dateinput">
@@ -372,7 +390,12 @@ export function DateInput({
                 title={ar ? "عرض التقويم" : "Toggle calendar"}
                 aria-label="Toggle calendar"
               >
-                <ChevronRight className={cn("w-3.5 h-3.5 rotate-90 text-muted-foreground", open && "-rotate-90")} />
+                <ChevronRight
+                  className={cn(
+                    "w-3.5 h-3.5 rotate-90 text-muted-foreground",
+                    open && "-rotate-90",
+                  )}
+                />
               </button>
             </div>
           </div>
@@ -541,7 +564,7 @@ export function DateInput({
                 {ar ? "المحدد:" : "Selected:"}
               </span>
               <span className="font-mono font-medium text-foreground">
-                {value ? formatDate(value, "—") : (ar ? "لم يحدد" : "None")}
+                {value ? formatDate(value, "—") : ar ? "لم يحدد" : "None"}
               </span>
             </div>
             <Button
@@ -566,4 +589,3 @@ export function DateInput({
     </div>
   );
 }
-

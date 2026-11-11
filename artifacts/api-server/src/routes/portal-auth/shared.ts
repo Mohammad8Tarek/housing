@@ -20,7 +20,9 @@ export const BLOCKED_PROFILE_STATUSES = new Set([
   "INACTIVE",
 ]);
 
-export function isProfileActiveForPortal(status: string | null | undefined): boolean {
+export function isProfileActiveForPortal(
+  status: string | null | undefined,
+): boolean {
   if (!status) return true;
   return !BLOCKED_PROFILE_STATUSES.has(status.trim().toUpperCase());
 }
@@ -170,12 +172,9 @@ export const ForgotPasswordVerifySchema = z
     roomNumber: z.string().min(1, "Room number is required"),
     dateOfBirth: z.string().min(1, "Date of birth is required"),
   })
-  .refine(
-    (data) => Boolean((data.profileId || data.employeeId || "").trim()),
-    {
-      message: "Missing required fields",
-    },
-  );
+  .refine((data) => Boolean((data.profileId || data.employeeId || "").trim()), {
+    message: "Missing required fields",
+  });
 
 export const ForgotPasswordResetSchema = z.object({
   token: z.string().min(1),

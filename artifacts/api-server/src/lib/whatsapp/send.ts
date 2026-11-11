@@ -18,10 +18,14 @@ export const propertyBatchSentCount = new Map<number, number>();
  * - Invisible cryptographic fingerprinting on every payload
  */
 export async function processOutboxQueue(
-  propertyId: number
+  propertyId: number,
 ): Promise<{ processed: number; failed: number; pendingRemaining: number }> {
   if (isProcessingOutbox.get(propertyId)) {
-    return { processed: 0, failed: 0, pendingRemaining: await getPendingQueueCount(propertyId) };
+    return {
+      processed: 0,
+      failed: 0,
+      pendingRemaining: await getPendingQueueCount(propertyId),
+    };
   }
 
   isProcessingOutbox.set(propertyId, true);
@@ -30,7 +34,7 @@ export async function processOutboxQueue(
     const configRes = await pool.query(
       `SELECT provider, meta_access_token, meta_phone_number_id 
        FROM public.property_whatsapp_configs WHERE property_id = $1`,
-      [propertyId]
+      [propertyId],
     );
     const isMetaCloud = configRes.rows[0]?.provider === "meta_cloud";
 
@@ -38,7 +42,11 @@ export async function processOutboxQueue(
       const session = await getWhatsAppSession(propertyId);
       if (session.status !== "connected" || !session.sock) {
         // Offline: messages remain securely in whatsapp_outbox_queue with status 'PENDING'
-        return { processed: 0, failed: 0, pendingRemaining: await getPendingQueueCount(propertyId) };
+        return {
+          processed: 0,
+          failed: 0,
+          pendingRemaining: await getPendingQueueCount(propertyId),
+        };
       }
     }
 
@@ -48,7 +56,7 @@ export async function processOutboxQueue(
     const inQuietHours = isQuietHoursNow();
     if (inQuietHours) {
       console.log(
-        `[WhatsApp Anti-Ban] 🌙 Night quiet hours active in Egypt (23:00 - 07:30). Allowing urgent transactional messages (Check-in / Reservation / Test) while holding broadcasts.`
+        `[WhatsApp Anti-Ban] 🌙 Night quiet hours active in Egypt (23:00 - 07:30). Allowing urgent transactional messages (Check-in / Reservation / Test) while holding broadcasts.`,
       );
     }
 
@@ -84,7 +92,7 @@ export async function processOutboxQueue(
       }
 
       console.log(
-        `[WhatsApp Outbox] Dispatching batch chunk of ${pendingItems.length} pending messages for property ${propertyId} (Provider: ${isMetaCloud ? "Meta Cloud API" : "Baileys"})...`
+        `[WhatsApp Outbox] Dispatching batch chunk of ${pendingItems.length} pending messages for property ${propertyId} (Provider: ${isMetaCloud ? "Meta Cloud API" : "Baileys"})...`,
       );
 
       for (const item of pendingItems) {
@@ -93,17 +101,23 @@ export async function processOutboxQueue(
           const currentSession = await getWhatsAppSession(propertyId);
           if (currentSession.status !== "connected" || !currentSession.sock) {
             console.warn(
-              `[WhatsApp Outbox] Connection dropped while processing outbox for property ${propertyId}. Halting until reconnect.`
+              `[WhatsApp Outbox] Connection dropped while processing outbox for property ${propertyId}. Halting until reconnect.`,
             );
-            return { processed, failed, pendingRemaining: await getPendingQueueCount(propertyId) };
+            return {
+              processed,
+              failed,
+              pendingRemaining: await getPendingQueueCount(propertyId),
+            };
           }
         }
 
         // Mark as PROCESSING
-        await pool.query(
-          `UPDATE public.whatsapp_outbox_queue SET status = 'PROCESSING' WHERE id = $1`,
-          [item.id]
-        ).catch(() => {});
+        await pool
+          .query(
+            `UPDATE public.whatsapp_outbox_queue SET status = 'PROCESSING' WHERE id = $1`,
+            [item.id],
+          )
+          .catch(() => {});
 
         const result = await executeSendHumanLike(
           item.property_id,
@@ -111,7 +125,7 @@ export async function processOutboxQueue(
           item.message_content,
           item.message_type,
           item.recipient_name,
-          item.id
+          item.id,
         );
 
         if (result.success) {
@@ -119,12 +133,14 @@ export async function processOutboxQueue(
           const batchTotal = (propertyBatchSentCount.get(propertyId) || 0) + 1;
           propertyBatchSentCount.set(propertyId, batchTotal);
 
-          await pool.query(
-            `UPDATE public.whatsapp_outbox_queue 
+          await pool
+            .query(
+              `UPDATE public.whatsapp_outbox_queue 
              SET status = 'SENT', processed_at = NOW(), last_error = NULL 
              WHERE id = $1`,
-            [item.id]
-          ).catch(() => {});
+              [item.id],
+            )
+            .catch(() => {});
 
           if (isMetaCloud) {
             // Official Meta API: Fast, highly reliable, no need for long cooling pauses
@@ -135,10 +151,12 @@ export async function processOutboxQueue(
             if (batchTotal > 0 && batchTotal % 8 === 0) {
               const coolDownMs = 70000 + Math.floor(Math.random() * 40000); // 70s to 110s
               console.log(
-                `[WhatsApp Anti-Ban] 🛡️ Completed safety cycle of 8 messages for property ${propertyId}. Enforcing cooling-off pause for ${Math.round(coolDownMs / 1000)}s to prevent account flag...`
+                `[WhatsApp Anti-Ban] 🛡️ Completed safety cycle of 8 messages for property ${propertyId}. Enforcing cooling-off pause for ${Math.round(coolDownMs / 1000)}s to prevent account flag...`,
               );
               await new Promise((r) => setTimeout(r, coolDownMs));
-              console.log(`[WhatsApp Anti-Ban] ✅ Cooling-off pause completed. Resuming safe dispatch.`);
+              console.log(
+                `[WhatsApp Anti-Ban] ✅ Cooling-off pause completed. Resuming safe dispatch.`,
+              );
             } else {
               // Enhanced human delay jitter: 10,000ms to 18,000ms (10 to 18 seconds)
               const jitterMs = 10000 + Math.floor(Math.random() * 8000);
@@ -147,33 +165,50 @@ export async function processOutboxQueue(
           }
         } else if (result.reason === "NOT_REGISTERED") {
           failed++;
-          await pool.query(
-            `UPDATE public.whatsapp_outbox_queue 
+          await pool
+            .query(
+              `UPDATE public.whatsapp_outbox_queue 
              SET status = 'NOT_REGISTERED', processed_at = NOW(), last_error = 'Number not registered on WhatsApp' 
              WHERE id = $1`,
-            [item.id]
-          ).catch(() => {});
+              [item.id],
+            )
+            .catch(() => {});
           // Gentle 2-3s delay before trying next item
-          await new Promise((r) => setTimeout(r, 2000 + Math.floor(Math.random() * 1500)));
+          await new Promise((r) =>
+            setTimeout(r, 2000 + Math.floor(Math.random() * 1500)),
+          );
         } else if (result.reason === "NOT_CONNECTED") {
           // Revert to PENDING so it retries automatically when connection restores
-          await pool.query(
-            `UPDATE public.whatsapp_outbox_queue 
+          await pool
+            .query(
+              `UPDATE public.whatsapp_outbox_queue 
              SET status = 'PENDING', retry_count = retry_count + 1, last_error = 'WhatsApp disconnected during dispatch' 
              WHERE id = $1`,
-            [item.id]
-          ).catch(() => {});
-          return { processed, failed, pendingRemaining: await getPendingQueueCount(propertyId) };
+              [item.id],
+            )
+            .catch(() => {});
+          return {
+            processed,
+            failed,
+            pendingRemaining: await getPendingQueueCount(propertyId),
+          };
         } else {
           const nextRetry = (item.retry_count || 0) + 1;
           const finalStatus = nextRetry >= 5 ? "FAILED" : "PENDING";
           failed++;
-          await pool.query(
-            `UPDATE public.whatsapp_outbox_queue 
+          await pool
+            .query(
+              `UPDATE public.whatsapp_outbox_queue 
              SET status = $1, retry_count = $2, last_error = $3, processed_at = ${finalStatus === "FAILED" ? "NOW()" : "NULL"} 
              WHERE id = $4`,
-            [finalStatus, nextRetry, result.reason || "Unknown error", item.id]
-          ).catch(() => {});
+              [
+                finalStatus,
+                nextRetry,
+                result.reason || "Unknown error",
+                item.id,
+              ],
+            )
+            .catch(() => {});
           await new Promise((r) => setTimeout(r, 3000));
         }
       }
@@ -189,11 +224,13 @@ export async function processOutboxQueue(
 /**
  * Get count of pending outbox messages for a property
  */
-export async function getPendingQueueCount(propertyId: number): Promise<number> {
+export async function getPendingQueueCount(
+  propertyId: number,
+): Promise<number> {
   try {
     const res = await pool.query(
       `SELECT COUNT(*) as count FROM public.whatsapp_outbox_queue WHERE property_id = $1 AND status = 'PENDING'`,
-      [propertyId]
+      [propertyId],
     );
     return parseInt(res.rows[0]?.count || "0", 10);
   } catch {
@@ -224,14 +261,31 @@ export async function sendMetaCloudMessage(params: {
   } = params;
 
   if (!phoneNumberId || !accessToken) {
-    const reason = "بيانات Meta Cloud API غير مكتملة (يرجى إدخال Phone Number ID و Access Token في الإعدادات)";
-    await logDelivery(propertyId, recipientPhone, recipientName, messageType, text, "FAILED", reason);
+    const reason =
+      "بيانات Meta Cloud API غير مكتملة (يرجى إدخال Phone Number ID و Access Token في الإعدادات)";
+    await logDelivery(
+      propertyId,
+      recipientPhone,
+      recipientName,
+      messageType,
+      text,
+      "FAILED",
+      reason,
+    );
     return { success: false, reason };
   }
 
   const cleanPhone = normalizePhoneNumber(recipientPhone);
   if (!cleanPhone || cleanPhone.length < 8) {
-    await logDelivery(propertyId, recipientPhone, recipientName, messageType, text, "FAILED", "Invalid phone number format");
+    await logDelivery(
+      propertyId,
+      recipientPhone,
+      recipientName,
+      messageType,
+      text,
+      "FAILED",
+      "Invalid phone number format",
+    );
     return { success: false, reason: "INVALID_PHONE" };
   }
 
@@ -240,7 +294,7 @@ export async function sendMetaCloudMessage(params: {
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${accessToken.trim()}`,
+        Authorization: `Bearer ${accessToken.trim()}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -257,19 +311,48 @@ export async function sendMetaCloudMessage(params: {
 
     const data: any = await response.json();
     if (!response.ok) {
-      const errMsg = data?.error?.message || `Meta Cloud API error (${response.status})`;
-      console.error(`[WhatsApp Meta Cloud] Send failed to ${cleanPhone}:`, errMsg);
-      await logDelivery(propertyId, recipientPhone, recipientName, messageType, text, "FAILED", errMsg);
+      const errMsg =
+        data?.error?.message || `Meta Cloud API error (${response.status})`;
+      console.error(
+        `[WhatsApp Meta Cloud] Send failed to ${cleanPhone}:`,
+        errMsg,
+      );
+      await logDelivery(
+        propertyId,
+        recipientPhone,
+        recipientName,
+        messageType,
+        text,
+        "FAILED",
+        errMsg,
+      );
       return { success: false, reason: errMsg };
     }
 
     const messageId = data?.messages?.[0]?.id || "meta-cloud-ok";
-    await logDelivery(propertyId, recipientPhone, recipientName, messageType, text, "SENT");
-    console.log(`[WhatsApp Meta Cloud] ✅ Message successfully sent to ${cleanPhone} via official Meta Cloud API (ID: ${messageId})`);
+    await logDelivery(
+      propertyId,
+      recipientPhone,
+      recipientName,
+      messageType,
+      text,
+      "SENT",
+    );
+    console.log(
+      `[WhatsApp Meta Cloud] ✅ Message successfully sent to ${cleanPhone} via official Meta Cloud API (ID: ${messageId})`,
+    );
     return { success: true, messageId };
   } catch (err: any) {
     console.error(`[WhatsApp Meta Cloud] Network/HTTP error:`, err?.message);
-    await logDelivery(propertyId, recipientPhone, recipientName, messageType, text, "FAILED", err?.message || "Meta Network Error");
+    await logDelivery(
+      propertyId,
+      recipientPhone,
+      recipientName,
+      messageType,
+      text,
+      "FAILED",
+      err?.message || "Meta Network Error",
+    );
     return { success: false, reason: err?.message };
   }
 }
@@ -283,14 +366,14 @@ export async function executeSendHumanLike(
   text: string,
   messageType: string = "CHECKIN_WELCOME",
   recipientName?: string,
-  _queueId?: number
+  _queueId?: number,
 ): Promise<{ success: boolean; reason?: string }> {
   // 1. Check if property is configured with official Meta WhatsApp Cloud API (Zero ban risk)
   try {
     const configRes = await pool.query(
       `SELECT provider, meta_access_token, meta_phone_number_id, meta_waba_id 
        FROM public.property_whatsapp_configs WHERE property_id = $1`,
-      [propertyId]
+      [propertyId],
     );
     const config = configRes.rows[0];
     if (config?.provider === "meta_cloud") {
@@ -305,14 +388,20 @@ export async function executeSendHumanLike(
       });
     }
   } catch (err: any) {
-    console.warn(`[WhatsApp] Provider check error for property ${propertyId}:`, err?.message);
+    console.warn(
+      `[WhatsApp] Provider check error for property ${propertyId}:`,
+      err?.message,
+    );
   }
 
   // 2. Default / Direct QR Mode (Baileys)
   let session = await getWhatsAppSession(propertyId);
 
   // If session is currently restoring or pairing, wait up to 10s for open connection
-  if ((session.isInitializing || session.status === "pairing") && !session.sock) {
+  if (
+    (session.isInitializing || session.status === "pairing") &&
+    !session.sock
+  ) {
     for (let i = 0; i < 20; i++) {
       await new Promise((r) => setTimeout(r, 500));
       if (session.status === "connected" && session.sock) break;
@@ -325,7 +414,15 @@ export async function executeSendHumanLike(
 
   const cleanPhone = normalizePhoneNumber(rawPhone);
   if (!cleanPhone || cleanPhone.length < 8) {
-    await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "FAILED", "Invalid phone number format");
+    await logDelivery(
+      propertyId,
+      rawPhone,
+      recipientName,
+      messageType,
+      text,
+      "FAILED",
+      "Invalid phone number format",
+    );
     return { success: false, reason: "INVALID_PHONE" };
   }
 
@@ -338,8 +435,18 @@ export async function executeSendHumanLike(
       const onWaResult = await session.sock.onWhatsApp(jid);
       if (Array.isArray(onWaResult) && onWaResult.length > 0) {
         if (!onWaResult[0]?.exists) {
-          console.warn(`[WhatsApp Anti-Ban] Number ${cleanPhone} is NOT registered on WhatsApp. Skipping send to protect number.`);
-          await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "NOT_REGISTERED", "Number not on WhatsApp");
+          console.warn(
+            `[WhatsApp Anti-Ban] Number ${cleanPhone} is NOT registered on WhatsApp. Skipping send to protect number.`,
+          );
+          await logDelivery(
+            propertyId,
+            rawPhone,
+            recipientName,
+            messageType,
+            text,
+            "NOT_REGISTERED",
+            "Number not on WhatsApp",
+          );
           return { success: false, reason: "NOT_REGISTERED" };
         }
         if (onWaResult[0]?.jid) {
@@ -347,7 +454,10 @@ export async function executeSendHumanLike(
         }
       }
     } catch (onWaErr: any) {
-      console.warn(`[WhatsApp] onWhatsApp pre-check warning (proceeding directly):`, onWaErr?.message);
+      console.warn(
+        `[WhatsApp] onWhatsApp pre-check warning (proceeding directly):`,
+        onWaErr?.message,
+      );
     }
 
     // 2. Anti-ban: Realistic human simulation (quick for TEST messages)
@@ -355,13 +465,19 @@ export async function executeSendHumanLike(
       await new Promise((r) => setTimeout(r, 600));
     } else {
       await session.sock.sendPresenceUpdate("available").catch(() => {});
-      await new Promise((r) => setTimeout(r, 1000 + Math.floor(Math.random() * 1000)));
+      await new Promise((r) =>
+        setTimeout(r, 1000 + Math.floor(Math.random() * 1000)),
+      );
 
-      await session.sock.sendPresenceUpdate("composing", verifiedJid).catch(() => {});
+      await session.sock
+        .sendPresenceUpdate("composing", verifiedJid)
+        .catch(() => {});
       const baseTyping = Math.min(Math.max(text.length * 15, 2500), 5500);
       await new Promise((r) => setTimeout(r, baseTyping));
 
-      await session.sock.sendPresenceUpdate("paused", verifiedJid).catch(() => {});
+      await session.sock
+        .sendPresenceUpdate("paused", verifiedJid)
+        .catch(() => {});
       await new Promise((r) => setTimeout(r, 800));
     }
 
@@ -378,8 +494,17 @@ export async function executeSendHumanLike(
     }, 2000);
 
     // 6. Log successful delivery (saving clean text for clean admin dashboard viewing)
-    await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "SENT");
-    console.log(`[WhatsApp Anti-Ban] Message successfully sent to ${cleanPhone} with unique fingerprint (Payload length: ${antiBanPayload.length})`);
+    await logDelivery(
+      propertyId,
+      rawPhone,
+      recipientName,
+      messageType,
+      text,
+      "SENT",
+    );
+    console.log(
+      `[WhatsApp Anti-Ban] Message successfully sent to ${cleanPhone} with unique fingerprint (Payload length: ${antiBanPayload.length})`,
+    );
     return { success: true };
   } catch (err: any) {
     console.error(`[WhatsApp] Error sending to ${cleanPhone}:`, err.message);
@@ -391,7 +516,15 @@ export async function executeSendHumanLike(
     if (isConnErr) {
       return { success: false, reason: "NOT_CONNECTED" };
     }
-    await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "FAILED", err.message || "Unknown error");
+    await logDelivery(
+      propertyId,
+      rawPhone,
+      recipientName,
+      messageType,
+      text,
+      "FAILED",
+      err.message || "Unknown error",
+    );
     return { success: false, reason: err.message };
   }
 }
@@ -404,11 +537,19 @@ export async function sendWhatsAppMessageSafe(
   rawPhone: string,
   text: string,
   messageType: string = "CHECKIN_WELCOME",
-  recipientName?: string
+  recipientName?: string,
 ): Promise<{ success: boolean; reason?: string; queued?: boolean }> {
   const cleanPhone = normalizePhoneNumber(rawPhone);
   if (!cleanPhone || cleanPhone.length < 8) {
-    await logDelivery(propertyId, rawPhone, recipientName, messageType, text, "FAILED", "Invalid phone number format");
+    await logDelivery(
+      propertyId,
+      rawPhone,
+      recipientName,
+      messageType,
+      text,
+      "FAILED",
+      "Invalid phone number format",
+    );
     return { success: false, reason: "INVALID_PHONE" };
   }
 
@@ -418,7 +559,7 @@ export async function sendWhatsAppMessageSafe(
       `INSERT INTO public.whatsapp_outbox_queue 
        (property_id, recipient_phone, recipient_name, message_type, message_content, status, retry_count, created_at)
        VALUES ($1, $2, $3, $4, $5, 'PENDING', 0, NOW())`,
-      [propertyId, cleanPhone, recipientName || null, messageType, text]
+      [propertyId, cleanPhone, recipientName || null, messageType, text],
     );
 
     // Initial log entry as QUEUED
@@ -429,10 +570,13 @@ export async function sendWhatsAppMessageSafe(
       messageType,
       text,
       "QUEUED",
-      "في طابور الإرسال بانتظار المعالجة"
+      "في طابور الإرسال بانتظار المعالجة",
     );
   } catch (err: any) {
-    console.error("[WhatsApp Outbox] Error inserting message into outbox queue:", err);
+    console.error(
+      "[WhatsApp Outbox] Error inserting message into outbox queue:",
+      err,
+    );
   }
 
   // 2. Trigger asynchronous queue processing (dispatches immediately if connected, or stays pending if offline)
@@ -453,10 +597,14 @@ export async function logDelivery(
   type: string,
   content: string,
   status: "SENT" | "FAILED" | "NOT_REGISTERED" | "QUEUED",
-  errorMessage?: string
+  errorMessage?: string,
 ) {
   try {
-    if (status === "SENT" || status === "NOT_REGISTERED" || status === "FAILED") {
+    if (
+      status === "SENT" ||
+      status === "NOT_REGISTERED" ||
+      status === "FAILED"
+    ) {
       const updateRes = await pool.query(
         `UPDATE public.whatsapp_delivery_logs
          SET status = $1, error_message = $2
@@ -466,7 +614,7 @@ export async function logDelivery(
            ORDER BY id DESC LIMIT 1
          )
          RETURNING id`,
-        [status, errorMessage || null, propertyId, phone, type]
+        [status, errorMessage || null, propertyId, phone, type],
       );
       if (updateRes.rows.length > 0) return;
     }
@@ -475,7 +623,15 @@ export async function logDelivery(
       `INSERT INTO public.whatsapp_delivery_logs
        (property_id, recipient_phone, recipient_name, message_type, message_content, status, error_message, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-      [propertyId, phone, name || null, type, content, status, errorMessage || null]
+      [
+        propertyId,
+        phone,
+        name || null,
+        type,
+        content,
+        status,
+        errorMessage || null,
+      ],
     );
   } catch (e: any) {
     console.error("[WhatsApp] Error logging delivery:", e.message);

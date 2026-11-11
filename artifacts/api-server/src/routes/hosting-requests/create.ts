@@ -3,7 +3,16 @@ import { pool } from "@workspace/db";
 import { logActivity } from "../../lib/activity-logger.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { requirePermission } from "../../middlewares/permissions.js";
-import { getPropertySignaturePolicy, CreateFamilyVisitBody, su, ensureProfileInTargetSchema, resolveRequestId, canAccessProperty, generateRequestNumber, getRequestWithSteps } from "./shared.js";
+import {
+  getPropertySignaturePolicy,
+  CreateFamilyVisitBody,
+  su,
+  ensureProfileInTargetSchema,
+  resolveRequestId,
+  canAccessProperty,
+  generateRequestNumber,
+  getRequestWithSteps,
+} from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
 import { RequestRefParams } from "../../validation/schemas.js";
 
@@ -157,12 +166,18 @@ router.post(
 
       for (let i = 0; i < signaturePolicy.length; i++) {
         const item = signaturePolicy[i];
-        const stepOrder = item.stepOrder || (i + 1);
+        const stepOrder = item.stepOrder || i + 1;
         await pool.query(
           `INSERT INTO public.hosting_request_approval_steps
           (request_id, step_order, role_required, label_ar, label_en, status)
          VALUES ($1, $2, $3, $4, $5, 'pending')`,
-          [requestId, stepOrder, item.roleRequired, item.labelAr || null, item.labelEn || null],
+          [
+            requestId,
+            stepOrder,
+            item.roleRequired,
+            item.labelAr || null,
+            item.labelEn || null,
+          ],
         );
       }
 
@@ -296,13 +311,19 @@ router.post(
 
         // 2. Resolve target schema and ensure profile exists there
         const targetPropId = visit.visit_hotel_id || visit.property_id;
-        const profileCheck = await ensureProfileInTargetSchema(client, visit.property_id, targetPropId, visit.clock_number);
+        const profileCheck = await ensureProfileInTargetSchema(
+          client,
+          visit.property_id,
+          targetPropId,
+          visit.clock_number,
+        );
 
         if (!profileCheck) {
           await client.query("ROLLBACK");
           res.status(404).json({
             success: false,
-            message: "لم يتم العثور على الموظف في النظام لتسكينه / Profile not found in housing system to accommodate",
+            message:
+              "لم يتم العثور على الموظف في النظام لتسكينه / Profile not found in housing system to accommodate",
           });
           return;
         }

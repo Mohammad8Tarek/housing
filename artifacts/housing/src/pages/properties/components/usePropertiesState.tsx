@@ -1,7 +1,10 @@
 // State, effects and handlers of Properties (moved verbatim).
 import * as XLSX from "xlsx";
 import { getExportFileName } from "@/lib/date-utils";
-import { detectColumnField, validateAndNormalizeRows } from "@/lib/room-importer-engine";
+import {
+  detectColumnField,
+  validateAndNormalizeRows,
+} from "@/lib/room-importer-engine";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -34,11 +37,15 @@ export function usePropertiesState() {
   });
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [selectedPropForImport, setSelectedPropForImport] = useState<any>(null);
-  const [selectedPropForDetails, setSelectedPropForDetails] = useState<any | null>(null);
+  const [selectedPropForDetails, setSelectedPropForDetails] = useState<
+    any | null
+  >(null);
 
   // Property creation housing import state
   const [housingConfigFile, setHousingConfigFile] = useState<File | null>(null);
-  const [housingConfigParsedRows, setHousingConfigParsedRows] = useState<any[]>([]);
+  const [housingConfigParsedRows, setHousingConfigParsedRows] = useState<any[]>(
+    [],
+  );
   const [housingConfigStats, setHousingConfigStats] = useState<{
     roomsCount: number;
     floorsCount: number;
@@ -49,13 +56,19 @@ export function usePropertiesState() {
   const logoFileRef = useRef<HTMLInputElement>(null);
 
   // User Assignment Mode state for property creation/editing
-  const [userAssignMode, setUserAssignMode] = useState<"assign_existing" | "create_new" | "none">("assign_existing");
-  const [selectedExistingUserIds, setSelectedExistingUserIds] = useState<number[]>([]);
+  const [userAssignMode, setUserAssignMode] = useState<
+    "assign_existing" | "create_new" | "none"
+  >("assign_existing");
+  const [selectedExistingUserIds, setSelectedExistingUserIds] = useState<
+    number[]
+  >([]);
   const [userSearchQuery, setUserSearchQuery] = useState("");
 
   const { data: properties, isLoading } = useListProperties();
   const { data: allUsersRes } = useListUsers({ limit: 1000 } as any);
-  const allUsers: any[] = Array.isArray(allUsersRes) ? allUsersRes : ((allUsersRes as any)?.data || []);
+  const allUsers: any[] = Array.isArray(allUsersRes)
+    ? allUsersRes
+    : (allUsersRes as any)?.data || [];
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: getListPropertiesQueryKey() });
@@ -72,7 +85,7 @@ export function usePropertiesState() {
             const toastId = toast.loading(
               ar
                 ? "جاري استيراد وتكوين المباني والغرف في السكن الجديد..."
-                : "Setting up buildings & rooms in new property..."
+                : "Setting up buildings & rooms in new property...",
             );
             const impRes = await fetch("/api/rooms/import/execute", {
               method: "POST",
@@ -90,16 +103,23 @@ export function usePropertiesState() {
                 ar
                   ? `تم إنشاء السكن بنجاح واستيراد ${resJson.createdRows || housingConfigParsedRows.length} غرفة وجميع أدوارها وأسرتها!`
                   : `Property created with ${resJson.createdRows || housingConfigParsedRows.length} rooms & beds!`,
-                { id: toastId }
+                { id: toastId },
               );
             } else {
-              toast.error(ar ? "تم إنشاء السكن، ولكن فشل استيراد الغرف تلقائياً" : "Property created, but room import failed", { id: toastId });
+              toast.error(
+                ar
+                  ? "تم إنشاء السكن، ولكن فشل استيراد الغرف تلقائياً"
+                  : "Property created, but room import failed",
+                { id: toastId },
+              );
             }
           } catch (e: any) {
             console.error("Room import error on property creation:", e);
           }
         } else {
-          toast.success(ar ? "تم إنشاء العقار بنجاح" : "Property created successfully");
+          toast.success(
+            ar ? "تم إنشاء العقار بنجاح" : "Property created successfully",
+          );
         }
 
         setHousingConfigFile(null);
@@ -137,7 +157,7 @@ export function usePropertiesState() {
     },
   });
 
-    const handleHousingConfigFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHousingConfigFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     const f = files[0];
@@ -149,7 +169,10 @@ export function usePropertiesState() {
         const data = evt.target?.result;
         const wb = XLSX.read(data, { type: "binary" });
         const firstSheet = wb.SheetNames[0];
-        const rows = XLSX.utils.sheet_to_json<Record<string, any>>(wb.Sheets[firstSheet], { defval: "" });
+        const rows = XLSX.utils.sheet_to_json<Record<string, any>>(
+          wb.Sheets[firstSheet],
+          { defval: "" },
+        );
         if (rows.length === 0) return;
 
         const headers = Object.keys(rows[0] || {});
@@ -169,9 +192,16 @@ export function usePropertiesState() {
 
         setHousingConfigParsedRows(validRooms);
 
-        const uniqueFloors = new Set(validRooms.map((r) => r.floor).filter(Boolean));
-        const uniqueBuildings = new Set(validRooms.map((r) => r.building).filter(Boolean));
-        const totalBeds = validRooms.reduce((sum, r) => sum + (r.capacity || 1), 0);
+        const uniqueFloors = new Set(
+          validRooms.map((r) => r.floor).filter(Boolean),
+        );
+        const uniqueBuildings = new Set(
+          validRooms.map((r) => r.building).filter(Boolean),
+        );
+        const totalBeds = validRooms.reduce(
+          (sum, r) => sum + (r.capacity || 1),
+          0,
+        );
 
         setHousingConfigStats({
           roomsCount: validRooms.length,
@@ -183,10 +213,14 @@ export function usePropertiesState() {
         toast.success(
           ar
             ? `تم تحليل الملف بنجاح: ${validRooms.length} غرفة جاهزة للإنشاء!`
-            : `Detected ${validRooms.length} rooms ready for setup!`
+            : `Detected ${validRooms.length} rooms ready for setup!`,
         );
       } catch (err: any) {
-        toast.error(ar ? "فشل قراءة ملف التكوين: " + err.message : "Failed to read config file");
+        toast.error(
+          ar
+            ? "فشل قراءة ملف التكوين: " + err.message
+            : "Failed to read config file",
+        );
       }
     };
     reader.readAsBinaryString(f);
@@ -249,7 +283,10 @@ export function usePropertiesState() {
     setActiveTab(initialTab);
     setUserAssignMode("assign_existing");
     const currentAssigned = (allUsers || [])
-      .filter((u: any) => (u.propertyIds || []).includes(prop.id) || u.propertyId === prop.id)
+      .filter(
+        (u: any) =>
+          (u.propertyIds || []).includes(prop.id) || u.propertyId === prop.id,
+      )
       .map((u: any) => u.id);
     setSelectedExistingUserIds(currentAssigned);
     setUserSearchQuery("");
@@ -310,7 +347,11 @@ export function usePropertiesState() {
       housingManager2Email: form.housingManager2Email || null,
     };
 
-    if (userAssignMode === "create_new" && form.adminUsername && form.adminPassword) {
+    if (
+      userAssignMode === "create_new" &&
+      form.adminUsername &&
+      form.adminPassword
+    ) {
       payload.adminUsername = form.adminUsername.trim();
       payload.adminPassword = form.adminPassword;
     } else if (userAssignMode === "assign_existing") {

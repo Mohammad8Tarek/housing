@@ -1,7 +1,16 @@
 import React, { useState, useMemo } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, Search, BarChart3, LayoutGrid, Table as TableIcon, Trophy, X } from "lucide-react";
+import {
+  Building2,
+  Users,
+  Search,
+  BarChart3,
+  LayoutGrid,
+  Table as TableIcon,
+  Trophy,
+  X,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 
@@ -47,7 +56,9 @@ export function DepartmentBarList({
   const { language } = useLanguage();
   const ar = language === "ar";
 
-  const [viewFormat, setViewFormat] = useState<"bars" | "grid" | "table">("bars");
+  const [viewFormat, setViewFormat] = useState<"bars" | "grid" | "table">(
+    "bars",
+  );
   const [filterScope, setFilterScope] = useState<"all" | "top5">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -79,8 +90,13 @@ export function DepartmentBarList({
             </div>
             <div>
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <span>{ar ? "توزيع الإسكان حسب الأقسام" : "Housing by Department"}</span>
-                <Badge variant="secondary" className="text-[11px] font-mono px-2 py-0">
+                <span>
+                  {ar ? "توزيع الإسكان حسب الأقسام" : "Housing by Department"}
+                </span>
+                <Badge
+                  variant="secondary"
+                  className="text-[11px] font-mono px-2 py-0"
+                >
                   {departments.length} {ar ? "قسم" : "depts"}
                 </Badge>
               </CardTitle>
@@ -161,7 +177,9 @@ export function DepartmentBarList({
                   : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
-              {ar ? `كل الأقسام (${departments.length})` : `All (${departments.length})`}
+              {ar
+                ? `كل الأقسام (${departments.length})`
+                : `All (${departments.length})`}
             </button>
             <button
               type="button"
@@ -216,8 +234,12 @@ export function DepartmentBarList({
             {viewFormat === "bars" && (
               <div className="space-y-3 py-0.5">
                 {filteredDepartments.map((dept, index) => {
-                  const fillPercent = Math.max(6, Math.round((dept.count / maxCount) * 100));
-                  const gradient = DEPT_GRADIENTS[index % DEPT_GRADIENTS.length];
+                  const fillPercent = Math.max(
+                    6,
+                    Math.round((dept.count / maxCount) * 100),
+                  );
+                  const gradient =
+                    DEPT_GRADIENTS[index % DEPT_GRADIENTS.length];
                   const rank = index + 1;
 
                   return (
@@ -229,13 +251,19 @@ export function DepartmentBarList({
                               rank === 1
                                 ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40"
                                 : rank === 2
-                                ? "bg-slate-300/40 text-slate-700 dark:text-slate-300 border border-slate-400/40"
-                                : rank === 3
-                                ? "bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/40"
-                                : "bg-muted text-muted-foreground"
+                                  ? "bg-slate-300/40 text-slate-700 dark:text-slate-300 border border-slate-400/40"
+                                  : rank === 3
+                                    ? "bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/40"
+                                    : "bg-muted text-muted-foreground"
                             }`}
                           >
-                            {rank === 1 ? "1" : rank === 2 ? "2" : rank === 3 ? "3" : rank}
+                            {rank === 1
+                              ? "1"
+                              : rank === 2
+                                ? "2"
+                                : rank === 3
+                                  ? "3"
+                                  : rank}
                           </span>
                           <span
                             className="font-semibold text-foreground truncate group-hover:text-primary transition-colors"
@@ -247,7 +275,10 @@ export function DepartmentBarList({
 
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="font-mono font-bold text-foreground">
-                            {dept.count} <span className="text-[10px] font-normal text-muted-foreground">{ar ? "نزيل" : "staff"}</span>
+                            {dept.count}{" "}
+                            <span className="text-[10px] font-normal text-muted-foreground">
+                              {ar ? "نزيل" : "staff"}
+                            </span>
                           </span>
                           <span className="text-[10px] font-mono px-1.5 py-0.2 rounded font-semibold bg-muted text-foreground/80 border border-border/50">
                             {dept.percentage}%
@@ -260,7 +291,11 @@ export function DepartmentBarList({
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${fillPercent}%` }}
-                          transition={{ duration: 0.6, delay: index * 0.04, ease: "easeOut" }}
+                          transition={{
+                            duration: 0.6,
+                            delay: index * 0.04,
+                            ease: "easeOut",
+                          }}
                           className={`h-full rounded-full bg-gradient-to-r ${gradient} shadow-2xs group-hover:brightness-110 transition-all`}
                         />
                       </div>
@@ -274,7 +309,8 @@ export function DepartmentBarList({
             {viewFormat === "grid" && (
               <div className="grid grid-cols-2 gap-2.5 py-0.5">
                 {filteredDepartments.map((dept, index) => {
-                  const tone = DEPT_TEXT_COLORS[index % DEPT_TEXT_COLORS.length];
+                  const tone =
+                    DEPT_TEXT_COLORS[index % DEPT_TEXT_COLORS.length];
                   const rank = index + 1;
 
                   return (
@@ -283,7 +319,10 @@ export function DepartmentBarList({
                       className={`p-2.5 rounded-xl border flex flex-col justify-between gap-2 hover:shadow-xs transition-all ${tone}`}
                     >
                       <div className="flex items-start justify-between gap-1">
-                        <span className="text-xs font-bold truncate max-w-[110px]" title={dept.name}>
+                        <span
+                          className="text-xs font-bold truncate max-w-[110px]"
+                          title={dept.name}
+                        >
                           {dept.name || (ar ? "عام" : "General")}
                         </span>
                         <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-background/80 shadow-2xs">
@@ -310,19 +349,33 @@ export function DepartmentBarList({
                 <table className="w-full text-xs">
                   <thead className="bg-muted/70 text-muted-foreground border-b border-border/50">
                     <tr>
-                      <th className="py-2 px-2.5 text-start font-semibold w-10">#</th>
-                      <th className="py-2 px-2.5 text-start font-semibold">{ar ? "القسم" : "Department"}</th>
-                      <th className="py-2 px-2.5 text-center font-semibold">{ar ? "العدد" : "Staff"}</th>
-                      <th className="py-2 px-2.5 text-end font-semibold">{ar ? "النسبة" : "Share"}</th>
+                      <th className="py-2 px-2.5 text-start font-semibold w-10">
+                        #
+                      </th>
+                      <th className="py-2 px-2.5 text-start font-semibold">
+                        {ar ? "القسم" : "Department"}
+                      </th>
+                      <th className="py-2 px-2.5 text-center font-semibold">
+                        {ar ? "العدد" : "Staff"}
+                      </th>
+                      <th className="py-2 px-2.5 text-end font-semibold">
+                        {ar ? "النسبة" : "Share"}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/30">
                     {filteredDepartments.map((dept, index) => (
-                      <tr key={dept.name || index} className="hover:bg-muted/30 transition-colors">
+                      <tr
+                        key={dept.name || index}
+                        className="hover:bg-muted/30 transition-colors"
+                      >
                         <td className="py-1.5 px-2.5 font-mono text-muted-foreground font-semibold">
                           {index + 1}
                         </td>
-                        <td className="py-1.5 px-2.5 font-medium text-foreground truncate max-w-[140px]" title={dept.name}>
+                        <td
+                          className="py-1.5 px-2.5 font-medium text-foreground truncate max-w-[140px]"
+                          title={dept.name}
+                        >
                           {dept.name || (ar ? "عام" : "General")}
                         </td>
                         <td className="py-1.5 px-2.5 text-center font-bold font-mono text-foreground">
@@ -341,7 +394,15 @@ export function DepartmentBarList({
         ) : (
           <div className="h-full min-h-[180px] flex flex-col items-center justify-center text-muted-foreground text-xs gap-2">
             <Building2 className="w-8 h-8 opacity-20" />
-            <p>{searchQuery ? (ar ? "لا توجد نتائج مطابقة للبحث" : "No matching departments") : (ar ? "لا توجد بيانات أقسام مسجلة" : "No department records found")}</p>
+            <p>
+              {searchQuery
+                ? ar
+                  ? "لا توجد نتائج مطابقة للبحث"
+                  : "No matching departments"
+                : ar
+                  ? "لا توجد بيانات أقسام مسجلة"
+                  : "No department records found"}
+            </p>
           </div>
         )}
 
@@ -352,19 +413,23 @@ export function DepartmentBarList({
               <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />
               <span className="truncate text-[11px]">
                 {ar ? "الأعلى استيعاباً:" : "Top:"}{" "}
-                <strong className="text-foreground font-semibold">{topDept.name}</strong> ({topDept.percentage}%)
+                <strong className="text-foreground font-semibold">
+                  {topDept.name}
+                </strong>{" "}
+                ({topDept.percentage}%)
               </span>
             </div>
           ) : (
             <span />
           )}
           <div className="shrink-0 text-end">
-            <span>{ar ? "إجمالي النزلاء:" : "Total Staff:"}{" "}</span>
-            <strong className="text-foreground font-mono text-sm">{totalProfiles}</strong>
+            <span>{ar ? "إجمالي النزلاء:" : "Total Staff:"} </span>
+            <strong className="text-foreground font-mono text-sm">
+              {totalProfiles}
+            </strong>
           </div>
         </div>
       </CardContent>
     </Card>
   );
 }
-

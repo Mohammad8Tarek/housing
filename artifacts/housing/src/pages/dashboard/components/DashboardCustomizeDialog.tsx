@@ -11,7 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { SlidersHorizontal, RotateCcw, Eye, EyeOff, Lock, Search, CheckCircle2, LayoutGrid } from "lucide-react";
+import {
+  SlidersHorizontal,
+  RotateCcw,
+  Eye,
+  EyeOff,
+  Lock,
+  Search,
+  CheckCircle2,
+  LayoutGrid,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type DashboardWidgetMeta,
@@ -69,8 +78,12 @@ export function DashboardCustomizeDialog({
         return false;
       }
       if (q) {
-        const matchAr = w.labelAr.toLowerCase().includes(q) || w.descAr.toLowerCase().includes(q);
-        const matchEn = w.labelEn.toLowerCase().includes(q) || w.descEn.toLowerCase().includes(q);
+        const matchAr =
+          w.labelAr.toLowerCase().includes(q) ||
+          w.descAr.toLowerCase().includes(q);
+        const matchEn =
+          w.labelEn.toLowerCase().includes(q) ||
+          w.descEn.toLowerCase().includes(q);
         return matchAr || matchEn;
       }
       return true;
@@ -89,7 +102,9 @@ export function DashboardCustomizeDialog({
               </div>
               <div>
                 <DialogTitle className="text-lg font-bold flex items-center gap-2">
-                  <span>{ar ? "تخصيص لوحة التحكم" : "Customize Dashboard"}</span>
+                  <span>
+                    {ar ? "تخصيص لوحة التحكم" : "Customize Dashboard"}
+                  </span>
                   <Badge variant="secondary" className="font-mono text-xs">
                     {visibleCount} / {totalAllowedCount} {ar ? "نشط" : "active"}
                   </Badge>
@@ -110,7 +125,11 @@ export function DashboardCustomizeDialog({
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={ar ? "بحث في الأقسام والمؤشرات..." : "Search widgets & sections..."}
+                placeholder={
+                  ar
+                    ? "بحث في الأقسام والمؤشرات..."
+                    : "Search widgets & sections..."
+                }
                 className="h-8 text-xs pl-9 rtl:pr-9 rtl:pl-3 rounded-xl border-border/60 bg-background/80"
               />
             </div>
@@ -142,7 +161,9 @@ export function DashboardCustomizeDialog({
             <div className="text-center py-12 text-muted-foreground">
               <LayoutGrid className="w-8 h-8 mx-auto opacity-30 mb-2" />
               <p className="text-xs font-medium">
-                {ar ? "لا توجد عناصر مطابقة للبحث" : "No matching widgets found"}
+                {ar
+                  ? "لا توجد عناصر مطابقة للبحث"
+                  : "No matching widgets found"}
               </p>
             </div>
           ) : (
@@ -160,8 +181,8 @@ export function DashboardCustomizeDialog({
                     !hasPerm
                       ? "opacity-60 bg-muted/20"
                       : isActive
-                      ? "bg-primary/5 border border-primary/20"
-                      : "hover:bg-muted/40",
+                        ? "bg-primary/5 border border-primary/20"
+                        : "hover:bg-muted/40",
                   )}
                 >
                   <div className="flex items-start gap-3 min-w-0">
@@ -171,8 +192,8 @@ export function DashboardCustomizeDialog({
                         !hasPerm
                           ? "bg-muted text-muted-foreground"
                           : isActive
-                          ? "bg-primary/15 text-primary"
-                          : "bg-muted text-muted-foreground",
+                            ? "bg-primary/15 text-primary"
+                            : "bg-muted text-muted-foreground",
                       )}
                     >
                       <Icon className="w-4 h-4" />
@@ -217,7 +238,9 @@ export function DashboardCustomizeDialog({
                     <Switch
                       checked={isUserEnabled && hasPerm}
                       disabled={!hasPerm}
-                      onCheckedChange={(checked) => setWidgetVisible(widget.id, checked)}
+                      onCheckedChange={(checked) =>
+                        setWidgetVisible(widget.id, checked)
+                      }
                       aria-label={ar ? widget.labelAr : widget.labelEn}
                     />
                   </div>
@@ -236,7 +259,11 @@ export function DashboardCustomizeDialog({
               size="sm"
               onClick={resetToDefault}
               className="text-xs h-8 gap-1.5 rounded-xl border-border/60 hover:bg-muted"
-              title={ar ? "إعادة تعيين كافة الأقسام للوضع الافتراضي" : "Reset to default layout"}
+              title={
+                ar
+                  ? "إعادة تعيين كافة الأقسام للوضع الافتراضي"
+                  : "Reset to default layout"
+              }
             >
               <RotateCcw className="w-3 h-3 text-muted-foreground" />
               <span>{ar ? "استعادة الافتراضي" : "Reset Defaults"}</span>

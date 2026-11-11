@@ -115,26 +115,30 @@ router.get("/my", requirePortalAuth, async (req, res, next) => {
 });
 
 // PUT /portal-notifications/read/:id — تحديد إشعار كمقروء
-router.put("/read/:id", requirePortalAuth, validate({ params: IdParams }),
+router.put(
+  "/read/:id",
+  requirePortalAuth,
+  validate({ params: IdParams }),
   async (req, res, next) => {
-  try {
-    const sess = portalSession(req)!;
-    const notifId = Number(req.params.id);
+    try {
+      const sess = portalSession(req)!;
+      const notifId = Number(req.params.id);
 
-    await withTenant(sess.propertyId, async (tenantDb) => {
-      // Upsert read receipt
-      await tenantDb.execute(sql`
+      await withTenant(sess.propertyId, async (tenantDb) => {
+        // Upsert read receipt
+        await tenantDb.execute(sql`
         INSERT INTO portal_notification_reads (notification_id, profile_id)
         VALUES (${notifId}, ${sess.profileDbId})
         ON CONFLICT (notification_id, profile_id) DO NOTHING
       `);
-    });
+      });
 
-    res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // PUT /portal-notifications/read-all — تحديد كل الإشعارات كمقروءة
 router.put("/read-all", requirePortalAuth, async (req, res, next) => {
@@ -165,167 +169,191 @@ router.put("/read-all", requirePortalAuth, async (req, res, next) => {
 // ─── ADMIN routes (create / list / delete) ─────────────────────────────────
 
 // GET / — قائمة الإشعارات للأدمن
-router.get("/", requirePermission("portal_notifications", "view"), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
+router.get(
+  "/",
+  requirePermission("portal_notifications", "view"),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
 
-    const notifications = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .select()
-        .from(portalNotificationsTable)
-        .where(eq(portalNotificationsTable.propertyId, propertyId))
-        .orderBy(desc(portalNotificationsTable.createdAt));
-    });
+      const notifications = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .select()
+          .from(portalNotificationsTable)
+          .where(eq(portalNotificationsTable.propertyId, propertyId))
+          .orderBy(desc(portalNotificationsTable.createdAt));
+      });
 
-    res.json({ success: true, notifications });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({ success: true, notifications });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // POST / — إنشاء إشعار جديد (أدمن)
-router.post("/", requirePermission("portal_notifications", "create"), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    const userId = (req.session as any)?.userId;
-    if (!propertyId || !userId)
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing required fields" });
+router.post(
+  "/",
+  requirePermission("portal_notifications", "create"),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      const userId = (req.session as any)?.userId;
+      if (!propertyId || !userId)
+        return res
+          .status(400)
+          .json({ success: false, message: "Missing required fields" });
 
-    const validated = NotificationSchema.parse(req.body);
+      const validated = NotificationSchema.parse(req.body);
 
-    const [notification] = await withTenant(propertyId, async (tenantDb) => {
-      return await tenantDb
-        .insert(portalNotificationsTable)
-        .values({
-          propertyId,
+      const [notification] = await withTenant(propertyId, async (tenantDb) => {
+        return await tenantDb
+          .insert(portalNotificationsTable)
+          .values({
+            propertyId,
+            title: validated.title,
+            titleAr: validated.titleAr ?? null,
+            message: validated.message,
+            messageAr: validated.messageAr ?? null,
+            type: validated.type,
+            priority: validated.priority,
+            targetAll: validated.targetAll,
+            department: validated.department ?? null,
+            createdBy: userId,
+            expiresAt: validated.expiresAt
+              ? new Date(validated.expiresAt)
+              : null,
+          })
+          .returning();
+      });
+
+      await broadcastToProperty(propertyId, {
+        type: "notification",
+        module: "notifications",
+        action: "created",
+        data: { notification },
+      });
+
+      // Send Web Push notification to all subscribed mobile devices (wakes up phone if screen off)
+      sendPushToProperty(
+        propertyId,
+        {
           title: validated.title,
-          titleAr: validated.titleAr ?? null,
-          message: validated.message,
-          messageAr: validated.messageAr ?? null,
-          type: validated.type,
-          priority: validated.priority,
-          targetAll: validated.targetAll,
-          department: validated.department ?? null,
-          createdBy: userId,
-          expiresAt: validated.expiresAt ? new Date(validated.expiresAt) : null,
-        })
-        .returning();
-    });
+          titleAr: validated.titleAr ?? validated.title,
+          body: validated.message,
+          bodyAr: validated.messageAr ?? validated.message,
+          tag: `portal-notif-${notification.id}`,
+          url: "/dashboard",
+        },
+        validated.targetAll ? undefined : (validated.department ?? undefined),
+      ).catch((err) =>
+        console.error("[portal-notifications] Push error:", err),
+      );
 
-    await broadcastToProperty(propertyId, {
-      type: "notification",
-      module: "notifications",
-      action: "created",
-      data: { notification },
-    });
+      const s = su(req);
+      await logActivity({
+        req,
+        propertyId,
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `إنشاء إشعار: ${validated.title}`,
+        actionType: "CREATE",
+        module: "portal_notifications",
+      });
 
-    // Send Web Push notification to all subscribed mobile devices (wakes up phone if screen off)
-    sendPushToProperty(
-      propertyId,
-      {
-        title: validated.title,
-        titleAr: validated.titleAr ?? validated.title,
-        body: validated.message,
-        bodyAr: validated.messageAr ?? validated.message,
-        tag: `portal-notif-${notification.id}`,
-        url: "/dashboard",
-      },
-      validated.targetAll ? undefined : (validated.department ?? undefined),
-    ).catch((err) => console.error("[portal-notifications] Push error:", err));
-
-    const s = su(req);
-    await logActivity({
-      req,
-      propertyId,
-      username: s.username,
-      userId: s.userId,
-      userRole: s.userRole,
-      action: `إنشاء إشعار: ${validated.title}`,
-      actionType: "CREATE",
-      module: "portal_notifications",
-    });
-
-    res.json({ success: true, notification });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({ success: true, notification });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // DELETE /:id — حذف إشعار
-router.delete("/:id", requirePermission("portal_notifications", "delete"), validate({ params: IdParams }),
+router.delete(
+  "/:id",
+  requirePermission("portal_notifications", "delete"),
+  validate({ params: IdParams }),
   async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    const userId = (req.session as any)?.userId;
-    const id = Number(req.params.id);
-    if (!propertyId || !userId || !id)
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing required fields" });
+    try {
+      const propertyId = getTenantId(req);
+      const userId = (req.session as any)?.userId;
+      const id = Number(req.params.id);
+      if (!propertyId || !userId || !id)
+        return res
+          .status(400)
+          .json({ success: false, message: "Missing required fields" });
 
-    await withTenant(propertyId, async (tenantDb) => {
-      // Delete reads first
-      await tenantDb
-        .delete(portalNotificationReadsTable)
-        .where(eq(portalNotificationReadsTable.notificationId, id));
-      // Delete notification
-      await tenantDb
-        .delete(portalNotificationsTable)
-        .where(
-          and(
-            eq(portalNotificationsTable.id, id),
-            eq(portalNotificationsTable.propertyId, propertyId),
-          ),
-        );
-    });
+      await withTenant(propertyId, async (tenantDb) => {
+        // Delete reads first
+        await tenantDb
+          .delete(portalNotificationReadsTable)
+          .where(eq(portalNotificationReadsTable.notificationId, id));
+        // Delete notification
+        await tenantDb
+          .delete(portalNotificationsTable)
+          .where(
+            and(
+              eq(portalNotificationsTable.id, id),
+              eq(portalNotificationsTable.propertyId, propertyId),
+            ),
+          );
+      });
 
-    res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // GET /stats — إحصائيات الإشعارات
-router.get("/stats", requirePermission("portal_notifications", "view"), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
+router.get(
+  "/stats",
+  requirePermission("portal_notifications", "view"),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
 
-    const stats = await withTenant(propertyId, async (tenantDb) => {
-      const all = await tenantDb
-        .select()
-        .from(portalNotificationsTable)
-        .where(eq(portalNotificationsTable.propertyId, propertyId));
+      const stats = await withTenant(propertyId, async (tenantDb) => {
+        const all = await tenantDb
+          .select()
+          .from(portalNotificationsTable)
+          .where(eq(portalNotificationsTable.propertyId, propertyId));
 
-      const byType: Record<string, number> = {
-        activity: 0,
-        evaluation: 0,
-        document: 0,
-        announcement: 0,
-      };
-      const byPriority: Record<string, number> = { low: 0, medium: 0, high: 0 };
+        const byType: Record<string, number> = {
+          activity: 0,
+          evaluation: 0,
+          document: 0,
+          announcement: 0,
+        };
+        const byPriority: Record<string, number> = {
+          low: 0,
+          medium: 0,
+          high: 0,
+        };
 
-      for (const n of all) {
-        byType[n.type] = (byType[n.type] || 0) + 1;
-        byPriority[n.priority] = (byPriority[n.priority] || 0) + 1;
-      }
+        for (const n of all) {
+          byType[n.type] = (byType[n.type] || 0) + 1;
+          byPriority[n.priority] = (byPriority[n.priority] || 0) + 1;
+        }
 
-      return { total: all.length, byType, byPriority };
-    });
+        return { total: all.length, byType, byPriority };
+      });
 
-    res.json(stats);
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json(stats);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 export default router;

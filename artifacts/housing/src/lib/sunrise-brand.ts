@@ -33,14 +33,55 @@ export const SR_FONT_ARABIC =
 export const SR_LOGO_TEAL = "/brand/sunrise-logo-teal.png";
 
 /** Status → brand accent tone for print badges. */
-export function srStatusTone(value: unknown): { fg: string; bg: string; border: string } {
+export function srStatusTone(value: unknown): {
+  fg: string;
+  bg: string;
+  border: string;
+} {
   const s = String(value ?? "").toLowerCase();
   const has = (...keys: string[]) => keys.some((k) => s.includes(k));
-  if (has("out_of_service", "out_of_order", "صيانة", "rejected", "مرفوض", "cancelled", "ملغي", "overdue", "متأخر"))
+  if (
+    has(
+      "out_of_service",
+      "out_of_order",
+      "صيانة",
+      "rejected",
+      "مرفوض",
+      "cancelled",
+      "ملغي",
+      "overdue",
+      "متأخر",
+    )
+  )
     return { fg: SR.red, bg: "#F6E6E6", border: "#E0B4B3" };
-  if (has("occupied", "مشغول", "dirty", "متسخ", "pending", "معلق", "vacation", "إجازة"))
+  if (
+    has(
+      "occupied",
+      "مشغول",
+      "dirty",
+      "متسخ",
+      "pending",
+      "معلق",
+      "vacation",
+      "إجازة",
+    )
+  )
     return { fg: "#9A4F0E", bg: "#FBEEE2", border: "#EFC7A2" };
-  if (has("active", "نشط", "available", "vacant", "شاغر", "clean", "جاهز", "confirmed", "مؤكد", "returned", "عاد"))
+  if (
+    has(
+      "active",
+      "نشط",
+      "available",
+      "vacant",
+      "شاغر",
+      "clean",
+      "جاهز",
+      "confirmed",
+      "مؤكد",
+      "returned",
+      "عاد",
+    )
+  )
     return { fg: SR.green, bg: "#E5EEEB", border: "#B5CBC4" };
   return { fg: SR.muted, bg: "#F1F4F4", border: SR.rule };
 }

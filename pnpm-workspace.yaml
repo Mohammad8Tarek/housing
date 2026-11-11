@@ -4,8 +4,8 @@ packages:
   - scripts
 
 allowBuilds:
-  '@scarf/scarf': set this to true or false
-  '@sentry/node-cpu-profiler': set this to true or false
+  "@scarf/scarf": set this to true or false
+  "@sentry/node-cpu-profiler": set this to true or false
   core-js: true
   esbuild: true
   msgpackr-extract: set this to true or false

@@ -34,7 +34,10 @@ interface DocumentPreviewModalProps {
 /**
  * Converts a base64 Data URI or raw base64 string to a native browser Blob
  */
-export function dataUriToBlob(dataUri: string, defaultMime = "application/octet-stream"): Blob {
+export function dataUriToBlob(
+  dataUri: string,
+  defaultMime = "application/octet-stream",
+): Blob {
   try {
     if (dataUri.startsWith("blob:") || dataUri.startsWith("http")) {
       return new Blob([]);
@@ -76,7 +79,10 @@ export function downloadDocument(doc: PreviewableDocument) {
     let shouldRevoke = false;
 
     if (doc.fileData.startsWith("data:")) {
-      const blob = dataUriToBlob(doc.fileData, doc.fileType || "application/octet-stream");
+      const blob = dataUriToBlob(
+        doc.fileData,
+        doc.fileType || "application/octet-stream",
+      );
       url = URL.createObjectURL(blob);
       shouldRevoke = true;
     }
@@ -153,8 +159,8 @@ export function DocumentPreviewModal({
       const defaultMime = isPdf
         ? "application/pdf"
         : isImage
-        ? "image/jpeg"
-        : "application/octet-stream";
+          ? "image/jpeg"
+          : "application/octet-stream";
       const blob = dataUriToBlob(doc.fileData, defaultMime);
       if (blob.size > 0) {
         const url = URL.createObjectURL(blob);

@@ -14,13 +14,16 @@ export async function resolveProfileTenant(
 ): Promise<{ propertyId: number; profile: any } | null> {
   if (preferredPropertyId && preferredPropertyId > 0) {
     try {
-      const [found] = await withTenant(preferredPropertyId, async (tenantDb) => {
-        return tenantDb
-          .select()
-          .from(profilesTable)
-          .where(eq(profilesTable.id, profileId))
-          .limit(1);
-      });
+      const [found] = await withTenant(
+        preferredPropertyId,
+        async (tenantDb) => {
+          return tenantDb
+            .select()
+            .from(profilesTable)
+            .where(eq(profilesTable.id, profileId))
+            .limit(1);
+        },
+      );
       if (found) return { propertyId: preferredPropertyId, profile: found };
     } catch {}
   }

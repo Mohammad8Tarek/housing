@@ -1,6 +1,11 @@
 import { safeSchemaName } from "./pg-ident.js";
 import { pool } from "@workspace/db";
-import { enrichProfileBilingual, translateDepartment, translateJobTitle, hasEnglish } from "./bilingual-translator.js";
+import {
+  enrichProfileBilingual,
+  translateDepartment,
+  translateJobTitle,
+  hasEnglish,
+} from "./bilingual-translator.js";
 
 /**
  * Runs a complete bilingual backfill across all profiles and lookups in all tenant schemas.
@@ -32,11 +37,14 @@ export async function backfillBilingualProfiles(): Promise<{
         continue;
       }
       // Check if this schema has a profiles table
-      const { rows: tableCheck } = await client.query(`
+      const { rows: tableCheck } = await client.query(
+        `
         SELECT table_name 
         FROM information_schema.tables 
         WHERE table_schema = $1 AND table_name = 'profiles';
-      `, [schema_name]);
+      `,
+        [schema_name],
+      );
 
       if (tableCheck.length === 0) continue;
 
@@ -67,9 +75,11 @@ export async function backfillBilingualProfiles(): Promise<{
         const dpAr = p.department_ar || "";
 
         // Check if any Arabic field needs translation or contains English characters
-        const needsNameAr = !fnAr || hasEnglish(fnAr) || !lnAr || hasEnglish(lnAr);
+        const needsNameAr =
+          !fnAr || hasEnglish(fnAr) || !lnAr || hasEnglish(lnAr);
         const needsJobAr = (!jtAr || hasEnglish(jtAr)) && Boolean(p.job_title);
-        const needsDeptAr = (!dpAr || hasEnglish(dpAr)) && Boolean(p.department);
+        const needsDeptAr =
+          (!dpAr || hasEnglish(dpAr)) && Boolean(p.department);
 
         if (needsNameAr || needsJobAr || needsDeptAr) {
           const enriched = enrichProfileBilingual({
@@ -98,31 +108,37 @@ export async function backfillBilingualProfiles(): Promise<{
             (enriched.departmentAr ?? null) === (p.department_ar ?? null);
           if (unchanged) continue;
 
-          await client.query(`
+          await client.query(
+            `
             UPDATE "${schema_name}".profiles 
             SET first_name_ar = $1, last_name_ar = $2, third_name_ar = $3, fourth_name_ar = $4,
                 job_title_ar = $5, department_ar = $6
             WHERE id = $7;
-          `, [
-            enriched.firstNameAr,
-            enriched.lastNameAr,
-            enriched.thirdNameAr,
-            enriched.fourthNameAr,
-            enriched.jobTitleAr,
-            enriched.departmentAr,
-            p.id,
-          ]);
+          `,
+            [
+              enriched.firstNameAr,
+              enriched.lastNameAr,
+              enriched.thirdNameAr,
+              enriched.fourthNameAr,
+              enriched.jobTitleAr,
+              enriched.departmentAr,
+              p.id,
+            ],
+          );
 
           totalUpdatedProfiles++;
         }
       }
 
       // Check if lookup_values table exists in this schema
-      const { rows: lookupTableCheck } = await client.query(`
+      const { rows: lookupTableCheck } = await client.query(
+        `
         SELECT table_name 
         FROM information_schema.tables 
         WHERE table_schema = $1 AND table_name = 'lookup_values';
-      `, [schema_name]);
+      `,
+        [schema_name],
+      );
 
       if (lookupTableCheck.length > 0) {
         await client.query(`
@@ -148,11 +164,14 @@ export async function backfillBilingualProfiles(): Promise<{
           }
 
           if (valAr && valAr !== lk.value_ar) {
-            await client.query(`
+            await client.query(
+              `
               UPDATE "${schema_name}".lookup_values
               SET value_ar = $1
               WHERE id = $2;
-            `, [valAr, lk.id]);
+            `,
+              [valAr, lk.id],
+            );
             totalUpdatedLookups++;
           }
         }
@@ -160,7 +179,7 @@ export async function backfillBilingualProfiles(): Promise<{
     }
 
     console.log(
-      `[Bilingual Backfill] Completed: ${totalUpdatedProfiles} profiles updated, ${totalUpdatedLookups} lookup values updated across all tenant schemas.`
+      `[Bilingual Backfill] Completed: ${totalUpdatedProfiles} profiles updated, ${totalUpdatedLookups} lookup values updated across all tenant schemas.`,
     );
   } catch (err) {
     console.error("[Bilingual Backfill] Error during execution:", err);

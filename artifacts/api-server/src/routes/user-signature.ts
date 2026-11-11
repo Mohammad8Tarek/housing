@@ -52,7 +52,9 @@ router.get("/users/me/signature", async (req, res): Promise<void> => {
     });
   } catch {
     console.error("user-signature: database error");
-    res.status(500).json({ success: false, message: "Failed to load signature" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to load signature" });
   }
 });
 
@@ -119,177 +121,213 @@ router.post("/users/me/signature", async (req, res): Promise<void> => {
     res.json({ success: true, message: "Signature saved" });
   } catch {
     console.error("user-signature: database error");
-    res.status(500).json({ success: false, message: "Failed to save signature" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to save signature" });
   }
 });
 
-router.get("/users/:id/signature", validate({ params: IdParams }),
+router.get(
+  "/users/:id/signature",
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
-  const admin = su(req);
-  const targetUserId = parseInt(String(req.params.id));
-  if (!Number.isFinite(targetUserId)) {
-    res.status(400).json({ success: false, message: "Invalid id" });
-    return;
-  }
-  const authUser = await loadAuthUser(req, res);
-  const canView = admin.isSystemAdmin || (authUser ? hasPermission(authUser, "users", "view") : false) || targetUserId === admin.userId;
-  if (!canView) {
-    res.status(403).json({
-      success: false,
-      message: "Only system admins or authorized managers can view user signatures",
-    });
-    return;
-  }
-
-  try {
-    const rows = await pool.query(
-      "SELECT signature_image_url, uploaded_at FROM public.user_signatures WHERE user_id = $1",
-      [targetUserId],
-    );
-    if (rows.rows.length === 0) {
-      res.json({ signatureImageUrl: null, uploadedAt: null });
+    const admin = su(req);
+    const targetUserId = parseInt(String(req.params.id));
+    if (!Number.isFinite(targetUserId)) {
+      res.status(400).json({ success: false, message: "Invalid id" });
       return;
     }
-    res.json({
-      signatureImageUrl: rows.rows[0].signature_image_url,
-      uploadedAt: rows.rows[0].uploaded_at,
-    });
-  } catch {
-    console.error("user-signature: database error");
-    res.status(500).json({ success: false, message: "Failed to load signature" });
-  }
-});
+    const authUser = await loadAuthUser(req, res);
+    const canView =
+      admin.isSystemAdmin ||
+      (authUser ? hasPermission(authUser, "users", "view") : false) ||
+      targetUserId === admin.userId;
+    if (!canView) {
+      res.status(403).json({
+        success: false,
+        message:
+          "Only system admins or authorized managers can view user signatures",
+      });
+      return;
+    }
 
-router.post("/users/:id/signature", validate({ params: IdParams }),
+    try {
+      const rows = await pool.query(
+        "SELECT signature_image_url, uploaded_at FROM public.user_signatures WHERE user_id = $1",
+        [targetUserId],
+      );
+      if (rows.rows.length === 0) {
+        res.json({ signatureImageUrl: null, uploadedAt: null });
+        return;
+      }
+      res.json({
+        signatureImageUrl: rows.rows[0].signature_image_url,
+        uploadedAt: rows.rows[0].uploaded_at,
+      });
+    } catch {
+      console.error("user-signature: database error");
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to load signature" });
+    }
+  },
+);
+
+router.post(
+  "/users/:id/signature",
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
-  const admin = su(req);
-  const targetUserId = parseInt(String(req.params.id));
-  if (!Number.isFinite(targetUserId)) {
-    res.status(400).json({ success: false, message: "Invalid id" });
-    return;
-  }
-  const isSelf = targetUserId === admin.userId;
-  const authUser = await loadAuthUser(req, res);
-  const canEdit = admin.isSystemAdmin || (authUser ? hasPermission(authUser, "users", "edit") : false) || isSelf;
-  if (!canEdit) {
-    res.status(403).json({
-      success: false,
-      message: "Only system admins or authorized managers can upload signatures for users",
-    });
-    return;
-  }
-
-  try {
-    const parsed = UploadSignatureBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({
+    const admin = su(req);
+    const targetUserId = parseInt(String(req.params.id));
+    if (!Number.isFinite(targetUserId)) {
+      res.status(400).json({ success: false, message: "Invalid id" });
+      return;
+    }
+    const isSelf = targetUserId === admin.userId;
+    const authUser = await loadAuthUser(req, res);
+    const canEdit =
+      admin.isSystemAdmin ||
+      (authUser ? hasPermission(authUser, "users", "edit") : false) ||
+      isSelf;
+    if (!canEdit) {
+      res.status(403).json({
         success: false,
-        message: parsed.error.issues.map((e: any) => e.message).join(", "),
+        message:
+          "Only system admins or authorized managers can upload signatures for users",
       });
       return;
     }
 
-    const { signatureImage } = parsed.data;
+    try {
+      const parsed = UploadSignatureBody.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({
+          success: false,
+          message: parsed.error.issues.map((e: any) => e.message).join(", "),
+        });
+        return;
+      }
 
-    if (!SIGNATURE_DATA_RE.test(signatureImage)) {
-      res.status(400).json({
-        success: false,
-        message: "Must be a PNG or JPEG image encoded as a data URL",
-      });
-      return;
-    }
+      const { signatureImage } = parsed.data;
 
-    if (signatureImage.length > MAX_SIGNATURE_LENGTH) {
-      res.status(400).json({
-        success: false,
-        message: "Signature image must be under 5MB",
-      });
-      return;
-    }
+      if (!SIGNATURE_DATA_RE.test(signatureImage)) {
+        res.status(400).json({
+          success: false,
+          message: "Must be a PNG or JPEG image encoded as a data URL",
+        });
+        return;
+      }
 
-    const existing = await pool.query(
-      "SELECT id FROM public.user_signatures WHERE user_id = $1",
-      [targetUserId],
-    );
+      if (signatureImage.length > MAX_SIGNATURE_LENGTH) {
+        res.status(400).json({
+          success: false,
+          message: "Signature image must be under 5MB",
+        });
+        return;
+      }
 
-    if (existing.rows.length > 0) {
-      await pool.query(
-        "UPDATE public.user_signatures SET signature_image_url = $1, updated_at = NOW() WHERE user_id = $2",
-        [signatureImage, targetUserId],
+      const existing = await pool.query(
+        "SELECT id FROM public.user_signatures WHERE user_id = $1",
+        [targetUserId],
       );
-    } else {
-      await pool.query(
-        "INSERT INTO public.user_signatures (user_id, signature_image_url) VALUES ($1, $2)",
-        [targetUserId, signatureImage],
-      );
+
+      if (existing.rows.length > 0) {
+        await pool.query(
+          "UPDATE public.user_signatures SET signature_image_url = $1, updated_at = NOW() WHERE user_id = $2",
+          [signatureImage, targetUserId],
+        );
+      } else {
+        await pool.query(
+          "INSERT INTO public.user_signatures (user_id, signature_image_url) VALUES ($1, $2)",
+          [targetUserId, signatureImage],
+        );
+      }
+
+      await logActivity({
+        req,
+        propertyId: admin.propertyId ?? 0,
+        username: admin.username,
+        userId: admin.userId,
+        userRole: admin.userRole,
+        action: "SIGNATURE_UPLOADED_BY_ADMIN",
+        actionType: "UPDATE",
+        module: "users",
+        severity: "info",
+        details: `Admin uploaded/replaced signature image for user ${targetUserId}`,
+      });
+
+      res.json({ success: true, message: "Signature saved" });
+    } catch {
+      console.error("user-signature: database error");
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to save signature" });
     }
-
-    await logActivity({
-      req,
-      propertyId: admin.propertyId ?? 0,
-      username: admin.username,
-      userId: admin.userId,
-      userRole: admin.userRole,
-      action: "SIGNATURE_UPLOADED_BY_ADMIN",
-      actionType: "UPDATE",
-      module: "users",
-      severity: "info",
-      details: `Admin uploaded/replaced signature image for user ${targetUserId}`,
-    });
-
-    res.json({ success: true, message: "Signature saved" });
-  } catch {
-    console.error("user-signature: database error");
-    res.status(500).json({ success: false, message: "Failed to save signature" });
-  }
-});
+  },
+);
 
 router.delete("/users/me/signature", async (req, res): Promise<void> => {
   const user = su(req);
   try {
-    await pool.query("DELETE FROM public.user_signatures WHERE user_id = $1", [user.userId]);
+    await pool.query("DELETE FROM public.user_signatures WHERE user_id = $1", [
+      user.userId,
+    ]);
     res.json({ success: true, message: "Signature deleted" });
   } catch {
-    res.status(500).json({ success: false, message: "Failed to delete signature" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete signature" });
   }
 });
 
-router.delete("/users/:id/signature", validate({ params: IdParams }),
+router.delete(
+  "/users/:id/signature",
+  validate({ params: IdParams }),
   async (req, res): Promise<void> => {
-  const admin = su(req);
-  const targetUserId = parseInt(String(req.params.id));
-  if (!Number.isFinite(targetUserId)) {
-    res.status(400).json({ success: false, message: "Invalid id" });
-    return;
-  }
-  const isSelf = targetUserId === admin.userId;
-  const authUser = await loadAuthUser(req, res);
-  const canDelete = admin.isSystemAdmin || (authUser ? hasPermission(authUser, "users", "edit") : false) || isSelf;
-  if (!canDelete) {
-    res.status(403).json({
-      success: false,
-      message: "Only system admins or authorized managers can delete signatures for other users",
-    });
-    return;
-  }
-  try {
-    await pool.query("DELETE FROM public.user_signatures WHERE user_id = $1", [targetUserId]);
-    await logActivity({
-      req,
-      propertyId: admin.propertyId ?? 0,
-      username: admin.username,
-      userId: admin.userId,
-      userRole: admin.userRole,
-      action: "SIGNATURE_DELETED_BY_ADMIN",
-      actionType: "DELETE",
-      module: "users",
-      severity: "info",
-      details: `Signature deleted for user ${targetUserId}`,
-    });
-    res.json({ success: true, message: "Signature deleted" });
-  } catch {
-    res.status(500).json({ success: false, message: "Failed to delete signature" });
-  }
-});
+    const admin = su(req);
+    const targetUserId = parseInt(String(req.params.id));
+    if (!Number.isFinite(targetUserId)) {
+      res.status(400).json({ success: false, message: "Invalid id" });
+      return;
+    }
+    const isSelf = targetUserId === admin.userId;
+    const authUser = await loadAuthUser(req, res);
+    const canDelete =
+      admin.isSystemAdmin ||
+      (authUser ? hasPermission(authUser, "users", "edit") : false) ||
+      isSelf;
+    if (!canDelete) {
+      res.status(403).json({
+        success: false,
+        message:
+          "Only system admins or authorized managers can delete signatures for other users",
+      });
+      return;
+    }
+    try {
+      await pool.query(
+        "DELETE FROM public.user_signatures WHERE user_id = $1",
+        [targetUserId],
+      );
+      await logActivity({
+        req,
+        propertyId: admin.propertyId ?? 0,
+        username: admin.username,
+        userId: admin.userId,
+        userRole: admin.userRole,
+        action: "SIGNATURE_DELETED_BY_ADMIN",
+        actionType: "DELETE",
+        module: "users",
+        severity: "info",
+        details: `Signature deleted for user ${targetUserId}`,
+      });
+      res.json({ success: true, message: "Signature deleted" });
+    } catch {
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to delete signature" });
+    }
+  },
+);
 
 export default router;

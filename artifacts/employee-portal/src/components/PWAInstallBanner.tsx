@@ -3,7 +3,15 @@
  * يعرض بانر تحميل وتثبيت التطبيق على Android/iOS/Desktop
  */
 import { useState, useEffect } from "react";
-import { Download, X, Share, PlusSquare, Smartphone, HelpCircle, Check } from "lucide-react";
+import {
+  Download,
+  X,
+  Share,
+  PlusSquare,
+  Smartphone,
+  HelpCircle,
+  Check,
+} from "lucide-react";
 import { useTheme } from "../lib/theme";
 
 function isIOS(): boolean {
@@ -19,7 +27,11 @@ function isInStandaloneMode(): boolean {
   );
 }
 
-export default function PWAInstallBanner({ compact = false }: { compact?: boolean }) {
+export default function PWAInstallBanner({
+  compact = false,
+}: {
+  compact?: boolean;
+}) {
   const { lang } = useTheme();
   const isRtl = lang === "ar";
   const [installPrompt, setInstallPrompt] = useState<any>(() => {
@@ -70,7 +82,9 @@ export default function PWAInstallBanner({ compact = false }: { compact?: boolea
   }, []);
 
   const handleInstallClick = async () => {
-    const promptObj = installPrompt || (typeof window !== "undefined" ? window.deferredPrompt : null);
+    const promptObj =
+      installPrompt ||
+      (typeof window !== "undefined" ? window.deferredPrompt : null);
 
     if (promptObj && typeof promptObj.prompt === "function") {
       try {
@@ -109,7 +123,9 @@ export default function PWAInstallBanner({ compact = false }: { compact?: boolea
             <Smartphone className="w-4 h-4 text-[#C9A24D]" />
           </div>
           <span className="text-xs font-semibold text-white/90">
-            {isRtl ? "تثبيت البوابة كتطبيق على هاتفك" : "Install Portal App on Mobile"}
+            {isRtl
+              ? "تثبيت البوابة كتطبيق على هاتفك"
+              : "Install Portal App on Mobile"}
           </span>
         </div>
         <button
@@ -144,7 +160,9 @@ export default function PWAInstallBanner({ compact = false }: { compact?: boolea
         <div className="flex-1 min-w-0 pe-6">
           <div className="flex items-center gap-2">
             <h4 className="text-sm font-bold text-white">
-              {isRtl ? "تثبيت تطبيق بوابة المقيمين" : "Install Resident Portal App"}
+              {isRtl
+                ? "تثبيت تطبيق بوابة المقيمين"
+                : "Install Resident Portal App"}
             </h4>
             <span className="px-1.5 py-0.5 rounded bg-[#C9A24D]/20 text-[#DFBF70] font-mono text-[10px] font-bold">
               PWA
@@ -176,26 +194,46 @@ export default function PWAInstallBanner({ compact = false }: { compact?: boolea
             <>
               <div className="flex items-center gap-1.5 font-semibold text-[#DFBF70]">
                 <Smartphone className="w-4 h-4 shrink-0" />
-                <span>{isRtl ? "طريقة التثبيت على آيفون (Safari):" : "Install on iOS Safari:"}</span>
+                <span>
+                  {isRtl
+                    ? "طريقة التثبيت على آيفون (Safari):"
+                    : "Install on iOS Safari:"}
+                </span>
               </div>
               <div className="flex items-center gap-2 text-white/70 ps-1">
                 <Share className="w-3.5 h-3.5 text-[#DFBF70] shrink-0" />
-                <span>{isRtl ? "1. اضغط على زر المشاركة (⬆) أسفل شاشة المتصفح" : "1. Tap the Share button (⬆) at the bottom"}</span>
+                <span>
+                  {isRtl
+                    ? "1. اضغط على زر المشاركة (⬆) أسفل شاشة المتصفح"
+                    : "1. Tap the Share button (⬆) at the bottom"}
+                </span>
               </div>
               <div className="flex items-center gap-2 text-white/70 ps-1">
                 <PlusSquare className="w-3.5 h-3.5 text-[#DFBF70] shrink-0" />
-                <span>{isRtl ? "2. اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen)" : "2. Select 'Add to Home Screen'"}</span>
+                <span>
+                  {isRtl
+                    ? "2. اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen)"
+                    : "2. Select 'Add to Home Screen'"}
+                </span>
               </div>
               <div className="flex items-center gap-2 text-white/70 ps-1">
                 <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>{isRtl ? "3. اضغط 'إضافة' وسيظهر التطبيق على شاشتك" : "3. Tap 'Add' and app icon will appear"}</span>
+                <span>
+                  {isRtl
+                    ? "3. اضغط 'إضافة' وسيظهر التطبيق على شاشتك"
+                    : "3. Tap 'Add' and app icon will appear"}
+                </span>
               </div>
             </>
           ) : (
             <>
               <div className="flex items-center gap-1.5 font-semibold text-[#DFBF70]">
                 <HelpCircle className="w-4 h-4 shrink-0" />
-                <span>{isRtl ? "طريقة التثبيت من المتصفح:" : "Browser Installation Guide:"}</span>
+                <span>
+                  {isRtl
+                    ? "طريقة التثبيت من المتصفح:"
+                    : "Browser Installation Guide:"}
+                </span>
               </div>
               <p className="text-white/70 ps-1 leading-relaxed">
                 {isRtl

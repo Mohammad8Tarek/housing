@@ -25,7 +25,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useDebounce } from "@/hooks/use-debounce";
 import { DataPagination } from "@/components/DataPagination";
-import { Shield, CheckCircle, XCircle, Search, Filter, X, Users, KeyRound, UserCheck, UserX } from "lucide-react";
+import {
+  Shield,
+  CheckCircle,
+  XCircle,
+  Search,
+  Filter,
+  X,
+  Users,
+  KeyRound,
+  UserCheck,
+  UserX,
+} from "lucide-react";
 
 export function PortalAccountsSection() {
   const { activePropertyId } = useProperty();
@@ -165,7 +176,9 @@ export function PortalAccountsSection() {
     },
     onError: () =>
       toast.error(
-        ar ? "حدث خطأ أثناء إعادة تعيين كلمة المرور" : "Error resetting password",
+        ar
+          ? "حدث خطأ أثناء إعادة تعيين كلمة المرور"
+          : "Error resetting password",
       ),
   });
 
@@ -190,12 +203,11 @@ export function PortalAccountsSection() {
             className="text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 font-medium"
           >
             <CheckCircle className="w-3.5 h-3.5 me-1.5 text-emerald-600" />
-            {ar ? `${activeCount} حساب مفعّل` : `${activeCount} Active Accounts`}
+            {ar
+              ? `${activeCount} حساب مفعّل`
+              : `${activeCount} Active Accounts`}
           </Badge>
-          <Badge
-            variant="outline"
-            className="text-xs bg-muted/50 font-medium"
-          >
+          <Badge variant="outline" className="text-xs bg-muted/50 font-medium">
             <Users className="w-3.5 h-3.5 me-1.5 text-muted-foreground" />
             {ar ? `${total} إجمالي السجلات` : `${total} Total Records`}
           </Badge>
@@ -279,12 +291,16 @@ export function PortalAccountsSection() {
             <TableHeader>
               <TableRow className="bg-muted/40">
                 <TableHead className="w-12 text-center">#</TableHead>
-                <TableHead>{ar ? "الموظف والوظيفة" : "Employee & Job"}</TableHead>
+                <TableHead>
+                  {ar ? "الموظف والوظيفة" : "Employee & Job"}
+                </TableHead>
                 <TableHead>{ar ? "رقم الموظف" : "Profile ID"}</TableHead>
                 <TableHead>{ar ? "القسم / الإدارة" : "Department"}</TableHead>
                 <TableHead>{ar ? "آخر تسجيل دخول" : "Last Login"}</TableHead>
                 <TableHead>{ar ? "حالة البوابة" : "Portal Status"}</TableHead>
-                <TableHead className="text-center">{ar ? "الإجراءات" : "Actions"}</TableHead>
+                <TableHead className="text-center">
+                  {ar ? "الإجراءات" : "Actions"}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -385,7 +401,11 @@ export function PortalAccountsSection() {
                           className="h-7 text-xs px-2.5 gap-1 hover:bg-muted"
                           onClick={() => resetMutation.mutate(acc.profileId)}
                           disabled={resetMutation.isPending}
-                          title={ar ? "إعادة تعيين كلمة المرور إلى 1234" : "Reset password to 1234"}
+                          title={
+                            ar
+                              ? "إعادة تعيين كلمة المرور إلى 1234"
+                              : "Reset password to 1234"
+                          }
                         >
                           <KeyRound className="w-3 h-3 text-amber-500" />
                           {ar ? "إعادة كلمة المرور" : "Reset Password"}

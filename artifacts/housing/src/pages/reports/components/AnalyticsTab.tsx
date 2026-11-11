@@ -1,5 +1,24 @@
 import React, { useState } from "react";
-import { Building2, BedDouble, Users, Wrench, Home, TrendingUp, Sparkles, Star, Activity, Layers, CheckCircle2, Clock, ArrowDownRight, ArrowUpRight, Calendar, Briefcase, Brush, Search } from "lucide-react";
+import {
+  Building2,
+  BedDouble,
+  Users,
+  Wrench,
+  Home,
+  TrendingUp,
+  Sparkles,
+  Star,
+  Activity,
+  Layers,
+  CheckCircle2,
+  Clock,
+  ArrowDownRight,
+  ArrowUpRight,
+  Calendar,
+  Briefcase,
+  Brush,
+  Search,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -38,7 +57,9 @@ export function AnalyticsTab({
   evalStats,
   onPrint,
 }: AnalyticsTabProps) {
-  const [structureView, setStructureView] = useState<"buildings" | "floors">("buildings");
+  const [structureView, setStructureView] = useState<"buildings" | "floors">(
+    "buildings",
+  );
   const [deptSearch, setDeptSearch] = useState("");
 
   const allDepts = (analytics?.byDept || []) as any[];
@@ -52,28 +73,49 @@ export function AnalyticsTab({
     );
   });
 
-  const totalDeptResidents = allDepts.reduce((acc: number, d: any) => acc + (d.residentCount ?? d.count ?? 0), 0);
-  const totalDeptRooms = allDepts.reduce((acc: number, d: any) => acc + (d.roomsCount ?? 0), 0);
-  const totalDeptOccupiedBeds = allDepts.reduce((acc: number, d: any) => acc + (d.occupiedBeds ?? 0), 0);
-  const totalDeptAvailableBeds = allDepts.reduce((acc: number, d: any) => acc + (d.availableBeds ?? 0), 0);
-  const totalDeptCapacity = allDepts.reduce((acc: number, d: any) => acc + (d.capacity ?? 0), 0);
-  const totalDeptMales = allDepts.reduce((acc: number, d: any) => acc + (d.maleCount ?? 0), 0);
-  const totalDeptFemales = allDepts.reduce((acc: number, d: any) => acc + (d.femaleCount ?? 0), 0);
+  const totalDeptResidents = allDepts.reduce(
+    (acc: number, d: any) => acc + (d.residentCount ?? d.count ?? 0),
+    0,
+  );
+  const totalDeptRooms = allDepts.reduce(
+    (acc: number, d: any) => acc + (d.roomsCount ?? 0),
+    0,
+  );
+  const totalDeptOccupiedBeds = allDepts.reduce(
+    (acc: number, d: any) => acc + (d.occupiedBeds ?? 0),
+    0,
+  );
+  const totalDeptAvailableBeds = allDepts.reduce(
+    (acc: number, d: any) => acc + (d.availableBeds ?? 0),
+    0,
+  );
+  const totalDeptCapacity = allDepts.reduce(
+    (acc: number, d: any) => acc + (d.capacity ?? 0),
+    0,
+  );
+  const totalDeptMales = allDepts.reduce(
+    (acc: number, d: any) => acc + (d.maleCount ?? 0),
+    0,
+  );
+  const totalDeptFemales = allDepts.reduce(
+    (acc: number, d: any) => acc + (d.femaleCount ?? 0),
+    0,
+  );
 
   const occRate = analytics?.occRate ?? 0;
   const occColorClass =
     occRate >= 90
       ? "text-red-600 dark:text-red-400"
       : occRate >= 75
-      ? "text-amber-600 dark:text-amber-400"
-      : "text-emerald-600 dark:text-emerald-400";
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-emerald-600 dark:text-emerald-400";
 
   const occBgClass =
     occRate >= 90
       ? "bg-red-500"
       : occRate >= 75
-      ? "bg-amber-500"
-      : "bg-emerald-500";
+        ? "bg-amber-500"
+        : "bg-emerald-500";
 
   const totalRooms = rooms?.length ?? 0;
   const availRooms = analytics?.availableRooms ?? 0;
@@ -153,9 +195,14 @@ export function AnalyticsTab({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-foreground">
-                {ar ? "لوحة التحليلات والمؤشرات الشاملة للسكن" : "Executive Housing Analytics & Insights"}
+                {ar
+                  ? "لوحة التحليلات والمؤشرات الشاملة للسكن"
+                  : "Executive Housing Analytics & Insights"}
               </h2>
-              <Badge variant="outline" className="text-[10px] tabular-nums py-0.5 border-primary/30 text-primary">
+              <Badge
+                variant="outline"
+                className="text-[10px] tabular-nums py-0.5 border-primary/30 text-primary"
+              >
                 {ar ? "تقرير معتمد" : "Official Report"}
               </Badge>
             </div>
@@ -179,9 +226,13 @@ export function AnalyticsTab({
             >
               <div className="flex items-center justify-center gap-1 text-muted-foreground/70 mb-1">
                 <Icon className="w-3.5 h-3.5" />
-                <span className="text-[11px] font-medium truncate max-w-[85px]">{kpi.label}</span>
+                <span className="text-[11px] font-medium truncate max-w-[85px]">
+                  {kpi.label}
+                </span>
               </div>
-              <p className={`text-xl font-extrabold tracking-tight ${kpi.color}`}>
+              <p
+                className={`text-xl font-extrabold tracking-tight ${kpi.color}`}
+              >
                 {isLoading ? "—" : kpi.value}
               </p>
             </div>
@@ -193,8 +244,12 @@ export function AnalyticsTab({
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
           <div>
-            <span className="text-[10px] text-muted-foreground block">{ar ? "وصول متوقع اليوم" : "Today Due In"}</span>
-            <span className="text-base font-extrabold tabular-nums text-[#1F7F81] dark:text-[#59B7A8]">{analytics?.todayArrivals ?? 0}</span>
+            <span className="text-[10px] text-muted-foreground block">
+              {ar ? "وصول متوقع اليوم" : "Today Due In"}
+            </span>
+            <span className="text-base font-extrabold tabular-nums text-[#1F7F81] dark:text-[#59B7A8]">
+              {analytics?.todayArrivals ?? 0}
+            </span>
           </div>
           <div className="w-8 h-8 rounded-lg bg-[#2AA8AB]/10 text-[#2AA8AB] flex items-center justify-center">
             <ArrowDownRight className="w-4 h-4" />
@@ -203,8 +258,12 @@ export function AnalyticsTab({
 
         <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
           <div>
-            <span className="text-[10px] text-muted-foreground block">{ar ? "مغادرة اليوم" : "Today Due Out"}</span>
-            <span className="text-base font-extrabold tabular-nums text-[#A52D2C]">{analytics?.todayDepartures ?? 0}</span>
+            <span className="text-[10px] text-muted-foreground block">
+              {ar ? "مغادرة اليوم" : "Today Due Out"}
+            </span>
+            <span className="text-base font-extrabold tabular-nums text-[#A52D2C]">
+              {analytics?.todayDepartures ?? 0}
+            </span>
           </div>
           <div className="w-8 h-8 rounded-lg bg-[#A52D2C]/10 text-[#A52D2C] flex items-center justify-center">
             <ArrowUpRight className="w-4 h-4" />
@@ -213,9 +272,15 @@ export function AnalyticsTab({
 
         <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
           <div>
-            <span className="text-[10px] text-muted-foreground block">{ar ? "صافي حركة اليوم" : "Net Movement"}</span>
-            <span className={`text-base font-extrabold tabular-nums ${(analytics?.netMovement ?? 0) >= 0 ? "text-[#1F7F81] dark:text-[#59B7A8]" : "text-[#D7731B]"}`}>
-              {(analytics?.netMovement ?? 0) > 0 ? `+${analytics?.netMovement}` : (analytics?.netMovement ?? 0)}
+            <span className="text-[10px] text-muted-foreground block">
+              {ar ? "صافي حركة اليوم" : "Net Movement"}
+            </span>
+            <span
+              className={`text-base font-extrabold tabular-nums ${(analytics?.netMovement ?? 0) >= 0 ? "text-[#1F7F81] dark:text-[#59B7A8]" : "text-[#D7731B]"}`}
+            >
+              {(analytics?.netMovement ?? 0) > 0
+                ? `+${analytics?.netMovement}`
+                : (analytics?.netMovement ?? 0)}
             </span>
           </div>
           <div className="w-8 h-8 rounded-lg bg-[#2AA8AB]/10 text-[#2AA8AB] flex items-center justify-center">
@@ -225,8 +290,12 @@ export function AnalyticsTab({
 
         <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
           <div>
-            <span className="text-[10px] text-muted-foreground block">{ar ? "حجوزات قادمة" : "Reservations"}</span>
-            <span className="text-base font-extrabold tabular-nums text-[#1F7F81] dark:text-[#59B7A8]">{analytics?.upcomingReservations ?? 0}</span>
+            <span className="text-[10px] text-muted-foreground block">
+              {ar ? "حجوزات قادمة" : "Reservations"}
+            </span>
+            <span className="text-base font-extrabold tabular-nums text-[#1F7F81] dark:text-[#59B7A8]">
+              {analytics?.upcomingReservations ?? 0}
+            </span>
           </div>
           <div className="w-8 h-8 rounded-lg bg-[#2AA8AB]/10 text-[#2AA8AB] flex items-center justify-center">
             <Calendar className="w-4 h-4" />
@@ -235,8 +304,12 @@ export function AnalyticsTab({
 
         <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
           <div>
-            <span className="text-[10px] text-muted-foreground block">{ar ? "استضافات نشطة" : "Active Hostings"}</span>
-            <span className="text-base font-extrabold tabular-nums text-[#1F7F81] dark:text-[#59B7A8]">{analytics?.activeHostings ?? 0}</span>
+            <span className="text-[10px] text-muted-foreground block">
+              {ar ? "استضافات نشطة" : "Active Hostings"}
+            </span>
+            <span className="text-base font-extrabold tabular-nums text-[#1F7F81] dark:text-[#59B7A8]">
+              {analytics?.activeHostings ?? 0}
+            </span>
           </div>
           <div className="w-8 h-8 rounded-lg bg-[#2AA8AB]/10 text-[#2AA8AB] flex items-center justify-center">
             <Users className="w-4 h-4" />
@@ -245,8 +318,12 @@ export function AnalyticsTab({
 
         <div className="bg-card border border-border/70 rounded-xl p-2.5 flex items-center justify-between shadow-2xs">
           <div>
-            <span className="text-[10px] text-muted-foreground block">{ar ? "عقود تنتهي (30يوم)" : "Expiring (30d)"}</span>
-            <span className="text-base font-extrabold tabular-nums text-[#1F7F81] dark:text-[#59B7A8]">{analytics?.expiringContracts ?? 0}</span>
+            <span className="text-[10px] text-muted-foreground block">
+              {ar ? "عقود تنتهي (30يوم)" : "Expiring (30d)"}
+            </span>
+            <span className="text-base font-extrabold tabular-nums text-[#1F7F81] dark:text-[#59B7A8]">
+              {analytics?.expiringContracts ?? 0}
+            </span>
           </div>
           <div className="w-8 h-8 rounded-lg bg-[#2AA8AB]/10 text-[#2AA8AB] flex items-center justify-center">
             <Clock className="w-4 h-4" />
@@ -260,16 +337,24 @@ export function AnalyticsTab({
           <div className="flex items-center gap-2">
             <Brush className="w-4 h-4 text-primary" />
             <h3 className="font-bold text-xs text-foreground">
-              {ar ? "جاهزية الغرف والنظافة التشغيلية (Housekeeping Turnover)" : "Housekeeping & Room Readiness"}
+              {ar
+                ? "جاهزية الغرف والنظافة التشغيلية (Housekeeping Turnover)"
+                : "Housekeeping & Room Readiness"}
             </h3>
           </div>
           <div className="flex items-center gap-3 text-xs tabular-nums">
             <span className="text-muted-foreground">
               {ar ? "غرف محجوزة بالكامل:" : "Full Room Locks:"}{" "}
-              <strong className="text-foreground">{analytics?.entireRoomLocks ?? 0}</strong>
+              <strong className="text-foreground">
+                {analytics?.entireRoomLocks ?? 0}
+              </strong>
             </span>
-            <Badge variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 border-emerald-300 font-bold">
-              {ar ? "جاهزية التسكين:" : "Clean Ready:"} {analytics?.cleanReadyRooms ?? 0}
+            <Badge
+              variant="outline"
+              className="text-[10px] bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 border-emerald-300 font-bold"
+            >
+              {ar ? "جاهزية التسكين:" : "Clean Ready:"}{" "}
+              {analytics?.cleanReadyRooms ?? 0}
             </Badge>
           </div>
         </div>
@@ -316,7 +401,9 @@ export function AnalyticsTab({
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-primary" />
             <h3 className="font-bold text-sm text-foreground">
-              {ar ? "معدل الإشغال الفعلي للأسِرّة" : "Overall Bed Occupancy & Capacity Utilization"}
+              {ar
+                ? "معدل الإشغال الفعلي للأسِرّة"
+                : "Overall Bed Occupancy & Capacity Utilization"}
             </h3>
             <span className="text-xs text-muted-foreground tabular-nums">
               ({occBeds} / {totalBeds} {ar ? "سرير مشغول" : "beds occupied"})
@@ -325,9 +412,13 @@ export function AnalyticsTab({
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">
               {ar ? "السعة الشاغرة المتاحة:" : "Available Beds:"}{" "}
-              <strong className="text-emerald-600 font-bold tabular-nums">{availBeds}</strong>
+              <strong className="text-emerald-600 font-bold tabular-nums">
+                {availBeds}
+              </strong>
             </span>
-            <span className={`text-xl font-black tabular-nums ${occColorClass}`}>
+            <span
+              className={`text-xl font-black tabular-nums ${occColorClass}`}
+            >
               {occRate}%
             </span>
           </div>
@@ -357,7 +448,9 @@ export function AnalyticsTab({
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-sm flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-primary" />
-                {ar ? "مسار تطور الإشغال (آخر 6 أشهر)" : "Occupancy Trajectory (Last 6 Months)"}
+                {ar
+                  ? "مسار تطور الإشغال (آخر 6 أشهر)"
+                  : "Occupancy Trajectory (Last 6 Months)"}
               </h3>
               <Badge variant="secondary" className="text-[10px] tabular-nums">
                 {ar ? "مؤشر زمني" : "Monthly Trend"}
@@ -365,19 +458,38 @@ export function AnalyticsTab({
             </div>
 
             <div className="h-[190px] w-full">
-              {analytics?.occupancyHistory && analytics.occupancyHistory.length > 0 ? (
+              {analytics?.occupancyHistory &&
+              analytics.occupancyHistory.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={analytics.occupancyHistory}
                     margin={{ top: 10, right: 15, left: -15, bottom: 0 }}
                   >
                     <defs>
-                      <linearGradient id="analyticsOccGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                      <linearGradient
+                        id="analyticsOccGrad"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#3b82f6"
+                          stopOpacity={0.35}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#3b82f6"
+                          stopOpacity={0.0}
+                        />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="hsl(var(--border))"
+                    />
                     <XAxis
                       dataKey="month"
                       stroke="hsl(var(--muted-foreground))"
@@ -399,7 +511,10 @@ export function AnalyticsTab({
                         boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                         fontSize: "12px",
                       }}
-                      formatter={(val: any) => [`${val} ${ar ? "نزيل" : "Pax"}`, ar ? "الإشغال" : "Occupancy"]}
+                      formatter={(val: any) => [
+                        `${val} ${ar ? "نزيل" : "Pax"}`,
+                        ar ? "الإشغال" : "Occupancy",
+                      ]}
                     />
                     <Area
                       type="monotone"
@@ -427,8 +542,12 @@ export function AnalyticsTab({
                 <Building2 className="w-4 h-4 text-primary" />
                 <h3 className="font-bold text-sm text-foreground">
                   {structureView === "buildings"
-                    ? (ar ? "الإشغال بحسب المباني السكنية" : "Occupancy by Building")
-                    : (ar ? "الإشغال بحسب الأدوار والطوابق" : "Occupancy by Floor")}
+                    ? ar
+                      ? "الإشغال بحسب المباني السكنية"
+                      : "Occupancy by Building"
+                    : ar
+                      ? "الإشغال بحسب الأدوار والطوابق"
+                      : "Occupancy by Floor"}
                 </h3>
               </div>
 
@@ -443,7 +562,8 @@ export function AnalyticsTab({
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {ar ? "المباني" : "Buildings"} ({analytics?.byBuilding?.length ?? 0})
+                  {ar ? "المباني" : "Buildings"} (
+                  {analytics?.byBuilding?.length ?? 0})
                 </button>
                 <button
                   type="button"
@@ -454,13 +574,14 @@ export function AnalyticsTab({
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {ar ? "الأدوار" : "Floors"} ({analytics?.byFloor?.length ?? 0})
+                  {ar ? "الأدوار" : "Floors"} ({analytics?.byFloor?.length ?? 0}
+                  )
                 </button>
               </div>
             </div>
 
             {structureView === "buildings" ? (
-              (!analytics?.byBuilding || analytics.byBuilding.length === 0) ? (
+              !analytics?.byBuilding || analytics.byBuilding.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-6">
                   {ar ? "لا توجد مبانٍ مسجلة" : "No buildings found"}
                 </p>
@@ -472,24 +593,35 @@ export function AnalyticsTab({
                       bRate >= 90
                         ? "bg-red-500 text-red-600 dark:text-red-400"
                         : bRate >= 75
-                        ? "bg-amber-500 text-amber-600 dark:text-amber-400"
-                        : "bg-emerald-500 text-emerald-600 dark:text-emerald-400";
+                          ? "bg-amber-500 text-amber-600 dark:text-amber-400"
+                          : "bg-emerald-500 text-emerald-600 dark:text-emerald-400";
                     return (
-                      <div key={b.id} className="p-2.5 rounded-lg bg-muted/30 border border-border/40">
+                      <div
+                        key={b.id}
+                        className="p-2.5 rounded-lg bg-muted/30 border border-border/40"
+                      >
                         <div className="flex items-center justify-between text-xs mb-1.5">
-                          <span className="font-bold text-foreground truncate max-w-[170px]">{b.name}</span>
+                          <span className="font-bold text-foreground truncate max-w-[170px]">
+                            {b.name}
+                          </span>
                           <span className="text-muted-foreground text-[11px] tabular-nums">
-                            {b.currentOccupancy} / {b.capacity} {ar ? "سرير" : "beds"} · {b.availableRooms} {ar ? "غرفة شاغرة" : "avail"}
+                            {b.currentOccupancy} / {b.capacity}{" "}
+                            {ar ? "سرير" : "beds"} · {b.availableRooms}{" "}
+                            {ar ? "غرفة شاغرة" : "avail"}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                             <div
                               className={`h-full rounded-full ${color.split(" ")[0]}`}
-                              style={{ width: `${Math.min(100, Math.max(2, bRate))}%` }}
+                              style={{
+                                width: `${Math.min(100, Math.max(2, bRate))}%`,
+                              }}
                             />
                           </div>
-                          <span className={`text-xs tabular-nums font-bold w-10 text-right ${color.split(" ").slice(1).join(" ")}`}>
+                          <span
+                            className={`text-xs tabular-nums font-bold w-10 text-right ${color.split(" ").slice(1).join(" ")}`}
+                          >
                             {bRate}%
                           </span>
                         </div>
@@ -498,40 +630,47 @@ export function AnalyticsTab({
                   })}
                 </div>
               )
+            ) : !analytics?.byFloor || analytics.byFloor.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-6">
+                {ar ? "لا توجد أدوار مسجلة" : "No floors found"}
+              </p>
             ) : (
-              (!analytics?.byFloor || analytics.byFloor.length === 0) ? (
-                <p className="text-xs text-muted-foreground text-center py-6">
-                  {ar ? "لا توجد أدوار مسجلة" : "No floors found"}
-                </p>
-              ) : (
-                <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
-                  {analytics.byFloor.map((f: any) => {
-                    const fRate = f.rate ?? 0;
-                    const color =
-                      fRate >= 90
-                        ? "text-red-600 dark:text-red-400"
-                        : fRate >= 75
+              <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+                {analytics.byFloor.map((f: any) => {
+                  const fRate = f.rate ?? 0;
+                  const color =
+                    fRate >= 90
+                      ? "text-red-600 dark:text-red-400"
+                      : fRate >= 75
                         ? "text-amber-600 dark:text-amber-400"
                         : "text-emerald-600 dark:text-emerald-400";
-                    return (
-                      <div key={f.id} className="p-2 rounded-lg bg-muted/30 border border-border/40 flex items-center justify-between text-xs">
-                        <div className="truncate max-w-[170px]">
-                          <p className="font-bold text-foreground truncate">{f.name}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{f.buildingName}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="tabular-nums text-muted-foreground text-[11px]">
-                            {f.occupied} / {f.capacity} {ar ? "سرير" : "beds"}
-                          </span>
-                          <span className={`text-xs tabular-nums font-bold px-1.5 py-0.5 rounded ${color}`}>
-                            {fRate}%
-                          </span>
-                        </div>
+                  return (
+                    <div
+                      key={f.id}
+                      className="p-2 rounded-lg bg-muted/30 border border-border/40 flex items-center justify-between text-xs"
+                    >
+                      <div className="truncate max-w-[170px]">
+                        <p className="font-bold text-foreground truncate">
+                          {f.name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {f.buildingName}
+                        </p>
                       </div>
-                    );
-                  })}
-                </div>
-              )
+                      <div className="flex items-center gap-3">
+                        <span className="tabular-nums text-muted-foreground text-[11px]">
+                          {f.occupied} / {f.capacity} {ar ? "سرير" : "beds"}
+                        </span>
+                        <span
+                          className={`text-xs tabular-nums font-bold px-1.5 py-0.5 rounded ${color}`}
+                        >
+                          {fRate}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
@@ -543,10 +682,18 @@ export function AnalyticsTab({
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-sm flex items-center gap-2">
                 <Briefcase className="w-4 h-4 text-primary" />
-                {ar ? "هيكل العمالة والشركات (داخلي / توريد)" : "Workforce Structure & Contractors"}
+                {ar
+                  ? "هيكل العمالة والشركات (داخلي / توريد)"
+                  : "Workforce Structure & Contractors"}
               </h3>
               <Badge variant="secondary" className="text-[10px] tabular-nums">
-                {analytics?.thirdPartyStaffCount > 0 ? (ar ? "متعدد الشركات" : "Multi-Source") : (ar ? "فندقي فقط" : "Direct")}
+                {analytics?.thirdPartyStaffCount > 0
+                  ? ar
+                    ? "متعدد الشركات"
+                    : "Multi-Source"
+                  : ar
+                    ? "فندقي فقط"
+                    : "Direct"}
               </Badge>
             </div>
 
@@ -574,9 +721,16 @@ export function AnalyticsTab({
             {analytics?.byCompany && analytics.byCompany.length > 0 && (
               <div className="mb-3 space-y-1.5 max-h-[85px] overflow-y-auto pr-1">
                 {analytics.byCompany.map((c: any) => (
-                  <div key={c.company} className="flex items-center justify-between text-xs bg-muted/40 px-2.5 py-1 rounded-md">
-                    <span className="text-foreground truncate max-w-[200px]">{c.company}</span>
-                    <span className="tabular-nums font-bold text-purple-600">{c.count} {ar ? "فرد" : "pax"}</span>
+                  <div
+                    key={c.company}
+                    className="flex items-center justify-between text-xs bg-muted/40 px-2.5 py-1 rounded-md"
+                  >
+                    <span className="text-foreground truncate max-w-[200px]">
+                      {c.company}
+                    </span>
+                    <span className="tabular-nums font-bold text-purple-600">
+                      {c.count} {ar ? "فرد" : "pax"}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -585,9 +739,11 @@ export function AnalyticsTab({
             {/* Department Breakdown */}
             <div className="border-t border-border/50 pt-2.5">
               <p className="text-[11px] font-bold text-muted-foreground mb-2">
-                {ar ? "أعلى الإدارات إشغالاً بالسكن:" : "Top Resident Departments:"}
+                {ar
+                  ? "أعلى الإدارات إشغالاً بالسكن:"
+                  : "Top Resident Departments:"}
               </p>
-              {(!analytics?.byDept || analytics.byDept.length === 0) ? (
+              {!analytics?.byDept || analytics.byDept.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-2">
                   {ar ? "لا توجد بيانات أقسام" : "No department data"}
                 </p>
@@ -599,9 +755,14 @@ export function AnalyticsTab({
                     return (
                       <div key={d.dept} className="text-xs">
                         <div className="flex justify-between items-center mb-0.5">
-                          <span className="font-medium text-foreground truncate max-w-[180px]">{d.dept}</span>
+                          <span className="font-medium text-foreground truncate max-w-[180px]">
+                            {d.dept}
+                          </span>
                           <span className="tabular-nums text-muted-foreground text-[10px]">
-                            <strong className="text-foreground">{d.count}</strong> {ar ? "موظف" : "staff"}
+                            <strong className="text-foreground">
+                              {d.count}
+                            </strong>{" "}
+                            {ar ? "موظف" : "staff"}
                           </span>
                         </div>
                         <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
@@ -625,7 +786,7 @@ export function AnalyticsTab({
               {ar ? "الإشغال بحسب فئة ونوع الغرفة" : "Occupancy by Room Type"}
             </h3>
 
-            {(!analytics?.byType || analytics.byType.length === 0) ? (
+            {!analytics?.byType || analytics.byType.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-6">
                 {ar ? "لا توجد بيانات غرف" : "No room types"}
               </p>
@@ -634,11 +795,21 @@ export function AnalyticsTab({
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="text-xs py-2">{ar ? "نوع الغرفة" : "Room Type"}</TableHead>
-                      <TableHead className="text-xs py-2 text-center">{ar ? "الغرف" : "Rooms"}</TableHead>
-                      <TableHead className="text-xs py-2 text-center">{ar ? "الأسِرّة" : "Beds"}</TableHead>
-                      <TableHead className="text-xs py-2 text-center">{ar ? "المشغول" : "Occ"}</TableHead>
-                      <TableHead className="text-xs py-2 text-center">{ar ? "النسبة" : "Rate"}</TableHead>
+                      <TableHead className="text-xs py-2">
+                        {ar ? "نوع الغرفة" : "Room Type"}
+                      </TableHead>
+                      <TableHead className="text-xs py-2 text-center">
+                        {ar ? "الغرف" : "Rooms"}
+                      </TableHead>
+                      <TableHead className="text-xs py-2 text-center">
+                        {ar ? "الأسِرّة" : "Beds"}
+                      </TableHead>
+                      <TableHead className="text-xs py-2 text-center">
+                        {ar ? "المشغول" : "Occ"}
+                      </TableHead>
+                      <TableHead className="text-xs py-2 text-center">
+                        {ar ? "النسبة" : "Rate"}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -648,18 +819,26 @@ export function AnalyticsTab({
                         rate >= 90
                           ? "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400"
                           : rate >= 75
-                          ? "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400"
-                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400";
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400"
+                            : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400";
                       return (
                         <TableRow key={t.type} className="hover:bg-muted/30">
-                          <TableCell className="font-semibold text-xs py-2">{t.type}</TableCell>
-                          <TableCell className="text-center text-xs py-2 tabular-nums">{t.rooms}</TableCell>
-                          <TableCell className="text-center text-xs py-2 tabular-nums">{t.capacity}</TableCell>
+                          <TableCell className="font-semibold text-xs py-2">
+                            {t.type}
+                          </TableCell>
+                          <TableCell className="text-center text-xs py-2 tabular-nums">
+                            {t.rooms}
+                          </TableCell>
+                          <TableCell className="text-center text-xs py-2 tabular-nums">
+                            {t.capacity}
+                          </TableCell>
                           <TableCell className="text-center text-xs py-2 tabular-nums font-bold text-primary">
                             {t.occupied}
                           </TableCell>
                           <TableCell className="text-center py-2">
-                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md tabular-nums ${badgeColor}`}>
+                            <span
+                              className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md tabular-nums ${badgeColor}`}
+                            >
                               {rate}%
                             </span>
                           </TableCell>
@@ -684,9 +863,14 @@ export function AnalyticsTab({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-sm text-foreground">
-                  {ar ? "التحليل الشامل لإشغال الأقسام وحصص الغرف والأسِرّة" : "Comprehensive Department Occupancy & Bed Quotas"}
+                  {ar
+                    ? "التحليل الشامل لإشغال الأقسام وحصص الغرف والأسِرّة"
+                    : "Comprehensive Department Occupancy & Bed Quotas"}
                 </h3>
-                <Badge variant="outline" className="text-[10px] tabular-nums border-primary/30 text-primary">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] tabular-nums border-primary/30 text-primary"
+                >
                   {allDepts.length} {ar ? "قسم / إدارة" : "Departments"}
                 </Badge>
               </div>
@@ -703,7 +887,9 @@ export function AnalyticsTab({
             <Input
               value={deptSearch}
               onChange={(e) => setDeptSearch(e.target.value)}
-              placeholder={ar ? "بحث بالقسم أو المبنى..." : "Search dept or building..."}
+              placeholder={
+                ar ? "بحث بالقسم أو المبنى..." : "Search dept or building..."
+              }
               className="h-8 text-xs pl-9 rtl:pl-3 rtl:pr-9 bg-muted/30"
             />
           </div>
@@ -711,22 +897,42 @@ export function AnalyticsTab({
 
         {filteredDepts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground text-xs">
-            {ar ? "لا توجد أقسام مطابقة للبحث" : "No departments match your search"}
+            {ar
+              ? "لا توجد أقسام مطابقة للبحث"
+              : "No departments match your search"}
           </div>
         ) : (
           <div className="overflow-x-auto border border-border/60 rounded-lg">
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-xs font-bold py-2.5">{ar ? "القسم / الإدارة" : "Department"}</TableHead>
-                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "المقيمين بالسكن" : "Residents"}</TableHead>
-                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "الحصة من الإشغال" : "Occupancy Share"}</TableHead>
-                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "الغرف المشغولة" : "Assigned Rooms"}</TableHead>
-                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "الأسِرّة المشغولة" : "Occupied Beds"}</TableHead>
-                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "الأسِرّة الشاغرة" : "Available Beds"}</TableHead>
-                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "إجمالي الطاقة" : "Total Capacity"}</TableHead>
-                  <TableHead className="text-xs font-bold py-2.5 text-center">{ar ? "توزيع النوع" : "Gender Split"}</TableHead>
-                  <TableHead className="text-xs font-bold py-2.5">{ar ? "المباني السكنية" : "Buildings"}</TableHead>
+                  <TableHead className="text-xs font-bold py-2.5">
+                    {ar ? "القسم / الإدارة" : "Department"}
+                  </TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">
+                    {ar ? "المقيمين بالسكن" : "Residents"}
+                  </TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">
+                    {ar ? "الحصة من الإشغال" : "Occupancy Share"}
+                  </TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">
+                    {ar ? "الغرف المشغولة" : "Assigned Rooms"}
+                  </TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">
+                    {ar ? "الأسِرّة المشغولة" : "Occupied Beds"}
+                  </TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">
+                    {ar ? "الأسِرّة الشاغرة" : "Available Beds"}
+                  </TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">
+                    {ar ? "إجمالي الطاقة" : "Total Capacity"}
+                  </TableHead>
+                  <TableHead className="text-xs font-bold py-2.5 text-center">
+                    {ar ? "توزيع النوع" : "Gender Split"}
+                  </TableHead>
+                  <TableHead className="text-xs font-bold py-2.5">
+                    {ar ? "المباني السكنية" : "Buildings"}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -735,9 +941,14 @@ export function AnalyticsTab({
                   return (
                     <TableRow key={d.dept} className="hover:bg-muted/20">
                       <TableCell className="py-2">
-                        <div className="font-semibold text-xs text-foreground">{d.dept}</div>
+                        <div className="font-semibold text-xs text-foreground">
+                          {d.dept}
+                        </div>
                         {d.roomsSummary && (
-                          <div className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={d.roomsSummary}>
+                          <div
+                            className="text-[10px] text-muted-foreground truncate max-w-[200px]"
+                            title={d.roomsSummary}
+                          >
                             {ar ? "غرف:" : "Rooms:"} {d.roomsSummary}
                           </div>
                         )}
@@ -772,17 +983,26 @@ export function AnalyticsTab({
                       </TableCell>
                       <TableCell className="text-center py-2 text-xs">
                         <div className="flex items-center justify-center gap-1 text-[11px] tabular-nums">
-                          <span className="text-blue-600 dark:text-blue-400 font-bold" title={ar ? "ذكور" : "Males"}>
+                          <span
+                            className="text-blue-600 dark:text-blue-400 font-bold"
+                            title={ar ? "ذكور" : "Males"}
+                          >
                             {d.maleCount ?? 0} ♂
                           </span>
                           <span className="text-muted-foreground/60">/</span>
-                          <span className="text-purple-600 dark:text-purple-400 font-bold" title={ar ? "إناث" : "Females"}>
+                          <span
+                            className="text-purple-600 dark:text-purple-400 font-bold"
+                            title={ar ? "إناث" : "Females"}
+                          >
                             {d.femaleCount ?? 0} ♀
                           </span>
                         </div>
                       </TableCell>
                       <TableCell className="py-2 text-xs">
-                        <span className="text-muted-foreground text-[11px] truncate block max-w-[220px]" title={d.buildingsList}>
+                        <span
+                          className="text-muted-foreground text-[11px] truncate block max-w-[220px]"
+                          title={d.buildingsList}
+                        >
                           {d.buildingsList || "—"}
                         </span>
                       </TableCell>
@@ -793,7 +1013,9 @@ export function AnalyticsTab({
               <TableFooter className="bg-muted/60 font-bold text-xs">
                 <TableRow>
                   <TableCell className="py-2.5 font-bold">
-                    {ar ? `الإجمالي (${allDepts.length} قسم)` : `Total (${allDepts.length} depts)`}
+                    {ar
+                      ? `الإجمالي (${allDepts.length} قسم)`
+                      : `Total (${allDepts.length} depts)`}
                   </TableCell>
                   <TableCell className="text-center py-2.5 tabular-nums text-primary font-bold">
                     {totalDeptResidents}
@@ -814,9 +1036,13 @@ export function AnalyticsTab({
                     {totalDeptCapacity}
                   </TableCell>
                   <TableCell className="text-center py-2.5 tabular-nums">
-                    <span className="text-blue-600 dark:text-blue-400">{totalDeptMales} ♂</span>
+                    <span className="text-blue-600 dark:text-blue-400">
+                      {totalDeptMales} ♂
+                    </span>
                     {" / "}
-                    <span className="text-purple-600 dark:text-purple-400">{totalDeptFemales} ♀</span>
+                    <span className="text-purple-600 dark:text-purple-400">
+                      {totalDeptFemales} ♀
+                    </span>
                   </TableCell>
                   <TableCell className="py-2.5 text-muted-foreground text-[11px]">
                     {ar ? "كافة المباني السكنية" : "All Residential Buildings"}
@@ -836,10 +1062,13 @@ export function AnalyticsTab({
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-sm flex items-center gap-2">
                 <Wrench className="w-4 h-4 text-orange-500" />
-                {ar ? "أولويات الصيانة وجاهزية المرافق" : "Maintenance Priorities"}
+                {ar
+                  ? "أولويات الصيانة وجاهزية المرافق"
+                  : "Maintenance Priorities"}
               </h3>
               <span className="text-[10px] tabular-nums text-muted-foreground">
-                {ar ? "معدل الإنجاز" : "Resolved"}: {analytics?.resolutionRate ?? 100}%
+                {ar ? "معدل الإنجاز" : "Resolved"}:{" "}
+                {analytics?.resolutionRate ?? 100}%
               </span>
             </div>
 
@@ -866,36 +1095,64 @@ export function AnalyticsTab({
             {/* Maintenance Priorities Matrix */}
             <div className="grid grid-cols-4 gap-1 text-center text-xs mb-2.5">
               <div className="bg-red-100/60 dark:bg-red-950/30 rounded p-1">
-                <span className="text-[9px] text-red-700 dark:text-red-300 block">{ar ? "طارئة" : "Emerg"}</span>
-                <strong className="tabular-nums text-red-700 dark:text-red-400">{analytics?.byPriority?.emergency ?? 0}</strong>
+                <span className="text-[9px] text-red-700 dark:text-red-300 block">
+                  {ar ? "طارئة" : "Emerg"}
+                </span>
+                <strong className="tabular-nums text-red-700 dark:text-red-400">
+                  {analytics?.byPriority?.emergency ?? 0}
+                </strong>
               </div>
               <div className="bg-orange-100/60 dark:bg-orange-950/30 rounded p-1">
-                <span className="text-[9px] text-orange-700 dark:text-orange-300 block">{ar ? "عالية" : "High"}</span>
-                <strong className="tabular-nums text-orange-700 dark:text-orange-400">{analytics?.byPriority?.high ?? 0}</strong>
+                <span className="text-[9px] text-orange-700 dark:text-orange-300 block">
+                  {ar ? "عالية" : "High"}
+                </span>
+                <strong className="tabular-nums text-orange-700 dark:text-orange-400">
+                  {analytics?.byPriority?.high ?? 0}
+                </strong>
               </div>
               <div className="bg-amber-100/60 dark:bg-amber-950/30 rounded p-1">
-                <span className="text-[9px] text-amber-700 dark:text-amber-300 block">{ar ? "متوسطة" : "Med"}</span>
-                <strong className="tabular-nums text-amber-700 dark:text-amber-400">{analytics?.byPriority?.medium ?? 0}</strong>
+                <span className="text-[9px] text-amber-700 dark:text-amber-300 block">
+                  {ar ? "متوسطة" : "Med"}
+                </span>
+                <strong className="tabular-nums text-amber-700 dark:text-amber-400">
+                  {analytics?.byPriority?.medium ?? 0}
+                </strong>
               </div>
               <div className="bg-blue-100/60 dark:bg-blue-950/30 rounded p-1">
-                <span className="text-[9px] text-blue-700 dark:text-blue-300 block">{ar ? "منخفضة" : "Low"}</span>
-                <strong className="tabular-nums text-blue-700 dark:text-blue-400">{analytics?.byPriority?.low ?? 0}</strong>
+                <span className="text-[9px] text-blue-700 dark:text-blue-300 block">
+                  {ar ? "منخفضة" : "Low"}
+                </span>
+                <strong className="tabular-nums text-blue-700 dark:text-blue-400">
+                  {analytics?.byPriority?.low ?? 0}
+                </strong>
               </div>
             </div>
 
             {/* Category breakdown */}
             <div className="grid grid-cols-3 gap-1 text-center text-[10px]">
               <div className="bg-muted/40 rounded p-1">
-                <span className="text-muted-foreground block">{ar ? "سباكة" : "Plumb"}</span>
-                <strong className="tabular-nums text-foreground">{analytics?.ticketsByCategory?.plumbing ?? 0}</strong>
+                <span className="text-muted-foreground block">
+                  {ar ? "سباكة" : "Plumb"}
+                </span>
+                <strong className="tabular-nums text-foreground">
+                  {analytics?.ticketsByCategory?.plumbing ?? 0}
+                </strong>
               </div>
               <div className="bg-muted/40 rounded p-1">
-                <span className="text-muted-foreground block">{ar ? "كهرباء" : "Elect"}</span>
-                <strong className="tabular-nums text-foreground">{analytics?.ticketsByCategory?.electrical ?? 0}</strong>
+                <span className="text-muted-foreground block">
+                  {ar ? "كهرباء" : "Elect"}
+                </span>
+                <strong className="tabular-nums text-foreground">
+                  {analytics?.ticketsByCategory?.electrical ?? 0}
+                </strong>
               </div>
               <div className="bg-muted/40 rounded p-1">
-                <span className="text-muted-foreground block">{ar ? "تكييف" : "AC"}</span>
-                <strong className="tabular-nums text-foreground">{analytics?.ticketsByCategory?.ac ?? 0}</strong>
+                <span className="text-muted-foreground block">
+                  {ar ? "تكييف" : "AC"}
+                </span>
+                <strong className="tabular-nums text-foreground">
+                  {analytics?.ticketsByCategory?.ac ?? 0}
+                </strong>
               </div>
             </div>
           </div>
@@ -906,7 +1163,9 @@ export function AnalyticsTab({
           <div>
             <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
               <Users className="w-4 h-4 text-indigo-500" />
-              {ar ? "المؤشرات الديموغرافية والجنسيات" : "Demographics & Nationalities"}
+              {ar
+                ? "المؤشرات الديموغرافية والجنسيات"
+                : "Demographics & Nationalities"}
             </h3>
 
             {/* Gender Badges */}
@@ -916,9 +1175,17 @@ export function AnalyticsTab({
                   key={g.gender}
                   className="flex-1 bg-muted/40 border border-border/50 rounded-lg p-2 text-center"
                 >
-                  <p className="text-base font-extrabold text-foreground tabular-nums">{g.count}</p>
+                  <p className="text-base font-extrabold text-foreground tabular-nums">
+                    {g.count}
+                  </p>
                   <p className="text-[10px] text-muted-foreground font-medium">
-                    {g.gender === "female" ? (ar ? "إناث" : "Female") : (ar ? "ذكور" : "Male")}
+                    {g.gender === "female"
+                      ? ar
+                        ? "إناث"
+                        : "Female"
+                      : ar
+                        ? "ذكور"
+                        : "Male"}
                   </p>
                 </div>
               ))}
@@ -927,9 +1194,16 @@ export function AnalyticsTab({
             {/* Top Nationalities */}
             <div className="space-y-1.5">
               {(analytics?.byNationality || []).slice(0, 3).map((n: any) => (
-                <div key={n.nationality} className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground truncate">{n.nationality}</span>
-                  <span className="tabular-nums font-bold text-foreground">{n.count} {ar ? "نزيل" : "pax"}</span>
+                <div
+                  key={n.nationality}
+                  className="flex items-center justify-between text-xs"
+                >
+                  <span className="text-muted-foreground truncate">
+                    {n.nationality}
+                  </span>
+                  <span className="tabular-nums font-bold text-foreground">
+                    {n.count} {ar ? "نزيل" : "pax"}
+                  </span>
                 </div>
               ))}
             </div>
@@ -941,17 +1215,23 @@ export function AnalyticsTab({
           <div>
             <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
               <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-              {ar ? "مؤشرات جودة الخدمة ورضا النزلاء" : "Quality & Resident Satisfaction"}
+              {ar
+                ? "مؤشرات جودة الخدمة ورضا النزلاء"
+                : "Quality & Resident Satisfaction"}
             </h3>
 
             <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-xl p-3 text-center mb-3">
               <div className="text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums flex items-center justify-center gap-1">
                 <span>⭐</span>
                 <span>{evalStats?.average ? evalStats.average : "4.8"}</span>
-                <span className="text-xs text-muted-foreground font-normal">/ 5.0</span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  / 5.0
+                </span>
               </div>
               <p className="text-[11px] text-muted-foreground mt-0.5">
-                {ar ? `بناءً على ${evalStats?.total || 0} استبيان وتقييم مقيم` : `Based on ${evalStats?.total || 0} resident evaluations`}
+                {ar
+                  ? `بناءً على ${evalStats?.total || 0} استبيان وتقييم مقيم`
+                  : `Based on ${evalStats?.total || 0} resident evaluations`}
               </p>
             </div>
 

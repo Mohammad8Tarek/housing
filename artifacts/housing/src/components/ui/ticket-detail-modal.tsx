@@ -1,9 +1,6 @@
 import { useState, useMemo } from "react";
 import { resolveApiUrl } from "@/lib/api-origin";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,7 +19,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { format, differenceInMinutes, differenceInHours, formatDistanceToNow } from "date-fns";
+import {
+  format,
+  differenceInMinutes,
+  differenceInHours,
+  formatDistanceToNow,
+} from "date-fns";
 import { ar as arLocale, enUS } from "date-fns/locale";
 import { formatDate } from "@/lib/date-utils";
 import {
@@ -102,26 +104,27 @@ const CATEGORIES_EN: Record<string, string> = {
   general: "General",
 };
 
-const PROBLEM_TYPES_MAP: Record<string, { labelEn: string; labelAr: string }> = {
-  Plumbing: { labelEn: "Plumbing", labelAr: "سباكة" },
-  Electrical: { labelEn: "Electrical", labelAr: "كهرباء" },
-  HVAC: { labelEn: "HVAC & AC", labelAr: "تكييف وتبريد" },
-  Furniture: { labelEn: "Furniture & Woodwork", labelAr: "أثاث ونجارة" },
-  Internet: { labelEn: "Internet & Network", labelAr: "إنترنت وشبكات" },
-  Appliances: { labelEn: "Appliances", labelAr: "أجهزة كهربائية" },
-  Cleaning: { labelEn: "Cleaning", labelAr: "نظافة" },
-  Other: { labelEn: "Other", labelAr: "أعطال أخرى" },
-  room_cleaning: { labelEn: "Room Cleaning", labelAr: "تنظيف الغرفة" },
-  bed_sheets: { labelEn: "Bed Linen Change", labelAr: "تغيير المفارش" },
-  towels: { labelEn: "Towels & Amenities", labelAr: "مستلزمات ومناشف" },
-  deep_cleaning: { labelEn: "Deep Cleaning", labelAr: "تنظيف شامل" },
-  waste_removal: { labelEn: "Trash Removal", labelAr: "تفريغ مهملات" },
-  sanitization: { labelEn: "Sanitization", labelAr: "تعقيم وتطهير" },
-  turnover: { labelEn: "Turnover Preparation", labelAr: "تجهيز لنزيل جديد" },
-  general_inquiry: { labelEn: "General Inquiry", labelAr: "استفسار عام" },
-  inspection: { labelEn: "Room Inspection", labelAr: "فحص ومعاينة" },
-  pest_control: { labelEn: "Pest Control", labelAr: "مكافحة حشرات" },
-};
+const PROBLEM_TYPES_MAP: Record<string, { labelEn: string; labelAr: string }> =
+  {
+    Plumbing: { labelEn: "Plumbing", labelAr: "سباكة" },
+    Electrical: { labelEn: "Electrical", labelAr: "كهرباء" },
+    HVAC: { labelEn: "HVAC & AC", labelAr: "تكييف وتبريد" },
+    Furniture: { labelEn: "Furniture & Woodwork", labelAr: "أثاث ونجارة" },
+    Internet: { labelEn: "Internet & Network", labelAr: "إنترنت وشبكات" },
+    Appliances: { labelEn: "Appliances", labelAr: "أجهزة كهربائية" },
+    Cleaning: { labelEn: "Cleaning", labelAr: "نظافة" },
+    Other: { labelEn: "Other", labelAr: "أعطال أخرى" },
+    room_cleaning: { labelEn: "Room Cleaning", labelAr: "تنظيف الغرفة" },
+    bed_sheets: { labelEn: "Bed Linen Change", labelAr: "تغيير المفارش" },
+    towels: { labelEn: "Towels & Amenities", labelAr: "مستلزمات ومناشف" },
+    deep_cleaning: { labelEn: "Deep Cleaning", labelAr: "تنظيف شامل" },
+    waste_removal: { labelEn: "Trash Removal", labelAr: "تفريغ مهملات" },
+    sanitization: { labelEn: "Sanitization", labelAr: "تعقيم وتطهير" },
+    turnover: { labelEn: "Turnover Preparation", labelAr: "تجهيز لنزيل جديد" },
+    general_inquiry: { labelEn: "General Inquiry", labelAr: "استفسار عام" },
+    inspection: { labelEn: "Room Inspection", labelAr: "فحص ومعاينة" },
+    pest_control: { labelEn: "Pest Control", labelAr: "مكافحة حشرات" },
+  };
 
 function statusColor(s: string) {
   switch ((s || "").toLowerCase()) {
@@ -188,7 +191,9 @@ export default function TicketDetailModal({
   // Lists return photos as /api links (see GET /maintenance/:id/photo).
   const photoSrc = ticket.photoUrl ? resolveApiUrl(ticket.photoUrl) : null;
   const [commentText, setCommentText] = useState("");
-  const [commentsList, setCommentsList] = useState<Array<{ text: string; author: string; time: string }>>([]);
+  const [commentsList, setCommentsList] = useState<
+    Array<{ text: string; author: string; time: string }>
+  >([]);
   const [showSubTicketForm, setShowSubTicketForm] = useState(false);
   const [subTicketForm, setSubTicketForm] = useState({
     problemType: "",
@@ -258,7 +263,9 @@ export default function TicketDetailModal({
     PROBLEM_TYPES_MAP[ticket.problemType]?.labelEn ||
     PROBLEM_TYPES_MAP[ticket.problemType]?.labelAr ||
     ticket.problemType ||
-    (ticket.category === "housekeeping" ? "Room Cleaning" : "Maintenance Service");
+    (ticket.category === "housekeeping"
+      ? "Room Cleaning"
+      : "Maintenance Service");
 
   const serviceLabelAr =
     PROBLEM_TYPES_MAP[ticket.problemType]?.labelAr ||
@@ -266,15 +273,26 @@ export default function TicketDetailModal({
     ticket.problemType ||
     (ticket.category === "housekeeping" ? "نظافة الغرفة" : "خدمة صيانة");
 
-  const residentName = ticket.propertyName || (ar ? "سكن العاملين" : "Staff Housing");
+  const residentName =
+    ticket.propertyName || (ar ? "سكن العاملين" : "Staff Housing");
 
   const cleanReportedBy = ticket.reportedBy
-    ? ticket.reportedBy.replace(/\s*-\s*\[مسح QR.*?\]/g, "").replace(/\s*-\s*\[QR.*?\]/g, "").trim()
+    ? ticket.reportedBy
+        .replace(/\s*-\s*\[مسح QR.*?\]/g, "")
+        .replace(/\s*-\s*\[QR.*?\]/g, "")
+        .trim()
     : "";
-  const isSystemAdmin = /^(admin|super_admin|supervisor|مشرف|مدير)/i.test(cleanReportedBy);
+  const isSystemAdmin = /^(admin|super_admin|supervisor|مشرف|مدير)/i.test(
+    cleanReportedBy,
+  );
   const requesterDisplay = isSystemAdmin
-    ? (ar ? "إدارة السكن" : "Housing Administration")
-    : cleanReportedBy || ticket.residentName || occupantName || (ar ? "شاغرة (بدون نزيل)" : "Vacant");
+    ? ar
+      ? "إدارة السكن"
+      : "Housing Administration"
+    : cleanReportedBy ||
+      ticket.residentName ||
+      occupantName ||
+      (ar ? "شاغرة (بدون نزيل)" : "Vacant");
 
   const displayName = `Room - ${ticket.roomNumber || ticket.roomId || "—"}`;
 
@@ -416,7 +434,15 @@ export default function TicketDetailModal({
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
                 onClick={() => setIsFullscreen(!isFullscreen)}
-                title={isFullscreen ? (ar ? "تصغير" : "Exit Fullscreen") : (ar ? "ملء الشاشة" : "Fullscreen")}
+                title={
+                  isFullscreen
+                    ? ar
+                      ? "تصغير"
+                      : "Exit Fullscreen"
+                    : ar
+                      ? "ملء الشاشة"
+                      : "Fullscreen"
+                }
               >
                 {isFullscreen ? (
                   <Minimize2 className="w-4 h-4" />
@@ -452,13 +478,17 @@ export default function TicketDetailModal({
                           variant="outline"
                           className={`${statusColor(ticket.status)} text-[11px] font-semibold`}
                         >
-                          {ar ? (STATUS_AR[ticket.status] || ticket.status) : (STATUS_EN[ticket.status] || ticket.status)}
+                          {ar
+                            ? STATUS_AR[ticket.status] || ticket.status
+                            : STATUS_EN[ticket.status] || ticket.status}
                         </Badge>
                         <Badge
                           variant="outline"
                           className={`${priorityColor(ticket.priority)} text-[11px] font-semibold`}
                         >
-                          {ar ? (PRIORITY_AR[ticket.priority] || ticket.priority) : ticket.priority}
+                          {ar
+                            ? PRIORITY_AR[ticket.priority] || ticket.priority
+                            : ticket.priority}
                         </Badge>
                       </div>
                     </div>
@@ -472,20 +502,31 @@ export default function TicketDetailModal({
                           </p>
                           <p className="font-bold text-foreground text-sm flex items-center gap-1.5">
                             <DoorClosed className="w-4 h-4 text-primary shrink-0" />
-                            <span>{ar ? "الغرفة" : "Room"} {ticket.roomNumber || ticket.roomId || "—"}</span>
+                            <span>
+                              {ar ? "الغرفة" : "Room"}{" "}
+                              {ticket.roomNumber || ticket.roomId || "—"}
+                            </span>
                           </p>
                           {(ticket.buildingName || ticket.floorNumber) && (
                             <div className="flex items-center gap-1.5 mt-1 text-xs flex-wrap">
                               {ticket.buildingName && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 font-medium">
                                   <Building2 className="w-3 h-3 text-sky-600" />
-                                  <span>{ar ? `المبنى: ${ticket.buildingName}` : `Building: ${ticket.buildingName}`}</span>
+                                  <span>
+                                    {ar
+                                      ? `المبنى: ${ticket.buildingName}`
+                                      : `Building: ${ticket.buildingName}`}
+                                  </span>
                                 </span>
                               )}
                               {ticket.floorNumber && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/60 font-medium">
                                   <Layers className="w-3 h-3 text-amber-600" />
-                                  <span>{ar ? `الدور ${ticket.floorNumber}` : `Floor ${ticket.floorNumber}`}</span>
+                                  <span>
+                                    {ar
+                                      ? `الدور ${ticket.floorNumber}`
+                                      : `Floor ${ticket.floorNumber}`}
+                                  </span>
                                 </span>
                               )}
                             </div>
@@ -518,7 +559,11 @@ export default function TicketDetailModal({
                           </p>
                           <p className="font-semibold text-foreground text-sm flex items-center gap-1.5">
                             <Wrench className="w-3.5 h-3.5 text-purple-600" />
-                            <span>{ticket.assignedToName || currentWorker || (ar ? "غير مسند" : "Unassigned")}</span>
+                            <span>
+                              {ticket.assignedToName ||
+                                currentWorker ||
+                                (ar ? "غير مسند" : "Unassigned")}
+                            </span>
                           </p>
                         </div>
 
@@ -528,8 +573,10 @@ export default function TicketDetailModal({
                           </p>
                           <p className="font-semibold text-foreground text-sm">
                             {ar
-                              ? (CATEGORIES_AR[ticket.category] || ticket.category)
-                              : (CATEGORIES_EN[ticket.category] || ticket.category)}
+                              ? CATEGORIES_AR[ticket.category] ||
+                                ticket.category
+                              : CATEGORIES_EN[ticket.category] ||
+                                ticket.category}
                           </p>
                         </div>
 
@@ -547,13 +594,21 @@ export default function TicketDetailModal({
                             {ar ? "الحالة" : "Status"}
                           </p>
                           <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${
-                              ticket.status === "open" ? "bg-blue-500" :
-                              ticket.status === "in_progress" ? "bg-amber-500" :
-                              ticket.status === "resolved" ? "bg-emerald-500" : "bg-slate-400"
-                            }`} />
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                ticket.status === "open"
+                                  ? "bg-blue-500"
+                                  : ticket.status === "in_progress"
+                                    ? "bg-amber-500"
+                                    : ticket.status === "resolved"
+                                      ? "bg-emerald-500"
+                                      : "bg-slate-400"
+                              }`}
+                            />
                             <span className="font-medium text-foreground text-xs">
-                              {ar ? (STATUS_AR[ticket.status] || ticket.status) : (STATUS_EN[ticket.status] || ticket.status)}
+                              {ar
+                                ? STATUS_AR[ticket.status] || ticket.status
+                                : STATUS_EN[ticket.status] || ticket.status}
                             </span>
                           </div>
                         </div>
@@ -563,7 +618,9 @@ export default function TicketDetailModal({
                             {ar ? "الأولوية" : "Priority"}
                           </p>
                           <p className="font-semibold text-foreground text-sm">
-                            {ar ? (PRIORITY_AR[ticket.priority] || ticket.priority) : ticket.priority}
+                            {ar
+                              ? PRIORITY_AR[ticket.priority] || ticket.priority
+                              : ticket.priority}
                           </p>
                         </div>
 
@@ -581,7 +638,9 @@ export default function TicketDetailModal({
                             {ar ? "تم الإنشاء بواسطة" : "Created By"}
                           </p>
                           <p className="font-medium text-foreground text-xs">
-                            {ticket.createdByName || ticket.createdBy || (ar ? "النظام الإداري" : "Admin Staff")}
+                            {ticket.createdByName ||
+                              ticket.createdBy ||
+                              (ar ? "النظام الإداري" : "Admin Staff")}
                           </p>
                         </div>
                       </div>
@@ -590,7 +649,9 @@ export default function TicketDetailModal({
                       {ticket.description && (
                         <div className="pt-3 border-t">
                           <p className="text-xs text-muted-foreground mb-1">
-                            {ar ? "وصف العطل / الملاحظات" : "Description & Notes"}
+                            {ar
+                              ? "وصف العطل / الملاحظات"
+                              : "Description & Notes"}
                           </p>
                           <div className="p-3 bg-muted/40 rounded-lg text-xs leading-relaxed text-foreground border">
                             {ticket.description}
@@ -601,16 +662,24 @@ export default function TicketDetailModal({
                   </div>
 
                   {/* RESIDENT SERVICE RATING CARD */}
-                  {(ticket.rating || ["resolved", "closed", "completed", "done"].includes((ticket.status || "").toLowerCase())) && (
+                  {(ticket.rating ||
+                    ["resolved", "closed", "completed", "done"].includes(
+                      (ticket.status || "").toLowerCase(),
+                    )) && (
                     <div className="bg-card rounded-xl border border-amber-500/20 shadow-xs overflow-hidden">
                       <div className="px-5 py-3 border-b bg-amber-500/10 dark:bg-amber-500/15 flex items-center justify-between">
                         <span className="text-xs font-bold tracking-wider text-amber-700 dark:text-amber-400 uppercase flex items-center gap-1.5">
                           <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
-                          {ar ? "تقييم جودة الخدمة من النزيل" : "RESIDENT SERVICE RATING"}
+                          {ar
+                            ? "تقييم جودة الخدمة من النزيل"
+                            : "RESIDENT SERVICE RATING"}
                         </span>
                         {ticket.ratedAt && (
                           <span className="text-[11px] font-mono text-muted-foreground">
-                            {format(new Date(ticket.ratedAt), "dd-MM-yyyy hh:mm a")}
+                            {format(
+                              new Date(ticket.ratedAt),
+                              "dd-MM-yyyy hh:mm a",
+                            )}
                           </span>
                         )}
                       </div>
@@ -636,14 +705,24 @@ export default function TicketDetailModal({
                               </span>
                               <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold border-amber-500/30">
                                 {ticket.rating === 5
-                                  ? (ar ? "ممتاز ⭐⭐⭐⭐⭐" : "Excellent")
+                                  ? ar
+                                    ? "ممتاز ⭐⭐⭐⭐⭐"
+                                    : "Excellent"
                                   : ticket.rating === 4
-                                    ? (ar ? "جيد جداً ⭐⭐⭐⭐" : "Very Good")
+                                    ? ar
+                                      ? "جيد جداً ⭐⭐⭐⭐"
+                                      : "Very Good"
                                     : ticket.rating === 3
-                                      ? (ar ? "مقبول ⭐⭐⭐" : "Average")
+                                      ? ar
+                                        ? "مقبول ⭐⭐⭐"
+                                        : "Average"
                                       : ticket.rating === 2
-                                        ? (ar ? "ضعيف ⭐⭐" : "Poor")
-                                        : (ar ? "سيء جداً ⭐" : "Very Poor")}
+                                        ? ar
+                                          ? "ضعيف ⭐⭐"
+                                          : "Poor"
+                                        : ar
+                                          ? "سيء جداً ⭐"
+                                          : "Very Poor"}
                               </Badge>
                             </div>
 
@@ -652,9 +731,13 @@ export default function TicketDetailModal({
                                 <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                                 <div className="space-y-0.5">
                                   <p className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
-                                    {ar ? "تعليق وملاحظات النزيل:" : "Resident Feedback:"}
+                                    {ar
+                                      ? "تعليق وملاحظات النزيل:"
+                                      : "Resident Feedback:"}
                                   </p>
-                                  <p className="italic font-medium">"{ticket.ratingComment}"</p>
+                                  <p className="italic font-medium">
+                                    "{ticket.ratingComment}"
+                                  </p>
                                 </div>
                               </div>
                             )}
@@ -691,7 +774,10 @@ export default function TicketDetailModal({
                             {ar ? "اسم المهمة" : "Name"}
                           </p>
                           <p className="font-semibold text-foreground text-sm">
-                            {ar ? serviceLabelAr : serviceLabel} {ticket.roomNumber ? `(Room ${ticket.roomNumber})` : ""}
+                            {ar ? serviceLabelAr : serviceLabel}{" "}
+                            {ticket.roomNumber
+                              ? `(Room ${ticket.roomNumber})`
+                              : ""}
                           </p>
                         </div>
 
@@ -700,7 +786,9 @@ export default function TicketDetailModal({
                             {ar ? "الحالة" : "Status"}
                           </p>
                           <p className="font-semibold text-foreground text-xs">
-                            {ar ? (STATUS_AR[ticket.status] || ticket.status) : (STATUS_EN[ticket.status] || ticket.status)}
+                            {ar
+                              ? STATUS_AR[ticket.status] || ticket.status
+                              : STATUS_EN[ticket.status] || ticket.status}
                           </p>
                         </div>
 
@@ -741,8 +829,10 @@ export default function TicketDetailModal({
                           </p>
                           <p className="font-medium text-foreground text-xs">
                             {ar
-                              ? (CATEGORIES_AR[ticket.category] || ticket.category)
-                              : (CATEGORIES_EN[ticket.category] || ticket.category)}
+                              ? CATEGORIES_AR[ticket.category] ||
+                                ticket.category
+                              : CATEGORIES_EN[ticket.category] ||
+                                ticket.category}
                           </p>
                         </div>
 
@@ -829,7 +919,9 @@ export default function TicketDetailModal({
                   <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-muted/40 rounded-xl border border-primary/20 p-4 shadow-xs space-y-1 text-center">
                     <p className="text-xs font-medium text-muted-foreground flex items-center justify-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-primary" />
-                      <span>{ar ? "الوقت المستغرق للإغلاق" : "Time To End Ticket"}</span>
+                      <span>
+                        {ar ? "الوقت المستغرق للإغلاق" : "Time To End Ticket"}
+                      </span>
                     </p>
                     <p className="text-xl font-bold text-foreground font-mono">
                       {totalTime}
@@ -855,11 +947,16 @@ export default function TicketDetailModal({
                                 variant="outline"
                                 className="w-full justify-between h-9 text-xs font-semibold bg-background"
                               >
-                                <span>{ar ? "الإجراءات المتاحة" : "Action"}</span>
+                                <span>
+                                  {ar ? "الإجراءات المتاحة" : "Action"}
+                                </span>
                                 <ChevronDown className="w-4 h-4 opacity-60" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48 text-xs">
+                            <DropdownMenuContent
+                              align="end"
+                              className="w-48 text-xs"
+                            >
                               {canStart && (
                                 <DropdownMenuItem
                                   onClick={() =>
@@ -871,7 +968,9 @@ export default function TicketDetailModal({
                                   className="gap-2 cursor-pointer font-medium text-amber-700 dark:text-amber-300"
                                 >
                                   <Play className="w-3.5 h-3.5 text-amber-500" />
-                                  <span>{ar ? "بدء التنفيذ" : "Start Ticket"}</span>
+                                  <span>
+                                    {ar ? "بدء التنفيذ" : "Start Ticket"}
+                                  </span>
                                 </DropdownMenuItem>
                               )}
                               {canResolve && (
@@ -885,29 +984,41 @@ export default function TicketDetailModal({
                                   className="gap-2 cursor-pointer font-medium text-emerald-700 dark:text-emerald-300"
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                                  <span>{ar ? "تم الحل والإنجاز" : "Resolve Ticket"}</span>
+                                  <span>
+                                    {ar ? "تم الحل والإنجاز" : "Resolve Ticket"}
+                                  </span>
                                 </DropdownMenuItem>
                               )}
                               {canDone && (
                                 <DropdownMenuItem
                                   onClick={() =>
-                                    onStatusChange(ticket.id, { status: "closed" })
+                                    onStatusChange(ticket.id, {
+                                      status: "closed",
+                                    })
                                   }
                                   className="gap-2 cursor-pointer font-medium text-slate-700 dark:text-slate-300"
                                 >
                                   <Handshake className="w-3.5 h-3.5 text-blue-500" />
-                                  <span>{ar ? "إغلاق التذكرة" : "Close Ticket"}</span>
+                                  <span>
+                                    {ar ? "إغلاق التذكرة" : "Close Ticket"}
+                                  </span>
                                 </DropdownMenuItem>
                               )}
                               {canReopen && (
                                 <DropdownMenuItem
                                   onClick={() =>
-                                    onStatusChange(ticket.id, { status: "open" })
+                                    onStatusChange(ticket.id, {
+                                      status: "open",
+                                    })
                                   }
                                   className="gap-2 cursor-pointer font-medium text-amber-600"
                                 >
                                   <RotateCcw className="w-3.5 h-3.5 text-amber-500" />
-                                  <span>{ar ? "إعادة فتح التذكرة" : "Re-open Ticket"}</span>
+                                  <span>
+                                    {ar
+                                      ? "إعادة فتح التذكرة"
+                                      : "Re-open Ticket"}
+                                  </span>
                                 </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>
@@ -921,7 +1032,11 @@ export default function TicketDetailModal({
                               {ar ? "تعيين الفني الميداني" : "Assign Worker"}
                             </Label>
                             <Select
-                              value={ticket.workerId ? String(ticket.workerId) : "unassigned"}
+                              value={
+                                ticket.workerId
+                                  ? String(ticket.workerId)
+                                  : "unassigned"
+                              }
                               onValueChange={(v) =>
                                 onWorkerAssignChange(
                                   ticket.id,
@@ -933,19 +1048,33 @@ export default function TicketDetailModal({
                                 <SelectValue
                                   placeholder={
                                     ticket?.category === "housekeeping"
-                                      ? (ar ? "اختر موظف النظافة..." : "Select cleaner...")
-                                      : (ar ? "اختر الفني المختص..." : "Select technician...")
+                                      ? ar
+                                        ? "اختر موظف النظافة..."
+                                        : "Select cleaner..."
+                                      : ar
+                                        ? "اختر الفني المختص..."
+                                        : "Select technician..."
                                   }
                                 />
                               </SelectTrigger>
                               <SelectContent className="max-h-52 overflow-y-auto">
                                 <SelectItem value="unassigned">
-                                  — {ticket?.category === "housekeeping" ? (ar ? "بدون موظف نظافة مسند" : "No Cleaner") : (ar ? "بدون فني مسند" : "No Worker")} —
+                                  —{" "}
+                                  {ticket?.category === "housekeeping"
+                                    ? ar
+                                      ? "بدون موظف نظافة مسند"
+                                      : "No Cleaner"
+                                    : ar
+                                      ? "بدون فني مسند"
+                                      : "No Worker"}{" "}
+                                  —
                                 </SelectItem>
                                 {filteredWorkers.map((w: any) => (
                                   <SelectItem key={w.id} value={String(w.id)}>
                                     <div className="flex items-center gap-2">
-                                      <span className="font-semibold">{w.name}</span>
+                                      <span className="font-semibold">
+                                        {w.name}
+                                      </span>
                                       <span className="text-muted-foreground text-[10px]">
                                         ({w.specialty})
                                       </span>
@@ -967,7 +1096,11 @@ export default function TicketDetailModal({
                         </div>
                         <div className="text-[11px] text-amber-600 flex items-center gap-1.5 pt-1 border-t">
                           <Lock className="w-3 h-3 shrink-0" />
-                          <span>{ar ? "للعرض فقط — لا تملك صلاحية التعديل" : "Read-only mode"}</span>
+                          <span>
+                            {ar
+                              ? "للعرض فقط — لا تملك صلاحية التعديل"
+                              : "Read-only mode"}
+                          </span>
                         </div>
                       </div>
                     )}
@@ -1000,7 +1133,9 @@ export default function TicketDetailModal({
                           }}
                         >
                           <Plus className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>{ar ? "إضافة مهمة فرعية" : "Add Sub-Task"}</span>
+                          <span>
+                            {ar ? "إضافة مهمة فرعية" : "Add Sub-Task"}
+                          </span>
                         </Button>
                       )}
                     </div>
@@ -1062,7 +1197,9 @@ export default function TicketDetailModal({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase">
-                    {ar ? "قائمة التذاكر والمهام الفرعية" : "Sub-Tickets & Checklist"}
+                    {ar
+                      ? "قائمة التذاكر والمهام الفرعية"
+                      : "Sub-Tickets & Checklist"}
                     {safeSubTickets.length > 0 && (
                       <Badge variant="secondary" className="ml-2">
                         {safeSubTickets.length}
@@ -1098,7 +1235,11 @@ export default function TicketDetailModal({
                             problemType: e.target.value,
                           }))
                         }
-                        placeholder={ar ? "مثال: تغيير خلاط المياه" : "e.g. Replace Water Mixer"}
+                        placeholder={
+                          ar
+                            ? "مثال: تغيير خلاط المياه"
+                            : "e.g. Replace Water Mixer"
+                        }
                         className="h-8 text-xs mt-1 bg-background"
                       />
                     </div>
@@ -1114,13 +1255,17 @@ export default function TicketDetailModal({
                             description: e.target.value,
                           }))
                         }
-                        placeholder={ar ? "صف المهمة بدقة..." : "Describe the task..."}
+                        placeholder={
+                          ar ? "صف المهمة بدقة..." : "Describe the task..."
+                        }
                         rows={2}
                         className="text-xs mt-1 bg-background"
                       />
                     </div>
                     <div>
-                      <Label className="text-xs">{ar ? "الأولوية" : "Priority"}</Label>
+                      <Label className="text-xs">
+                        {ar ? "الأولوية" : "Priority"}
+                      </Label>
                       <Select
                         value={subTicketForm.priority}
                         onValueChange={(v) =>
@@ -1131,10 +1276,18 @@ export default function TicketDetailModal({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="LOW">{ar ? "منخفضة" : "Low"}</SelectItem>
-                          <SelectItem value="MEDIUM">{ar ? "متوسطة" : "Medium"}</SelectItem>
-                          <SelectItem value="HIGH">{ar ? "عالية" : "High"}</SelectItem>
-                          <SelectItem value="URGENT">{ar ? "عاجلة" : "Urgent"}</SelectItem>
+                          <SelectItem value="LOW">
+                            {ar ? "منخفضة" : "Low"}
+                          </SelectItem>
+                          <SelectItem value="MEDIUM">
+                            {ar ? "متوسطة" : "Medium"}
+                          </SelectItem>
+                          <SelectItem value="HIGH">
+                            {ar ? "عالية" : "High"}
+                          </SelectItem>
+                          <SelectItem value="URGENT">
+                            {ar ? "عاجلة" : "Urgent"}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1188,7 +1341,9 @@ export default function TicketDetailModal({
                   <div className="text-center py-12 text-muted-foreground bg-card rounded-xl border">
                     <Wrench className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p className="text-sm font-medium">
-                      {ar ? "لا توجد مهام فرعية مسجلة لهذه التذكرة" : "No sub-tasks registered for this ticket"}
+                      {ar
+                        ? "لا توجد مهام فرعية مسجلة لهذه التذكرة"
+                        : "No sub-tasks registered for this ticket"}
                     </p>
                   </div>
                 ) : (
@@ -1212,11 +1367,17 @@ export default function TicketDetailModal({
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge className={`${statusColor(st.status)} text-[10px]`}>
-                            {ar ? (STATUS_AR[st.status] || st.status) : st.status}
+                          <Badge
+                            className={`${statusColor(st.status)} text-[10px]`}
+                          >
+                            {ar ? STATUS_AR[st.status] || st.status : st.status}
                           </Badge>
-                          <Badge className={`${priorityColor(st.priority)} text-[10px]`}>
-                            {ar ? (PRIORITY_AR[st.priority] || st.priority) : st.priority}
+                          <Badge
+                            className={`${priorityColor(st.priority)} text-[10px]`}
+                          >
+                            {ar
+                              ? PRIORITY_AR[st.priority] || st.priority
+                              : st.priority}
                           </Badge>
                         </div>
                       </div>
@@ -1234,7 +1395,9 @@ export default function TicketDetailModal({
                     {ar ? "إضافة تعليق وملاحظة تنفيذية" : "Add Note / Comment"}
                   </h3>
                   <Textarea
-                    placeholder={ar ? "اكتب تعليقك هنا..." : "Type your comment here..."}
+                    placeholder={
+                      ar ? "اكتب تعليقك هنا..." : "Type your comment here..."
+                    }
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     rows={3}
@@ -1263,10 +1426,17 @@ export default function TicketDetailModal({
                 ) : (
                   <div className="space-y-2.5">
                     {commentsList.map((c, i) => (
-                      <div key={i} className="bg-card p-3.5 rounded-xl border shadow-xs space-y-1">
+                      <div
+                        key={i}
+                        className="bg-card p-3.5 rounded-xl border shadow-xs space-y-1"
+                      >
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-foreground">{c.author}</span>
-                          <span className="text-muted-foreground font-mono">{c.time}</span>
+                          <span className="font-bold text-foreground">
+                            {c.author}
+                          </span>
+                          <span className="text-muted-foreground font-mono">
+                            {c.time}
+                          </span>
                         </div>
                         <p className="text-xs text-foreground/90">{c.text}</p>
                       </div>
@@ -1322,7 +1492,9 @@ export default function TicketDetailModal({
                   <div className="text-center py-12 text-muted-foreground bg-card rounded-xl border">
                     <Paperclip className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">
-                      {ar ? "لا توجد مرفقات لهذه التذكرة" : "No attachments for this ticket"}
+                      {ar
+                        ? "لا توجد مرفقات لهذه التذكرة"
+                        : "No attachments for this ticket"}
                     </p>
                   </div>
                 )}
@@ -1334,14 +1506,21 @@ export default function TicketDetailModal({
           <div className="bg-card border-t px-6 py-3 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span>
-                {ar ? "رقم التذكرة:" : "Ticket ID:"} <strong className="text-foreground">#{ticket.id}</strong>
+                {ar ? "رقم التذكرة:" : "Ticket ID:"}{" "}
+                <strong className="text-foreground">#{ticket.id}</strong>
               </span>
               <span>•</span>
               <span>
-                {ar ? "تاريخ الإنشاء:" : "Created:"} <span className="font-mono">{reportedDate}</span>
+                {ar ? "تاريخ الإنشاء:" : "Created:"}{" "}
+                <span className="font-mono">{reportedDate}</span>
               </span>
             </div>
-            <Button variant="outline" size="sm" onClick={onClose} className="h-8 text-xs font-medium px-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              className="h-8 text-xs font-medium px-4"
+            >
               {ar ? "إغلاق" : "Close"}
             </Button>
           </div>

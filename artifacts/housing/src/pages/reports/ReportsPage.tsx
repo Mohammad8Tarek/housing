@@ -13,14 +13,23 @@ import { useReportDataProcessor } from "./hooks/useReportDataProcessor";
 import { useServerAnalytics } from "./hooks/useServerAnalytics";
 import { useReportExport } from "./hooks/useReportExport";
 import { sortReportRows, useReportSort } from "./hooks/useReportSort";
-import { OWN_VIEW_TABS, SERVER_ROW_TABS, useServerReportRows } from "./hooks/useServerReportRows";
+import {
+  OWN_VIEW_TABS,
+  SERVER_ROW_TABS,
+  useServerReportRows,
+} from "./hooks/useServerReportRows";
 import { useReportColumns } from "./hooks/useReportColumns";
 import { useSmartReportExport } from "@/hooks/useSmartReportExport";
 import { SMART_REPORT_TABS } from "@/config/reportDefinitions";
 
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ClipboardCheck, AlertOctagon, Palmtree, SlidersHorizontal } from "lucide-react";
+import {
+  ClipboardCheck,
+  AlertOctagon,
+  Palmtree,
+  SlidersHorizontal,
+} from "lucide-react";
 import { ExportToolbar } from "./components/ExportToolbar";
 import { TabsNav } from "./components/TabsNav";
 import { ReportFilters } from "./components/ReportFilters";
@@ -111,13 +120,39 @@ export default function Reports() {
     () => (isServerTab ? [] : processor.currentData()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      isServerTab, ar, filters.activeTab, filters.filterBuilding, filters.filterFloor, filters.filterStatus,
-      filters.filterCategory, filters.inventoryViewMode, filters.filterDepartment, filters.filterGender,
-      filters.filterNationality, filters.filterRoomType, filters.filterEmploymentType, filters.waterSortMode,
-      debouncedSearch, filters.dateFrom, filters.dateTo,
-      data.buildings, data.floors, data.rooms, data.profiles, data.assignments, data.reservations,
-      data.maintenance, data.hostings, data.equipmentInventory, data.gateLogs, data.vacations,
-      data.buildingMap, data.floorMap, data.roomMap, data.empMap, data.settings,
+      isServerTab,
+      ar,
+      filters.activeTab,
+      filters.filterBuilding,
+      filters.filterFloor,
+      filters.filterStatus,
+      filters.filterCategory,
+      filters.inventoryViewMode,
+      filters.filterDepartment,
+      filters.filterGender,
+      filters.filterNationality,
+      filters.filterRoomType,
+      filters.filterEmploymentType,
+      filters.waterSortMode,
+      debouncedSearch,
+      filters.dateFrom,
+      filters.dateTo,
+      data.buildings,
+      data.floors,
+      data.rooms,
+      data.profiles,
+      data.assignments,
+      data.reservations,
+      data.maintenance,
+      data.hostings,
+      data.equipmentInventory,
+      data.gateLogs,
+      data.vacations,
+      data.buildingMap,
+      data.floorMap,
+      data.roomMap,
+      data.empMap,
+      data.settings,
     ],
   );
   const { sort, toggle } = useReportSort(filters.activeTab);
@@ -138,7 +173,9 @@ export default function Reports() {
     return Array.from(map.entries());
   }, [filters.activeTab, sortedData]);
 
-  const isInHouseGrouped = filters.activeTab === "assignments" && filters.inHouseViewMode === "grouped";
+  const isInHouseGrouped =
+    filters.activeTab === "assignments" &&
+    filters.inHouseViewMode === "grouped";
 
   const server = useServerReportRows({
     // These tabs show their own view; their rows load only for export.
@@ -171,21 +208,41 @@ export default function Reports() {
     if (filters.currentPage > maxPage) {
       filters.setCurrentPage(1);
     }
-  }, [totalCount, filters.currentPage, filters.pageSize, filters, isServerTab, server.isLoading]);
+  }, [
+    totalCount,
+    filters.currentPage,
+    filters.pageSize,
+    filters,
+    isServerTab,
+    server.isLoading,
+  ]);
 
   // Real-time responsive pagination based on filtered data
   const startIndex = (filters.currentPage - 1) * filters.pageSize;
   const paginatedData = useMemo(() => {
     if (isServerTab) return server.pageRows;
     if (isInHouseGrouped) {
-      const pageRooms = groupedInHouseRooms.slice(startIndex, startIndex + filters.pageSize);
+      const pageRooms = groupedInHouseRooms.slice(
+        startIndex,
+        startIndex + filters.pageSize,
+      );
       return pageRooms.flatMap(([_, list]) => list);
     }
     return sortedData.slice(startIndex, startIndex + filters.pageSize);
-  }, [isServerTab, server.pageRows, isInHouseGrouped, groupedInHouseRooms, sortedData, startIndex, filters.pageSize]);
+  }, [
+    isServerTab,
+    server.pageRows,
+    isInHouseGrouped,
+    groupedInHouseRooms,
+    sortedData,
+    startIndex,
+    filters.pageSize,
+  ]);
 
   // Real-time Water Distribution check state for ribbon & table synchronicity
-  const [waterCheckState, setWaterCheckState] = useState<Record<string, boolean>>(() => {
+  const [waterCheckState, setWaterCheckState] = useState<
+    Record<string, boolean>
+  >(() => {
     try {
       const saved = localStorage.getItem("water_distribution_checks");
       return saved ? JSON.parse(saved) : {};
@@ -204,38 +261,36 @@ export default function Reports() {
     });
   }, []);
 
-
-  const exportActions =
-    useReportExport({
-      ar,
-      activeTab: filters.activeTab,
-      canExportReports,
-      currentData: isServerTab ? server.allRows : () => sortedData,
-      currentPageData: () => paginatedData,
-      properties: data.properties,
-      propId: data.propId,
-      activePropertyId,
-      dateFrom: filters.dateFrom,
-      dateTo: filters.dateTo,
-      search: filters.search,
-      filterBuilding: filters.filterBuilding,
-      filterFloor: filters.filterFloor,
-      filterDepartment: filters.filterDepartment,
-      settings: data.settings,
-      analytics,
-      stats,
-      rooms: data.rooms,
-      profiles: data.profiles,
-      buildings: data.buildings,
-      floors: data.floors,
-      evalStats: data.evalStats,
-      floorMap: data.floorMap,
-      buildingMap: data.buildingMap,
-      empMap: data.empMap,
-      roomMap: data.roomMap,
-      inventoryViewMode: filters.inventoryViewMode,
-      filterRow: reportCols.filterRow,
-    });
+  const exportActions = useReportExport({
+    ar,
+    activeTab: filters.activeTab,
+    canExportReports,
+    currentData: isServerTab ? server.allRows : () => sortedData,
+    currentPageData: () => paginatedData,
+    properties: data.properties,
+    propId: data.propId,
+    activePropertyId,
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
+    search: filters.search,
+    filterBuilding: filters.filterBuilding,
+    filterFloor: filters.filterFloor,
+    filterDepartment: filters.filterDepartment,
+    settings: data.settings,
+    analytics,
+    stats,
+    rooms: data.rooms,
+    profiles: data.profiles,
+    buildings: data.buildings,
+    floors: data.floors,
+    evalStats: data.evalStats,
+    floorMap: data.floorMap,
+    buildingMap: data.buildingMap,
+    empMap: data.empMap,
+    roomMap: data.roomMap,
+    inventoryViewMode: filters.inventoryViewMode,
+    filterRow: reportCols.filterRow,
+  });
 
   const { handleExportAnalyticsPDF } = exportActions;
 
@@ -247,7 +302,11 @@ export default function Reports() {
         try {
           await server.loadAllRows();
         } catch {
-          toast.error(ar ? "تعذر تحميل بيانات التقرير للتصدير" : "Could not load report data for export");
+          toast.error(
+            ar
+              ? "تعذر تحميل بيانات التقرير للتصدير"
+              : "Could not load report data for export",
+          );
           return;
         }
       }
@@ -258,24 +317,33 @@ export default function Reports() {
 
   // ── Smart Report Export (jsPDF + AutoTable column system) ──
   const smartDef = SMART_REPORT_TABS[filters.activeTab];
-  const activeProperty = data.properties?.find((p: any) => String(p.id) === String(activePropertyId));
-  const propertyLabel = activeProperty ? (ar ? (activeProperty as any).nameAr || activeProperty.name : activeProperty.name) : undefined;
+  const activeProperty = data.properties?.find(
+    (p: any) => String(p.id) === String(activePropertyId),
+  );
+  const propertyLabel = activeProperty
+    ? ar
+      ? (activeProperty as any).nameAr || activeProperty.name
+      : activeProperty.name
+    : undefined;
 
   const smartExport = useSmartReportExport({
     columns: smartDef?.columns ?? [],
     getData: async () =>
-      (isServerTab ? await server.loadAllRows() : sortedData) as Record<string, unknown>[],
+      (isServerTab ? await server.loadAllRows() : sortedData) as Record<
+        string,
+        unknown
+      >[],
     meta: {
-      title: smartDef ? (ar ? smartDef.titleAr : smartDef.title) : '',
+      title: smartDef ? (ar ? smartDef.titleAr : smartDef.title) : "",
       subtitle: propertyLabel,
       filters: {
-        ...(filters.dateFrom ? { [ar ? 'من' : 'From']: filters.dateFrom } : {}),
-        ...(filters.dateTo ? { [ar ? 'إلى' : 'To']: filters.dateTo } : {}),
-        ...(filters.search ? { [ar ? 'بحث' : 'Search']: filters.search } : {}),
+        ...(filters.dateFrom ? { [ar ? "من" : "From"]: filters.dateFrom } : {}),
+        ...(filters.dateTo ? { [ar ? "إلى" : "To"]: filters.dateTo } : {}),
+        ...(filters.search ? { [ar ? "بحث" : "Search"]: filters.search } : {}),
       },
     },
     generatedBy: undefined,
-    language: ar ? 'ar' : 'en',
+    language: ar ? "ar" : "en",
   });
 
   const activeTabConfig = TABS.find((t) => t.id === filters.activeTab);
@@ -302,7 +370,10 @@ export default function Reports() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-stretch gap-3 min-w-0">
-          <span className="w-1 rounded-full bg-[#2AA8AB] shrink-0" aria-hidden />
+          <span
+            className="w-1 rounded-full bg-[#2AA8AB] shrink-0"
+            aria-hidden
+          />
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#BC9F6F]">
               {ar ? reportGroup.labelAr : reportGroup.label}
@@ -314,8 +385,8 @@ export default function Reports() {
                   ? activeTabConfig.labelAr
                   : activeTabConfig.label
                 : ar
-                ? "مركز التقارير"
-                : "Reports"}
+                  ? "مركز التقارير"
+                  : "Reports"}
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
               {ar ? "مركز التقارير الشاملة" : "Comprehensive Reports Center"}
@@ -457,219 +528,230 @@ export default function Reports() {
         filters.activeTab !== "housing_map" &&
         filters.activeTab !== "housing_ratings" &&
         filters.activeTab !== "room_moves" && (
-        <>
-          <ReportFilters
-            ar={ar}
-            activeTab={filters.activeTab}
-            properties={data.properties}
-            propId={data.propId}
-            buildings={data.buildings}
-            floors={data.floors}
-            floorOptions={floorOptions}
-            departments={data.departments}
-            nationalities={data.nationalities}
-            filterProperty={filters.filterProperty}
-            setFilterProperty={filters.setFilterProperty}
-            filterBuilding={filters.filterBuilding}
-            setFilterBuilding={filters.setFilterBuilding}
-            filterFloor={filters.filterFloor}
-            setFilterFloor={filters.setFilterFloor}
-            filterStatus={filters.filterStatus}
-            setFilterStatus={filters.setFilterStatus}
-            filterRoomType={filters.filterRoomType}
-            setFilterRoomType={filters.setFilterRoomType}
-            filterEmploymentType={filters.filterEmploymentType}
-            setFilterEmploymentType={filters.setFilterEmploymentType}
-            filterCategory={filters.filterCategory}
-            setFilterCategory={filters.setFilterCategory}
-            filterDepartment={filters.filterDepartment}
-            setFilterDepartment={filters.setFilterDepartment}
-            filterGender={filters.filterGender}
-            setFilterGender={filters.setFilterGender}
-            filterNationality={filters.filterNationality}
-            setFilterNationality={filters.setFilterNationality}
-            search={filters.search}
-            setSearch={filters.setSearch}
-            dateFrom={filters.dateFrom}
-            setDateFrom={filters.setDateFrom}
-            dateTo={filters.dateTo}
-            setDateTo={filters.setDateTo}
-            resetReportFilters={filters.resetReportFilters}
-            hasActiveReportFilters={filters.hasActiveReportFilters}
-            currentDataLength={totalCount}
-            selectedRowsSize={filters.selectedRows.size}
-            inventoryViewMode={filters.inventoryViewMode}
-            setInventoryViewMode={filters.setInventoryViewMode}
-            inHouseViewMode={filters.inHouseViewMode}
-            setInHouseViewMode={filters.setInHouseViewMode}
-            waterSortMode={filters.waterSortMode}
-            setWaterSortMode={filters.setWaterSortMode}
-            rooms={data.rooms}
-            roomTypes={data.configuredRoomTypes}
-          />
-
-          {filters.activeTab === "maintenance" && (
-            <MaintenanceDualTrackReportRibbon
+          <>
+            <ReportFilters
               ar={ar}
-              propertyId={numericPropertyId}
+              activeTab={filters.activeTab}
+              properties={data.properties}
+              propId={data.propId}
+              buildings={data.buildings}
+              floors={data.floors}
+              floorOptions={floorOptions}
+              departments={data.departments}
+              nationalities={data.nationalities}
+              filterProperty={filters.filterProperty}
+              setFilterProperty={filters.setFilterProperty}
+              filterBuilding={filters.filterBuilding}
+              setFilterBuilding={filters.setFilterBuilding}
+              filterFloor={filters.filterFloor}
+              setFilterFloor={filters.setFilterFloor}
+              filterStatus={filters.filterStatus}
+              setFilterStatus={filters.setFilterStatus}
+              filterRoomType={filters.filterRoomType}
+              setFilterRoomType={filters.setFilterRoomType}
+              filterEmploymentType={filters.filterEmploymentType}
+              setFilterEmploymentType={filters.setFilterEmploymentType}
               filterCategory={filters.filterCategory}
               setFilterCategory={filters.setFilterCategory}
-              ticketsData={data.maintenance}
-            />
-          )}
-
-          {filters.activeTab === "housekeeping_sheet" && (
-            <div className="bg-[#2AA8AB]/5 border border-[#2AA8AB]/30 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-foreground">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-[#2AA8AB]/15 text-[#1F7F81] dark:text-[#59B7A8] shrink-0">
-                  <ClipboardCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-[#1F7F81] dark:text-[#59B7A8]">
-                    {ar ? "كشف مهام وتوزيع أعمال الهاوس كيبنج الميداني" : "Room Attendant Daily Task Assignment Sheet"}
-                  </h4>
-                  <p className="text-muted-foreground mt-0.5">
-                    {ar
-                      ? "كشف توزيع المهام الميداني مع خانات الفحص الفعلي (المفروشات والعهد والتوقيع) مصمم للطباعة والحوافظ اليدوية."
-                      : "Daily operational task sheet with physical inspection checkpoints (linen, amenities, and signatures) formatted for clipboards."}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap shrink-0 text-xs font-semibold">
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-100 text-red-800 border border-red-200">
-                  <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
-                  {ar ? "أولوية 1: مغادرة شاملة" : "Priority 1: Turnover"}
-                </span>
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 border border-blue-200">
-                  <span className="w-2 h-2 rounded-full bg-blue-600" />
-                  {ar ? "أولوية 2: نظافة مقيم" : "Priority 2: Stayover"}
-                </span>
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 border border-slate-200">
-                  <span className="w-2 h-2 rounded-full bg-slate-400" />
-                  {ar ? "أولوية 3: تفتيش شاغر" : "Priority 3: Refresh"}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {filters.activeTab === "room_discrepancy" && (
-            <div className="bg-[#2AA8AB]/5 border border-[#2AA8AB]/30 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-foreground">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-[#2AA8AB]/15 text-[#1F7F81] dark:text-[#59B7A8] shrink-0">
-                  <AlertOctagon className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-[#1F7F81] dark:text-[#59B7A8]">
-                    {ar ? "مركز تدقيق ومطابقة حالات الغرف والنزلاء" : "Room Status Discrepancy & Audit Center"}
-                  </h4>
-                  <p className="text-muted-foreground mt-0.5">
-                    {ar
-                      ? "يكتشف التناقضات بين سجلات التسكين (Front Desk) والحالة الميدانية (Housekeeping): نائم غير مسجل (Sleep)، غادر دون تسجيل (Skip)، تكدس."
-                      : "Flags mismatches between front desk records and physical housekeeping status: Sleep (unrecorded), Skip (unreported departure), Overcrowded."}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="px-2.5 py-1 rounded-md bg-[#A52D2C] text-white font-bold text-xs">
-                  {ar ? "فحص فوري للمشرف" : "Immediate Inspection Required"}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {filters.activeTab === "vacations" && (
-            <div className="bg-[#2AA8AB]/5 border border-[#2AA8AB]/30 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-foreground">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-[#2AA8AB]/15 text-[#1F7F81] dark:text-[#59B7A8] shrink-0">
-                  <Palmtree className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm text-[#1F7F81] dark:text-[#59B7A8]">
-                    {ar ? "تقرير الإجازات (استعلام زمني بالتاريخ)" : "Vacations Report (Date Range Query)"}
-                  </h4>
-                  <p className="text-muted-foreground mt-0.5">
-                    {ar
-                      ? "يتيح لك تحديد أي فترة زمنية سابقة (من تاريخ / إلى تاريخ) للاستعلام الدقيق عن كل من نزل إجازة في تلك الفترة وحالته وتاريخ عودته الفعلي وسكنه."
-                      : "Filter by any historical date range (From / To) to audit who was on leave, their expected vs actual return dates, housing assignments, and overdue status."}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap shrink-0 text-xs font-semibold">
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
-                  <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
-                  {ar ? "في إجازة حالياً" : "On Vacation"}
-                </span>
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600" />
-                  {ar ? "عاد للعمل" : "Returned"}
-                </span>
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800">
-                  <span className="w-2 h-2 rounded-full bg-rose-600" />
-                  {ar ? "متأخر عن العودة" : "Overdue"}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {filters.activeTab === "vacant_rooms" && (
-            <VacantRoomsOperationalMatrix
-              ar={ar}
+              filterDepartment={filters.filterDepartment}
+              setFilterDepartment={filters.setFilterDepartment}
+              filterGender={filters.filterGender}
+              setFilterGender={filters.setFilterGender}
+              filterNationality={filters.filterNationality}
+              setFilterNationality={filters.setFilterNationality}
+              search={filters.search}
+              setSearch={filters.setSearch}
+              dateFrom={filters.dateFrom}
+              setDateFrom={filters.setDateFrom}
+              dateTo={filters.dateTo}
+              setDateTo={filters.setDateTo}
+              resetReportFilters={filters.resetReportFilters}
+              hasActiveReportFilters={filters.hasActiveReportFilters}
+              currentDataLength={totalCount}
+              selectedRowsSize={filters.selectedRows.size}
+              inventoryViewMode={filters.inventoryViewMode}
+              setInventoryViewMode={filters.setInventoryViewMode}
+              inHouseViewMode={filters.inHouseViewMode}
+              setInHouseViewMode={filters.setInHouseViewMode}
+              waterSortMode={filters.waterSortMode}
+              setWaterSortMode={filters.setWaterSortMode}
               rooms={data.rooms}
-              assignments={data.assignments}
-              buildings={data.buildings}
-              buildingMap={data.buildingMap}
-              filterBuilding={filters.filterBuilding}
-              onFilterBuilding={filters.setFilterBuilding}
-              onFilterRoomType={filters.setFilterRoomType}
-              currentRoomTypeFilter={filters.filterRoomType}
+              roomTypes={data.configuredRoomTypes}
             />
-          )}
 
-          {filters.activeTab === "assignments" && filters.inHouseViewMode === "grouped" ? (
-            <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
-              <InHouseGroupedRoomsView
-                assignments={paginatedData}
-                roomMap={data.roomMap}
-                buildingMap={data.buildingMap}
-                floorMap={data.floorMap}
+            {filters.activeTab === "maintenance" && (
+              <MaintenanceDualTrackReportRibbon
                 ar={ar}
+                propertyId={numericPropertyId}
+                filterCategory={filters.filterCategory}
+                setFilterCategory={filters.setFilterCategory}
+                ticketsData={data.maintenance}
+              />
+            )}
+
+            {filters.activeTab === "housekeeping_sheet" && (
+              <div className="bg-[#2AA8AB]/5 border border-[#2AA8AB]/30 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-foreground">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-[#2AA8AB]/15 text-[#1F7F81] dark:text-[#59B7A8] shrink-0">
+                    <ClipboardCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-[#1F7F81] dark:text-[#59B7A8]">
+                      {ar
+                        ? "كشف مهام وتوزيع أعمال الهاوس كيبنج الميداني"
+                        : "Room Attendant Daily Task Assignment Sheet"}
+                    </h4>
+                    <p className="text-muted-foreground mt-0.5">
+                      {ar
+                        ? "كشف توزيع المهام الميداني مع خانات الفحص الفعلي (المفروشات والعهد والتوقيع) مصمم للطباعة والحوافظ اليدوية."
+                        : "Daily operational task sheet with physical inspection checkpoints (linen, amenities, and signatures) formatted for clipboards."}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap shrink-0 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-100 text-red-800 border border-red-200">
+                    <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                    {ar ? "أولوية 1: مغادرة شاملة" : "Priority 1: Turnover"}
+                  </span>
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 border border-blue-200">
+                    <span className="w-2 h-2 rounded-full bg-blue-600" />
+                    {ar ? "أولوية 2: نظافة مقيم" : "Priority 2: Stayover"}
+                  </span>
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 border border-slate-200">
+                    <span className="w-2 h-2 rounded-full bg-slate-400" />
+                    {ar ? "أولوية 3: تفتيش شاغر" : "Priority 3: Refresh"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {filters.activeTab === "room_discrepancy" && (
+              <div className="bg-[#2AA8AB]/5 border border-[#2AA8AB]/30 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-foreground">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-[#2AA8AB]/15 text-[#1F7F81] dark:text-[#59B7A8] shrink-0">
+                    <AlertOctagon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-[#1F7F81] dark:text-[#59B7A8]">
+                      {ar
+                        ? "مركز تدقيق ومطابقة حالات الغرف والنزلاء"
+                        : "Room Status Discrepancy & Audit Center"}
+                    </h4>
+                    <p className="text-muted-foreground mt-0.5">
+                      {ar
+                        ? "يكتشف التناقضات بين سجلات التسكين (Front Desk) والحالة الميدانية (Housekeeping): نائم غير مسجل (Sleep)، غادر دون تسجيل (Skip)، تكدس."
+                        : "Flags mismatches between front desk records and physical housekeeping status: Sleep (unrecorded), Skip (unreported departure), Overcrowded."}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="px-2.5 py-1 rounded-md bg-[#A52D2C] text-white font-bold text-xs">
+                    {ar ? "فحص فوري للمشرف" : "Immediate Inspection Required"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {filters.activeTab === "vacations" && (
+              <div className="bg-[#2AA8AB]/5 border border-[#2AA8AB]/30 rounded-xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-foreground">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-[#2AA8AB]/15 text-[#1F7F81] dark:text-[#59B7A8] shrink-0">
+                    <Palmtree className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-[#1F7F81] dark:text-[#59B7A8]">
+                      {ar
+                        ? "تقرير الإجازات (استعلام زمني بالتاريخ)"
+                        : "Vacations Report (Date Range Query)"}
+                    </h4>
+                    <p className="text-muted-foreground mt-0.5">
+                      {ar
+                        ? "يتيح لك تحديد أي فترة زمنية سابقة (من تاريخ / إلى تاريخ) للاستعلام الدقيق عن كل من نزل إجازة في تلك الفترة وحالته وتاريخ عودته الفعلي وسكنه."
+                        : "Filter by any historical date range (From / To) to audit who was on leave, their expected vs actual return dates, housing assignments, and overdue status."}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap shrink-0 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+                    <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
+                    {ar ? "في إجازة حالياً" : "On Vacation"}
+                  </span>
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                    {ar ? "عاد للعمل" : "Returned"}
+                  </span>
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-100 text-rose-800 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800">
+                    <span className="w-2 h-2 rounded-full bg-rose-600" />
+                    {ar ? "متأخر عن العودة" : "Overdue"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {filters.activeTab === "vacant_rooms" && (
+              <VacantRoomsOperationalMatrix
+                ar={ar}
+                rooms={data.rooms}
+                assignments={data.assignments}
+                buildings={data.buildings}
+                buildingMap={data.buildingMap}
+                filterBuilding={filters.filterBuilding}
+                onFilterBuilding={filters.setFilterBuilding}
+                onFilterRoomType={filters.setFilterRoomType}
+                currentRoomTypeFilter={filters.filterRoomType}
+              />
+            )}
+
+            {filters.activeTab === "assignments" &&
+            filters.inHouseViewMode === "grouped" ? (
+              <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
+                <InHouseGroupedRoomsView
+                  assignments={paginatedData}
+                  roomMap={data.roomMap}
+                  buildingMap={data.buildingMap}
+                  floorMap={data.floorMap}
+                  ar={ar}
+                />
+              </div>
+            ) : (
+              <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
+                <ReportTable
+                  isLoading={
+                    isServerTab
+                      ? data.isLoading || server.isLoading
+                      : data.isLoading
+                  }
+                  allData={sortedData}
+                  paginatedData={paginatedData}
+                  selectedRows={filters.selectedRows}
+                  setSelectedRows={filters.setSelectedRows}
+                  activeTab={filters.activeTab}
+                  inventoryViewMode={filters.inventoryViewMode}
+                  ar={ar}
+                  sort={sort}
+                  onSortToggle={handleSortToggle}
+                  floorMap={data.floorMap}
+                  buildingMap={data.buildingMap}
+                  empMap={data.empMap}
+                  roomMap={data.roomMap}
+                  visibleCols={reportCols.visible}
+                  waterCheckState={waterCheckState}
+                  onToggleWaterCheck={toggleWaterCheck}
+                />
+              </div>
+            )}
+
+            <div className="mt-2">
+              <DataPagination
+                total={totalCount}
+                pageSize={filters.pageSize}
+                currentPage={filters.currentPage}
+                onPageChange={filters.setCurrentPage}
+                onPageSizeChange={filters.setPageSize}
               />
             </div>
-          ) : (
-            <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
-              <ReportTable
-                isLoading={isServerTab ? data.isLoading || server.isLoading : data.isLoading}
-                allData={sortedData}
-                paginatedData={paginatedData}
-                selectedRows={filters.selectedRows}
-                setSelectedRows={filters.setSelectedRows}
-                activeTab={filters.activeTab}
-                inventoryViewMode={filters.inventoryViewMode}
-                ar={ar}
-                sort={sort}
-                onSortToggle={handleSortToggle}
-                floorMap={data.floorMap}
-                buildingMap={data.buildingMap}
-                empMap={data.empMap}
-                roomMap={data.roomMap}
-                visibleCols={reportCols.visible}
-                waterCheckState={waterCheckState}
-                onToggleWaterCheck={toggleWaterCheck}
-              />
-            </div>
-          )}
-
-          <div className="mt-2">
-            <DataPagination
-              total={totalCount}
-              pageSize={filters.pageSize}
-              currentPage={filters.currentPage}
-              onPageChange={filters.setCurrentPage}
-              onPageSizeChange={filters.setPageSize}
-            />
-          </div>
-        </>
-      )}
+          </>
+        )}
 
       {exportActions.printStudioProps && (
         <ReportPrintStudioModal

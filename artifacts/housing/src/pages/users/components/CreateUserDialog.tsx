@@ -85,8 +85,14 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
     role: "manager",
     jobTitle: "none",
     status: "ACTIVE" as "ACTIVE" | "INACTIVE",
-    propertyId: (activePropertyId && typeof activePropertyId === "number") ? activePropertyId : 0,
-    propertyIds: (activePropertyId && typeof activePropertyId === "number") ? [activePropertyId] : ([] as number[]),
+    propertyId:
+      activePropertyId && typeof activePropertyId === "number"
+        ? activePropertyId
+        : 0,
+    propertyIds:
+      activePropertyId && typeof activePropertyId === "number"
+        ? [activePropertyId]
+        : ([] as number[]),
   });
 
   // Client-side validation errors
@@ -102,15 +108,21 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
       return properties || [];
     }
     const actorPropIds = new Set<number>();
-    if (currentUser?.propertyId) actorPropIds.add(Number(currentUser.propertyId));
+    if (currentUser?.propertyId)
+      actorPropIds.add(Number(currentUser.propertyId));
     if (Array.isArray((currentUser as any)?.propertyIds)) {
-      (currentUser as any).propertyIds.forEach((id: any) => actorPropIds.add(Number(id)));
+      (currentUser as any).propertyIds.forEach((id: any) =>
+        actorPropIds.add(Number(id)),
+      );
     }
     return (properties || []).filter((p) => actorPropIds.has(Number(p.id)));
   }, [properties, canGrantAnything, currentUser]);
 
   const resetForm = () => {
-    const defaultPid = (activePropertyId && typeof activePropertyId === "number") ? activePropertyId : (availableProperties[0]?.id || 0);
+    const defaultPid =
+      activePropertyId && typeof activePropertyId === "number"
+        ? activePropertyId
+        : availableProperties[0]?.id || 0;
     setForm({
       username: "",
       email: "",
@@ -180,13 +192,21 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
     setForm((f) => ({ ...f, password: pwd }));
     setShowPassword(true);
     if (errors.password) setErrors((err) => ({ ...err, password: undefined }));
-    toast.success(ar ? "تم توليد كلمة سر معقدة مطابقة لسياسة الأمان" : "Strong password generated");
+    toast.success(
+      ar
+        ? "تم توليد كلمة سر معقدة مطابقة لسياسة الأمان"
+        : "Strong password generated",
+    );
   };
 
   const handleCopyCredentials = () => {
     const text = `Sunrise Staff Housing Account:\nUsername: ${form.username || "-"}\nPassword: ${form.password}\nRole: ${form.role}`;
     navigator.clipboard.writeText(text);
-    toast.success(ar ? "تم نسخ بيانات الاعتماد إلى الحافظة" : "Credentials copied to clipboard");
+    toast.success(
+      ar
+        ? "تم نسخ بيانات الاعتماد إلى الحافظة"
+        : "Credentials copied to clipboard",
+    );
   };
 
   // Handle property toggle
@@ -263,7 +283,10 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
     }
 
     // Validate email format if provided
-    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+    if (
+      form.email.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
+    ) {
       newErrors.email = ar
         ? "البريد الإلكتروني غير صالح"
         : "Invalid email address format";
@@ -290,7 +313,12 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
         : form.propertyId
           ? [form.propertyId]
           : [];
-    const primaryPid = form.propertyId || pids[0] || (activePropertyId && typeof activePropertyId === "number" ? activePropertyId : 1);
+    const primaryPid =
+      form.propertyId ||
+      pids[0] ||
+      (activePropertyId && typeof activePropertyId === "number"
+        ? activePropertyId
+        : 1);
 
     if (needsProperty && pids.length === 0) {
       newErrors.properties = ar
@@ -332,15 +360,25 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
   const getRoleIcon = (roleVal: string) => {
     switch (roleVal) {
       case "super_admin":
-        return <Crown className="w-4 h-4 text-purple-600 dark:text-purple-400" />;
+        return (
+          <Crown className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+        );
       case "admin":
-        return <ShieldAlert className="w-4 h-4 text-red-600 dark:text-red-400" />;
+        return (
+          <ShieldAlert className="w-4 h-4 text-red-600 dark:text-red-400" />
+        );
       case "manager":
-        return <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />;
+        return (
+          <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        );
       case "receptionist":
-        return <Headphones className="w-4 h-4 text-green-600 dark:text-green-400" />;
+        return (
+          <Headphones className="w-4 h-4 text-green-600 dark:text-green-400" />
+        );
       case "maintenance_staff":
-        return <Wrench className="w-4 h-4 text-orange-600 dark:text-orange-400" />;
+        return (
+          <Wrench className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+        );
       case "housekeeping_staff":
         return <Sparkles className="w-4 h-4 text-sky-600 dark:text-sky-400" />;
       default:
@@ -426,19 +464,28 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                     dir="ltr"
                     className={cn(
                       "pl-9 font-mono text-sm bg-background border-border/80 focus-visible:ring-[#0F2A44]/30",
-                      errors.username && "border-destructive focus-visible:ring-destructive/20",
+                      errors.username &&
+                        "border-destructive focus-visible:ring-destructive/20",
                     )}
                     placeholder="e.g. m.tarek"
                     value={form.username}
                     onChange={(e) => {
-                      setForm((f) => ({ ...f, username: e.target.value.toLowerCase().replace(/\s+/g, "") }));
-                      if (errors.username) setErrors((err) => ({ ...err, username: undefined }));
+                      setForm((f) => ({
+                        ...f,
+                        username: e.target.value
+                          .toLowerCase()
+                          .replace(/\s+/g, ""),
+                      }));
+                      if (errors.username)
+                        setErrors((err) => ({ ...err, username: undefined }));
                     }}
                     autoComplete="off"
                   />
                 </div>
                 {errors.username && (
-                  <p className="text-[11px] text-destructive">{errors.username}</p>
+                  <p className="text-[11px] text-destructive">
+                    {errors.username}
+                  </p>
                 )}
               </div>
 
@@ -454,13 +501,15 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                     type="email"
                     className={cn(
                       "pl-9 font-mono text-sm bg-background border-border/80 focus-visible:ring-[#0F2A44]/30",
-                      errors.email && "border-destructive focus-visible:ring-destructive/20",
+                      errors.email &&
+                        "border-destructive focus-visible:ring-destructive/20",
                     )}
                     placeholder="name@sunrise.com"
                     value={form.email}
                     onChange={(e) => {
                       setForm((f) => ({ ...f, email: e.target.value }));
-                      if (errors.email) setErrors((err) => ({ ...err, email: undefined }));
+                      if (errors.email)
+                        setErrors((err) => ({ ...err, email: undefined }));
                     }}
                     autoComplete="email"
                   />
@@ -483,7 +532,9 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                     className="pl-9 font-mono text-sm bg-background border-border/80 focus-visible:ring-[#0F2A44]/30"
                     placeholder="+20 100 000 0000"
                     value={form.phone}
-                    onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, phone: e.target.value }))
+                    }
                     autoComplete="tel"
                   />
                 </div>
@@ -503,7 +554,12 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                     className="font-mono text-sm bg-background border-border/80 focus-visible:ring-[#0F2A44]/30"
                     placeholder="29010101234567"
                     value={form.nationalId}
-                    onChange={(e) => setForm((f) => ({ ...f, nationalId: e.target.value.replace(/\D/g, "") }))}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        nationalId: e.target.value.replace(/\D/g, ""),
+                      }))
+                    }
                   />
                 </div>
               </div>
@@ -523,7 +579,9 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                 </h3>
               </div>
               <span className="text-xs text-muted-foreground">
-                {ar ? "سياسة كلمة مرور النظام (8+ أحرف)" : "System policy (8+ chars)"}
+                {ar
+                  ? "سياسة كلمة مرور النظام (8+ أحرف)"
+                  : "System policy (8+ chars)"}
               </span>
             </div>
 
@@ -567,13 +625,19 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                     type={showPassword ? "text" : "password"}
                     className={cn(
                       "pl-9 pr-10 font-mono text-sm bg-background border-border/80 focus-visible:ring-[#0F2A44]/30",
-                      errors.password && "border-destructive focus-visible:ring-destructive/20",
+                      errors.password &&
+                        "border-destructive focus-visible:ring-destructive/20",
                     )}
-                    placeholder={ar ? "أدخل كلمة مرور قوية (8 أحرف على الأقل)" : "Enter strong password (8+ chars)"}
+                    placeholder={
+                      ar
+                        ? "أدخل كلمة مرور قوية (8 أحرف على الأقل)"
+                        : "Enter strong password (8+ chars)"
+                    }
                     value={form.password}
                     onChange={(e) => {
                       setForm((f) => ({ ...f, password: e.target.value }));
-                      if (errors.password) setErrors((err) => ({ ...err, password: undefined }));
+                      if (errors.password)
+                        setErrors((err) => ({ ...err, password: undefined }));
                     }}
                     autoComplete="new-password"
                   />
@@ -582,16 +646,26 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-foreground p-1 transition-colors"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-[11px] text-destructive">{errors.password}</p>
+                  <p className="text-[11px] text-destructive">
+                    {errors.password}
+                  </p>
                 )}
               </div>
 
               {/* Real-time Password Strength Meter & Live Rule Chips */}
-              <PasswordStrengthMeter password={form.password} isArabic={ar} showRules={true} />
+              <PasswordStrengthMeter
+                password={form.password}
+                isArabic={ar}
+                showRules={true}
+              />
             </div>
           </div>
 
@@ -604,10 +678,15 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                 </div>
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                   <Shield className="w-4 h-4 text-purple-500" />
-                  {ar ? "الأدوار ومستويات الوصول (RBAC)" : "Roles & Access Level (RBAC)"}
+                  {ar
+                    ? "الأدوار ومستويات الوصول (RBAC)"
+                    : "Roles & Access Level (RBAC)"}
                 </h3>
               </div>
-              <Badge variant="outline" className="text-[11px] font-normal border-purple-500/30 text-purple-700 dark:text-purple-300 bg-purple-500/5">
+              <Badge
+                variant="outline"
+                className="text-[11px] font-normal border-purple-500/30 text-purple-700 dark:text-purple-300 bg-purple-500/5"
+              >
                 <Sparkles className="w-3 h-3 mr-1 text-purple-500" />
                 {ar
                   ? `تمنح ${resolvedPermissions.length} صلاحية افتراضية`
@@ -619,7 +698,8 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
               {/* System Role */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-foreground">
-                  {ar ? "دور النظام الأساسي" : "System Role"} <span className="text-destructive">*</span>
+                  {ar ? "دور النظام الأساسي" : "System Role"}{" "}
+                  <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={form.role}
@@ -635,7 +715,11 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                       <div className="flex items-center gap-2">
                         {getRoleIcon(form.role)}
                         <span className="font-medium">
-                          {SYSTEM_ROLES.find((r) => r.value === form.role)?.[ar ? "labelAr" : "label"]}
+                          {
+                            SYSTEM_ROLES.find((r) => r.value === form.role)?.[
+                              ar ? "labelAr" : "label"
+                            ]
+                          }
                         </span>
                       </div>
                     </SelectValue>
@@ -645,13 +729,20 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                       const isSuper = r.value === "super_admin";
                       const isAdmin = r.value === "admin";
                       // Guard: non-system/super admins cannot create admins or super_admins
-                      const disabled = (isSuper || isAdmin) && !canGrantAnything;
+                      const disabled =
+                        (isSuper || isAdmin) && !canGrantAnything;
 
                       return (
-                        <SelectItem key={r.value} value={r.value} disabled={disabled}>
+                        <SelectItem
+                          key={r.value}
+                          value={r.value}
+                          disabled={disabled}
+                        >
                           <div className="flex items-center gap-2.5 py-0.5">
                             {getRoleIcon(r.value)}
-                            <span className="font-medium">{ar ? r.labelAr : r.label}</span>
+                            <span className="font-medium">
+                              {ar ? r.labelAr : r.label}
+                            </span>
                             <span
                               className={cn(
                                 "text-[10px] px-2 py-0.5 rounded-full ml-auto rtl:ml-0 rtl:mr-auto",
@@ -668,21 +759,33 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
                   {form.role === "super_admin"
-                    ? ar ? "صلاحيات كاملة وغير مقيدة على جميع فروع المجمعات." : "Unrestricted full administrative access across all properties."
+                    ? ar
+                      ? "صلاحيات كاملة وغير مقيدة على جميع فروع المجمعات."
+                      : "Unrestricted full administrative access across all properties."
                     : form.role === "admin"
-                      ? ar ? "صلاحيات إدارية عليا للنظام والمستخدمين." : "High-level management of users and housing modules."
+                      ? ar
+                        ? "صلاحيات إدارية عليا للنظام والمستخدمين."
+                        : "High-level management of users and housing modules."
                       : form.role === "manager"
-                        ? ar ? "إدارة التسكين والغرف وتوزيع الأسرة في الفروع المحددة." : "Manages accommodation, rooms, and assignments in assigned branches."
+                        ? ar
+                          ? "إدارة التسكين والغرف وتوزيع الأسرة في الفروع المحددة."
+                          : "Manages accommodation, rooms, and assignments in assigned branches."
                         : form.role === "receptionist"
-                          ? ar ? "موظف الاستقبال: تسجيل الوصول والمغادرة والنزلاء." : "Front desk: Check-in, check-out, and guest hosting."
-                          : ar ? "فني الصيانة: إدارة واستلام بلاغات وتذاكر الصيانة." : "Maintenance staff: Tickets and work orders."}
+                          ? ar
+                            ? "موظف الاستقبال: تسجيل الوصول والمغادرة والنزلاء."
+                            : "Front desk: Check-in, check-out, and guest hosting."
+                          : ar
+                            ? "فني الصيانة: إدارة واستلام بلاغات وتذاكر الصيانة."
+                            : "Maintenance staff: Tickets and work orders."}
                 </p>
               </div>
 
               {/* Workflow Role */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-foreground">
-                  {ar ? "منصب الاعتماد في مسارات العمل" : "Workflow Role (Approvals)"}
+                  {ar
+                    ? "منصب الاعتماد في مسارات العمل"
+                    : "Workflow Role (Approvals)"}
                 </Label>
                 <Select
                   value={form.jobTitle}
@@ -717,7 +820,9 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                 </div>
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                   <Building className="w-4 h-4 text-emerald-500" />
-                  {ar ? "تعيين الفروع الفندقية والمجمعات" : "Property Assignment"}
+                  {ar
+                    ? "تعيين الفروع الفندقية والمجمعات"
+                    : "Property Assignment"}
                 </h3>
               </div>
               {form.role !== "super_admin" && (
@@ -796,7 +901,9 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                                 : "border-muted-foreground/40 bg-background",
                             )}
                           >
-                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                            {isSelected && (
+                              <Check className="w-3 h-3 stroke-[3]" />
+                            )}
                           </div>
                           <div className="truncate">
                             <span className="text-xs font-medium text-foreground block truncate">
@@ -812,7 +919,11 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                         {isSelected && (
                           <button
                             type="button"
-                            title={ar ? "تعيين كفرع أساسي" : "Set as primary property"}
+                            title={
+                              ar
+                                ? "تعيين كفرع أساسي"
+                                : "Set as primary property"
+                            }
                             onClick={(e) => {
                               e.stopPropagation();
                               setPrimaryProperty(p.id);
@@ -838,7 +949,9 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                 </div>
 
                 {errors.properties && (
-                  <p className="text-[11px] text-destructive">{errors.properties}</p>
+                  <p className="text-[11px] text-destructive">
+                    {errors.properties}
+                  </p>
                 )}
               </div>
             )}
@@ -877,7 +990,9 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                     {ar ? "حساب نشط (Active)" : "Active Account"}
                   </span>
                   <span className="text-[10px] text-muted-foreground block">
-                    {ar ? "يسمح بتسجيل الدخول مباشرة" : "Allowed to log in immediately"}
+                    {ar
+                      ? "يسمح بتسجيل الدخول مباشرة"
+                      : "Allowed to log in immediately"}
                   </span>
                 </div>
               </div>
@@ -897,7 +1012,9 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                     {ar ? "حساب معطل (Inactive)" : "Inactive Account"}
                   </span>
                   <span className="text-[10px] text-muted-foreground block">
-                    {ar ? "حظر تسجيل الدخول مؤقتاً" : "Sign-in blocked temporarily"}
+                    {ar
+                      ? "حظر تسجيل الدخول مؤقتاً"
+                      : "Sign-in blocked temporarily"}
                   </span>
                 </div>
               </div>

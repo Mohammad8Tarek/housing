@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { db, withTenant, activityLogsTable, propertiesTable } from "@workspace/db";
+import {
+  db,
+  withTenant,
+  activityLogsTable,
+  propertiesTable,
+} from "@workspace/db";
 import { eq, desc, or, and, SQL, sql } from "drizzle-orm";
 import { requirePermission } from "../middlewares/permissions.js";
 import { getTenantId } from "../lib/request-utils.js";
@@ -15,7 +20,11 @@ router.get(
   async (req, res): Promise<void> => {
     try {
       const rawPropertyId = req.query.propertyId as string | undefined;
-      const isAll = !rawPropertyId || rawPropertyId === "all" || rawPropertyId === "-1" || rawPropertyId === "0";
+      const isAll =
+        !rawPropertyId ||
+        rawPropertyId === "all" ||
+        rawPropertyId === "-1" ||
+        rawPropertyId === "0";
       const numericPropertyId = isAll ? null : Number(rawPropertyId);
 
       const page = Math.max(1, Number(req.query.page) || 1);
@@ -31,7 +40,10 @@ router.get(
 
       // Get property map for friendly names
       const allProps = await db.select().from(propertiesTable);
-      const propertyMap = new Map<number, { name: string; displayName?: string | null }>();
+      const propertyMap = new Map<
+        number,
+        { name: string; displayName?: string | null }
+      >();
       for (const p of allProps) {
         propertyMap.set(p.id, { name: p.name, displayName: p.displayName });
       }
@@ -47,20 +59,24 @@ router.get(
           conditions.push(
             or(
               eq(activityLogsTable.action, actionFilter),
-              eq(activityLogsTable.actionType, actionFilter)
-            )!
+              eq(activityLogsTable.actionType, actionFilter),
+            )!,
           );
         }
 
         if (severityFilter && severityFilter !== "all") {
-          conditions.push(eq(activityLogsTable.severity, severityFilter.toLowerCase()));
+          conditions.push(
+            eq(activityLogsTable.severity, severityFilter.toLowerCase()),
+          );
         }
 
         if (dateFrom) {
           try {
             const fromDate = new Date(`${dateFrom}T00:00:00`);
             if (!isNaN(fromDate.getTime())) {
-              conditions.push(sql`${activityLogsTable.timestamp} >= ${fromDate}`);
+              conditions.push(
+                sql`${activityLogsTable.timestamp} >= ${fromDate}`,
+              );
             }
           } catch {}
         }
@@ -77,7 +93,7 @@ router.get(
         if (searchFilter && searchFilter.trim()) {
           const searchPattern = `%${searchFilter.trim()}%`;
           conditions.push(
-            sql`${activityLogsTable.username} ILIKE ${searchPattern} OR ${activityLogsTable.action} ILIKE ${searchPattern} OR ${activityLogsTable.details}::text ILIKE ${searchPattern} OR ${activityLogsTable.ipAddress} ILIKE ${searchPattern} OR ${activityLogsTable.entityType} ILIKE ${searchPattern} OR ${activityLogsTable.userRole} ILIKE ${searchPattern}`
+            sql`${activityLogsTable.username} ILIKE ${searchPattern} OR ${activityLogsTable.action} ILIKE ${searchPattern} OR ${activityLogsTable.details}::text ILIKE ${searchPattern} OR ${activityLogsTable.ipAddress} ILIKE ${searchPattern} OR ${activityLogsTable.entityType} ILIKE ${searchPattern} OR ${activityLogsTable.userRole} ILIKE ${searchPattern}`,
           );
         }
 
@@ -89,54 +105,59 @@ router.get(
 
       // If viewing a specific tenant property, query that tenant database schema
       if (numericPropertyId && numericPropertyId > 0) {
-        const tenantRes = await withTenant(numericPropertyId, async (tenantDb) => {
-          const conditions = buildConditions();
-          const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+        const tenantRes = await withTenant(
+          numericPropertyId,
+          async (tenantDb) => {
+            const conditions = buildConditions();
+            const whereClause =
+              conditions.length > 0 ? and(...conditions) : undefined;
 
-          const [countResult] = await tenantDb
-            .select({ count: sql`count(*)`.mapWith(Number) })
-            .from(activityLogsTable)
-            .where(whereClause);
+            const [countResult] = await tenantDb
+              .select({ count: sql`count(*)`.mapWith(Number) })
+              .from(activityLogsTable)
+              .where(whereClause);
 
-          const count = countResult?.count || 0;
+            const count = countResult?.count || 0;
 
-          const queryBuilder = tenantDb
-            .select({
-              id: activityLogsTable.id,
-              propertyId: activityLogsTable.propertyId,
-              username: activityLogsTable.username,
-              userId: activityLogsTable.userId,
-              userRole: activityLogsTable.userRole,
-              action: activityLogsTable.action,
-              actionType: activityLogsTable.actionType,
-              module: activityLogsTable.module,
-              severity: activityLogsTable.severity,
-              entityType: activityLogsTable.entityType,
-              entityId: activityLogsTable.entityId,
-              ipAddress: activityLogsTable.ipAddress,
-              userAgent: activityLogsTable.userAgent,
-              details: activityLogsTable.details,
-              timestamp: activityLogsTable.timestamp,
-            })
-            .from(activityLogsTable)
-            .orderBy(desc(activityLogsTable.timestamp))
-            .limit(limit)
-            .offset(offset);
+            const queryBuilder = tenantDb
+              .select({
+                id: activityLogsTable.id,
+                propertyId: activityLogsTable.propertyId,
+                username: activityLogsTable.username,
+                userId: activityLogsTable.userId,
+                userRole: activityLogsTable.userRole,
+                action: activityLogsTable.action,
+                actionType: activityLogsTable.actionType,
+                module: activityLogsTable.module,
+                severity: activityLogsTable.severity,
+                entityType: activityLogsTable.entityType,
+                entityId: activityLogsTable.entityId,
+                ipAddress: activityLogsTable.ipAddress,
+                userAgent: activityLogsTable.userAgent,
+                details: activityLogsTable.details,
+                timestamp: activityLogsTable.timestamp,
+              })
+              .from(activityLogsTable)
+              .orderBy(desc(activityLogsTable.timestamp))
+              .limit(limit)
+              .offset(offset);
 
-          if (whereClause) {
-            queryBuilder.where(whereClause);
-          }
+            if (whereClause) {
+              queryBuilder.where(whereClause);
+            }
 
-          const data = await queryBuilder;
-          return { data, total: count };
-        });
+            const data = await queryBuilder;
+            return { data, total: count };
+          },
+        );
 
         result = tenantRes.data;
         total = tenantRes.total;
       } else {
         // Query master public audit log (for "all" properties and global system events)
         const conditions = buildConditions();
-        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+        const whereClause =
+          conditions.length > 0 ? and(...conditions) : undefined;
 
         const [countResult] = await db
           .select({ count: sql`count(*)`.mapWith(Number) })
@@ -176,12 +197,17 @@ router.get(
       }
 
       const formatted = result.map((l: any) => {
-        const pId = l.propertyId ? Number(l.propertyId) : (numericPropertyId || null);
+        const pId = l.propertyId
+          ? Number(l.propertyId)
+          : numericPropertyId || null;
         const propInfo = pId ? propertyMap.get(pId) : null;
         return {
           id: Number(l.id),
           propertyId: pId,
-          propertyName: propInfo?.displayName || propInfo?.name || (pId ? `Property #${pId}` : "نظام عام / Global"),
+          propertyName:
+            propInfo?.displayName ||
+            propInfo?.name ||
+            (pId ? `Property #${pId}` : "نظام عام / Global"),
           username: l.username ?? "",
           userId: l.userId ? Number(l.userId) : null,
           userRole: l.userRole ?? null,
@@ -212,7 +238,10 @@ router.get(
       });
     } catch (err: any) {
       console.error("[ActivityLogs] Error fetching logs:", err);
-      res.status(500).json({ error: "Failed to fetch activity logs", details: err?.message });
+      res.status(500).json({
+        error: "Failed to fetch activity logs",
+        details: err?.message,
+      });
     }
   },
 );

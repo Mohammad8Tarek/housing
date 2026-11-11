@@ -7,7 +7,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AlertTriangle, ArrowRightLeft, UserCircle, Loader2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRightLeft,
+  UserCircle,
+  Loader2,
+} from "lucide-react";
 import type { ProfileResult } from "../../shared/profile-search";
 
 /** ── نافذة تأكيد وسؤال نقل الموظف عبر الفنادق (Cross-Property Transfer Modal) ── */
@@ -41,7 +46,9 @@ export function CrossPropertyConfirmDialog({
           <DialogTitle className="text-base flex items-center gap-2">
             <ArrowRightLeft className="w-5 h-5 text-amber-500 flex-shrink-0" />
             <span>
-              {ar ? "تأكيد نقل وتسكين موظف من فندق آخر" : "Confirm Cross-Property Assignment"}
+              {ar
+                ? "تأكيد نقل وتسكين موظف من فندق آخر"
+                : "Confirm Cross-Property Assignment"}
             </span>
           </DialogTitle>
         </DialogHeader>
@@ -57,12 +64,20 @@ export function CrossPropertyConfirmDialog({
                     {selectedProfile.firstName} {selectedProfile.lastName}
                   </p>
                   <p className="text-xs text-muted-foreground font-mono truncate">
-                    #{selectedProfile.profileId} • {selectedProfile.jobTitle || selectedProfile.department || ""}
+                    #{selectedProfile.profileId} •{" "}
+                    {selectedProfile.jobTitle ||
+                      selectedProfile.department ||
+                      ""}
                   </p>
                 </div>
               </div>
-              <Badge variant="outline" className="border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-xs font-semibold shrink-0">
-                {selectedProfile.propertyName || (ar ? "فندق خارجي" : "Old Hotel")} ➔ {targetProp?.name || (ar ? "الفندق الحالي" : "Target")}
+              <Badge
+                variant="outline"
+                className="border-amber-500/50 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-xs font-semibold shrink-0"
+              >
+                {selectedProfile.propertyName ||
+                  (ar ? "فندق خارجي" : "Old Hotel")}{" "}
+                ➔ {targetProp?.name || (ar ? "الفندق الحالي" : "Target")}
               </Badge>
             </div>
 
@@ -108,16 +123,27 @@ export function CrossPropertyConfirmDialog({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                        archiveSourceProfile ? "border-primary bg-primary text-white" : "border-muted-foreground"
-                      }`}>
-                        {archiveSourceProfile && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      <div
+                        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                          archiveSourceProfile
+                            ? "border-primary bg-primary text-white"
+                            : "border-muted-foreground"
+                        }`}
+                      >
+                        {archiveSourceProfile && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                        )}
                       </div>
                       <span className="text-xs font-bold text-foreground">
-                        {ar ? "1. نقله وحذفه من قائمة الفندق القديم (أرشفة لعدم التكرار)" : "1. Transfer & Archive from Old Hotel"}
+                        {ar
+                          ? "1. نقله وحذفه من قائمة الفندق القديم (أرشفة لعدم التكرار)"
+                          : "1. Transfer & Archive from Old Hotel"}
                       </span>
                     </div>
-                    <Badge variant="outline" className="text-[10px] font-medium bg-muted/60 text-muted-foreground">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-medium bg-muted/60 text-muted-foreground"
+                    >
                       {ar ? "الموصى به" : "Recommended"}
                     </Badge>
                   </div>
@@ -142,16 +168,27 @@ export function CrossPropertyConfirmDialog({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                        !archiveSourceProfile ? "border-primary bg-primary text-white" : "border-muted-foreground"
-                      }`}>
-                        {!archiveSourceProfile && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      <div
+                        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                          !archiveSourceProfile
+                            ? "border-primary bg-primary text-white"
+                            : "border-muted-foreground"
+                        }`}
+                      >
+                        {!archiveSourceProfile && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                        )}
                       </div>
                       <span className="text-xs font-bold text-foreground">
-                        {ar ? "2. نقله وتسيب البروفايل موجود ونشط في الفندق القديم أيضاً" : "2. Keep Profile Active in Both Hotels"}
+                        {ar
+                          ? "2. نقله وتسيب البروفايل موجود ونشط في الفندق القديم أيضاً"
+                          : "2. Keep Profile Active in Both Hotels"}
                       </span>
                     </div>
-                    <Badge variant="outline" className="text-[10px] font-medium bg-muted/60 text-muted-foreground">
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] font-medium bg-muted/60 text-muted-foreground"
+                    >
                       {ar ? "انتداب / فرعين" : "Secondment / Dual"}
                     </Badge>
                   </div>
@@ -180,7 +217,11 @@ export function CrossPropertyConfirmDialog({
                 className="gap-2 bg-primary hover:bg-primary/90 font-bold"
               >
                 {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>{ar ? "تأكيد التسكين والنقل الآن" : "Confirm Assignment & Transfer"}</span>
+                <span>
+                  {ar
+                    ? "تأكيد التسكين والنقل الآن"
+                    : "Confirm Assignment & Transfer"}
+                </span>
               </Button>
             </div>
           </div>

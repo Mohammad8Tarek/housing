@@ -27,13 +27,20 @@ export function computeOccupancyForecast({
 }: ForecastInput) {
   // Filtered rooms & capacity
   const filteredRooms =
-    buildingId === "all" ? rooms : rooms.filter((r: any) => r.buildingId === Number(buildingId));
-  const totalCapacity = filteredRooms.reduce((acc: number, r: any) => acc + (r.capacity || 1), 0);
+    buildingId === "all"
+      ? rooms
+      : rooms.filter((r: any) => r.buildingId === Number(buildingId));
+  const totalCapacity = filteredRooms.reduce(
+    (acc: number, r: any) => acc + (r.capacity || 1),
+    0,
+  );
   const activeRoomIds = new Set(filteredRooms.map((r: any) => r.id));
 
   // Current active assignments in filtered rooms
   const currentActiveAssignments = assignments.filter(
-    (a: any) => activeRoomIds.has(a.roomId) && (a.status === "ACTIVE" || a.status === "VACATION")
+    (a: any) =>
+      activeRoomIds.has(a.roomId) &&
+      (a.status === "ACTIVE" || a.status === "VACATION"),
   );
 
   // Day-by-day forecast calculation
@@ -41,7 +48,11 @@ export function computeOccupancyForecast({
   let runningOccupants = currentActiveAssignments.length;
 
   for (let i = 0; i < horizonDays; i++) {
-    const { iso: dIso, display: dateDisplay, dayName } = calendarDay(i, ar, timeZone);
+    const {
+      iso: dIso,
+      display: dateDisplay,
+      dayName,
+    } = calendarDay(i, ar, timeZone);
 
     // Expected arrivals on this day (from confirmed reservations)
     const dayArrivals = reservations.filter((r: any) => {
@@ -70,7 +81,10 @@ export function computeOccupancyForecast({
     }
     const projectedOccupied = Math.min(totalCapacity, runningOccupants);
     const projectedVacant = Math.max(0, totalCapacity - projectedOccupied);
-    const occPercent = totalCapacity > 0 ? Math.round((projectedOccupied / totalCapacity) * 100) : 0;
+    const occPercent =
+      totalCapacity > 0
+        ? Math.round((projectedOccupied / totalCapacity) * 100)
+        : 0;
 
     // Demand level
     let demand = "NORMAL";

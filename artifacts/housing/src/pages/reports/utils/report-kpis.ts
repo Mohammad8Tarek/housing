@@ -29,13 +29,15 @@ export function generateAutoKpis(
     rows.forEach((r) => {
       totalRooms += Number(r["إجمالي الغرف"] ?? r["Total Rooms"] ?? 0) || 0;
       totalBeds += Number(r["إجمالي الأسرة"] ?? r["Total Beds"] ?? 0) || 0;
-      occupiedBeds += Number(r["الأسرة المشغولة"] ?? r["Occupied Beds"] ?? 0) || 0;
+      occupiedBeds +=
+        Number(r["الأسرة المشغولة"] ?? r["Occupied Beds"] ?? 0) || 0;
       vacantBeds += Number(r["الأسرة الشاغرة"] ?? r["Vacant Beds"] ?? 0) || 0;
       dirtyRooms += Number(r["غرف متسخة"] ?? r["Dirty Rooms"] ?? 0) || 0;
       oooRooms += Number(r["غرف صيانة"] ?? r["OOO Rooms"] ?? 0) || 0;
     });
 
-    const occRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+    const occRate =
+      totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
 
     return [
       {
@@ -88,7 +90,9 @@ export function generateAutoKpis(
     let estMins = 0;
 
     rows.forEach((r) => {
-      const status = String(r["حالة النظافة (HK)"] ?? r["HK Status"] ?? "").toLowerCase();
+      const status = String(
+        r["حالة النظافة (HK)"] ?? r["HK Status"] ?? "",
+      ).toLowerCase();
       if (status.includes("متسخ") || status.includes("dirty")) dirtyCount++;
       if (status.includes("نظيف") || status.includes("clean")) cleanCount++;
       estMins += Number(r["الوقت التقديري"] ?? r["Est Time"] ?? 30) || 30;
@@ -130,8 +134,12 @@ export function generateAutoKpis(
     let skips = 0;
 
     rows.forEach((r) => {
-      const sev = String(r["مستوى الخطورة"] ?? r["Severity"] ?? "").toLowerCase();
-      const type = String(r["نوع التباين"] ?? r["Discrepancy Type"] ?? "").toLowerCase();
+      const sev = String(
+        r["مستوى الخطورة"] ?? r["Severity"] ?? "",
+      ).toLowerCase();
+      const type = String(
+        r["نوع التباين"] ?? r["Discrepancy Type"] ?? "",
+      ).toLowerCase();
       if (sev.includes("حرج") || sev.includes("critical")) criticalCount++;
       if (type.includes("نائم") || type.includes("sleeper")) sleepers++;
       if (type.includes("غادر") || type.includes("skip")) skips++;
@@ -165,17 +173,26 @@ export function generateAutoKpis(
     ];
   }
 
-  if (activeTab === "assignments" || activeTab === "history" || activeTab === "profiles") {
+  if (
+    activeTab === "assignments" ||
+    activeTab === "history" ||
+    activeTab === "profiles"
+  ) {
     let internalCount = 0;
     let thirdPartyCount = 0;
     let vacationCount = 0;
 
     rows.forEach((r) => {
-      const empType = String(r["نوع التوظيف"] ?? r["Employment Type"] ?? "").toLowerCase();
+      const empType = String(
+        r["نوع التوظيف"] ?? r["Employment Type"] ?? "",
+      ).toLowerCase();
       const status = String(r["الحالة"] ?? r["Status"] ?? "").toLowerCase();
-      if (empType.includes("داخلي") || empType.includes("internal")) internalCount++;
-      if (empType.includes("طرف ثالث") || empType.includes("third")) thirdPartyCount++;
-      if (status.includes("إجازة") || status.includes("vacation")) vacationCount++;
+      if (empType.includes("داخلي") || empType.includes("internal"))
+        internalCount++;
+      if (empType.includes("طرف ثالث") || empType.includes("third"))
+        thirdPartyCount++;
+      if (status.includes("إجازة") || status.includes("vacation"))
+        vacationCount++;
     });
 
     return [
@@ -213,9 +230,19 @@ export function generateAutoKpis(
 
     rows.forEach((r) => {
       const cond = String(r["الحالة"] ?? r["Condition"] ?? "").toLowerCase();
-      if (cond.includes("سليم") || cond.includes("ممتاز") || cond.includes("good")) good++;
+      if (
+        cond.includes("سليم") ||
+        cond.includes("ممتاز") ||
+        cond.includes("good")
+      )
+        good++;
       if (cond.includes("صيانة") || cond.includes("repair")) repair++;
-      if (cond.includes("تالف") || cond.includes("damaged") || cond.includes("مفقود")) damaged++;
+      if (
+        cond.includes("تالف") ||
+        cond.includes("damaged") ||
+        cond.includes("مفقود")
+      )
+        damaged++;
     });
 
     return [
@@ -255,9 +282,21 @@ export function generateAutoKpis(
 
     rows.forEach((r) => {
       const st = String(r["الحالة"] ?? r["Status"] ?? "").toLowerCase();
-      if (st.includes("مفتوح") || st.includes("قيد الانتظار") || st.includes("open")) openCount++;
+      if (
+        st.includes("مفتوح") ||
+        st.includes("قيد الانتظار") ||
+        st.includes("open")
+      )
+        openCount++;
       if (st.includes("تنفيذ") || st.includes("progress")) inProgress++;
-      if (st.includes("مكتمل") || st.includes("تم") || st.includes("resolved") || st.includes("مغلق") || st.includes("closed")) resolved++;
+      if (
+        st.includes("مكتمل") ||
+        st.includes("تم") ||
+        st.includes("resolved") ||
+        st.includes("مغلق") ||
+        st.includes("closed")
+      )
+        resolved++;
 
       const rateStr = String(r["التقييم"] ?? r["Rating"] ?? r["الريت"] ?? "");
       const match = rateStr.match(/([\d.]+)/);
@@ -270,7 +309,8 @@ export function generateAutoKpis(
       }
     });
 
-    const avgRating = ratedCount > 0 ? (totalRatingsSum / ratedCount).toFixed(1) : "—";
+    const avgRating =
+      ratedCount > 0 ? (totalRatingsSum / ratedCount).toFixed(1) : "—";
 
     return [
       {
@@ -300,7 +340,12 @@ export function generateAutoKpis(
       {
         label: "Avg Quality Rating",
         labelAr: "متوسط تقييم الخدمة (الريت)",
-        value: avgRating !== "—" ? `${avgRating} ★ (${ratedCount})` : (ar ? "لا يوجد تقييمات" : "No ratings"),
+        value:
+          avgRating !== "—"
+            ? `${avgRating} ★ (${ratedCount})`
+            : ar
+              ? "لا يوجد تقييمات"
+              : "No ratings",
         color: "gold",
       },
     ];
@@ -312,7 +357,13 @@ export function generateAutoKpis(
     let satisfactionCount = 0;
 
     rows.forEach((r) => {
-      const rateStr = String(r["التقييم النجوم"] ?? r["Rating (Stars)"] ?? r["متوسط التقييم"] ?? r["Avg Rating"] ?? "");
+      const rateStr = String(
+        r["التقييم النجوم"] ??
+          r["Rating (Stars)"] ??
+          r["متوسط التقييم"] ??
+          r["Avg Rating"] ??
+          "",
+      );
       const match = rateStr.match(/([\d.]+)/);
       if (match) {
         const rating = parseFloat(match[1]);
@@ -324,8 +375,14 @@ export function generateAutoKpis(
       }
     });
 
-    const avgRating = validRatingsCount > 0 ? (totalRatingsSum / validRatingsCount).toFixed(1) : "5.0";
-    const satPercent = validRatingsCount > 0 ? Math.round((satisfactionCount / validRatingsCount) * 100) : 100;
+    const avgRating =
+      validRatingsCount > 0
+        ? (totalRatingsSum / validRatingsCount).toFixed(1)
+        : "5.0";
+    const satPercent =
+      validRatingsCount > 0
+        ? Math.round((satisfactionCount / validRatingsCount) * 100)
+        : 100;
 
     return [
       {
@@ -350,7 +407,14 @@ export function generateAutoKpis(
       {
         label: "Quality Status",
         labelAr: "مستوى الجودة",
-        value: satPercent >= 85 ? (isArabic ? "ممتاز" : "Excellent") : (isArabic ? "جيد" : "Good"),
+        value:
+          satPercent >= 85
+            ? isArabic
+              ? "ممتاز"
+              : "Excellent"
+            : isArabic
+              ? "جيد"
+              : "Good",
         color: "green",
       },
     ];
@@ -363,11 +427,23 @@ export function generateAutoKpis(
     let documentedOverrideCount = 0;
 
     rows.forEach((r) => {
-      const sev = String(r["مستوى الأهمية"] ?? r["Severity"] ?? "").toLowerCase();
-      const status = String(r["موقف المخالفة والتصحيح"] ?? r["Status / Resolution"] ?? r["حالة الاعتماد"] ?? r["Approval Status"] ?? "").toLowerCase();
+      const sev = String(
+        r["مستوى الأهمية"] ?? r["Severity"] ?? "",
+      ).toLowerCase();
+      const status = String(
+        r["موقف المخالفة والتصحيح"] ??
+          r["Status / Resolution"] ??
+          r["حالة الاعتماد"] ??
+          r["Approval Status"] ??
+          "",
+      ).toLowerCase();
 
       if (sev.includes("حرج") || sev.includes("critical")) criticalCount++;
-      if (status.includes("تصحيح") || status.includes("resolved") || status.includes("معالج")) {
+      if (
+        status.includes("تصحيح") ||
+        status.includes("resolved") ||
+        status.includes("معالج")
+      ) {
         resolvedCount++;
       } else if (status.includes("معتمد") || status.includes("approved")) {
         documentedOverrideCount++;
@@ -410,10 +486,23 @@ export function generateAutoKpis(
     let overdue = 0;
 
     rows.forEach((r) => {
-      const st = String(r["حالة الإجازة"] ?? r["Status"] ?? r["الحالة"] ?? "").toLowerCase();
+      const st = String(
+        r["حالة الإجازة"] ?? r["Status"] ?? r["الحالة"] ?? "",
+      ).toLowerCase();
       if (st.includes("متأخر") || st.includes("overdue")) overdue++;
-      else if (st.includes("عاد") || st.includes("returned") || st.includes("مكتمل")) returned++;
-      else if (st.includes("إجازة") || st.includes("vacation") || st.includes("نشط") || st.includes("active")) onVacation++;
+      else if (
+        st.includes("عاد") ||
+        st.includes("returned") ||
+        st.includes("مكتمل")
+      )
+        returned++;
+      else if (
+        st.includes("إجازة") ||
+        st.includes("vacation") ||
+        st.includes("نشط") ||
+        st.includes("active")
+      )
+        onVacation++;
     });
 
     return [

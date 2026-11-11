@@ -92,22 +92,30 @@ export async function runMigrations(): Promise<void> {
 
   // Sync existing rooms' features into room_inventory across all properties
   try {
-    const { syncAllRoomsFeaturesToInventory } = await import("../../routes/room-inventory.js");
-    const { rows: props } = await pool.query("SELECT id FROM public.properties");
+    const { syncAllRoomsFeaturesToInventory } =
+      await import("../../routes/room-inventory.js");
+    const { rows: props } = await pool.query(
+      "SELECT id FROM public.properties",
+    );
     for (const p of props) {
       await syncAllRoomsFeaturesToInventory(p.id);
     }
-    console.info(`[migrations] Automatic room features inventory sync complete across all tenants.`);
+    console.info(
+      `[migrations] Automatic room features inventory sync complete across all tenants.`,
+    );
   } catch (e: any) {
     console.warn(`[migrations] room-inventory auto-sync notice:`, e?.message);
   }
 
   // Auto-heal any orphan cross-property assignments
   try {
-    const { healOrphanAssignments } = await import("../cross-property-service.js");
+    const { healOrphanAssignments } =
+      await import("../cross-property-service.js");
     const healed = await healOrphanAssignments();
     if (healed > 0) {
-      console.info(`[migrations] Auto-healed ${healed} orphan cross-property assignments.`);
+      console.info(
+        `[migrations] Auto-healed ${healed} orphan cross-property assignments.`,
+      );
     }
   } catch (e: any) {
     console.warn(`[migrations] healOrphanAssignments notice:`, e?.message);
@@ -115,18 +123,25 @@ export async function runMigrations(): Promise<void> {
 
   // Backfill Arabic data for profiles and lookups across all schemas
   try {
-    const { backfillBilingualProfiles } = await import("../bilingual-backfill.js");
-    const { totalUpdatedProfiles, totalUpdatedLookups } = await backfillBilingualProfiles();
-    const totalUpdated = (totalUpdatedProfiles || 0) + (totalUpdatedLookups || 0);
+    const { backfillBilingualProfiles } =
+      await import("../bilingual-backfill.js");
+    const { totalUpdatedProfiles, totalUpdatedLookups } =
+      await backfillBilingualProfiles();
+    const totalUpdated =
+      (totalUpdatedProfiles || 0) + (totalUpdatedLookups || 0);
     if (totalUpdated > 0) {
-      console.info(`[migrations] Backfilled bilingual data for ${totalUpdated} profiles across schemas.`);
+      console.info(
+        `[migrations] Backfilled bilingual data for ${totalUpdated} profiles across schemas.`,
+      );
     }
   } catch (e: any) {
     console.warn(`[migrations] backfillBilingualProfiles notice:`, e?.message);
   }
 }
 
-export async function applyTenantMigrationsToSchema(schemaName: string): Promise<number> {
+export async function applyTenantMigrationsToSchema(
+  schemaName: string,
+): Promise<number> {
   const client = await pool.connect();
   let count = 0;
   try {
@@ -141,7 +156,9 @@ export async function applyTenantMigrationsToSchema(schemaName: string): Promise
           !err?.message?.includes("duplicate key") &&
           !err?.message?.includes("cannot be dropped")
         ) {
-          console.warn(`[migrations] tenant ${schemaName} (${m.name}): ${err?.message}`);
+          console.warn(
+            `[migrations] tenant ${schemaName} (${m.name}): ${err?.message}`,
+          );
         }
       }
     }
@@ -154,7 +171,10 @@ export async function applyTenantMigrationsToSchema(schemaName: string): Promise
   return count;
 }
 
-export async function provisionTenantSchema(schemaName: string, propertyId: number): Promise<boolean> {
+export async function provisionTenantSchema(
+  schemaName: string,
+  propertyId: number,
+): Promise<boolean> {
   const TENANT_TABLES = [
     "buildings",
     "floors",
@@ -267,7 +287,10 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
     await client.query("COMMIT");
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
-    console.error(`[Properties] Error provisioning schema "${schemaName}":`, err);
+    console.error(
+      `[Properties] Error provisioning schema "${schemaName}":`,
+      err,
+    );
     return false;
   } finally {
     client.release();
@@ -276,17 +299,26 @@ export async function provisionTenantSchema(schemaName: string, propertyId: numb
   // Apply full tenant migrations to newly provisioned schema
   try {
     const applied = await applyTenantMigrationsToSchema(schemaName);
-    console.info(`[Properties] Applied ${applied} tenant migrations to "${schemaName}"`);
+    console.info(
+      `[Properties] Applied ${applied} tenant migrations to "${schemaName}"`,
+    );
   } catch (e: any) {
-    console.warn(`[Properties] Tenant migrations warning on "${schemaName}":`, e?.message);
+    console.warn(
+      `[Properties] Tenant migrations warning on "${schemaName}":`,
+      e?.message,
+    );
   }
 
   // Sync rooms inventory
   try {
-    const { syncAllRoomsFeaturesToInventory } = await import("../../routes/room-inventory.js");
+    const { syncAllRoomsFeaturesToInventory } =
+      await import("../../routes/room-inventory.js");
     await syncAllRoomsFeaturesToInventory(propertyId);
   } catch (e: any) {
-    console.warn(`[Properties] syncAllRoomsFeaturesToInventory warning:`, e?.message);
+    console.warn(
+      `[Properties] syncAllRoomsFeaturesToInventory warning:`,
+      e?.message,
+    );
   }
 
   return true;

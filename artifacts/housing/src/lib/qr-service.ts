@@ -9,9 +9,10 @@ const qrDataUrlCache = new Map<string, string>();
  * Returns the public mobile landing page URL for a given room
  */
 export function getRoomServiceUrl(propertyId: number, roomId: number): string {
-  const origin = typeof window !== "undefined" && window.location?.origin
-    ? window.location.origin
-    : "http://localhost:9000";
+  const origin =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : "http://localhost:9000";
   return `${origin}/room-service?p=${propertyId}&r=${roomId}`;
 }
 
@@ -22,7 +23,7 @@ export function getRoomServiceUrl(propertyId: number, roomId: number): string {
 export async function generateRoomQrDataUrl(
   propertyId: number,
   roomId: number,
-  options?: { width?: number; margin?: number }
+  options?: { width?: number; margin?: number },
 ): Promise<string> {
   const cacheKey = `${propertyId}:${roomId}:${options?.width || 500}`;
   if (qrDataUrlCache.has(cacheKey)) {
@@ -45,7 +46,10 @@ export async function generateRoomQrDataUrl(
     qrDataUrlCache.set(cacheKey, dataUrl);
     return dataUrl;
   } catch (err) {
-    console.error("[QR Service] Failed to generate QR data URL client-side:", err);
+    console.error(
+      "[QR Service] Failed to generate QR data URL client-side:",
+      err,
+    );
     // Fallback to server endpoint
     return getRoomQrImageUrl(propertyId, roomId, "png");
   }
@@ -56,7 +60,7 @@ export async function generateRoomQrDataUrl(
 export function getRoomQrImageUrl(
   propertyId: number,
   roomId: number,
-  format: "dataurl" | "png" | "svg" = "png"
+  format: "dataurl" | "png" | "svg" = "png",
 ): string {
   const targetUrl = encodeURIComponent(getRoomServiceUrl(propertyId, roomId));
   return `/api/public/room-qr?propertyId=${propertyId}&roomId=${roomId}&format=${format}&targetUrl=${targetUrl}`;

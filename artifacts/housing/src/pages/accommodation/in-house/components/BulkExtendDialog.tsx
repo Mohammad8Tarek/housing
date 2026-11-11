@@ -71,7 +71,10 @@ export function BulkExtendDialog({
 
           <div className="space-y-1.5">
             <Label className="font-semibold text-sm">
-              {ar ? "تاريخ المغادرة الجديد المتوقع لجميع المحددين" : "New Expected Departure Date"} *
+              {ar
+                ? "تاريخ المغادرة الجديد المتوقع لجميع المحددين"
+                : "New Expected Departure Date"}{" "}
+              *
             </Label>
             <DateInput
               value={bulkExtendDate}
@@ -124,10 +127,16 @@ export function BulkExtendDialog({
 
           <div className="space-y-1.5">
             <Label className="text-sm">
-              {ar ? "سبب التمديد الجماعي / ملاحظات" : "Extension Reason / Notes (Optional)"}
+              {ar
+                ? "سبب التمديد الجماعي / ملاحظات"
+                : "Extension Reason / Notes (Optional)"}
             </Label>
             <Input
-              placeholder={ar ? "سبب تمديد الإقامة الجماعي..." : "Reason for bulk extension..."}
+              placeholder={
+                ar
+                  ? "سبب تمديد الإقامة الجماعي..."
+                  : "Reason for bulk extension..."
+              }
               value={bulkExtendNotes}
               onChange={(e) => setBulkExtendNotes(e.target.value)}
             />

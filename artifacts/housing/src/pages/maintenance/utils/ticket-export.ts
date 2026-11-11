@@ -1,7 +1,11 @@
 import { exportExcel as exportExcelUtil } from "@/pages/reports/utils/export";
 import { formatDate } from "@/lib/date-utils";
 import { formatDuration, STATUS_AR } from "./ticket-duration";
-import { CATEGORIES_AR, PROBLEM_TYPES_MAP, PRIORITY_AR } from "./ticket-constants";
+import {
+  CATEGORIES_AR,
+  PROBLEM_TYPES_MAP,
+  PRIORITY_AR,
+} from "./ticket-constants";
 
 export interface TicketExportContext {
   ar: boolean;
@@ -23,15 +27,18 @@ export function exportTicketsExcel(
     [ar ? "الغرفة" : "Room"]:
       `${ar ? "الغرفة" : "Room"} ${req.roomNumber || (roomMap[req.roomId] ?? req.roomId)}`,
     [ar ? "المبنى" : "Building"]: req.buildingName || "—",
-    [ar ? "الدور" : "Floor"]: req.floorNumber ? `${ar ? "الدور " : "Floor "}${req.floorNumber}` : "—",
+    [ar ? "الدور" : "Floor"]: req.floorNumber
+      ? `${ar ? "الدور " : "Floor "}${req.floorNumber}`
+      : "—",
     [ar ? "مقدم البلاغ" : "Reported By"]: req.reportedBy || "—",
     [ar ? "النزيل المقيم" : "Occupant"]: roomOccupantMap[req.roomId] || "—",
     [ar ? "القسم / النوع" : "Type"]: ar
-      ? ((CATEGORIES_AR as Record<string, string>)[req.category] ?? req.category)
+      ? ((CATEGORIES_AR as Record<string, string>)[req.category] ??
+        req.category)
       : req.category,
     [ar ? "نوع المشكلة / الخدمة" : "Problem / Service"]: ar
-      ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
-      : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType),
+      ? PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType
+      : PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType,
     [ar ? "الفني المعين" : "Assigned Worker"]: req.workerName || "—",
     [ar ? "الوصف" : "Description"]: req.description,
     [ar ? "الأولوية" : "Priority"]: ar
@@ -49,8 +56,10 @@ export function exportTicketsExcel(
     [ar ? "التقييم" : "Rating"]: req.rating
       ? `${req.rating}/5`
       : ["resolved", "closed"].includes(req.status)
-      ? (ar ? "بانتظار التقييم" : "Pending")
-      : "—",
+        ? ar
+          ? "بانتظار التقييم"
+          : "Pending"
+        : "—",
     [ar ? "ملاحظات التقييم" : "Rating Comment"]: req.ratingComment || "—",
   }));
   exportExcelUtil("Tickets_Hub", rows, {
@@ -75,16 +84,20 @@ export function exportSelectedTicketsExcel(
       req.propertyName ||
       properties?.find((p: any) => p.id === req.propertyId)?.name ||
       "—",
-    [ar ? "الغرفة" : "Room"]: req.roomNumber || (roomMap[req.roomId] ?? req.roomId),
+    [ar ? "الغرفة" : "Room"]:
+      req.roomNumber || (roomMap[req.roomId] ?? req.roomId),
     [ar ? "المبنى" : "Building"]: req.buildingName || "—",
-    [ar ? "الدور" : "Floor"]: req.floorNumber ? `${ar ? "الدور " : "Floor "}${req.floorNumber}` : "—",
+    [ar ? "الدور" : "Floor"]: req.floorNumber
+      ? `${ar ? "الدور " : "Floor "}${req.floorNumber}`
+      : "—",
     [ar ? "مقدم البلاغ" : "Reported By"]: req.reportedBy || "—",
     [ar ? "النوع" : "Category"]: ar
-      ? ((CATEGORIES_AR as Record<string, string>)[req.category] ?? req.category)
+      ? ((CATEGORIES_AR as Record<string, string>)[req.category] ??
+        req.category)
       : req.category,
     [ar ? "المشكلة" : "Problem Type"]: ar
-      ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
-      : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType),
+      ? PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType
+      : PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType,
     [ar ? "الفني المعين" : "Assigned Worker"]: req.workerName || "—",
     [ar ? "الوصف" : "Description"]: req.description,
     [ar ? "الأولوية" : "Priority"]: ar
@@ -102,8 +115,10 @@ export function exportSelectedTicketsExcel(
     [ar ? "التقييم" : "Rating"]: req.rating
       ? `${req.rating}/5`
       : ["resolved", "closed"].includes(req.status)
-      ? (ar ? "بانتظار التقييم" : "Pending")
-      : "—",
+        ? ar
+          ? "بانتظار التقييم"
+          : "Pending"
+        : "—",
     [ar ? "ملاحظات التقييم" : "Rating Comment"]: req.ratingComment || "—",
   }));
   exportExcelUtil("Selected_Tickets", rows, {

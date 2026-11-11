@@ -1,12 +1,36 @@
 // Conversation list screen: header, search, filter pills, conversations, new-chat FAB.
-import { Search, X, MoreVertical, Camera, MessageSquarePlus, CheckCheck } from "lucide-react";
+import {
+  Search,
+  X,
+  MoreVertical,
+  Camera,
+  MessageSquarePlus,
+  CheckCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatDate, renderLastMessagePreview } from "./chat-helpers";
 import type { TabChatState } from "./useTabChat";
 
 export function renderConversationListScreen(chat: TabChatState) {
-  const { myEmployeeId, isRtl, isDark, convFilter, setConvFilter, convSearch, setConvSearch, effectiveMyId, conversations, loading, setShowNewConv, typingUsers, onlineEmployees, openConversation, getConvTitle, getConvPhoto, filteredConversations } = chat;
-
+  const {
+    myEmployeeId,
+    isRtl,
+    isDark,
+    convFilter,
+    setConvFilter,
+    convSearch,
+    setConvSearch,
+    effectiveMyId,
+    conversations,
+    loading,
+    setShowNewConv,
+    typingUsers,
+    onlineEmployees,
+    openConversation,
+    getConvTitle,
+    getConvPhoto,
+    filteredConversations,
+  } = chat;
 
   /* ════════════════════════════════════════════════════════════════
      CONVERSATION LIST VIEW (AUTHENTIC WHATSAPP UI)
@@ -61,7 +85,7 @@ export function renderConversationListScreen(chat: TabChatState) {
               toast.info(
                 isRtl
                   ? "إعدادات المحادثات: الخصوصية والإشعارات قيد التفعيل"
-                  : "Chat settings: Privacy & notifications active"
+                  : "Chat settings: Privacy & notifications active",
               );
             }}
             className="hover:text-white active:scale-95 transition-transform p-1"
@@ -200,16 +224,16 @@ export function renderConversationListScreen(chat: TabChatState) {
                   ? "لا توجد نتائج بحث"
                   : "No search results"
                 : convFilter === "unread"
-                ? isRtl
-                  ? "لا توجد رسائل غير مقروءة"
-                  : "No unread messages"
-                : convFilter === "groups"
-                ? isRtl
-                  ? "لا توجد مجموعات"
-                  : "No groups found"
-                : isRtl
-                ? "لا توجد محادثات حتى الآن"
-                : "No conversations yet"}
+                  ? isRtl
+                    ? "لا توجد رسائل غير مقروءة"
+                    : "No unread messages"
+                  : convFilter === "groups"
+                    ? isRtl
+                      ? "لا توجد مجموعات"
+                      : "No groups found"
+                    : isRtl
+                      ? "لا توجد محادثات حتى الآن"
+                      : "No conversations yet"}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {isRtl
@@ -276,8 +300,8 @@ export function renderConversationListScreen(chat: TabChatState) {
                             ? "#ffffff"
                             : "#111b21"
                           : isDark
-                          ? "#e9edef"
-                          : "#111b21",
+                            ? "#e9edef"
+                            : "#111b21",
                       }}
                     >
                       {title}
@@ -305,26 +329,31 @@ export function renderConversationListScreen(chat: TabChatState) {
                           isTyping
                             ? "text-[#00a884] font-semibold animate-pulse"
                             : hasUnread
-                            ? "font-semibold"
-                            : ""
+                              ? "font-semibold"
+                              : ""
                         }`}
                         style={{
                           color: isTyping
                             ? "#00a884"
                             : hasUnread
-                            ? isDark
-                              ? "#ffffff"
-                              : "#111b21"
-                            : isDark
-                            ? "#8696a0"
-                            : "#667781",
+                              ? isDark
+                                ? "#ffffff"
+                                : "#111b21"
+                              : isDark
+                                ? "#8696a0"
+                                : "#667781",
                         }}
                       >
                         {isTyping
                           ? isRtl
                             ? "يكتب الآن..."
                             : "Typing..."
-                          : renderLastMessagePreview(conv.lastMessage, isRtl, isDark, hasUnread)}
+                          : renderLastMessagePreview(
+                              conv.lastMessage,
+                              isRtl,
+                              isDark,
+                              hasUnread,
+                            )}
                       </div>
                     </div>
 

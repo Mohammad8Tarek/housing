@@ -34,10 +34,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-
-
-
-
 const SUGGESTED_FEATURES = [
   "Bedroom",
   "Bathroom",
@@ -103,7 +99,9 @@ export function RoomModals({
     // If editing and the user didn't change the room number or building, don't flag as duplicate
     if (
       editRoom &&
-      String(editRoom.roomNumber || "").trim().toLowerCase() === trimmed &&
+      String(editRoom.roomNumber || "")
+        .trim()
+        .toLowerCase() === trimmed &&
       Number(editRoom.buildingId) === Number(rForm.buildingId)
     ) {
       return false;
@@ -113,18 +111,20 @@ export function RoomModals({
       (r: any) =>
         (editRoomId === null || Number(r.id ?? r.roomId) !== editRoomId) &&
         Number(r.buildingId) === Number(rForm.buildingId) &&
-        String(r.roomNumber || "").trim().toLowerCase() === trimmed
+        String(r.roomNumber || "")
+          .trim()
+          .toLowerCase() === trimmed,
     );
   }, [rForm.roomNumber, rForm.buildingId, rooms, editRoom]);
 
   const { data: lookupRoomTypes = [] } = useLookupValues(
     propertyId || 0,
-    LOOKUP_CATEGORIES.ROOM_TYPE
+    LOOKUP_CATEGORIES.ROOM_TYPE,
   );
 
   const { data: lookupClassifications = [] } = useLookupValues(
     propertyId || 0,
-    LOOKUP_CATEGORIES.ROOM_CLASSIFICATION
+    LOOKUP_CATEGORIES.ROOM_CLASSIFICATION,
   );
 
   const activeLookupTypes = lookupRoomTypes.filter((t: any) => !t.disabled);
@@ -132,47 +132,59 @@ export function RoomModals({
     new Set([
       ...activeLookupTypes.map((t: any) => t.value),
       ...(rForm.roomType ? [rForm.roomType] : []),
-    ])
+    ]),
   ).filter(Boolean);
 
-  const activeClassifications = lookupClassifications.filter((t: any) => !t.disabled);
+  const activeClassifications = lookupClassifications.filter(
+    (t: any) => !t.disabled,
+  );
   const availableClassifications = Array.from(
     new Set([
       ...activeClassifications.map((t: any) => t.value),
       ...(rForm.classification ? [rForm.classification] : []),
-    ])
+    ]),
   ).filter(Boolean);
 
   const { data: lookupBedTypes = [] } = useLookupValues(
     propertyId || 0,
-    LOOKUP_CATEGORIES.BED_TYPE
+    LOOKUP_CATEGORIES.BED_TYPE,
   );
   const activeBedTypes = lookupBedTypes.filter((t: any) => !t.disabled);
   const availableBedTypes = Array.from(
     new Set([
       ...activeBedTypes.map((t: any) => t.value),
       ...(rForm.bedType ? [rForm.bedType] : []),
-    ])
+    ]),
   ).filter(Boolean);
 
   const { data: lookupViews = [] } = useLookupValues(
     propertyId || 0,
-    LOOKUP_CATEGORIES.ROOM_VIEW
+    LOOKUP_CATEGORIES.ROOM_VIEW,
   );
   const activeViews = lookupViews.filter((v: any) => !v.disabled);
   const availableViews = Array.from(
     new Set([
       ...activeViews.map((v: any) => v.value),
       ...(rForm.view ? [rForm.view] : []),
-    ])
+    ]),
   ).filter(Boolean);
 
-  const matchedType = activeLookupTypes.find((t: any) => t.value === rForm.roomType);
-  const isCapacityLocked = !!(matchedType?.parentValue && Number(matchedType.parentValue) > 0);
-  const configuredCapacity = isCapacityLocked ? Number(matchedType.parentValue) : null;
+  const matchedType = activeLookupTypes.find(
+    (t: any) => t.value === rForm.roomType,
+  );
+  const isCapacityLocked = !!(
+    matchedType?.parentValue && Number(matchedType.parentValue) > 0
+  );
+  const configuredCapacity = isCapacityLocked
+    ? Number(matchedType.parentValue)
+    : null;
 
   useEffect(() => {
-    if (isCapacityLocked && configuredCapacity && rForm.capacity !== configuredCapacity) {
+    if (
+      isCapacityLocked &&
+      configuredCapacity &&
+      rForm.capacity !== configuredCapacity
+    ) {
       setRForm((p: any) => ({ ...p, capacity: configuredCapacity }));
     }
   }, [isCapacityLocked, configuredCapacity, rForm.capacity, setRForm]);
@@ -180,13 +192,17 @@ export function RoomModals({
   const featuresList: string[] = Array.isArray(rForm.featuresList)
     ? rForm.featuresList
     : typeof rForm.features === "string" && rForm.features
-    ? rForm.features.split(/[,;\n]+/).map((s: string) => s.trim()).filter(Boolean)
-    : [];
+      ? rForm.features
+          .split(/[,;\n]+/)
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+      : [];
 
   const addFeature = (feat: string) => {
     const trimmed = feat.trim();
     if (!trimmed) return;
-    if (featuresList.some((f) => f.toLowerCase() === trimmed.toLowerCase())) return;
+    if (featuresList.some((f) => f.toLowerCase() === trimmed.toLowerCase()))
+      return;
     const next = [...featuresList, trimmed];
     setRForm((p: any) => ({
       ...p,
@@ -212,15 +228,23 @@ export function RoomModals({
           className="max-w-2xl max-h-[90vh] overflow-y-auto"
           srTitle={
             editRoom
-              ? ar ? "تعديل الغرفة" : "Edit Room"
-              : ar ? "إضافة غرفة" : "Add Room"
+              ? ar
+                ? "تعديل الغرفة"
+                : "Edit Room"
+              : ar
+                ? "إضافة غرفة"
+                : "Add Room"
           }
         >
           <DialogHeader>
             <DialogTitle>
               {editRoom
-                ? ar ? "تعديل الغرفة" : "Edit Room"
-                : ar ? "إضافة غرفة" : "Add Room"}
+                ? ar
+                  ? "تعديل الغرفة"
+                  : "Edit Room"
+                : ar
+                  ? "إضافة غرفة"
+                  : "Add Room"}
             </DialogTitle>
           </DialogHeader>
 
@@ -244,7 +268,9 @@ export function RoomModals({
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={ar ? "اختر المبنى" : "Building"} />
+                      <SelectValue
+                        placeholder={ar ? "اختر المبنى" : "Building"}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {buildings.map((b) => (
@@ -283,7 +309,10 @@ export function RoomModals({
                   <Input
                     value={rForm.roomNumber}
                     onChange={(e) =>
-                      setRForm((p: any) => ({ ...p, roomNumber: e.target.value }))
+                      setRForm((p: any) => ({
+                        ...p,
+                        roomNumber: e.target.value,
+                      }))
                     }
                     placeholder="e.g. 101, A-205"
                     className={
@@ -295,7 +324,11 @@ export function RoomModals({
                   {isDuplicateRoomNumber && (
                     <div className="flex items-center gap-1.5 text-xs text-destructive font-medium mt-1 animate-in fade-in slide-in-from-top-1">
                       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      <span>{ar ? "رقم الغرفة هذا مسجل مسبقاً في هذا المبنى" : "This room number already exists in this building"}</span>
+                      <span>
+                        {ar
+                          ? "رقم الغرفة هذا مسجل مسبقاً في هذا المبنى"
+                          : "This room number already exists in this building"}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -307,7 +340,10 @@ export function RoomModals({
                       const val = v === "__none__" ? "" : v;
                       setRForm((p: any) => {
                         const updated: any = { ...p, classification: val };
-                        if (val.toLowerCase().includes("family") && (!p.capacity || p.capacity < 3)) {
+                        if (
+                          val.toLowerCase().includes("family") &&
+                          (!p.capacity || p.capacity < 3)
+                        ) {
                           updated.capacity = 4;
                         }
                         return updated;
@@ -315,7 +351,11 @@ export function RoomModals({
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={ar ? "اختر التصنيف..." : "Select classification..."} />
+                      <SelectValue
+                        placeholder={
+                          ar ? "اختر التصنيف..." : "Select classification..."
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">
@@ -343,25 +383,40 @@ export function RoomModals({
                   <Select
                     value={rForm.roomType}
                     onValueChange={(v) => {
-                      const matched = activeLookupTypes.find((t: any) => t.value === v);
-                      const configuredCap = matched?.parentValue ? Number(matched.parentValue) : null;
+                      const matched = activeLookupTypes.find(
+                        (t: any) => t.value === v,
+                      );
+                      const configuredCap = matched?.parentValue
+                        ? Number(matched.parentValue)
+                        : null;
                       setRForm((p: any) => ({
                         ...p,
                         roomType: v,
-                        ...(configuredCap && configuredCap > 0 ? { capacity: configuredCap } : {}),
+                        ...(configuredCap && configuredCap > 0
+                          ? { capacity: configuredCap }
+                          : {}),
                       }));
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={ar ? "اختر نوع الغرفة" : "Select Room Type"} />
+                      <SelectValue
+                        placeholder={
+                          ar ? "اختر نوع الغرفة" : "Select Room Type"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {availableRoomTypes.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
                       ))}
-                      {rForm.roomType && !availableRoomTypes.includes(rForm.roomType) && (
-                        <SelectItem value={rForm.roomType}>{rForm.roomType}</SelectItem>
-                      )}
+                      {rForm.roomType &&
+                        !availableRoomTypes.includes(rForm.roomType) && (
+                          <SelectItem value={rForm.roomType}>
+                            {rForm.roomType}
+                          </SelectItem>
+                        )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -380,9 +435,13 @@ export function RoomModals({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">— {ar ? "غير محدد" : "Not specified"}</SelectItem>
+                      <SelectItem value="__none__">
+                        — {ar ? "غير محدد" : "Not specified"}
+                      </SelectItem>
                       {availableBedTypes.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -392,17 +451,27 @@ export function RoomModals({
                     <Label>{ar ? "السعة القصوى" : "Max Capacity"}</Label>
                     {isCapacityLocked && (
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                        {ar ? `محددة بنوع الغرفة (${configuredCapacity} أسرة)` : `Locked by Type (${configuredCapacity} beds)`}
+                        {ar
+                          ? `محددة بنوع الغرفة (${configuredCapacity} أسرة)`
+                          : `Locked by Type (${configuredCapacity} beds)`}
                       </span>
                     )}
                   </div>
                   <Input
                     type="number"
                     min={1}
-                    value={isCapacityLocked && configuredCapacity ? configuredCapacity : rForm.capacity}
+                    value={
+                      isCapacityLocked && configuredCapacity
+                        ? configuredCapacity
+                        : rForm.capacity
+                    }
                     readOnly={isCapacityLocked}
                     disabled={isCapacityLocked}
-                    className={isCapacityLocked ? "bg-muted/70 cursor-not-allowed font-bold" : ""}
+                    className={
+                      isCapacityLocked
+                        ? "bg-muted/70 cursor-not-allowed font-bold"
+                        : ""
+                    }
                     onChange={(e) => {
                       if (!isCapacityLocked) {
                         setRForm((p: any) => ({
@@ -438,27 +507,40 @@ export function RoomModals({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">— {ar ? "غير محدد" : "Not specified"}</SelectItem>
+                      <SelectItem value="__none__">
+                        — {ar ? "غير محدد" : "Not specified"}
+                      </SelectItem>
                       {availableViews.map((v) => (
-                        <SelectItem key={v} value={v}>{v}</SelectItem>
+                        <SelectItem key={v} value={v}>
+                          {v}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>{ar ? "باب متصل (Connecting)" : "Separator Door"}</Label>
+                  <Label>
+                    {ar ? "باب متصل (Connecting)" : "Separator Door"}
+                  </Label>
                   <Select
                     value={rForm.separatorDoor ? "yes" : "no"}
                     onValueChange={(v) =>
-                      setRForm((p: any) => ({ ...p, separatorDoor: v === "yes" }))
+                      setRForm((p: any) => ({
+                        ...p,
+                        separatorDoor: v === "yes",
+                      }))
                     }
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="no">{ar ? "لا يوجد" : "No"}</SelectItem>
-                      <SelectItem value="yes">{ar ? "يوجد باب" : "Yes"}</SelectItem>
+                      <SelectItem value="no">
+                        {ar ? "لا يوجد" : "No"}
+                      </SelectItem>
+                      <SelectItem value="yes">
+                        {ar ? "يوجد باب" : "Yes"}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -486,9 +568,13 @@ export function RoomModals({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">{ar ? "مشترك / غير محدد" : "Mixed / None"}</SelectItem>
+                      <SelectItem value="__none__">
+                        {ar ? "مشترك / غير محدد" : "Mixed / None"}
+                      </SelectItem>
                       <SelectItem value="M">{ar ? "ذكور" : "Male"}</SelectItem>
-                      <SelectItem value="F">{ar ? "إناث" : "Female"}</SelectItem>
+                      <SelectItem value="F">
+                        {ar ? "إناث" : "Female"}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -501,7 +587,11 @@ export function RoomModals({
                       {getRoomStatusLabel(rForm.status || "available", ar)}
                     </span>
                     <span className="text-[11px] text-muted-foreground truncate">
-                      ({ar ? "تدار عبر الهاوس كيبنج" : "Managed via Housekeeping"})
+                      (
+                      {ar
+                        ? "تدار عبر الهاوس كيبنج"
+                        : "Managed via Housekeeping"}
+                      )
                     </span>
                   </div>
                 </div>
@@ -511,14 +601,19 @@ export function RoomModals({
             {/* -- Section 4: Room Features -- */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                ✨ {ar ? "مزايا ومرافق الغرفة (Room Features)" : "Room Features & Amenities"}
+                ✨{" "}
+                {ar
+                  ? "مزايا ومرافق الغرفة (Room Features)"
+                  : "Room Features & Amenities"}
               </p>
 
               {/* Tags display */}
               <div className="flex flex-wrap gap-1.5 mb-3 min-h-[32px]">
                 {featuresList.length === 0 && (
                   <span className="text-xs text-muted-foreground italic">
-                    {ar ? "لم تتم إضافة أي ميزات بعد..." : "No features added yet..."}
+                    {ar
+                      ? "لم تتم إضافة أي ميزات بعد..."
+                      : "No features added yet..."}
                   </span>
                 )}
                 {featuresList.map((feat) => (
@@ -542,7 +637,10 @@ export function RoomModals({
               {/* Quick add suggestions */}
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {SUGGESTED_FEATURES.filter(
-                  (f) => !featuresList.some((e) => e.toLowerCase() === f.toLowerCase())
+                  (f) =>
+                    !featuresList.some(
+                      (e) => e.toLowerCase() === f.toLowerCase(),
+                    ),
                 ).map((feat) => (
                   <button
                     key={feat}
@@ -558,7 +656,9 @@ export function RoomModals({
               {/* Custom feature input */}
               <div className="flex gap-2">
                 <Input
-                  placeholder={ar ? "أضف ميزة مخصصة..." : "Add custom feature..."}
+                  placeholder={
+                    ar ? "أضف ميزة مخصصة..." : "Add custom feature..."
+                  }
                   value={featureInput}
                   onChange={(e) => setFeatureInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -589,7 +689,9 @@ export function RoomModals({
                 onChange={(e) =>
                   setRForm((p: any) => ({ ...p, notes: e.target.value }))
                 }
-                placeholder={ar ? "أي ملاحظات إضافية..." : "Any additional notes..."}
+                placeholder={
+                  ar ? "أي ملاحظات إضافية..." : "Any additional notes..."
+                }
                 rows={2}
                 className="resize-none text-sm"
               />
@@ -600,20 +702,35 @@ export function RoomModals({
             <Button variant="ghost" onClick={() => setRoomModal(false)}>
               {ar ? "إلغاء" : "Cancel"}
             </Button>
-            <PermissionGate module="housing" action={editRoom ? "edit" : "create"}>
-              <Button onClick={saveRoomHandler} disabled={isSaving || isDuplicateRoomNumber}>
+            <PermissionGate
+              module="housing"
+              action={editRoom ? "edit" : "create"}
+            >
+              <Button
+                onClick={saveRoomHandler}
+                disabled={isSaving || isDuplicateRoomNumber}
+              >
                 {isSaving
-                  ? ar ? "جاري الحفظ..." : "Saving..."
+                  ? ar
+                    ? "جاري الحفظ..."
+                    : "Saving..."
                   : editRoom
-                  ? ar ? "حفظ التعديلات" : "Save Changes"
-                  : ar ? "إضافة الغرفة" : "Add Room"}
+                    ? ar
+                      ? "حفظ التعديلات"
+                      : "Save Changes"
+                    : ar
+                      ? "إضافة الغرفة"
+                      : "Add Room"}
               </Button>
             </PermissionGate>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteRoom} onOpenChange={(v) => !v && setDeleteRoom(null)}>
+      <AlertDialog
+        open={!!deleteRoom}
+        onOpenChange={(v) => !v && setDeleteRoom(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -633,7 +750,13 @@ export function RoomModals({
                 disabled={isDeleting}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {isDeleting ? (ar ? "جاري الحذف..." : "Deleting...") : (ar ? "حذف" : "Delete")}
+                {isDeleting
+                  ? ar
+                    ? "جاري الحذف..."
+                    : "Deleting..."
+                  : ar
+                    ? "حذف"
+                    : "Delete"}
               </AlertDialogAction>
             </PermissionGate>
           </AlertDialogFooter>

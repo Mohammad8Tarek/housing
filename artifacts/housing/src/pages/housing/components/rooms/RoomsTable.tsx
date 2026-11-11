@@ -115,16 +115,18 @@ export function RoomsTable({
                         r.classification.toLowerCase().includes("deluxe")
                           ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
                           : r.classification.toLowerCase().includes("superior")
-                          ? "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
-                          : r.classification.toLowerCase().includes("family")
-                          ? "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
-                          : "bg-muted/70 text-foreground border-border"
+                            ? "bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                            : r.classification.toLowerCase().includes("family")
+                              ? "bg-purple-50 text-purple-800 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                              : "bg-muted/70 text-foreground border-border"
                       }`}
                     >
                       {r.classification}
                     </span>
                   ) : (
-                    <span className="text-muted-foreground/60 text-xs italic">—</span>
+                    <span className="text-muted-foreground/60 text-xs italic">
+                      —
+                    </span>
                   )}
                 </td>
                 <td className="p-3 text-muted-foreground">
@@ -156,7 +158,11 @@ export function RoomsTable({
                         size="icon"
                         className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
                         onClick={() => onViewQr(r)}
-                        title={ar ? "رمز الـ QR وبطاقة الباب" : "Room QR Code & Door Placard"}
+                        title={
+                          ar
+                            ? "رمز الـ QR وبطاقة الباب"
+                            : "Room QR Code & Door Placard"
+                        }
                       >
                         <QrCode className="w-3.5 h-3.5" />
                       </Button>

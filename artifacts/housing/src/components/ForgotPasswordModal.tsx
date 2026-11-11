@@ -128,7 +128,10 @@ export function ForgotPasswordModal({
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMessage(data.error || (ar ? "حدث خطأ أثناء إرسال الرمز" : "Failed to send code"));
+        setErrorMessage(
+          data.error ||
+            (ar ? "حدث خطأ أثناء إرسال الرمز" : "Failed to send code"),
+        );
         return;
       }
 
@@ -144,7 +147,9 @@ export function ForgotPasswordModal({
       );
     } catch (err: any) {
       setErrorMessage(
-        ar ? "فشل الاتصال بالخادم، يرجى المحاولة لاحقاً" : "Connection failed, please try again",
+        ar
+          ? "فشل الاتصال بالخادم، يرجى المحاولة لاحقاً"
+          : "Connection failed, please try again",
       );
     } finally {
       setIsLoading(false);
@@ -168,7 +173,9 @@ export function ForgotPasswordModal({
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMessage(data.error || (ar ? "فشلت إعادة الإرسال" : "Failed to resend code"));
+        setErrorMessage(
+          data.error || (ar ? "فشلت إعادة الإرسال" : "Failed to resend code"),
+        );
         if (data.cooldownSeconds) {
           setCooldownRemainingSeconds(data.cooldownSeconds);
         }
@@ -179,7 +186,9 @@ export function ForgotPasswordModal({
       setCooldownRemainingSeconds(data.cooldownSeconds || 120);
       setOtp("");
       toast.success(
-        ar ? "تمت إعادة إرسال رمز التحقق بنجاح!" : "Verification code resent successfully!",
+        ar
+          ? "تمت إعادة إرسال رمز التحقق بنجاح!"
+          : "Verification code resent successfully!",
       );
     } catch (err) {
       setErrorMessage(
@@ -227,14 +236,18 @@ export function ForgotPasswordModal({
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMessage(data.error || (ar ? "رمز التحقق غير صحيح" : "Invalid OTP code"));
+        setErrorMessage(
+          data.error || (ar ? "رمز التحقق غير صحيح" : "Invalid OTP code"),
+        );
         return;
       }
 
       setResetToken(data.resetToken);
       setStep(3);
       toast.success(
-        ar ? "تم التحقق بنجاح! قم الآن بتعيين كلمة المرور الجديدة" : "Verified! Now set your new password",
+        ar
+          ? "تم التحقق بنجاح! قم الآن بتعيين كلمة المرور الجديدة"
+          : "Verified! Now set your new password",
       );
     } catch (err) {
       setErrorMessage(
@@ -250,7 +263,9 @@ export function ForgotPasswordModal({
     if (e) e.preventDefault();
 
     if (!newPassword) {
-      setErrorMessage(ar ? "يرجى إدخال كلمة المرور الجديدة" : "Please enter new password");
+      setErrorMessage(
+        ar ? "يرجى إدخال كلمة المرور الجديدة" : "Please enter new password",
+      );
       return;
     }
 
@@ -287,7 +302,10 @@ export function ForgotPasswordModal({
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMessage(data.error || (ar ? "فشل تغيير كلمة المرور" : "Failed to reset password"));
+        setErrorMessage(
+          data.error ||
+            (ar ? "فشل تغيير كلمة المرور" : "Failed to reset password"),
+        );
         return;
       }
 
@@ -327,8 +345,10 @@ export function ForgotPasswordModal({
           </div>
           <DialogTitle className="text-xl font-bold tracking-tight">
             {step === 1 && (ar ? "استعادة كلمة المرور" : "Forgot Password")}
-            {step === 2 && (ar ? "رمز التحقق (OTP)" : "Enter Verification Code")}
-            {step === 3 && (ar ? "تعيين كلمة المرور الجديدة" : "Set New Password")}
+            {step === 2 &&
+              (ar ? "رمز التحقق (OTP)" : "Enter Verification Code")}
+            {step === 3 &&
+              (ar ? "تعيين كلمة المرور الجديدة" : "Set New Password")}
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
             {step === 1 &&
@@ -377,7 +397,10 @@ export function ForgotPasswordModal({
         {step === 1 && (
           <form onSubmit={handleRequestOtp} className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label htmlFor="reset-identifier" className="font-semibold text-sm">
+              <Label
+                htmlFor="reset-identifier"
+                className="font-semibold text-sm"
+              >
                 {ar ? "اسم المستخدم أو البريد الإلكتروني" : "Username or Email"}
               </Label>
               <div className="relative">
@@ -391,7 +414,9 @@ export function ForgotPasswordModal({
                     if (errorMessage) setErrorMessage(null);
                   }}
                   placeholder={
-                    ar ? "مثال: admin أو admin@sunrise-resorts.com" : "e.g. admin or user@sunrise.com"
+                    ar
+                      ? "مثال: admin أو admin@sunrise-resorts.com"
+                      : "e.g. admin or user@sunrise.com"
                   }
                   className="h-11 transition-all focus-visible:ring-primary/50 text-base"
                 />
@@ -411,7 +436,11 @@ export function ForgotPasswordModal({
               ) : (
                 <span className="flex items-center justify-center gap-2">
                   {ar ? "إرسال رمز التحقق" : "Send Verification Code"}
-                  {ar ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                  {ar ? (
+                    <ArrowLeft className="w-4 h-4" />
+                  ) : (
+                    <ArrowRight className="w-4 h-4" />
+                  )}
                 </span>
               )}
             </Button>
@@ -424,7 +453,9 @@ export function ForgotPasswordModal({
             {/* Email notice badge */}
             <div className="bg-muted/60 border border-border/80 rounded-xl p-3 text-center space-y-1">
               <div className="text-xs text-muted-foreground">
-                {ar ? "تم إرسال الرمز إلى البريد الإلكتروني:" : "Verification code sent to:"}
+                {ar
+                  ? "تم إرسال الرمز إلى البريد الإلكتروني:"
+                  : "Verification code sent to:"}
               </div>
               <div className="font-semibold text-foreground text-sm tracking-wide font-mono">
                 {maskedEmail || identifier}
@@ -466,15 +497,33 @@ export function ForgotPasswordModal({
                 autoFocus
               >
                 <InputOTPGroup>
-                  <InputOTPSlot index={0} className="w-11 h-12 text-lg font-bold" />
-                  <InputOTPSlot index={1} className="w-11 h-12 text-lg font-bold" />
-                  <InputOTPSlot index={2} className="w-11 h-12 text-lg font-bold" />
+                  <InputOTPSlot
+                    index={0}
+                    className="w-11 h-12 text-lg font-bold"
+                  />
+                  <InputOTPSlot
+                    index={1}
+                    className="w-11 h-12 text-lg font-bold"
+                  />
+                  <InputOTPSlot
+                    index={2}
+                    className="w-11 h-12 text-lg font-bold"
+                  />
                 </InputOTPGroup>
                 <InputOTPSeparator />
                 <InputOTPGroup>
-                  <InputOTPSlot index={3} className="w-11 h-12 text-lg font-bold" />
-                  <InputOTPSlot index={4} className="w-11 h-12 text-lg font-bold" />
-                  <InputOTPSlot index={5} className="w-11 h-12 text-lg font-bold" />
+                  <InputOTPSlot
+                    index={3}
+                    className="w-11 h-12 text-lg font-bold"
+                  />
+                  <InputOTPSlot
+                    index={4}
+                    className="w-11 h-12 text-lg font-bold"
+                  />
+                  <InputOTPSlot
+                    index={5}
+                    className="w-11 h-12 text-lg font-bold"
+                  />
                 </InputOTPGroup>
               </InputOTP>
             </div>
@@ -612,7 +661,9 @@ export function ForgotPasswordModal({
               <div className="grid grid-cols-2 gap-1.5">
                 <div
                   className={`flex items-center gap-1.5 ${
-                    hasMinLength ? "text-emerald-600 dark:text-emerald-400 font-medium" : ""
+                    hasMinLength
+                      ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                      : ""
                   }`}
                 >
                   <span className="text-sm">{hasMinLength ? "✓" : "•"}</span>
@@ -620,7 +671,9 @@ export function ForgotPasswordModal({
                 </div>
                 <div
                   className={`flex items-center gap-1.5 ${
-                    hasUpper ? "text-emerald-600 dark:text-emerald-400 font-medium" : ""
+                    hasUpper
+                      ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                      : ""
                   }`}
                 >
                   <span className="text-sm">{hasUpper ? "✓" : "•"}</span>
@@ -628,7 +681,9 @@ export function ForgotPasswordModal({
                 </div>
                 <div
                   className={`flex items-center gap-1.5 ${
-                    hasLower ? "text-emerald-600 dark:text-emerald-400 font-medium" : ""
+                    hasLower
+                      ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                      : ""
                   }`}
                 >
                   <span className="text-sm">{hasLower ? "✓" : "•"}</span>
@@ -636,7 +691,9 @@ export function ForgotPasswordModal({
                 </div>
                 <div
                   className={`flex items-center gap-1.5 ${
-                    hasNumber ? "text-emerald-600 dark:text-emerald-400 font-medium" : ""
+                    hasNumber
+                      ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                      : ""
                   }`}
                 >
                   <span className="text-sm">{hasNumber ? "✓" : "•"}</span>

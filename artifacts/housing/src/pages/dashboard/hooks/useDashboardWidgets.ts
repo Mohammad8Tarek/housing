@@ -55,7 +55,8 @@ export const DASHBOARD_WIDGETS_REGISTRY: DashboardWidgetMeta[] = [
     labelAr: "شريط التنقل السريع",
     labelEn: "Quick Navigation Bar",
     descAr: "أزرار الوصول السريع لأقسام السكن والحجوزات والصيانة والتقارير",
-    descEn: "Quick shortcut bar to housing, reservations, maintenance, and reports",
+    descEn:
+      "Quick shortcut bar to housing, reservations, maintenance, and reports",
     category: "quick",
     icon: Sparkles,
     defaultVisible: true,
@@ -139,7 +140,8 @@ export const DASHBOARD_WIDGETS_REGISTRY: DashboardWidgetMeta[] = [
     labelAr: "شريط السعة الاستيعابية للمباني والأدوار",
     labelEn: "Building & Floor Capacity Ribbon",
     descAr: "ملخص معماري فوري لعدد المباني، الأدوار، الغرف، والأسرة الشاغرة",
-    descEn: "Architectural ribbon showing buildings, floors, rooms, and vacant beds",
+    descEn:
+      "Architectural ribbon showing buildings, floors, rooms, and vacant beds",
     category: "operations",
     requiredModule: "housing",
     requiredAction: "view",
@@ -151,7 +153,8 @@ export const DASHBOARD_WIDGETS_REGISTRY: DashboardWidgetMeta[] = [
     labelAr: "مركز العمليات وحركات اليوم (Hub)",
     labelEn: "Daily Operations Hub",
     descAr: "تسجيلات الدخول، المغادرات، بلاغات الصيانة، والعقود المنتهية",
-    descEn: "Operational hub for today's check-ins, check-outs, maintenance, and contracts",
+    descEn:
+      "Operational hub for today's check-ins, check-outs, maintenance, and contracts",
     category: "operations",
     requiredModule: "accommodation",
     requiredAction: "view",
@@ -174,8 +177,10 @@ export const DASHBOARD_WIDGETS_REGISTRY: DashboardWidgetMeta[] = [
     id: "tickets_dual_hub",
     labelAr: "مركز بلاغات الصيانة والهاوس كيبنج المزدوج مع التقييمات",
     labelEn: "Maintenance & Housekeeping Dual-Track Hub with Ratings",
-    descAr: "إحصائيات التذاكر (مفتوحة، معتمدة، منجزة، عاجلة) ونسب الرضا والتقييمات",
-    descEn: "Dual-track ticket stats (open, approved, done, urgent), satisfaction rate, and star ratings",
+    descAr:
+      "إحصائيات التذاكر (مفتوحة، معتمدة، منجزة، عاجلة) ونسب الرضا والتقييمات",
+    descEn:
+      "Dual-track ticket stats (open, approved, done, urgent), satisfaction rate, and star ratings",
     category: "operations",
     requiredModule: "maintenance",
     requiredAction: "view",
@@ -224,7 +229,8 @@ export const DASHBOARD_WIDGETS_REGISTRY: DashboardWidgetMeta[] = [
     labelAr: "الرسم البياني لإشغال المباني والمسار الزمني",
     labelEn: "Building Occupancy & Trend Charts",
     descAr: "معدلات استيعاب كل مبنى ومسار تطور الإشغال على مدار الأيام",
-    descEn: "Bar charts of building utilization and occupancy trajectory over time",
+    descEn:
+      "Bar charts of building utilization and occupancy trajectory over time",
     category: "analytics",
     requiredModule: "housing",
     requiredAction: "view",
@@ -236,7 +242,8 @@ export const DASHBOARD_WIDGETS_REGISTRY: DashboardWidgetMeta[] = [
     labelAr: "مصفوفة استيعاب المباني التفصيلية",
     labelEn: "Building Capacity Matrix",
     descAr: "عرض شبكي معماري لكافة المباني مع أشرطة السعة والاستيعاب",
-    descEn: "Detailed visual matrix of all buildings with utilization progress bars",
+    descEn:
+      "Detailed visual matrix of all buildings with utilization progress bars",
     category: "analytics",
     requiredModule: "housing",
     requiredAction: "view",
@@ -250,11 +257,15 @@ export function useDashboardWidgets() {
   const { can, isSuperAdmin } = usePermission();
 
   const storageKey = useMemo(() => {
-    return user?.id ? `sunrise_dashboard_widgets_user_${user.id}` : "sunrise_dashboard_widgets_guest";
+    return user?.id
+      ? `sunrise_dashboard_widgets_user_${user.id}`
+      : "sunrise_dashboard_widgets_guest";
   }, [user?.id]);
 
   // Load saved preferences
-  const [userPreferences, setUserPreferences] = useState<Record<DashboardWidgetId, boolean>>(() => {
+  const [userPreferences, setUserPreferences] = useState<
+    Record<DashboardWidgetId, boolean>
+  >(() => {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
@@ -362,7 +373,10 @@ export function useDashboardWidgets() {
       } else if (!w.requiredModule) {
         perms[w.id] = true;
       } else {
-        perms[w.id] = can(w.requiredModule as any, (w.requiredAction as any) || "view");
+        perms[w.id] = can(
+          w.requiredModule as any,
+          (w.requiredAction as any) || "view",
+        );
       }
     }
     return perms;
@@ -380,11 +394,13 @@ export function useDashboardWidgets() {
 
   // Count active/visible widgets
   const visibleCount = useMemo(() => {
-    return DASHBOARD_WIDGETS_REGISTRY.filter((w) => isWidgetVisible(w.id)).length;
+    return DASHBOARD_WIDGETS_REGISTRY.filter((w) => isWidgetVisible(w.id))
+      .length;
   }, [isWidgetVisible]);
 
   const totalAllowedCount = useMemo(() => {
-    return DASHBOARD_WIDGETS_REGISTRY.filter((w) => widgetPermissions[w.id]).length;
+    return DASHBOARD_WIDGETS_REGISTRY.filter((w) => widgetPermissions[w.id])
+      .length;
   }, [widgetPermissions]);
 
   return {

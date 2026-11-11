@@ -24,8 +24,14 @@ export const propertyHousingPulseConfigTable = pgTable(
     cooldownDays: integer("cooldown_days").notNull().default(7),
     titleAr: text("title_ar").notNull().default("استطلاع جودة السكن الأسبوعي"),
     titleEn: text("title_en").notNull().default("Weekly Housing Quality Pulse"),
-    questionAr: text("question_ar").notNull().default("ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟"),
-    questionEn: text("question_en").notNull().default("How satisfied are you with housing conditions, cleanliness & services this week?"),
+    questionAr: text("question_ar")
+      .notNull()
+      .default("ما مدى رضاك عن مستوى السكن ونظافته وخدماته هذا الأسبوع؟"),
+    questionEn: text("question_en")
+      .notNull()
+      .default(
+        "How satisfied are you with housing conditions, cleanliness & services this week?",
+      ),
     forcePromptAfter: timestamp("force_prompt_after", { withTimezone: true }),
     lastPushedAt: timestamp("last_pushed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -34,11 +40,11 @@ export const propertyHousingPulseConfigTable = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-  }
+  },
 );
 
 export const insertPropertyHousingPulseConfigSchema = createInsertSchema(
-  propertyHousingPulseConfigTable
+  propertyHousingPulseConfigTable,
 ).omit({ id: true, createdAt: true, updatedAt: true });
 
 export type InsertPropertyHousingPulseConfig = z.infer<

@@ -35,15 +35,14 @@ export function PolicyExceptionDialog({
   onApprove: () => void;
 }) {
   return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-amber-600">
             <ShieldAlert className="w-5 h-5" />
-            {ar ? "اعتماد استثناء إداري لسياسة التسكين" : "Approve Housing Policy Exception"}
+            {ar
+              ? "اعتماد استثناء إداري لسياسة التسكين"
+              : "Approve Housing Policy Exception"}
           </DialogTitle>
           <DialogDescription>
             {ar
@@ -71,7 +70,9 @@ export function PolicyExceptionDialog({
           {/* Authorizing Authority */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground">
-              {ar ? "المعتمد للطلب / الجهة المصرحة بالاستثناء *" : "Authorizing Authority *"}
+              {ar
+                ? "المعتمد للطلب / الجهة المصرحة بالاستثناء *"
+                : "Authorizing Authority *"}
             </label>
             <Input
               placeholder={
@@ -105,7 +106,9 @@ export function PolicyExceptionDialog({
           {/* Justification / Reason */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-foreground">
-              {ar ? "مسوغات الاستثناء والسبب الإداري *" : "Administrative Justification & Reason *"}
+              {ar
+                ? "مسوغات الاستثناء والسبب الإداري *"
+                : "Administrative Justification & Reason *"}
             </label>
             <Textarea
               placeholder={
@@ -119,7 +122,9 @@ export function PolicyExceptionDialog({
             />
             <div className="flex gap-1.5 flex-wrap pt-1">
               {[
-                ar ? "ظرف تشغيلي طارئ / Task Force" : "Operational Urgency / Task Force",
+                ar
+                  ? "ظرف تشغيلي طارئ / Task Force"
+                  : "Operational Urgency / Task Force",
                 ar ? "موافقة المدير العام المسبقة" : "Prior GM Approval",
                 ar ? "عدم توفر غرف شاغرة بديلة" : "No Alternative Vacant Rooms",
                 ar ? "ترقية استثنائية مؤقتة" : "Temporary Exception Promotion",
@@ -153,7 +158,9 @@ export function PolicyExceptionDialog({
             onClick={onApprove}
           >
             <CheckCircle2 className="w-4 h-4 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
-            {ar ? "اعتماد الاستثناء وإتمام التسكين" : "Approve & Complete Assignment"}
+            {ar
+              ? "اعتماد الاستثناء وإتمام التسكين"
+              : "Approve & Complete Assignment"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -275,7 +275,9 @@ export default function MobileNav({
                 style={{
                   fontSize: "10px",
                   fontWeight: isActive ? 600 : 400,
-                  color: isActive ? "hsl(var(--accent2))" : "hsl(var(--muted2))",
+                  color: isActive
+                    ? "hsl(var(--accent2))"
+                    : "hsl(var(--muted2))",
                   transition: "color 0.15s, font-weight 0.15s",
                   lineHeight: 1,
                 }}

@@ -30,11 +30,36 @@ export function evaluatePassword(password: string): PasswordStrengthResult {
       bgClass: "bg-muted",
       borderClass: "border-muted",
       rules: [
-        { key: "length", labelEn: "8+ chars", labelAr: "8 أحرف على الأقل", met: false },
-        { key: "uppercase", labelEn: "Uppercase (A-Z)", labelAr: "حرف كبير (A-Z)", met: false },
-        { key: "lowercase", labelEn: "Lowercase (a-z)", labelAr: "حرف صغير (a-z)", met: false },
-        { key: "number", labelEn: "Number (0-9)", labelAr: "رقم (0-9)", met: false },
-        { key: "symbol", labelEn: "Symbol (!@#$)", labelAr: "رمز خاص (!@#$)", met: false },
+        {
+          key: "length",
+          labelEn: "8+ chars",
+          labelAr: "8 أحرف على الأقل",
+          met: false,
+        },
+        {
+          key: "uppercase",
+          labelEn: "Uppercase (A-Z)",
+          labelAr: "حرف كبير (A-Z)",
+          met: false,
+        },
+        {
+          key: "lowercase",
+          labelEn: "Lowercase (a-z)",
+          labelAr: "حرف صغير (a-z)",
+          met: false,
+        },
+        {
+          key: "number",
+          labelEn: "Number (0-9)",
+          labelAr: "رقم (0-9)",
+          met: false,
+        },
+        {
+          key: "symbol",
+          labelEn: "Symbol (!@#$)",
+          labelAr: "رمز خاص (!@#$)",
+          met: false,
+        },
       ],
       isValid: false,
     };

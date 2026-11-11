@@ -41,14 +41,9 @@ export function RoomFiltersBar({
         <label className="text-[10px] font-bold uppercase text-muted-foreground">
           {ar ? "المبنى" : "Building"}
         </label>
-        <Select
-          value={searchBuilding}
-          onValueChange={onBuildingChange}
-        >
+        <Select value={searchBuilding} onValueChange={onBuildingChange}>
           <SelectTrigger className="h-9">
-            <SelectValue
-              placeholder={ar ? "كل المباني" : "All Buildings"}
-            />
+            <SelectValue placeholder={ar ? "كل المباني" : "All Buildings"} />
           </SelectTrigger>
           <SelectContent position="popper" sideOffset={4}>
             <SelectItem value="all">
@@ -68,10 +63,7 @@ export function RoomFiltersBar({
         <label className="text-[10px] font-bold uppercase text-muted-foreground">
           {ar ? "الدور" : "Floor"}
         </label>
-        <Select
-          value={searchFloor}
-          onValueChange={onFloorChange}
-        >
+        <Select value={searchFloor} onValueChange={onFloorChange}>
           <SelectTrigger className="h-9">
             <SelectValue placeholder={ar ? "كل الأدوار" : "All Floors"} />
           </SelectTrigger>
@@ -83,11 +75,13 @@ export function RoomFiltersBar({
               .filter(
                 (f) =>
                   searchBuilding === "all" ||
-                  String(f.buildingId ?? (f as any).building_id) === String(searchBuilding),
+                  String(f.buildingId ?? (f as any).building_id) ===
+                    String(searchBuilding),
               )
               .map((f) => (
                 <SelectItem key={f.id} value={String(f.id)}>
-                  {ar ? "دور" : "Floor"} {f.floorNumber ?? (f as any).floor_number}
+                  {ar ? "دور" : "Floor"}{" "}
+                  {f.floorNumber ?? (f as any).floor_number}
                 </SelectItem>
               ))}
           </SelectContent>
@@ -110,7 +104,9 @@ export function RoomFiltersBar({
         </div>
       </div>
 
-      {(searchBuilding !== "all" || searchFloor !== "all" || searchRoomNumber.trim()) && (
+      {(searchBuilding !== "all" ||
+        searchFloor !== "all" ||
+        searchRoomNumber.trim()) && (
         <div className="md:col-span-3 flex justify-end">
           <Button
             type="button"

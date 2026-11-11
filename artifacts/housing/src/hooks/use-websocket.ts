@@ -169,10 +169,7 @@ export function useWebSocket(): { isConnected: boolean } {
 
     if (unmountingRef.current) return;
 
-    const wsUrl = createWebSocketUrl(
-      "/ws",
-      wsParams,
-    );
+    const wsUrl = createWebSocketUrl("/ws", wsParams);
 
     console.info("[WS] Attempting connection:", wsUrl.replace(/\?.*/, "?***"));
 
@@ -218,19 +215,19 @@ export function useWebSocket(): { isConnected: boolean } {
 
             console.info("[WS] 🔔 New Custom Notification Received");
             toastRef.current(
-              arRef.current ? msg.data.titleAr || msg.data.title : msg.data.title,
+              arRef.current
+                ? msg.data.titleAr || msg.data.title
+                : msg.data.title,
               {
                 description: arRef.current
                   ? msg.data.messageAr || msg.data.message
                   : msg.data.message,
-              }
+              },
             );
             invalidateModule("notifications");
           } else if (msg.module || msg.type === "data_updated") {
             const targetMod = msg.module || "all";
-            console.info(
-              `[WS] 🔔 ${targetMod}/${msg.action} — invalidating`,
-            );
+            console.info(`[WS] 🔔 ${targetMod}/${msg.action} — invalidating`);
             if (msg.module) {
               invalidateModule(msg.module as string);
             } else {

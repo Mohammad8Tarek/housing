@@ -1,4 +1,14 @@
-import { db, withTenant, profilesTable, profileDocumentsTable, assignmentsTable, roomsTable, propertiesTable, hostingsTable, reservationsTable } from "@workspace/db";
+import {
+  db,
+  withTenant,
+  profilesTable,
+  profileDocumentsTable,
+  assignmentsTable,
+  roomsTable,
+  propertiesTable,
+  hostingsTable,
+  reservationsTable,
+} from "@workspace/db";
 import { eq, and, or, sql, not, count } from "drizzle-orm";
 import { broadcastToProperty } from "./websocket.js";
 import { logActivity } from "./activity-logger.js";
@@ -17,7 +27,12 @@ export interface SyncProfileOptions {
  * the employee's national ID or staff profile ID.
  */
 export async function syncProfileAcrossProperties(options: SyncProfileOptions) {
-  const { sourcePropertyId, targetPropertyId, sourceProfileId, transferType = "PERMANENT" } = options;
+  const {
+    sourcePropertyId,
+    targetPropertyId,
+    sourceProfileId,
+    transferType = "PERMANENT",
+  } = options;
 
   // 1. Fetch source profile details
   const [sourceProfile] = await withTenant(sourcePropertyId, async (srcDb) => {
@@ -29,7 +44,9 @@ export async function syncProfileAcrossProperties(options: SyncProfileOptions) {
   });
 
   if (!sourceProfile) {
-    throw new Error(`Profile with ID ${sourceProfileId} not found in source property ${sourcePropertyId}`);
+    throw new Error(
+      `Profile with ID ${sourceProfileId} not found in source property ${sourcePropertyId}`,
+    );
   }
 
   // 2. Fetch property names for metadata notes
@@ -49,11 +66,18 @@ export async function syncProfileAcrossProperties(options: SyncProfileOptions) {
   // 3. Locate or insert profile in target tenant schema
   const targetProfile = await withTenant(targetPropertyId, async (targetDb) => {
     const conditions = [];
-    if (sourceProfile.nationalId && sourceProfile.nationalId.trim().length > 0) {
-      conditions.push(eq(profilesTable.nationalId, sourceProfile.nationalId.trim()));
+    if (
+      sourceProfile.nationalId &&
+      sourceProfile.nationalId.trim().length > 0
+    ) {
+      conditions.push(
+        eq(profilesTable.nationalId, sourceProfile.nationalId.trim()),
+      );
     }
     if (sourceProfile.profileId && sourceProfile.profileId.trim().length > 0) {
-      conditions.push(eq(profilesTable.profileId, sourceProfile.profileId.trim()));
+      conditions.push(
+        eq(profilesTable.profileId, sourceProfile.profileId.trim()),
+      );
     }
 
     let existing: typeof sourceProfile | null = null;
@@ -90,8 +114,10 @@ export async function syncProfileAcrossProperties(options: SyncProfileOptions) {
           address: sourceProfile.address || existing.address,
           photoUrl: sourceProfile.photoUrl || existing.photoUrl,
           idImage: sourceProfile.idImage || existing.idImage,
-          emergencyContact: sourceProfile.emergencyContact || existing.emergencyContact,
-          contractEndDate: sourceProfile.contractEndDate || existing.contractEndDate,
+          emergencyContact:
+            sourceProfile.emergencyContact || existing.emergencyContact,
+          contractEndDate:
+            sourceProfile.contractEndDate || existing.contractEndDate,
         })
         .where(eq(profilesTable.id, existing.id))
         .returning();
@@ -99,9 +125,10 @@ export async function syncProfileAcrossProperties(options: SyncProfileOptions) {
     }
 
     // Insert new cloned profile in target tenant schema
-    const prefixNote = transferType === "TASK_FORCE"
-      ? `[انتداب مؤقت من فندق: ${srcName}]`
-      : `[منقول من فندق: ${srcName}]`;
+    const prefixNote =
+      transferType === "TASK_FORCE"
+        ? `[انتداب مؤقت من فندق: ${srcName}]`
+        : `[منقول من فندق: ${srcName}]`;
 
     const [inserted] = await targetDb
       .insert(profilesTable)
@@ -125,7 +152,8 @@ export async function syncProfileAcrossProperties(options: SyncProfileOptions) {
         department: sourceProfile.department || "",
         departmentAr: sourceProfile.departmentAr || "",
         status: "UNASSIGNED",
-        hireDate: sourceProfile.hireDate || new Date().toISOString().split("T")[0],
+        hireDate:
+          sourceProfile.hireDate || new Date().toISOString().split("T")[0],
         gender: sourceProfile.gender || "M",
         employmentType: sourceProfile.employmentType || "INTERNAL",
         companyName: sourceProfile.companyName || "",
@@ -180,7 +208,14 @@ export async function syncProfileAcrossProperties(options: SyncProfileOptions) {
     console.warn("[cross-property] Document sync warning:", docErr);
   }
 
-  return { targetProfile, sourceProfile, srcProp, targetProp, srcName, targetName };
+  return {
+    targetProfile,
+    sourceProfile,
+    srcProp,
+    targetProp,
+    srcName,
+    targetName,
+  };
 }
 
 /**
@@ -209,7 +244,7 @@ export async function archiveSourceProfileOnTransfer(
     if (!srcProfile) return false;
 
     console.log(
-      `[cross-property] 🔄 Preserving room logs & ${archiveProfile ? 'archiving profile as TRANSFERRED' : 'checking out room stay'} for #${sourceProfileId} (${srcProfile.firstName} ${srcProfile.lastName}) -> ${targetPropertyName} in property #${sourcePropertyId}...`,
+      `[cross-property] 🔄 Preserving room logs & ${archiveProfile ? "archiving profile as TRANSFERRED" : "checking out room stay"} for #${sourceProfileId} (${srcProfile.firstName} ${srcProfile.lastName}) -> ${targetPropertyName} in property #${sourcePropertyId}...`,
     );
 
     // 1. Mark active assignments in source property as TRANSFERRED and record checkout (KEEP assignments for room logs!)
@@ -254,7 +289,9 @@ export async function archiveSourceProfileOnTransfer(
             ),
           );
 
-        const newOcc = oldAssignment.isEntireRoom ? 0 : Number(remainingCount?.count ?? 0);
+        const newOcc = oldAssignment.isEntireRoom
+          ? 0
+          : Number(remainingCount?.count ?? 0);
         const nextRoomStatus = newOcc === 0 ? "dirty" : "occupied_dirty";
 
         await srcDb
@@ -320,7 +357,12 @@ export async function closeSourceAssignmentOnTransfer(
   targetPropertyName: string = "فندق آخر",
   archiveProfile: boolean = true,
 ) {
-  return await archiveSourceProfileOnTransfer(sourcePropertyId, sourceProfileId, targetPropertyName, archiveProfile);
+  return await archiveSourceProfileOnTransfer(
+    sourcePropertyId,
+    sourceProfileId,
+    targetPropertyName,
+    archiveProfile,
+  );
 }
 
 export interface CrossPropertyTransferParams {
@@ -342,7 +384,9 @@ export interface CrossPropertyTransferParams {
 /**
  * Full cross-tenant transfer execution when moving a resident from Property A to Property B.
  */
-export async function executeCrossPropertyTransfer(params: CrossPropertyTransferParams) {
+export async function executeCrossPropertyTransfer(
+  params: CrossPropertyTransferParams,
+) {
   const {
     sourcePropertyId,
     targetPropertyId,
@@ -392,7 +436,11 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
   }
 
   if (!sourceData || !sourceData.assignment) {
-    return { error: "Assignment not found in source property", status: 404, code: "ASSIGNMENT_NOT_FOUND" };
+    return {
+      error: "Assignment not found in source property",
+      status: 404,
+      code: "ASSIGNMENT_NOT_FOUND",
+    };
   }
 
   const { assignment: oldAssignment, oldRoom } = sourceData;
@@ -404,11 +452,19 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
       .from(roomsTable)
       .where(eq(roomsTable.id, newRoomId));
     if (!newRoom) {
-      return { error: "New room not found in target property", status: 404, code: "ROOM_NOT_FOUND" };
+      return {
+        error: "New room not found in target property",
+        status: 404,
+        code: "ROOM_NOT_FOUND",
+      };
     }
 
     const roomStatus = newRoom.status?.toLowerCase() || "";
-    if (["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(roomStatus)) {
+    if (
+      ["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(
+        roomStatus,
+      )
+    ) {
       return {
         error: `لا يمكن النقل إلى هذه الغرفة لأنها غير صالحة للسكن حالياً (الحالة: ${newRoom.status}).`,
         code: "ROOM_NOT_ELIGIBLE",
@@ -442,7 +498,8 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
     }
 
     const isEntireRoomRequested = Boolean(
-      reqEntireRoom || (oldAssignment.isEntireRoom && newRoom.currentOccupancy === 0)
+      reqEntireRoom ||
+      (oldAssignment.isEntireRoom && newRoom.currentOccupancy === 0),
     );
 
     if (isEntireRoomRequested && newRoom.currentOccupancy > 0) {
@@ -464,7 +521,10 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
           vacationEndDate: profilesTable.vacationEndDate,
         })
         .from(assignmentsTable)
-        .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+        .leftJoin(
+          profilesTable,
+          eq(assignmentsTable.profileId, profilesTable.id),
+        )
         .where(
           and(
             eq(assignmentsTable.roomId, newRoomId),
@@ -496,7 +556,10 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
       }
     }
 
-    if (newRoom.currentOccupancy >= newRoom.capacity && !isTemporaryVacationOverride) {
+    if (
+      newRoom.currentOccupancy >= newRoom.capacity &&
+      !isTemporaryVacationOverride
+    ) {
       return {
         error: `الغرفة الجديدة ممتلئة تماماً (${newRoom.capacity}/${newRoom.capacity} سرير).`,
         code: "ROOM_FULL",
@@ -514,12 +577,13 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
   const { newRoom, isEntireRoomRequested } = targetRoomCheck;
 
   // 3. Sync profile from source property to target property
-  const { targetProfile, srcName, targetName } = await syncProfileAcrossProperties({
-    sourcePropertyId,
-    targetPropertyId,
-    sourceProfileId: oldAssignment.profileId,
-    transferType: "PERMANENT",
-  });
+  const { targetProfile, srcName, targetName } =
+    await syncProfileAcrossProperties({
+      sourcePropertyId,
+      targetPropertyId,
+      sourceProfileId: oldAssignment.profileId,
+      transferType: "PERMANENT",
+    });
 
   // 4. Close previous assignment and update old room in source property
   const nowStr = new Date().toISOString();
@@ -533,7 +597,9 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
           oldAssignment.notes,
           `تم النقل إلى فندق ${targetName} - الغرفة ${newRoom.roomNumber}`,
           transferReason ? `السبب: ${transferReason}` : null,
-        ].filter(Boolean).join(" | "),
+        ]
+          .filter(Boolean)
+          .join(" | "),
       })
       .where(eq(assignmentsTable.id, oldAssignment.id));
 
@@ -548,7 +614,9 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
             not(eq(assignmentsTable.id, oldAssignment.id)),
           ),
         );
-      const oldOcc = oldAssignment.isEntireRoom ? 0 : Number(oldRemaining?.count ?? 0);
+      const oldOcc = oldAssignment.isEntireRoom
+        ? 0
+        : Number(oldRemaining?.count ?? 0);
       await srcDb
         .update(roomsTable)
         .set({
@@ -583,7 +651,9 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
 
     const newOcc = isEntireRoomRequested
       ? newRoom.capacity
-      : (isTemporaryVacationOverride ? Number(newRemaining?.count ?? 0) : Number(newRemaining?.count ?? 0) + 1);
+      : isTemporaryVacationOverride
+        ? Number(newRemaining?.count ?? 0)
+        : Number(newRemaining?.count ?? 0) + 1;
 
     await tgtDb
       .update(roomsTable)
@@ -596,20 +666,29 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
     const finalNotes = [
       `تم النقل بين الفنادق من ${srcName} (الغرفة ${oldRoom?.roomNumber || oldAssignment.roomId})`,
       transferReason ? `السبب: ${transferReason}` : null,
-    ].filter(Boolean).join(" | ");
+    ]
+      .filter(Boolean)
+      .join(" | ");
 
     const [newAssignment] = await tgtDb
       .insert(assignmentsTable)
       .values({
         profileId: targetProfile.id,
         roomId: newRoom.id,
-        bedNumber: isEntireRoomRequested ? (newBedNumber || 1) : (newBedNumber ?? null),
+        bedNumber: isEntireRoomRequested
+          ? newBedNumber || 1
+          : (newBedNumber ?? null),
         isEntireRoom: isEntireRoomRequested,
         checkInDate: nowStr,
         expectedCheckOutDate: oldAssignment.expectedCheckOutDate,
-        hasPolicyException: hasPolicyException !== undefined ? Boolean(hasPolicyException) : Boolean(oldAssignment.hasPolicyException),
-        policyExceptionReason: policyExceptionReason || oldAssignment.policyExceptionReason || null,
-        policyApprovedBy: policyApprovedBy || oldAssignment.policyApprovedBy || null,
+        hasPolicyException:
+          hasPolicyException !== undefined
+            ? Boolean(hasPolicyException)
+            : Boolean(oldAssignment.hasPolicyException),
+        policyExceptionReason:
+          policyExceptionReason || oldAssignment.policyExceptionReason || null,
+        policyApprovedBy:
+          policyApprovedBy || oldAssignment.policyApprovedBy || null,
         notes: finalNotes,
         status: "ACTIVE",
       })
@@ -673,20 +752,50 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
   });
 
   // WebSocket broadcasts
-  broadcastToProperty(sourcePropertyId, { module: "accommodation", action: "transfer", entityId: oldAssignment.id });
+  broadcastToProperty(sourcePropertyId, {
+    module: "accommodation",
+    action: "transfer",
+    entityId: oldAssignment.id,
+  });
   if (oldRoom) {
-    broadcastToProperty(sourcePropertyId, { module: "housing", action: "updated", entityId: oldRoom.id });
+    broadcastToProperty(sourcePropertyId, {
+      module: "housing",
+      action: "updated",
+      entityId: oldRoom.id,
+    });
   }
-  broadcastToProperty(sourcePropertyId, { module: "dashboard", action: "sync" });
+  broadcastToProperty(sourcePropertyId, {
+    module: "dashboard",
+    action: "sync",
+  });
 
   // Target WebSocket broadcasts
-  broadcastToProperty(targetPropertyId, { module: "accommodation", action: "created", entityId: createdInTarget.id });
-  broadcastToProperty(targetPropertyId, { module: "housing", action: "updated", entityId: newRoom.id });
-  broadcastToProperty(targetPropertyId, { module: "dashboard", action: "sync" });
+  broadcastToProperty(targetPropertyId, {
+    module: "accommodation",
+    action: "created",
+    entityId: createdInTarget.id,
+  });
+  broadcastToProperty(targetPropertyId, {
+    module: "housing",
+    action: "updated",
+    entityId: newRoom.id,
+  });
+  broadcastToProperty(targetPropertyId, {
+    module: "dashboard",
+    action: "sync",
+  });
 
   // 7. Archive transferred profile in source property if requested (preserving room logs & history intact!)
-  await archiveSourceProfileOnTransfer(sourcePropertyId, oldAssignment.profileId, targetName, archiveSourceProfile).catch((delErr) => {
-    console.warn("[cross-property] archiveSourceProfileOnTransfer in executeCrossPropertyTransfer warning:", delErr?.message);
+  await archiveSourceProfileOnTransfer(
+    sourcePropertyId,
+    oldAssignment.profileId,
+    targetName,
+    archiveSourceProfile,
+  ).catch((delErr) => {
+    console.warn(
+      "[cross-property] archiveSourceProfileOnTransfer in executeCrossPropertyTransfer warning:",
+      delErr?.message,
+    );
   });
 
   return {
@@ -703,7 +812,9 @@ export async function executeCrossPropertyTransfer(params: CrossPropertyTransfer
 /**
  * Locate a profile by primary key ID across any property tenant schema.
  */
-export async function findProfileAcrossAllProperties(sourceProfileId: number): Promise<{ propertyId: number; profile: any } | null> {
+export async function findProfileAcrossAllProperties(
+  sourceProfileId: number,
+): Promise<{ propertyId: number; profile: any } | null> {
   const allProperties = await db
     .select({ id: propertiesTable.id, name: propertiesTable.name })
     .from(propertiesTable);
@@ -731,7 +842,9 @@ export async function findProfileAcrossAllProperties(sourceProfileId: number): P
 /**
  * Locate an assignment by primary key ID across any property tenant schema.
  */
-export async function findAssignmentAcrossAllProperties(assignmentId: number): Promise<{ propertyId: number; assignment: any } | null> {
+export async function findAssignmentAcrossAllProperties(
+  assignmentId: number,
+): Promise<{ propertyId: number; assignment: any } | null> {
   try {
     const allProperties = await db
       .select({ id: propertiesTable.id, name: propertiesTable.name })
@@ -754,7 +867,10 @@ export async function findAssignmentAcrossAllProperties(assignmentId: number): P
       }
     }
   } catch (err: any) {
-    console.error("[cross-property] Error in findAssignmentAcrossAllProperties:", err?.message || err);
+    console.error(
+      "[cross-property] Error in findAssignmentAcrossAllProperties:",
+      err?.message || err,
+    );
   }
 
   return null;
@@ -763,7 +879,9 @@ export async function findAssignmentAcrossAllProperties(assignmentId: number): P
 /**
  * Locate a room by primary key ID across any property tenant schema.
  */
-export async function findRoomAcrossAllProperties(roomId: number): Promise<{ propertyId: number; room: any } | null> {
+export async function findRoomAcrossAllProperties(
+  roomId: number,
+): Promise<{ propertyId: number; room: any } | null> {
   try {
     const allProperties = await db
       .select({ id: propertiesTable.id, name: propertiesTable.name })
@@ -786,7 +904,10 @@ export async function findRoomAcrossAllProperties(roomId: number): Promise<{ pro
       }
     }
   } catch (err: any) {
-    console.error("[cross-property] Error in findRoomAcrossAllProperties:", err?.message || err);
+    console.error(
+      "[cross-property] Error in findRoomAcrossAllProperties:",
+      err?.message || err,
+    );
   }
 
   return null;
@@ -795,7 +916,9 @@ export async function findRoomAcrossAllProperties(roomId: number): Promise<{ pro
 /**
  * Locate a reservation by primary key ID across any property tenant schema.
  */
-export async function findReservationAcrossAllProperties(reservationId: number): Promise<{ propertyId: number; reservation: any } | null> {
+export async function findReservationAcrossAllProperties(
+  reservationId: number,
+): Promise<{ propertyId: number; reservation: any } | null> {
   try {
     const allProperties = await db
       .select({ id: propertiesTable.id, name: propertiesTable.name })
@@ -818,7 +941,10 @@ export async function findReservationAcrossAllProperties(reservationId: number):
       }
     }
   } catch (err: any) {
-    console.error("[cross-property] Error in findReservationAcrossAllProperties:", err?.message || err);
+    console.error(
+      "[cross-property] Error in findReservationAcrossAllProperties:",
+      err?.message || err,
+    );
   }
 
   return null;
@@ -827,7 +953,9 @@ export async function findReservationAcrossAllProperties(reservationId: number):
 /**
  * Locate a guest hosting by primary key ID across any property tenant schema.
  */
-export async function findHostingAcrossAllProperties(hostingId: number): Promise<{ propertyId: number; hosting: any } | null> {
+export async function findHostingAcrossAllProperties(
+  hostingId: number,
+): Promise<{ propertyId: number; hosting: any } | null> {
   try {
     const allProperties = await db
       .select({ id: propertiesTable.id, name: propertiesTable.name })
@@ -850,7 +978,10 @@ export async function findHostingAcrossAllProperties(hostingId: number): Promise
       }
     }
   } catch (err: any) {
-    console.error("[cross-property] Error in findHostingAcrossAllProperties:", err?.message || err);
+    console.error(
+      "[cross-property] Error in findHostingAcrossAllProperties:",
+      err?.message || err,
+    );
   }
 
   return null;
@@ -877,30 +1008,40 @@ export async function healOrphanAssignments(): Promise<number> {
             status: assignmentsTable.status,
           })
           .from(assignmentsTable)
-          .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+          .leftJoin(
+            profilesTable,
+            eq(assignmentsTable.profileId, profilesTable.id),
+          )
           .where(
             and(
               sql`${profilesTable.id} IS NULL`,
-              sql`lower(${assignmentsTable.status}) = 'active'`
-            )
+              sql`lower(${assignmentsTable.status}) = 'active'`,
+            ),
           );
         return rows;
       }).catch(() => []);
 
       for (const orphan of orphanAssignments) {
         if (!orphan.profileId) continue;
-        console.log(`[auto-heal] Found orphan assignment #${orphan.id} in property ${prop.id} referencing missing profile ID ${orphan.profileId}`);
+        console.log(
+          `[auto-heal] Found orphan assignment #${orphan.id} in property ${prop.id} referencing missing profile ID ${orphan.profileId}`,
+        );
 
-        const foundSource = await findProfileAcrossAllProperties(orphan.profileId);
+        const foundSource = await findProfileAcrossAllProperties(
+          orphan.profileId,
+        );
         if (foundSource && foundSource.propertyId !== prop.id) {
-          console.log(`[auto-heal] Located missing profile in source property ${foundSource.propertyId} (${foundSource.profile.firstName} ${foundSource.profile.lastName})`);
-          
-          const { targetProfile, targetName, srcName } = await syncProfileAcrossProperties({
-            sourcePropertyId: foundSource.propertyId,
-            targetPropertyId: prop.id,
-            sourceProfileId: foundSource.profile.id,
-            transferType: "PERMANENT",
-          });
+          console.log(
+            `[auto-heal] Located missing profile in source property ${foundSource.propertyId} (${foundSource.profile.firstName} ${foundSource.profile.lastName})`,
+          );
+
+          const { targetProfile, targetName, srcName } =
+            await syncProfileAcrossProperties({
+              sourcePropertyId: foundSource.propertyId,
+              targetPropertyId: prop.id,
+              sourceProfileId: foundSource.profile.id,
+              transferType: "PERMANENT",
+            });
 
           await withTenant(prop.id, async (tenantDb) => {
             await tenantDb
@@ -921,11 +1062,18 @@ export async function healOrphanAssignments(): Promise<number> {
           await closeSourceAssignmentOnTransfer(
             foundSource.propertyId,
             foundSource.profile.id,
-            targetName
-          ).catch((e) => console.warn(`[auto-heal] closeSourceAssignment warning:`, e?.message));
+            targetName,
+          ).catch((e) =>
+            console.warn(
+              `[auto-heal] closeSourceAssignment warning:`,
+              e?.message,
+            ),
+          );
 
           healedCount++;
-          console.log(`[auto-heal] ✅ Healed assignment #${orphan.id} in property ${prop.id} -> Linked to local profile #${targetProfile.id} (${targetProfile.firstName} ${targetProfile.lastName})`);
+          console.log(
+            `[auto-heal] ✅ Healed assignment #${orphan.id} in property ${prop.id} -> Linked to local profile #${targetProfile.id} (${targetProfile.firstName} ${targetProfile.lastName})`,
+          );
         }
       }
     }
@@ -933,10 +1081,15 @@ export async function healOrphanAssignments(): Promise<number> {
     // Run duplicate cleanup across properties
     const dedupedCount = await cleanupDuplicateTransferredProfiles();
     if (dedupedCount > 0) {
-      console.log(`[auto-heal] 🧹 Cleaned up ${dedupedCount} duplicate transferred profiles across properties.`);
+      console.log(
+        `[auto-heal] 🧹 Cleaned up ${dedupedCount} duplicate transferred profiles across properties.`,
+      );
     }
   } catch (err: any) {
-    console.error("[auto-heal] Error during healOrphanAssignments:", err?.message || err);
+    console.error(
+      "[auto-heal] Error during healOrphanAssignments:",
+      err?.message || err,
+    );
   }
 
   return healedCount;
@@ -998,10 +1151,17 @@ export async function cleanupDuplicateTransferredProfiles(): Promise<number> {
             .from(assignmentsTable)
             .where(eq(assignmentsTable.profileId, p.id));
 
-          const hasActive = rows.some((r) => r.status?.toLowerCase() === "active");
-          const latest = rows.length > 0
-            ? rows.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())[0].createdAt
-            : null;
+          const hasActive = rows.some(
+            (r) => r.status?.toLowerCase() === "active",
+          );
+          const latest =
+            rows.length > 0
+              ? rows.sort(
+                  (a, b) =>
+                    new Date(b.createdAt || 0).getTime() -
+                    new Date(a.createdAt || 0).getTime(),
+                )[0].createdAt
+              : null;
 
           return {
             hasActive,
@@ -1045,7 +1205,10 @@ export async function cleanupDuplicateTransferredProfiles(): Promise<number> {
         if (!a.hasActiveAssignment && b.hasActiveAssignment) return 1;
 
         if (a.latestAssignmentDate && b.latestAssignmentDate) {
-          return new Date(b.latestAssignmentDate).getTime() - new Date(a.latestAssignmentDate).getTime();
+          return (
+            new Date(b.latestAssignmentDate).getTime() -
+            new Date(a.latestAssignmentDate).getTime()
+          );
         }
         if (a.latestAssignmentDate && !b.latestAssignmentDate) return -1;
         if (!a.latestAssignmentDate && b.latestAssignmentDate) return 1;
@@ -1061,22 +1224,30 @@ export async function cleanupDuplicateTransferredProfiles(): Promise<number> {
       const duplicatesToDelete = list.slice(1);
 
       for (const dup of duplicatesToDelete) {
-        if (dup.propertyId === primary.propertyId && dup.id === primary.id) continue;
+        if (dup.propertyId === primary.propertyId && dup.id === primary.id)
+          continue;
 
-        const targetPropName = allProperties.find((p) => p.id === primary.propertyId)?.name || "فندق آخر";
+        const targetPropName =
+          allProperties.find((p) => p.id === primary.propertyId)?.name ||
+          "فندق آخر";
         console.log(
           `[dedup] Archiving duplicate profile #${dup.id} in property #${dup.propertyId} (${dup.firstName} ${dup.lastName}, code: ${dup.profileId}) -> Primary is #${primary.id} in property #${primary.propertyId} (${targetPropName})`,
         );
 
-        await archiveSourceProfileOnTransfer(dup.propertyId, dup.id, targetPropName);
+        await archiveSourceProfileOnTransfer(
+          dup.propertyId,
+          dup.id,
+          targetPropName,
+        );
         cleanedCount++;
       }
     }
   } catch (err: any) {
-    console.error("[dedup] Error during cleanupDuplicateTransferredProfiles:", err?.message || err);
+    console.error(
+      "[dedup] Error during cleanupDuplicateTransferredProfiles:",
+      err?.message || err,
+    );
   }
 
   return cleanedCount;
 }
-
-

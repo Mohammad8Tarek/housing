@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import {
@@ -25,10 +25,19 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, Users, FileText, Award, Activity, MessageSquare } from "lucide-react";
+import {
+  TrendingUp,
+  Users,
+  FileText,
+  Award,
+  Activity,
+  MessageSquare,
+} from "lucide-react";
 import { DashboardKpiCard } from "@/pages/dashboard/components/DashboardKpiCard";
 
-export default function PortalAnalyticsDashboard({ onViewReports }: { onViewReports?: () => void } = {}) {
+export default function PortalAnalyticsDashboard({
+  onViewReports,
+}: { onViewReports?: () => void } = {}) {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -65,11 +74,11 @@ export default function PortalAnalyticsDashboard({ onViewReports }: { onViewRepo
   const COLORS = ["#6366F1", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
 
   const periodOptions = [
-    { value: 7,   label: ar ? "آخر 7 أيام"  : "Last 7 days" },
-    { value: 30,  label: ar ? "آخر 30 يوم"  : "Last 30 days" },
-    { value: 90,  label: ar ? "آخر 90 يوم"  : "Last 90 days" },
-    { value: 180, label: ar ? "آخر 6 أشهر"  : "Last 6 months" },
-    { value: 365, label: ar ? "هذه السنة"   : "This year" },
+    { value: 7, label: ar ? "آخر 7 أيام" : "Last 7 days" },
+    { value: 30, label: ar ? "آخر 30 يوم" : "Last 30 days" },
+    { value: 90, label: ar ? "آخر 90 يوم" : "Last 90 days" },
+    { value: 180, label: ar ? "آخر 6 أشهر" : "Last 6 months" },
+    { value: 365, label: ar ? "هذه السنة" : "This year" },
   ];
 
   return (
@@ -95,7 +104,9 @@ export default function PortalAnalyticsDashboard({ onViewReports }: { onViewRepo
             className="text-xs sm:text-sm font-semibold border border-border/60 rounded-xl px-3 py-1.5 bg-card text-foreground shadow-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             {periodOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
             ))}
           </select>
           {/* View full reports shortcut */}
@@ -116,21 +127,43 @@ export default function PortalAnalyticsDashboard({ onViewReports }: { onViewRepo
         <DashboardKpiCard
           title={ar ? "الاستبيانات والتقييمات" : "Evaluations"}
           value={analytics?.evaluations?.total || 0}
-          sub={ar ? `${analytics?.evaluations?.responseRate || 0}% نسبة الاستجابة · ⭐ ${analytics?.evaluations?.avgRating || 0}` : `${analytics?.evaluations?.responseRate || 0}% response rate · ⭐ ${analytics?.evaluations?.avgRating || 0}`}
+          sub={
+            ar
+              ? `${analytics?.evaluations?.responseRate || 0}% نسبة الاستجابة · ⭐ ${analytics?.evaluations?.avgRating || 0}`
+              : `${analytics?.evaluations?.responseRate || 0}% response rate · ⭐ ${analytics?.evaluations?.avgRating || 0}`
+          }
           icon={Award}
           color="text-primary"
           bg="bg-primary/10"
-          delta={{ value: `${analytics?.evaluations?.responseRate || 0}%`, isPositive: (analytics?.evaluations?.responseRate || 0) >= 50 }}
-          sparklineData={[5, 8, 12, 10, 15, 18, analytics?.evaluations?.total || 20]}
+          delta={{
+            value: `${analytics?.evaluations?.responseRate || 0}%`,
+            isPositive: (analytics?.evaluations?.responseRate || 0) >= 50,
+          }}
+          sparklineData={[
+            5,
+            8,
+            12,
+            10,
+            15,
+            18,
+            analytics?.evaluations?.total || 20,
+          ]}
         />
         <DashboardKpiCard
           title={ar ? "الفعاليات والأنشطة" : "Portal Activities"}
           value={analytics?.activities?.total || 0}
-          sub={ar ? `${analytics?.activities?.upcoming || 0} فعالية قادمة` : `${analytics?.activities?.upcoming || 0} upcoming events`}
+          sub={
+            ar
+              ? `${analytics?.activities?.upcoming || 0} فعالية قادمة`
+              : `${analytics?.activities?.upcoming || 0} upcoming events`
+          }
           icon={Activity}
           color="text-emerald-600 dark:text-emerald-400"
           bg="bg-emerald-500/10"
-          delta={{ value: `${analytics?.activities?.upcoming || 0} قادمة`, isPositive: true }}
+          delta={{
+            value: `${analytics?.activities?.upcoming || 0} قادمة`,
+            isPositive: true,
+          }}
           sparklineData={[2, 3, 4, 3, 5, 6, analytics?.activities?.total || 7]}
         />
         <DashboardKpiCard
@@ -141,17 +174,37 @@ export default function PortalAnalyticsDashboard({ onViewReports }: { onViewRepo
           color="text-blue-600 dark:text-blue-400"
           bg="bg-blue-500/10"
           delta={{ value: "+2", isPositive: true }}
-          sparklineData={[10, 12, 14, 15, 18, 20, analytics?.documents?.total || 22]}
+          sparklineData={[
+            10,
+            12,
+            14,
+            15,
+            18,
+            20,
+            analytics?.documents?.total || 22,
+          ]}
         />
         <DashboardKpiCard
           title={ar ? "الانخراط والمشاركة" : "Total Engagement"}
           value={analytics?.overview?.totalEngagement || 0}
-          sub={ar ? "تفاعلات الموظفين الإجمالية" : "Total staff content interactions"}
+          sub={
+            ar
+              ? "تفاعلات الموظفين الإجمالية"
+              : "Total staff content interactions"
+          }
           icon={Users}
           color="text-purple-600 dark:text-purple-400"
           bg="bg-purple-500/10"
           delta={{ value: "+8.5%", isPositive: true }}
-          sparklineData={[40, 55, 65, 70, 85, 95, analytics?.overview?.totalEngagement || 110]}
+          sparklineData={[
+            40,
+            55,
+            65,
+            70,
+            85,
+            95,
+            analytics?.overview?.totalEngagement || 110,
+          ]}
         />
       </div>
 
@@ -162,10 +215,14 @@ export default function PortalAnalyticsDashboard({ onViewReports }: { onViewRepo
           <CardHeader>
             <CardTitle className="text-base font-bold flex items-center gap-2">
               <Award className="w-4 h-4 text-primary" />
-              {ar ? "توزيع التقييمات حسب الفئة" : "Evaluation Ratings by Category"}
+              {ar
+                ? "توزيع التقييمات حسب الفئة"
+                : "Evaluation Ratings by Category"}
             </CardTitle>
             <CardDescription className="text-xs">
-              {ar ? "متوسط تقييمات الموظفين لمرافق السكن" : "Staff satisfaction distribution across housing services"}
+              {ar
+                ? "متوسط تقييمات الموظفين لمرافق السكن"
+                : "Staff satisfaction distribution across housing services"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -179,9 +236,24 @@ export default function PortalAnalyticsDashboard({ onViewReports }: { onViewRepo
                 }))}
                 margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="category" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="hsl(var(--border))"
+                />
+                <XAxis
+                  dataKey="category"
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(var(--card))",
@@ -190,7 +262,12 @@ export default function PortalAnalyticsDashboard({ onViewReports }: { onViewRepo
                     fontSize: "12px",
                   }}
                 />
-                <Bar dataKey="count" name={ar ? "العدد" : "Count"} fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                <Bar
+                  dataKey="count"
+                  name={ar ? "العدد" : "Count"}
+                  fill="hsl(var(--primary))"
+                  radius={[6, 6, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -204,7 +281,9 @@ export default function PortalAnalyticsDashboard({ onViewReports }: { onViewRepo
               {ar ? "الفعاليات حسب التصنيف" : "Activities by Category"}
             </CardTitle>
             <CardDescription className="text-xs">
-              {ar ? "توزيع الأنشطة الرياضية والاجتماعية والترفيهية" : "Categorical spread of employee events"}
+              {ar
+                ? "توزيع الأنشطة الرياضية والاجتماعية والترفيهية"
+                : "Categorical spread of employee events"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -256,7 +335,9 @@ export default function PortalAnalyticsDashboard({ onViewReports }: { onViewRepo
                 <div>
                   <CardTitle className="text-base font-bold flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-primary" />
-                    {ar ? `المسار التفاعلي (آخر ${days} يوم)` : `Engagement Trajectory (Last ${days} Days)`}
+                    {ar
+                      ? `المسار التفاعلي (آخر ${days} يوم)`
+                      : `Engagement Trajectory (Last ${days} Days)`}
                   </CardTitle>
                   <CardDescription className="text-xs">
                     {ar
@@ -268,10 +349,27 @@ export default function PortalAnalyticsDashboard({ onViewReports }: { onViewRepo
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
-                <LineChart margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                <LineChart
+                  margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--border))"
+                  />
+                  <XAxis
+                    dataKey="date"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "hsl(var(--card))",

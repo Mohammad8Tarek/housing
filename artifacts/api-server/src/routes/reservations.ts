@@ -1,16 +1,44 @@
 import { Router } from "express";
-import { withTenant, reservationsTable, roomsTable, assignmentsTable, profilesTable, buildingsTable } from "@workspace/db";
+import {
+  withTenant,
+  reservationsTable,
+  roomsTable,
+  assignmentsTable,
+  profilesTable,
+  buildingsTable,
+} from "@workspace/db";
 import { eq, and, sql, SQL, desc, ilike, ne, or, inArray } from "drizzle-orm";
-import { CreateReservationBody, UpdateReservationBody, GetReservationParams, UpdateReservationParams, DeleteReservationParams, CheckinReservationParams, CheckinReservationBody, ListReservationsQueryParams } from "@workspace/api-zod";
+import {
+  CreateReservationBody,
+  UpdateReservationBody,
+  GetReservationParams,
+  UpdateReservationParams,
+  DeleteReservationParams,
+  CheckinReservationParams,
+  CheckinReservationBody,
+  ListReservationsQueryParams,
+} from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requirePermission, requireAnyPermission, hasPermission } from "../middlewares/permissions.js";
+import {
+  requirePermission,
+  requireAnyPermission,
+  hasPermission,
+} from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
-import { sendCheckInWhatsAppNotification, sendReservationConfirmationWhatsApp } from "../lib/whatsapp-engine.js";
+import {
+  sendCheckInWhatsAppNotification,
+  sendReservationConfirmationWhatsApp,
+} from "../lib/whatsapp-engine.js";
 import { findReservationAcrossAllProperties } from "../lib/cross-property-service.js";
 import { buildReservationSearchConditions } from "../lib/search-helper.js";
 import { validate } from "../middlewares/validate.js";
-import { CommonListQuery, IdParams, ReservationCheckoutBody, SendWhatsAppBody } from "../validation/schemas.js";
+import {
+  CommonListQuery,
+  IdParams,
+  ReservationCheckoutBody,
+  SendWhatsAppBody,
+} from "../validation/schemas.js";
 
 const router: Router = Router();
 
@@ -72,7 +100,7 @@ router.get(
     } else if (excludeStatus) {
       conditions.push(ne(reservationsTable.status, excludeStatus));
     }
-    
+
     if (search.trim()) {
       const searchCond = buildReservationSearchConditions(search, {
         reservationsTable,
@@ -89,7 +117,10 @@ router.get(
         .select({ count: sql<number>`count(*)` })
         .from(reservationsTable)
         .leftJoin(roomsTable, eq(reservationsTable.roomId, roomsTable.id))
-        .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id)) as any;
+        .leftJoin(
+          buildingsTable,
+          eq(roomsTable.buildingId, buildingsTable.id),
+        ) as any;
       if (conditions.length > 0)
         countQuery = countQuery.where(and(...conditions));
       const countResult = await countQuery;
@@ -128,9 +159,15 @@ router.get(
         .leftJoin(
           profilesTable,
           or(
-            and(ne(reservationsTable.profileCode, ""), eq(reservationsTable.profileCode, profilesTable.profileId)),
-            and(ne(reservationsTable.guestIdCardNumber, ""), eq(reservationsTable.guestIdCardNumber, profilesTable.nationalId))
-          )
+            and(
+              ne(reservationsTable.profileCode, ""),
+              eq(reservationsTable.profileCode, profilesTable.profileId),
+            ),
+            and(
+              ne(reservationsTable.guestIdCardNumber, ""),
+              eq(reservationsTable.guestIdCardNumber, profilesTable.nationalId),
+            ),
+          ),
         )
         .orderBy(desc(reservationsTable.createdAt), desc(reservationsTable.id))
         .limit(limit)
@@ -188,28 +225,36 @@ router.post(
         const jt = cleanText(body.jobTitle, 120);
         const rt = cleanText(body.roomType, 80);
         const notes = cleanText(body.notes, 2000);
-        const empType = cleanText(body.employmentType, 50) || (cleanText(body.department, 120) === "طرف ثالث" ? "THIRD_PARTY" : "INTERNAL");
+        const empType =
+          cleanText(body.employmentType, 50) ||
+          (cleanText(body.department, 120) === "طرف ثالث"
+            ? "THIRD_PARTY"
+            : "INTERNAL");
         const compName = cleanText(body.companyName, 200) || "";
 
         const rId = body.roomId ? parseInt(body.roomId) : null;
         const bedNum = body.bedNumber ? String(body.bedNumber) : null;
 
         // ── 0. منع تكرار الحجز (Duplicate Reservation Protection) ─────────────
-        const checkIn = body.checkInDate ? String(body.checkInDate).slice(0, 10) : null;
+        const checkIn = body.checkInDate
+          ? String(body.checkInDate).slice(0, 10)
+          : null;
         if (checkIn) {
           const duplicateConditions: SQL[] = [];
           if (code) {
             duplicateConditions.push(eq(reservationsTable.profileCode, code));
           }
           if (idNum) {
-            duplicateConditions.push(eq(reservationsTable.guestIdCardNumber, idNum));
+            duplicateConditions.push(
+              eq(reservationsTable.guestIdCardNumber, idNum),
+            );
           }
           if (fn && ln) {
             duplicateConditions.push(
               and(
                 ilike(reservationsTable.firstName, fn),
                 ilike(reservationsTable.lastName, ln),
-              )!
+              )!,
             );
           }
 
@@ -225,7 +270,11 @@ router.post(
                 and(
                   or(...duplicateConditions),
                   eq(reservationsTable.checkInDate, checkIn),
-                  inArray(reservationsTable.status, ["UPCOMING", "CONFIRMED", "PENDING"]),
+                  inArray(reservationsTable.status, [
+                    "UPCOMING",
+                    "CONFIRMED",
+                    "PENDING",
+                  ]),
                 ),
               )
               .limit(1);
@@ -242,14 +291,22 @@ router.post(
 
         if (rId && bedNum && bedNum !== "ALL" && checkIn) {
           const [existingBedRes] = await tenantDb
-            .select({ id: reservationsTable.id, firstName: reservationsTable.firstName, lastName: reservationsTable.lastName })
+            .select({
+              id: reservationsTable.id,
+              firstName: reservationsTable.firstName,
+              lastName: reservationsTable.lastName,
+            })
             .from(reservationsTable)
             .where(
               and(
                 eq(reservationsTable.roomId, rId),
                 eq(reservationsTable.bedNumber, bedNum),
                 eq(reservationsTable.checkInDate, checkIn),
-                inArray(reservationsTable.status, ["UPCOMING", "CONFIRMED", "PENDING"]),
+                inArray(reservationsTable.status, [
+                  "UPCOMING",
+                  "CONFIRMED",
+                  "PENDING",
+                ]),
               ),
             )
             .limit(1);
@@ -270,7 +327,10 @@ router.post(
               lastName: profilesTable.lastName,
             })
             .from(assignmentsTable)
-            .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+            .leftJoin(
+              profilesTable,
+              eq(assignmentsTable.profileId, profilesTable.id),
+            )
             .where(
               and(
                 eq(assignmentsTable.roomId, rId),
@@ -310,20 +370,46 @@ router.post(
                   eq(assignmentsTable.status, "ACTIVE"),
                 ),
               );
-            const effOcc = Math.max(roomData.currentOccupancy ?? 0, activeInRoom.length);
+            const effOcc = Math.max(
+              roomData.currentOccupancy ?? 0,
+              activeInRoom.length,
+            );
             const authUser = (req as any).authUser || (req as any).user;
             const sInfo = su(req);
-            const userRole = (authUser?.roles?.[0] || sInfo.userRole || "").toLowerCase();
-            const userPerms: string[] = Array.isArray(authUser?.permissions) ? authUser.permissions : [];
+            const userRole = (
+              authUser?.roles?.[0] ||
+              sInfo.userRole ||
+              ""
+            ).toLowerCase();
+            const userPerms: string[] = Array.isArray(authUser?.permissions)
+              ? authUser.permissions
+              : [];
             const hasOverridePerm =
-              ["super_admin", "system_admin", "admin", "housing_manager", "manager"].includes(userRole) ||
+              [
+                "super_admin",
+                "system_admin",
+                "admin",
+                "housing_manager",
+                "manager",
+              ].includes(userRole) ||
               userPerms.includes("reservations.override_single_occupancy") ||
               userPerms.includes("accommodation.override_single_occupancy") ||
-              (authUser && (hasPermission(authUser, "reservations", "override_single_occupancy") || hasPermission(authUser, "accommodation", "override_single_occupancy")));
+              (authUser &&
+                (hasPermission(
+                  authUser,
+                  "reservations",
+                  "override_single_occupancy",
+                ) ||
+                  hasPermission(
+                    authUser,
+                    "accommodation",
+                    "override_single_occupancy",
+                  )));
 
             if (effOcc === 1 && !hasOverridePerm) {
               return {
-                error: "هذه الغرفة يشغلها شخص بمفرده وبها أسِرّة شاغرة. حجز سرير إضافي بها يتطلب صلاحية إدارية استثنائية (override_single_occupancy).",
+                error:
+                  "هذه الغرفة يشغلها شخص بمفرده وبها أسِرّة شاغرة. حجز سرير إضافي بها يتطلب صلاحية إدارية استثنائية (override_single_occupancy).",
                 code: "PERMISSION_DENIED_SINGLE_OCCUPANCY",
                 status: 403,
               };
@@ -331,7 +417,8 @@ router.post(
 
             if (bedNum === "ALL" && !hasOverridePerm) {
               return {
-                error: "حجز غرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية (override_single_occupancy).",
+                error:
+                  "حجز غرفة متعددة الأسِرّة بالكامل لشخص واحد يتطلب صلاحية إدارية استثنائية (override_single_occupancy).",
                 code: "PERMISSION_DENIED_ENTIRE_ROOM",
                 status: 403,
               };
@@ -369,7 +456,9 @@ router.post(
       }
 
       if ("error" in result && result.error) {
-        res.status(result.status || 400).json({ error: result.error, code: result.code });
+        res
+          .status(result.status || 400)
+          .json({ error: result.error, code: result.code });
         return;
       }
 
@@ -402,7 +491,10 @@ router.post(
         reservationId: result.id,
         phoneOverride: body.guestPhone,
       }).catch((err) => {
-        console.warn("[POST /reservations] WhatsApp confirmation dispatch warning:", err?.message);
+        console.warn(
+          "[POST /reservations] WhatsApp confirmation dispatch warning:",
+          err?.message,
+        );
       });
 
       res.status(201).json({ ...result, propertyId });
@@ -500,20 +592,34 @@ router.patch(
 
       const body = req.body as any;
       const updateData: Record<string, any> = { ...parsed.data };
-      if (body.firstName !== undefined) updateData.firstName = cleanText(body.firstName, 120);
-      if (body.lastName !== undefined) updateData.lastName = cleanText(body.lastName, 120);
-      if (body.guestIdCardNumber !== undefined) updateData.guestIdCardNumber = cleanText(body.guestIdCardNumber, 120);
-      if (body.guestPhone !== undefined) updateData.guestPhone = cleanText(body.guestPhone, 80);
-      if (body.department !== undefined) updateData.department = cleanText(body.department, 120);
-      if (body.jobTitle !== undefined) updateData.jobTitle = cleanText(body.jobTitle, 120);
-      if (body.nationality !== undefined) updateData.nationality = cleanText(body.nationality, 120);
-      if (body.gender !== undefined) updateData.gender = cleanText(body.gender, 20);
-      if (body.level !== undefined) updateData.level = cleanText(body.level, 80);
-      if (body.employmentType !== undefined) updateData.employmentType = cleanText(body.employmentType, 50);
-      if (body.companyName !== undefined) updateData.companyName = cleanText(body.companyName, 200);
-      if (body.roomId !== undefined) updateData.roomId = body.roomId ? Number(body.roomId) : null;
-      if (body.bedNumber !== undefined) updateData.bedNumber = String(body.bedNumber ?? "");
-      if (body.roomType !== undefined) updateData.roomType = body.roomType ? String(body.roomType) : null;
+      if (body.firstName !== undefined)
+        updateData.firstName = cleanText(body.firstName, 120);
+      if (body.lastName !== undefined)
+        updateData.lastName = cleanText(body.lastName, 120);
+      if (body.guestIdCardNumber !== undefined)
+        updateData.guestIdCardNumber = cleanText(body.guestIdCardNumber, 120);
+      if (body.guestPhone !== undefined)
+        updateData.guestPhone = cleanText(body.guestPhone, 80);
+      if (body.department !== undefined)
+        updateData.department = cleanText(body.department, 120);
+      if (body.jobTitle !== undefined)
+        updateData.jobTitle = cleanText(body.jobTitle, 120);
+      if (body.nationality !== undefined)
+        updateData.nationality = cleanText(body.nationality, 120);
+      if (body.gender !== undefined)
+        updateData.gender = cleanText(body.gender, 20);
+      if (body.level !== undefined)
+        updateData.level = cleanText(body.level, 80);
+      if (body.employmentType !== undefined)
+        updateData.employmentType = cleanText(body.employmentType, 50);
+      if (body.companyName !== undefined)
+        updateData.companyName = cleanText(body.companyName, 200);
+      if (body.roomId !== undefined)
+        updateData.roomId = body.roomId ? Number(body.roomId) : null;
+      if (body.bedNumber !== undefined)
+        updateData.bedNumber = String(body.bedNumber ?? "");
+      if (body.roomType !== undefined)
+        updateData.roomType = body.roomType ? String(body.roomType) : null;
       if (body.status !== undefined) updateData.status = String(body.status);
 
       const [updated] = await withTenant(propertyId, async (tenantDb) => {
@@ -523,15 +629,26 @@ router.patch(
           .where(eq(reservationsTable.id, params.data.id))
           .returning();
 
-        if (res && (body.employmentType !== undefined || body.companyName !== undefined)) {
+        if (
+          res &&
+          (body.employmentType !== undefined || body.companyName !== undefined)
+        ) {
           const pUpdate: Record<string, any> = {};
-          if (body.employmentType !== undefined) pUpdate.employmentType = cleanText(body.employmentType, 50);
-          if (body.companyName !== undefined) pUpdate.companyName = cleanText(body.companyName, 200);
+          if (body.employmentType !== undefined)
+            pUpdate.employmentType = cleanText(body.employmentType, 50);
+          if (body.companyName !== undefined)
+            pUpdate.companyName = cleanText(body.companyName, 200);
 
           if (res.profileCode) {
-            await tenantDb.update(profilesTable).set(pUpdate).where(eq(profilesTable.profileId, res.profileCode));
+            await tenantDb
+              .update(profilesTable)
+              .set(pUpdate)
+              .where(eq(profilesTable.profileId, res.profileCode));
           } else if (res.guestIdCardNumber) {
-            await tenantDb.update(profilesTable).set(pUpdate).where(eq(profilesTable.nationalId, res.guestIdCardNumber));
+            await tenantDb
+              .update(profilesTable)
+              .set(pUpdate)
+              .where(eq(profilesTable.nationalId, res.guestIdCardNumber));
           }
         }
         return [res];
@@ -621,7 +738,10 @@ router.delete(
           action: "deleted",
           entityId: existing.id,
         });
-        broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+        broadcastToProperty(propertyId, {
+          module: "dashboard",
+          action: "sync",
+        });
       }
       res.sendStatus(204);
     } catch (err: any) {
@@ -754,15 +874,20 @@ router.post(
             return {
               alreadyAssigned: true,
               profileName: `${profile.firstName} ${profile.lastName}`,
-              roomNumber: activeAssignment.roomNumber ?? activeAssignment.roomId,
+              roomNumber:
+                activeAssignment.roomNumber ?? activeAssignment.roomId,
             } as const;
           }
         }
 
         // 3. Create profile if it didn't exist
         if (!profile) {
-          const isTP = (current as any).employmentType === "THIRD_PARTY" || current.department === "طرف ثالث";
-          const newProfileId = pCode || `${isTP ? "TP" : "EMP"}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
+          const isTP =
+            (current as any).employmentType === "THIRD_PARTY" ||
+            current.department === "طرف ثالث";
+          const newProfileId =
+            pCode ||
+            `${isTP ? "TP" : "EMP"}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
           const [created] = await tenantDb
             .insert(profilesTable)
             .values({
@@ -775,9 +900,12 @@ router.post(
               jobTitle: current.jobTitle || "",
               nationality: (current as any).nationality || "",
               gender: (current as any).gender || "M",
-              hireDate: current.checkInDate || new Date().toISOString().split("T")[0],
+              hireDate:
+                current.checkInDate || new Date().toISOString().split("T")[0],
               status: "ACTIVE",
-              employmentType: isTP ? "THIRD_PARTY" : ((current as any).employmentType || "INTERNAL"),
+              employmentType: isTP
+                ? "THIRD_PARTY"
+                : (current as any).employmentType || "INTERNAL",
               companyName: (current as any).companyName || "",
             } as any)
             .returning();
@@ -787,9 +915,15 @@ router.post(
             .update(profilesTable)
             .set({
               status: "ACTIVE",
-              ...((current as any).employmentType ? { employmentType: (current as any).employmentType } : {}),
-              ...((current as any).companyName ? { companyName: (current as any).companyName } : {}),
-              ...(!profile.phone && current.guestPhone ? { phone: current.guestPhone.trim() } : {}),
+              ...((current as any).employmentType
+                ? { employmentType: (current as any).employmentType }
+                : {}),
+              ...((current as any).companyName
+                ? { companyName: (current as any).companyName }
+                : {}),
+              ...(!profile.phone && current.guestPhone
+                ? { phone: current.guestPhone.trim() }
+                : {}),
             })
             .where(eq(profilesTable.id, profile.id));
           if (!profile.phone && current.guestPhone) {
@@ -800,12 +934,18 @@ router.post(
         const isEntireRoom = Boolean(
           current.notes?.includes("[حجز الغرفة بالكامل]") ||
           current.notes?.includes("[تسكين الغرفة بالكامل]") ||
-          (current as any).isEntireRoom
+          (current as any).isEntireRoom,
         );
         const bedMatch = current.notes?.match(/\[سرير رقم:?\s*(\d+)\]/);
-        const parsedBed = bedMatch ? parseInt(bedMatch[1]) : (isEntireRoom ? 1 : null);
+        const parsedBed = bedMatch
+          ? parseInt(bedMatch[1])
+          : isEntireRoom
+            ? 1
+            : null;
 
-        const newOccupancy = isEntireRoom ? room.capacity : Math.min(room.capacity, room.currentOccupancy + 1);
+        const newOccupancy = isEntireRoom
+          ? room.capacity
+          : Math.min(room.capacity, room.currentOccupancy + 1);
 
         // 4. Update room occupancy
         await tenantDb
@@ -822,13 +962,14 @@ router.post(
           .values({
             profileId: profile.id,
             roomId: roomId,
-            bedNumber: isEntireRoom ? 1 : (parsedBed || 1),
+            bedNumber: isEntireRoom ? 1 : parsedBed || 1,
             isEntireRoom: isEntireRoom,
             checkInDate: String(cin),
             expectedCheckOutDate: current.checkOutDate || null,
             status: "ACTIVE",
             hasPolicyException: Boolean((req.body as any)?.hasPolicyException),
-            policyExceptionReason: (req.body as any)?.policyExceptionReason || null,
+            policyExceptionReason:
+              (req.body as any)?.policyExceptionReason || null,
             policyApprovedBy: (req.body as any)?.policyApprovedBy || null,
             notes: `حجز رقم #${current.id}${current.notes ? ` - ${current.notes}` : ""}`,
           })
@@ -940,7 +1081,10 @@ router.post(
         bedId: result.assignment?.bedNumber || null,
         startDate: updated.checkInDate,
       }).catch((err) => {
-        console.error("[WhatsApp Hook] Error sending check-in notification from reservation:", err);
+        console.error(
+          "[WhatsApp Hook] Error sending check-in notification from reservation:",
+          err,
+        );
       });
 
       res.status(201).json({
@@ -966,7 +1110,7 @@ router.patch(
     ["reservations", "checkout"],
     ["reservations", "edit"],
     ["accommodation", "checkout"],
-    ["accommodation", "edit"]
+    ["accommodation", "edit"],
   ),
   validate({ params: IdParams }),
   validate({ body: ReservationCheckoutBody }),
@@ -1174,8 +1318,16 @@ const handleCancelReservation = async (req: any, res: any): Promise<void> => {
   }
 };
 
-router.patch("/reservations/:id/cancel", requirePermission("reservations", "edit"), handleCancelReservation);
-router.post("/reservations/:id/cancel", requirePermission("reservations", "edit"), handleCancelReservation);
+router.patch(
+  "/reservations/:id/cancel",
+  requirePermission("reservations", "edit"),
+  handleCancelReservation,
+);
+router.post(
+  "/reservations/:id/cancel",
+  requirePermission("reservations", "edit"),
+  handleCancelReservation,
+);
 
 // ── إرسال / إعادة إرسال تأكيد الحجز يدوياً عبر الواتساب ──────────────
 router.post(
@@ -1197,7 +1349,9 @@ router.post(
         return;
       }
 
-      const phoneOverride = req.body?.phone ? String(req.body.phone).trim() : undefined;
+      const phoneOverride = req.body?.phone
+        ? String(req.body.phone).trim()
+        : undefined;
 
       const result = await sendReservationConfirmationWhatsApp({
         propertyId,
@@ -1212,10 +1366,15 @@ router.post(
 
       res.json(result);
     } catch (err: any) {
-      console.error("[POST /reservations/:id/send-whatsapp] error:", err?.message ?? err);
-      res.status(500).json({ error: "Failed to dispatch WhatsApp confirmation" });
+      console.error(
+        "[POST /reservations/:id/send-whatsapp] error:",
+        err?.message ?? err,
+      );
+      res
+        .status(500)
+        .json({ error: "Failed to dispatch WhatsApp confirmation" });
     }
-  }
+  },
 );
 
 export default router;

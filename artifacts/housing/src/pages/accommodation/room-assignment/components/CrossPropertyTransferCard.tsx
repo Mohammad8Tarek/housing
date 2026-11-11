@@ -28,10 +28,17 @@ export function CrossPropertyTransferCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold text-sm text-foreground">
-              {ar ? "تسكين موظف من فندق آخر (Cross-Property Transfer)" : "Cross-Property Employee Assignment"}
+              {ar
+                ? "تسكين موظف من فندق آخر (Cross-Property Transfer)"
+                : "Cross-Property Employee Assignment"}
             </span>
-            <Badge variant="outline" className="text-[11px] font-semibold border-amber-500/60 bg-amber-100/60 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200">
-              {selectedProfile.propertyName || (ar ? "فندق خارجي" : "Foreign Hotel")} ➔ {targetProp?.name || (ar ? "الفندق الحالي" : "Target Hotel")}
+            <Badge
+              variant="outline"
+              className="text-[11px] font-semibold border-amber-500/60 bg-amber-100/60 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200"
+            >
+              {selectedProfile.propertyName ||
+                (ar ? "فندق خارجي" : "Foreign Hotel")}{" "}
+              ➔ {targetProp?.name || (ar ? "الفندق الحالي" : "Target Hotel")}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
@@ -84,11 +91,18 @@ export function CrossPropertyTransferCard({
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-foreground">
-                {ar ? "1. نقله وحذفه من قائمة الفندق القديم" : "1. Transfer & Archive From Old Hotel"}
+                {ar
+                  ? "1. نقله وحذفه من قائمة الفندق القديم"
+                  : "1. Transfer & Archive From Old Hotel"}
               </span>
-              {archiveSourceProfile && <CheckCircle2 className="w-4 h-4 text-primary" />}
+              {archiveSourceProfile && (
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+              )}
             </div>
-            <Badge variant="outline" className="mt-1 text-[10px] font-medium bg-muted/60 text-muted-foreground">
+            <Badge
+              variant="outline"
+              className="mt-1 text-[10px] font-medium bg-muted/60 text-muted-foreground"
+            >
               {ar ? "أرشفة لمنع تكرار الموظف" : "Archive to avoid duplicate"}
             </Badge>
             <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
@@ -112,12 +126,21 @@ export function CrossPropertyTransferCard({
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-foreground">
-                {ar ? "2. نقله وتسيب البروفايل موجود ونشط" : "2. Keep Profile Active in Both Hotels"}
+                {ar
+                  ? "2. نقله وتسيب البروفايل موجود ونشط"
+                  : "2. Keep Profile Active in Both Hotels"}
               </span>
-              {!archiveSourceProfile && <CheckCircle2 className="w-4 h-4 text-primary" />}
+              {!archiveSourceProfile && (
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+              )}
             </div>
-            <Badge variant="outline" className="mt-1 text-[10px] font-medium bg-muted/60 text-muted-foreground">
-              {ar ? "انتداب / استمرار في الفندقين" : "Secondment / Dual Property"}
+            <Badge
+              variant="outline"
+              className="mt-1 text-[10px] font-medium bg-muted/60 text-muted-foreground"
+            >
+              {ar
+                ? "انتداب / استمرار في الفندقين"
+                : "Secondment / Dual Property"}
             </Badge>
             <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
               {ar

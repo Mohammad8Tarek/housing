@@ -136,7 +136,10 @@ export function FloorModals({
             <Button variant="outline" onClick={() => setFloorModal(false)}>
               {ar ? "إلغاء" : "Cancel"}
             </Button>
-            <PermissionGate module="housing" action={editFloor ? "edit" : "create"}>
+            <PermissionGate
+              module="housing"
+              action={editFloor ? "edit" : "create"}
+            >
               <Button onClick={saveFloorHandler} disabled={isSaving}>
                 {editFloor ? (ar ? "حفظ" : "Save") : ar ? "إنشاء" : "Create"}
               </Button>

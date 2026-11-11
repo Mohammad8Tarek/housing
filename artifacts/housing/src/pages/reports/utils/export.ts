@@ -37,7 +37,11 @@ export const exportExcel = (
 ) => {
   const isAr = options?.isArabic ?? true;
   if (!rows || !rows.length) {
-    toast.warning(isAr ? "لا توجد بيانات مطابقة لتصديرها إلى Excel" : "No matching records found to export to Excel");
+    toast.warning(
+      isAr
+        ? "لا توجد بيانات مطابقة لتصديرها إلى Excel"
+        : "No matching records found to export to Excel",
+    );
     return;
   }
 
@@ -57,16 +61,28 @@ export const exportExcel = (
       }
     }
     const normH = header.toLowerCase();
-    const isIdOrCode = /code|كود|#|id|phone|هاتف|mobile|room|غرفة|bed|سرير|status|حالة|gender|نوع|level|درجة/i.test(normH);
-    const isLongText = /notes|ملاحظات|reason|سبب|detail|تفاصيل|address|عنوان|comment|تعليق|action|إجراء/i.test(normH);
+    const isIdOrCode =
+      /code|كود|#|id|phone|هاتف|mobile|room|غرفة|bed|سرير|status|حالة|gender|نوع|level|درجة/i.test(
+        normH,
+      );
+    const isLongText =
+      /notes|ملاحظات|reason|سبب|detail|تفاصيل|address|عنوان|comment|تعليق|action|إجراء/i.test(
+        normH,
+      );
 
     if (isIdOrCode) {
-      return { wch: Math.min(26, Math.max(10, Math.ceil(maxCharLen * 1.15) + 2)) };
+      return {
+        wch: Math.min(26, Math.max(10, Math.ceil(maxCharLen * 1.15) + 2)),
+      };
     }
     if (isLongText) {
-      return { wch: Math.min(60, Math.max(26, Math.ceil(maxCharLen * 1.1) + 3)) };
+      return {
+        wch: Math.min(60, Math.max(26, Math.ceil(maxCharLen * 1.1) + 3)),
+      };
     }
-    return { wch: Math.min(48, Math.max(14, Math.ceil(maxCharLen * 1.15) + 3)) };
+    return {
+      wch: Math.min(48, Math.max(14, Math.ceil(maxCharLen * 1.15) + 3)),
+    };
   });
   ws["!cols"] = colWidths;
 
@@ -88,7 +104,8 @@ export const exportExcel = (
   }
 
   // 5. Print Setup: Fit all columns to 1 page wide, auto orientation, A4 paper size
-  const autoOrientation = options?.orientation || (headers.length >= 7 ? "landscape" : "portrait");
+  const autoOrientation =
+    options?.orientation || (headers.length >= 7 ? "landscape" : "portrait");
   ws["!pageSetup"] = {
     orientation: autoOrientation,
     paperSize: 9, // A4 paper size
@@ -109,14 +126,26 @@ export const exportExcel = (
 
   // 7. Create workbook and add sheet with clean title
   const wb = XLSX.utils.book_new();
-  const rawSheetName = options?.sheetTitle || (REPORT_TAB_TITLES[activeTab] ? (isAr ? REPORT_TAB_TITLES[activeTab].ar : REPORT_TAB_TITLES[activeTab].en) : activeTab);
+  const rawSheetName =
+    options?.sheetTitle ||
+    (REPORT_TAB_TITLES[activeTab]
+      ? isAr
+        ? REPORT_TAB_TITLES[activeTab].ar
+        : REPORT_TAB_TITLES[activeTab].en
+      : activeTab);
   const cleanSheetName = rawSheetName.slice(0, 31).replace(/[\\/?*[\]]/g, "_");
   XLSX.utils.book_append_sheet(wb, ws, cleanSheetName);
 
   // 8. Output filename conforming to DD-MM-YYYY format
   const filePrefix = options?.filenamePrefix || `${activeTab}_Report`;
-  writeSunriseWorkbook(wb, getExportFileName(filePrefix, "xlsx"), { rtl: isAr });
-  toast.success(isAr ? `تم تصدير ${rows.length} سجل بنجاح إلى ملف Excel جاهز للطباعة!` : `Successfully exported ${rows.length} records to print-ready Excel!`);
+  writeSunriseWorkbook(wb, getExportFileName(filePrefix, "xlsx"), {
+    rtl: isAr,
+  });
+  toast.success(
+    isAr
+      ? `تم تصدير ${rows.length} سجل بنجاح إلى ملف Excel جاهز للطباعة!`
+      : `Successfully exported ${rows.length} records to print-ready Excel!`,
+  );
 };
 
 export const loadImgDataUrl = async (
@@ -162,14 +191,34 @@ export const printArabicAnalyticsReport = async (opts: {
   settings: any;
   language?: "ar" | "en";
 }) => {
-  const { analytics, stats, rooms, profiles, buildings = [], floors = [], evalStats, properties, propId, activePropertyId, settings, language = "ar" } = opts;
+  const {
+    analytics,
+    stats,
+    rooms,
+    profiles,
+    buildings = [],
+    floors = [],
+    evalStats,
+    properties,
+    propId,
+    activePropertyId,
+    settings,
+    language = "ar",
+  } = opts;
   const isAr = language === "ar";
-  const propObj = properties.find((p: any) => p.id === (propId ?? activePropertyId));
+  const propObj = properties.find(
+    (p: any) => p.id === (propId ?? activePropertyId),
+  );
   const propName = propObj?.name ?? "";
   const propAddress = propObj?.address || "";
 
-  const sysLogo = settings?.systemLogo ? await loadImgDataUrl(settings.systemLogo) : null;
-  const propLogo = propObj?.logo && propObj.logo !== settings?.systemLogo ? await loadImgDataUrl(propObj.logo) : null;
+  const sysLogo = settings?.systemLogo
+    ? await loadImgDataUrl(settings.systemLogo)
+    : null;
+  const propLogo =
+    propObj?.logo && propObj.logo !== settings?.systemLogo
+      ? await loadImgDataUrl(propObj.logo)
+      : null;
   const today = new Date().toLocaleDateString(isAr ? "ar-EG" : "en-GB", {
     year: "numeric",
     month: "long",
@@ -179,14 +228,19 @@ export const printArabicAnalyticsReport = async (opts: {
   });
 
   const occRate = analytics?.occRate ?? 0;
-  const occColor = occRate >= 90 ? "#ef4444" : occRate >= 75 ? "#f59e0b" : "#10b981";
+  const occColor =
+    occRate >= 90 ? "#ef4444" : occRate >= 75 ? "#f59e0b" : "#10b981";
 
   // ── 1. Buildings Table Rows ──
-  const bldgRows = (analytics?.byBuilding || []).map((b: any) => {
-    const rate = b.rate ?? 0;
-    const bColor = rate >= 90 ? "#ef4444" : rate >= 75 ? "#f59e0b" : "#10b981";
-    const availBeds = b.availableBeds ?? Math.max(0, (b.capacity || 0) - (b.currentOccupancy || 0));
-    return `<tr>
+  const bldgRows = (analytics?.byBuilding || [])
+    .map((b: any) => {
+      const rate = b.rate ?? 0;
+      const bColor =
+        rate >= 90 ? "#ef4444" : rate >= 75 ? "#f59e0b" : "#10b981";
+      const availBeds =
+        b.availableBeds ??
+        Math.max(0, (b.capacity || 0) - (b.currentOccupancy || 0));
+      return `<tr>
       <td style="font-weight:700;">${escapeHtml(b.name || (isAr ? "مبنى" : "Building"))} <span style="font-size:6pt; color:#64748b; font-weight:normal;">(${escapeHtml(b.code || "")})</span></td>
       <td style="text-align:center;">${b.totalRooms ?? 0}</td>
       <td style="text-align:center; font-weight:600;">${b.capacity ?? 0}</td>
@@ -203,13 +257,17 @@ export const printArabicAnalyticsReport = async (opts: {
         </div>
       </td>
     </tr>`;
-  }).join("");
+    })
+    .join("");
 
   // ── 2. Floors Table Rows ──
-  const floorRows = (analytics?.byFloor || []).slice(0, 10).map((f: any) => {
-    const rate = f.rate ?? 0;
-    const fColor = rate >= 90 ? "#ef4444" : rate >= 75 ? "#f59e0b" : "#10b981";
-    return `<tr>
+  const floorRows = (analytics?.byFloor || [])
+    .slice(0, 10)
+    .map((f: any) => {
+      const rate = f.rate ?? 0;
+      const fColor =
+        rate >= 90 ? "#ef4444" : rate >= 75 ? "#f59e0b" : "#10b981";
+      return `<tr>
       <td style="font-weight:600;">${escapeHtml(f.name)}</td>
       <td style="font-size:6.5pt; color:#475569;">${escapeHtml(f.buildingName)}</td>
       <td style="text-align:center;">${f.totalRooms}</td>
@@ -218,33 +276,60 @@ export const printArabicAnalyticsReport = async (opts: {
       <td style="text-align:center; color:#15803d; font-weight:700;">${f.availableBeds}</td>
       <td style="text-align:center; font-weight:800; color:${fColor};">${rate}%</td>
     </tr>`;
-  }).join("");
+    })
+    .join("");
 
   // ── 3. Room Types Rows ──
-  const typeRows = (analytics?.byType || []).slice(0, 6).map((t: any) => {
-    const rate = t.rate ?? 0;
-    const tColor = rate >= 90 ? "#ef4444" : rate >= 75 ? "#f59e0b" : "#10b981";
-    return `<tr>
+  const typeRows = (analytics?.byType || [])
+    .slice(0, 6)
+    .map((t: any) => {
+      const rate = t.rate ?? 0;
+      const tColor =
+        rate >= 90 ? "#ef4444" : rate >= 75 ? "#f59e0b" : "#10b981";
+      return `<tr>
       <td style="font-weight:600;">${escapeHtml(t.type || (isAr ? "قياسية" : "Standard"))}</td>
       <td style="text-align:center;">${t.rooms ?? 0}</td>
       <td style="text-align:center;">${t.capacity ?? 0}</td>
       <td style="text-align:center; font-weight:700; color:#1d4ed8;">${t.occupied ?? 0}</td>
       <td style="text-align:center; font-weight:700; color:${tColor};">${rate}%</td>
     </tr>`;
-  }).join("");
+    })
+    .join("");
 
   // ── 4. Comprehensive Department Quotas Rows & Totals ──
   const depts = analytics?.byDept || [];
-  const totalDeptResidents = depts.reduce((acc: number, d: any) => acc + (d.residentCount ?? d.count ?? 0), 0);
-  const totalDeptRooms = depts.reduce((acc: number, d: any) => acc + (d.roomsCount ?? 0), 0);
-  const totalDeptOccBeds = depts.reduce((acc: number, d: any) => acc + (d.occupiedBeds ?? 0), 0);
-  const totalDeptAvailBeds = depts.reduce((acc: number, d: any) => acc + (d.availableBeds ?? 0), 0);
-  const totalDeptCapacity = depts.reduce((acc: number, d: any) => acc + (d.capacity ?? 0), 0);
-  const totalDeptMales = depts.reduce((acc: number, d: any) => acc + (d.maleCount ?? 0), 0);
-  const totalDeptFemales = depts.reduce((acc: number, d: any) => acc + (d.femaleCount ?? 0), 0);
+  const totalDeptResidents = depts.reduce(
+    (acc: number, d: any) => acc + (d.residentCount ?? d.count ?? 0),
+    0,
+  );
+  const totalDeptRooms = depts.reduce(
+    (acc: number, d: any) => acc + (d.roomsCount ?? 0),
+    0,
+  );
+  const totalDeptOccBeds = depts.reduce(
+    (acc: number, d: any) => acc + (d.occupiedBeds ?? 0),
+    0,
+  );
+  const totalDeptAvailBeds = depts.reduce(
+    (acc: number, d: any) => acc + (d.availableBeds ?? 0),
+    0,
+  );
+  const totalDeptCapacity = depts.reduce(
+    (acc: number, d: any) => acc + (d.capacity ?? 0),
+    0,
+  );
+  const totalDeptMales = depts.reduce(
+    (acc: number, d: any) => acc + (d.maleCount ?? 0),
+    0,
+  );
+  const totalDeptFemales = depts.reduce(
+    (acc: number, d: any) => acc + (d.femaleCount ?? 0),
+    0,
+  );
 
-  const deptRowsFull = depts.map((d: any) => {
-    return `<tr>
+  const deptRowsFull = depts
+    .map((d: any) => {
+      return `<tr>
       <td style="font-weight:600;">
         ${escapeHtml(d.dept || (isAr ? "عام" : "General"))}
         ${d.roomsSummary ? `<div style="font-size:5.5pt; color:#64748b; font-weight:normal;">${isAr ? "غرف:" : "Rooms:"} ${escapeHtml(d.roomsSummary)}</div>` : ""}
@@ -262,16 +347,20 @@ export const printArabicAnalyticsReport = async (opts: {
       </td>
       <td style="font-size:6pt; color:#475569;">${escapeHtml(d.buildingsList || "—")}</td>
     </tr>`;
-  }).join("");
+    })
+    .join("");
 
   // ── 5. Nationalities Rows ──
-  const natRows = (analytics?.byNationality || []).slice(0, 5).map((n: any) => {
-    return `<tr>
+  const natRows = (analytics?.byNationality || [])
+    .slice(0, 5)
+    .map((n: any) => {
+      return `<tr>
       <td style="font-weight:600;">${escapeHtml(n.nationality || (isAr ? "غير محدد" : "Unspecified"))}</td>
       <td style="text-align:center; font-weight:700; color:#0f2a44;">${n.count ?? 0}</td>
       <td style="text-align:center; font-size:6.5pt; color:#64748b;">${n.percentage ?? 0}%</td>
     </tr>`;
-  }).join("");
+    })
+    .join("");
 
   // ── 6. Render Inline SVG Vector Chart for Occupancy History Trajectory ──
   const history = analytics?.occupancyHistory || [];
@@ -283,17 +372,30 @@ export const printArabicAnalyticsReport = async (opts: {
   const padB = 22;
   const plotW = svgW - padL - padR;
   const plotH = svgH - padT - padB;
-  const maxVal = Math.max(...history.map((h: any) => Number(h.occupancy) || 0), 10) * 1.15;
+  const maxVal =
+    Math.max(...history.map((h: any) => Number(h.occupancy) || 0), 10) * 1.15;
   const minVal = 0;
   const pts = history.map((h: any, i: number) => {
     const x = padL + (i / Math.max(1, history.length - 1)) * plotW;
-    const y = padT + plotH - (((Number(h.occupancy) || 0) - minVal) / (maxVal - minVal)) * plotH;
+    const y =
+      padT +
+      plotH -
+      (((Number(h.occupancy) || 0) - minVal) / (maxVal - minVal)) * plotH;
     return { x, y, ...h };
   });
-  const pathD = pts.reduce((acc: string, p: any, i: number) => `${acc} ${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`, "");
-  const areaD = pts.length > 0 ? `${pathD} L ${pts[pts.length - 1]?.x ?? 0} ${padT + plotH} L ${pts[0]?.x ?? 0} ${padT + plotH} Z` : "";
-  
-  const chartSvg = history.length > 0 ? `
+  const pathD = pts.reduce(
+    (acc: string, p: any, i: number) =>
+      `${acc} ${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`,
+    "",
+  );
+  const areaD =
+    pts.length > 0
+      ? `${pathD} L ${pts[pts.length - 1]?.x ?? 0} ${padT + plotH} L ${pts[0]?.x ?? 0} ${padT + plotH} Z`
+      : "";
+
+  const chartSvg =
+    history.length > 0
+      ? `
     <svg width="100%" height="75" viewBox="0 0 ${svgW} ${svgH}" style="overflow:visible;">
       <defs>
         <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
@@ -306,13 +408,18 @@ export const printArabicAnalyticsReport = async (opts: {
       <line x1="${padL}" y1="${padT + plotH}" x2="${svgW - padR}" y2="${padT + plotH}" stroke="#e2e8f0"/>
       <path d="${areaD}" fill="url(#chartGrad)"/>
       <path d="${pathD}" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      ${pts.map((p: any) => `
+      ${pts
+        .map(
+          (p: any) => `
         <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="#ffffff" stroke="#2563eb" stroke-width="1.6"/>
         <text x="${p.x.toFixed(1)}" y="${padT + plotH + 13}" font-size="6.5pt" font-family="Cairo, sans-serif" text-anchor="middle" fill="#64748b">${escapeHtml(p.month)}</text>
         <text x="${p.x.toFixed(1)}" y="${(p.y - 4).toFixed(1)}" font-size="6.5pt" font-weight="bold" font-family="Cairo, sans-serif" text-anchor="middle" fill="#1e40af">${p.occupancy}</text>
-      `).join("")}
+      `,
+        )
+        .join("")}
     </svg>
-  ` : `<div style="text-align:center; padding:12px; color:#94a3b8; font-size:7pt;">${isAr ? "لا توجد بيانات مسار زمني" : "No trend data available"}</div>`;
+  `
+      : `<div style="text-align:center; padding:12px; color:#94a3b8; font-size:7pt;">${isAr ? "لا توجد بيانات مسار زمني" : "No trend data available"}</div>`;
 
   const html = `<!DOCTYPE html>
 <html lang="${isAr ? "ar" : "en"}" dir="${isAr ? "rtl" : "ltr"}">
@@ -816,12 +923,16 @@ export const printArabicAnalyticsReport = async (opts: {
 
           <!-- Gender Cards -->
           <div style="display:flex; gap:4px; margin: 3px 0 4px;">
-            ${(analytics?.byGender || []).map((g: any) => `
+            ${(analytics?.byGender || [])
+              .map(
+                (g: any) => `
               <div style="flex:1; border:1px solid #e2e8f0; border-radius:4px; padding:3px 4px; text-align:center; background:#fafbfc;">
                 <div style="font-weight:800; font-size:9pt; color:#0f2a44;">${g.count} <span style="font-size:6pt; font-weight:normal;">(${g.percentage}%)</span></div>
-                <div style="font-size:5.8pt; color:#64748b;">${g.gender === "female" ? (isAr ? "إناث" : "Female") : (isAr ? "ذكور" : "Male")}</div>
+                <div style="font-size:5.8pt; color:#64748b;">${g.gender === "female" ? (isAr ? "إناث" : "Female") : isAr ? "ذكور" : "Male"}</div>
               </div>
-            `).join("")}
+            `,
+              )
+              .join("")}
           </div>
 
           <!-- Nationalities -->

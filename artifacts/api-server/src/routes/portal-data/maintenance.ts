@@ -11,77 +11,80 @@ import { CommonListQuery } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
-router.get("/my-maintenance", validate({ query: CommonListQuery }),
+router.get(
+  "/my-maintenance",
+  validate({ query: CommonListQuery }),
   async (req, res): Promise<void> => {
-  const sess = portalSession(req)!;
-  const targetId = req.query.id ? parseInt(String(req.query.id)) : null;
+    const sess = portalSession(req)!;
+    const targetId = req.query.id ? parseInt(String(req.query.id)) : null;
 
-  const requests = await withTenant(sess.propertyId, async (tenantDb) => {
-    const [assignment] = await tenantDb
-      .select()
-      .from(assignmentsTable)
-      .where(
-        and(
-          eq(assignmentsTable.profileId, sess.profileDbId),
-          eq(assignmentsTable.status, "ACTIVE"),
-        ),
-      )
-      .limit(1);
+    const requests = await withTenant(sess.propertyId, async (tenantDb) => {
+      const [assignment] = await tenantDb
+        .select()
+        .from(assignmentsTable)
+        .where(
+          and(
+            eq(assignmentsTable.profileId, sess.profileDbId),
+            eq(assignmentsTable.status, "ACTIVE"),
+          ),
+        )
+        .limit(1);
 
-    const userFilters = [
-      eq(maintenanceTable.reportedBy, sess.fullName),
-      eq(maintenanceTable.reportedBy, String(sess.profileDbId)),
-      eq(maintenanceTable.assignedTo, sess.profileDbId),
-      eq(maintenanceTable.ratedByProfileId, sess.profileDbId),
-    ];
-    if (sess.profileId) {
-      userFilters.push(eq(maintenanceTable.reportedBy, sess.profileId));
-    }
-    if (assignment?.roomId) {
-      userFilters.push(eq(maintenanceTable.roomId, assignment.roomId));
-    }
+      const userFilters = [
+        eq(maintenanceTable.reportedBy, sess.fullName),
+        eq(maintenanceTable.reportedBy, String(sess.profileDbId)),
+        eq(maintenanceTable.assignedTo, sess.profileDbId),
+        eq(maintenanceTable.ratedByProfileId, sess.profileDbId),
+      ];
+      if (sess.profileId) {
+        userFilters.push(eq(maintenanceTable.reportedBy, sess.profileId));
+      }
+      if (assignment?.roomId) {
+        userFilters.push(eq(maintenanceTable.roomId, assignment.roomId));
+      }
 
-    const conditions = [or(...userFilters)];
-    if (targetId && !isNaN(targetId)) {
-      conditions.push(eq(maintenanceTable.id, targetId));
-    }
+      const conditions = [or(...userFilters)];
+      if (targetId && !isNaN(targetId)) {
+        conditions.push(eq(maintenanceTable.id, targetId));
+      }
 
-    return await tenantDb
-      .select()
-      .from(maintenanceTable)
-      .where(and(...conditions))
-      .orderBy(desc(maintenanceTable.id));
-  });
+      return await tenantDb
+        .select()
+        .from(maintenanceTable)
+        .where(and(...conditions))
+        .orderBy(desc(maintenanceTable.id));
+    });
 
-  res.json({
-    success: true,
-    requests: requests.map((r) => ({
-      id: r.id,
-      category: r.category,
-      problemType: r.problemType,
-      description: r.description,
-      status: r.status,
-      priority: r.priority,
-      reportedAt:
-        r.reportedAt instanceof Date
-          ? r.reportedAt.toISOString()
-          : r.reportedAt,
-      resolvedAt:
-        r.resolvedAt instanceof Date
-          ? r.resolvedAt.toISOString()
-          : (r.resolvedAt ?? null),
-      notes: r.notes ?? null,
-      assignedTo: r.assignedTo ?? null,
-      photoUrl: r.photoUrl ?? null,
-      rating: r.rating ?? null,
-      ratingComment: r.ratingComment ?? null,
-      ratedAt:
-        r.ratedAt instanceof Date
-          ? r.ratedAt.toISOString()
-          : (r.ratedAt ?? null),
-    })),
-  });
-});
+    res.json({
+      success: true,
+      requests: requests.map((r) => ({
+        id: r.id,
+        category: r.category,
+        problemType: r.problemType,
+        description: r.description,
+        status: r.status,
+        priority: r.priority,
+        reportedAt:
+          r.reportedAt instanceof Date
+            ? r.reportedAt.toISOString()
+            : r.reportedAt,
+        resolvedAt:
+          r.resolvedAt instanceof Date
+            ? r.resolvedAt.toISOString()
+            : (r.resolvedAt ?? null),
+        notes: r.notes ?? null,
+        assignedTo: r.assignedTo ?? null,
+        photoUrl: r.photoUrl ?? null,
+        rating: r.rating ?? null,
+        ratingComment: r.ratingComment ?? null,
+        ratedAt:
+          r.ratedAt instanceof Date
+            ? r.ratedAt.toISOString()
+            : (r.ratedAt ?? null),
+      })),
+    });
+  },
+);
 
 router.post("/my-maintenance", async (req, res): Promise<void> => {
   const sess = portalSession(req)!;

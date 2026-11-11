@@ -14,13 +14,17 @@ import { safeSchemaName } from "../../lib/pg-ident.js";
 
 function run(mw: ReturnType<typeof validate>, req: any) {
   let error: unknown = null;
-  mw(req, {} as any, (e?: unknown) => { error = e ?? null; });
+  mw(req, {} as any, (e?: unknown) => {
+    error = e ?? null;
+  });
   return error;
 }
 
 describe("validate middleware", () => {
   it("replaces body with parsed values and strips unknown keys", () => {
-    const req: any = { body: { smtpPort: "587", evil: "x", systemName: "  Sunrise  " } };
+    const req: any = {
+      body: { smtpPort: "587", evil: "x", systemName: "  Sunrise  " },
+    };
     const err = run(validate({ body: UpdateSettingsBody }), req);
     expect(err).toBeNull();
     expect(req.body).toEqual({ smtpPort: 587, systemName: "Sunrise" });
@@ -34,7 +38,10 @@ describe("validate middleware", () => {
 
   it("coerces params and query (Express 5 getter-safe)", () => {
     const req: any = { params: { id: "42" } };
-    Object.defineProperty(Object.getPrototypeOf(req), "query", { get: () => ({ page: "3", limit: "25", direction: "all" }), configurable: true });
+    Object.defineProperty(Object.getPrototypeOf(req), "query", {
+      get: () => ({ page: "3", limit: "25", direction: "all" }),
+      configurable: true,
+    });
     const err = run(validate({ params: IdParams, query: GateLogsQuery }), req);
     expect(err).toBeNull();
     expect(req.params.id).toBe(42);
@@ -43,7 +50,9 @@ describe("validate middleware", () => {
   });
 
   it("rejects non-numeric ids", () => {
-    const err = run(validate({ params: IdParams }), { params: { id: "1 OR 1=1" } });
+    const err = run(validate({ params: IdParams }), {
+      params: { id: "1 OR 1=1" },
+    });
     expect(err).toBeInstanceOf(ZodError);
   });
 });
@@ -53,25 +62,43 @@ describe("schemas", () => {
     const parsed = GateLogBody.parse({ employeeId: 10575, fullName: "Test" });
     expect(parsed.direction).toBe("IN");
     expect(parsed.status).toBe("GRANTED");
-    expect(() => GateLogBody.parse({ employeeId: "1", fullName: "x", direction: "SIDEWAYS" })).toThrow();
+    expect(() =>
+      GateLogBody.parse({
+        employeeId: "1",
+        fullName: "x",
+        direction: "SIDEWAYS",
+      }),
+    ).toThrow();
   });
 
   it("BroadcastSendBody allows recipients without phone (filtered later)", () => {
-    const parsed = BroadcastSendBody.parse({ messageText: "hi", recipients: [{ profileId: "5", phone: "" }] });
+    const parsed = BroadcastSendBody.parse({
+      messageText: "hi",
+      recipients: [{ profileId: "5", phone: "" }],
+    });
     expect(parsed.recipients[0].profileId).toBe(5);
-    expect(() => BroadcastSendBody.parse({ messageText: "", recipients: [] })).toThrow();
+    expect(() =>
+      BroadcastSendBody.parse({ messageText: "", recipients: [] }),
+    ).toThrow();
   });
 
   it("CustomReportQueryBody caps limit and restricts sortBy to identifiers", () => {
     expect(() => CustomReportQueryBody.parse({ limit: 999999 })).toThrow();
-    expect(() => CustomReportQueryBody.parse({ sortBy: "name; DROP TABLE x" })).toThrow();
+    expect(() =>
+      CustomReportQueryBody.parse({ sortBy: "name; DROP TABLE x" }),
+    ).toThrow();
     expect(CustomReportQueryBody.parse({}).dataSource).toBe("in_house");
   });
 
   it("RoomImportExecuteBody requires rooms and a known import mode", () => {
     expect(() => RoomImportExecuteBody.parse({ rooms: [] })).toThrow();
-    expect(() => RoomImportExecuteBody.parse({ rooms: [{}], importMode: "nuke" })).toThrow();
-    expect(RoomImportExecuteBody.parse({ rooms: [{ roomNumber: "101" }] }).importMode).toBe("create_update");
+    expect(() =>
+      RoomImportExecuteBody.parse({ rooms: [{}], importMode: "nuke" }),
+    ).toThrow();
+    expect(
+      RoomImportExecuteBody.parse({ rooms: [{ roomNumber: "101" }] })
+        .importMode,
+    ).toBe("create_update");
   });
 
   it("zDateString accepts ISO and DD/MM/YYYY", () => {

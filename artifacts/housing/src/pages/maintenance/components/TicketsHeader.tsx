@@ -20,13 +20,15 @@ export function TicketsHeader({
     <div className="px-4 sm:px-6 pt-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-xl shadow-xs ${
-            isOnlyHousekeeping
-              ? "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400"
-              : isOnlyMaintenance
-                ? "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
-                : "bg-primary/10 text-primary"
-          }`}>
+          <div
+            className={`p-2.5 rounded-xl shadow-xs ${
+              isOnlyHousekeeping
+                ? "bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400"
+                : isOnlyMaintenance
+                  ? "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400"
+                  : "bg-primary/10 text-primary"
+            }`}
+          >
             {isOnlyHousekeeping ? (
               <Sparkles className="w-6 h-6" />
             ) : isOnlyMaintenance ? (
@@ -38,17 +40,29 @@ export function TicketsHeader({
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
               {isOnlyHousekeeping
-                ? (ar ? "طلبات وأوامر الهاوس كيبنج" : "Housekeeping Orders")
+                ? ar
+                  ? "طلبات وأوامر الهاوس كيبنج"
+                  : "Housekeeping Orders"
                 : isOnlyMaintenance
-                  ? (ar ? "بلاغات وأوامر الصيانة الفنية" : "Maintenance Work Orders")
-                  : (ar ? "مركز التذاكر وأوامر العمل" : "Operations & Tickets Hub")}
+                  ? ar
+                    ? "بلاغات وأوامر الصيانة الفنية"
+                    : "Maintenance Work Orders"
+                  : ar
+                    ? "مركز التذاكر وأوامر العمل"
+                    : "Operations & Tickets Hub"}
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
               {isOnlyHousekeeping
-                ? (ar ? "متابعة وإسناد طلبات النظافة وتجهيز الغرف والمستلزمات" : "Track and assign room cleaning, linens, and housekeeping orders")
+                ? ar
+                  ? "متابعة وإسناد طلبات النظافة وتجهيز الغرف والمستلزمات"
+                  : "Track and assign room cleaning, linens, and housekeeping orders"
                 : isOnlyMaintenance
-                  ? (ar ? "متابعة وإسناد بلاغات الأعطال والصيانة الوقائية والطارئة" : "Track and dispatch engineering and repair work orders")
-                  : (ar ? "متابعة وإسناد أوامر العمل وبلاغات الصيانة والنظافة" : "Track and assign work orders, maintenance, and housekeeping")}
+                  ? ar
+                    ? "متابعة وإسناد بلاغات الأعطال والصيانة الوقائية والطارئة"
+                    : "Track and dispatch engineering and repair work orders"
+                  : ar
+                    ? "متابعة وإسناد أوامر العمل وبلاغات الصيانة والنظافة"
+                    : "Track and assign work orders, maintenance, and housekeeping"}
             </p>
           </div>
         </div>
@@ -64,10 +78,16 @@ export function TicketsHeader({
               <Plus className="w-4 h-4" />
               <span>
                 {isOnlyHousekeeping
-                  ? (ar ? "طلب هاوس كيبنج جديد" : "New Housekeeping Order")
+                  ? ar
+                    ? "طلب هاوس كيبنج جديد"
+                    : "New Housekeeping Order"
                   : isOnlyMaintenance
-                    ? (ar ? "بلاغ صيانة جديد" : "New Maintenance Ticket")
-                    : (ar ? "إنشاء تذكرة جديدة" : "New Ticket")}
+                    ? ar
+                      ? "بلاغ صيانة جديد"
+                      : "New Maintenance Ticket"
+                    : ar
+                      ? "إنشاء تذكرة جديدة"
+                      : "New Ticket"}
               </span>
             </Button>
           )}

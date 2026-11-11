@@ -1,8 +1,17 @@
-export function EmpAvatar({ emp, name, photoUrl }: { emp?: any; name?: string; photoUrl?: string }) {
+export function EmpAvatar({
+  emp,
+  name,
+  photoUrl,
+}: {
+  emp?: any;
+  name?: string;
+  photoUrl?: string;
+}) {
   const photo = photoUrl || emp?.photoUrl;
   const firstName = emp?.firstName || name?.split(" ")?.[0] || "";
   const lastName = emp?.lastName || name?.split(" ")?.slice(1)?.join(" ") || "";
-  const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "—";
+  const initials =
+    `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "—";
   return photo ? (
     <img
       src={photo}

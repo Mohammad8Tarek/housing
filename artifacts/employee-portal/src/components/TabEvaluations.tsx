@@ -157,27 +157,37 @@ export default function TabEvaluations({ evaluations, onCommentAdded }: Props) {
   }, [evaluations, search, statusFilter, submitted]);
 
   const handleSubmit = async (evaluationId: number, items: SurveyItem[]) => {
-    const itemResponses = items.map((item) => {
-      if (item.type === "rating") {
-        return {
-          itemId: item.id,
-          ratingValue: itemRatings[`${evaluationId}-${item.id}`] || null,
-        };
-      } else {
-        const val =
-          item.type === "yes_no"
-            ? itemYesNo[`${evaluationId}-${item.id}`] || null
-            : itemTexts[`${evaluationId}-${item.id}`] || null;
-        return { itemId: item.id, textValue: val };
-      }
-    }).filter((ir) => ir.ratingValue != null || (ir.textValue && ir.textValue.trim().length > 0));
+    const itemResponses = items
+      .map((item) => {
+        if (item.type === "rating") {
+          return {
+            itemId: item.id,
+            ratingValue: itemRatings[`${evaluationId}-${item.id}`] || null,
+          };
+        } else {
+          const val =
+            item.type === "yes_no"
+              ? itemYesNo[`${evaluationId}-${item.id}`] || null
+              : itemTexts[`${evaluationId}-${item.id}`] || null;
+          return { itemId: item.id, textValue: val };
+        }
+      })
+      .filter(
+        (ir) =>
+          ir.ratingValue != null ||
+          (ir.textValue && ir.textValue.trim().length > 0),
+      );
 
     const gRating = globalRatings[evaluationId];
     const gComment = globalComment[evaluationId]?.trim();
 
     // Require at least a rating, comment, or an answered question
     if (!gRating && !gComment && itemResponses.length === 0) {
-      toast.error(isRtl ? "يرجى الإجابة على الأسئلة أو إضافة تقييم" : "Please answer questions or provide a rating");
+      toast.error(
+        isRtl
+          ? "يرجى الإجابة على الأسئلة أو إضافة تقييم"
+          : "Please answer questions or provide a rating",
+      );
       return;
     }
 
@@ -208,10 +218,19 @@ export default function TabEvaluations({ evaluations, onCommentAdded }: Props) {
 
       setGlobalComment((prev) => ({ ...prev, [evaluationId]: "" }));
       setSubmitted((prev) => new Set(prev).add(evaluationId));
-      toast.success(isRtl ? "تم إرسال تقييمك بنجاح! شكراً لمشاركتك." : "Evaluation submitted successfully! Thank you.");
+      toast.success(
+        isRtl
+          ? "تم إرسال تقييمك بنجاح! شكراً لمشاركتك."
+          : "Evaluation submitted successfully! Thank you.",
+      );
       onCommentAdded?.();
     } catch (err: any) {
-      toast.error(err?.message || (isRtl ? "حدث خطأ أثناء إرسال التقييم" : "Failed to submit evaluation"));
+      toast.error(
+        err?.message ||
+          (isRtl
+            ? "حدث خطأ أثناء إرسال التقييم"
+            : "Failed to submit evaluation"),
+      );
     } finally {
       setLoadingIds((prev) => prev.filter((id) => id !== evaluationId));
     }
@@ -538,7 +557,11 @@ export default function TabEvaluations({ evaluations, onCommentAdded }: Props) {
                             !globalComment[evaluation.id]?.trim() &&
                             !items.some((item) => {
                               const k = `${evaluation.id}-${item.id}`;
-                              return itemRatings[k] || itemTexts[k]?.trim() || itemYesNo[k];
+                              return (
+                                itemRatings[k] ||
+                                itemTexts[k]?.trim() ||
+                                itemYesNo[k]
+                              );
                             }))
                         }
                         className="px-4 py-3 rounded-xl bg-accent2 text-accent2-foreground font-bold hover:scale-[1.01] active:scale-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2 flex-shrink-0"

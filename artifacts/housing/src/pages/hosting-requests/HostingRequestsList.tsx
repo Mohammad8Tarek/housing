@@ -297,7 +297,9 @@ export default function HostingRequestsList() {
                           variant="outline"
                           size="sm"
                           onClick={() =>
-                            setLocation(`/hosting-requests/${request.request_number || request.id}`)
+                            setLocation(
+                              `/hosting-requests/${request.request_number || request.id}`,
+                            )
                           }
                         >
                           {ar ? "عرض" : "View"}

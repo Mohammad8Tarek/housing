@@ -3,7 +3,10 @@ import { withTenant, settingsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requireAuth, requireAnyPermission } from "../middlewares/permissions.js";
+import {
+  requireAuth,
+  requireAnyPermission,
+} from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { TestEmailBody, UpdateSettingsBody } from "../validation/schemas.js";
 import { sendTestEmail } from "../lib/email-service.js";
@@ -230,10 +233,21 @@ router.post(
   async (req, res): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
-      const { toEmail, smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpFrom } = req.body || {};
+      const {
+        toEmail,
+        smtpHost,
+        smtpPort,
+        smtpSecure,
+        smtpUser,
+        smtpPass,
+        smtpFrom,
+      } = req.body || {};
 
       if (!toEmail || !toEmail.includes("@")) {
-        res.status(400).json({ error: "البريد الإلكتروني للمستلم مطلوب وغير صالح / Valid recipient email is required" });
+        res.status(400).json({
+          error:
+            "البريد الإلكتروني للمستلم مطلوب وغير صالح / Valid recipient email is required",
+        });
         return;
       }
 
@@ -247,13 +261,25 @@ router.post(
 
       let resolvedPass = smtpPass;
       if (!resolvedPass || resolvedPass === "••••••••") {
-        resolvedPass = savedSettings?.smtpPass || process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+        resolvedPass =
+          savedSettings?.smtpPass ||
+          process.env.SMTP_PASS ||
+          process.env.SMTP_PASSWORD;
       }
 
       const config = {
         smtpHost: smtpHost || savedSettings?.smtpHost || process.env.SMTP_HOST,
-        smtpPort: smtpPort ? Number(smtpPort) : (savedSettings?.smtpPort ? Number(savedSettings.smtpPort) : Number(process.env.SMTP_PORT || 587)),
-        smtpSecure: smtpSecure !== undefined ? Boolean(smtpSecure) : (savedSettings?.smtpSecure !== undefined ? Boolean(savedSettings.smtpSecure) : undefined),
+        smtpPort: smtpPort
+          ? Number(smtpPort)
+          : savedSettings?.smtpPort
+            ? Number(savedSettings.smtpPort)
+            : Number(process.env.SMTP_PORT || 587),
+        smtpSecure:
+          smtpSecure !== undefined
+            ? Boolean(smtpSecure)
+            : savedSettings?.smtpSecure !== undefined
+              ? Boolean(savedSettings.smtpSecure)
+              : undefined,
         smtpUser: smtpUser || savedSettings?.smtpUser || process.env.SMTP_USER,
         smtpPass: resolvedPass,
         smtpFrom: smtpFrom || savedSettings?.smtpFrom || process.env.SMTP_FROM,
@@ -261,7 +287,8 @@ router.post(
 
       if (!config.smtpHost || !config.smtpUser || !config.smtpPass) {
         res.status(400).json({
-          error: "بيانات سيرفر البريد (Host / User / Password) غير مكتملة / Incomplete SMTP credentials",
+          error:
+            "بيانات سيرفر البريد (Host / User / Password) غير مكتملة / Incomplete SMTP credentials",
         });
         return;
       }
@@ -270,13 +297,16 @@ router.post(
       if (result.success) {
         res.json({
           success: true,
-          message: "تم إرسال البريد الإلكتروني التجريبي بنجاح / Test email sent successfully",
+          message:
+            "تم إرسال البريد الإلكتروني التجريبي بنجاح / Test email sent successfully",
           messageId: result.messageId,
         });
       } else {
         res.status(400).json({
           success: false,
-          error: result.error || "فشل إرسال البريد التجريبي / Failed to send test email",
+          error:
+            result.error ||
+            "فشل إرسال البريد التجريبي / Failed to send test email",
         });
       }
     } catch (err: any) {

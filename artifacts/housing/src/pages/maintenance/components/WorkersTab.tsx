@@ -42,7 +42,24 @@ import {
 } from "@/components/ui/table";
 import { WorkerDialog, Worker, WORKER_SPECIALTIES } from "./WorkerDialog";
 import { toast } from "sonner";
-import { Users, UserPlus, Search, Wrench, Phone, MessageCircle, Clock, CheckCircle2, MoreVertical, Edit2, Trash2, LayoutGrid, List, Filter, RefreshCw, HardHat } from "lucide-react";
+import {
+  Users,
+  UserPlus,
+  Search,
+  Wrench,
+  Phone,
+  MessageCircle,
+  Clock,
+  CheckCircle2,
+  MoreVertical,
+  Edit2,
+  Trash2,
+  LayoutGrid,
+  List,
+  Filter,
+  RefreshCw,
+  HardHat,
+} from "lucide-react";
 
 interface WorkersTabProps {
   propertyId: number;
@@ -60,7 +77,11 @@ export function WorkersTab({
   const queryClient = useQueryClient();
   const { can, isSuperAdmin, isAdmin } = usePermission();
 
-  const canMnt = isSuperAdmin || isAdmin || can("maintenance", "view") || can("workers", "view");
+  const canMnt =
+    isSuperAdmin ||
+    isAdmin ||
+    can("maintenance", "view") ||
+    can("workers", "view");
   const canHsk = isSuperAdmin || isAdmin || can("housekeeping", "view");
   const hasBoth = canMnt && canHsk;
 
@@ -105,10 +126,14 @@ export function WorkersTab({
       const params = new URLSearchParams({
         propertyId: String(propertyId),
       });
-      if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
-      if (departmentFilter !== "all") params.append("department", departmentFilter);
-      if (specialtyFilter !== "all") params.append("specialty", specialtyFilter);
-      if (workerTypeFilter !== "all") params.append("workerType", workerTypeFilter);
+      if (debouncedSearch.trim())
+        params.append("search", debouncedSearch.trim());
+      if (departmentFilter !== "all")
+        params.append("department", departmentFilter);
+      if (specialtyFilter !== "all")
+        params.append("specialty", specialtyFilter);
+      if (workerTypeFilter !== "all")
+        params.append("workerType", workerTypeFilter);
 
       const res = await fetch(`/api/workers?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch workers");
@@ -124,14 +149,20 @@ export function WorkersTab({
   const stats = useMemo(() => {
     const available = workers.filter((w) => w.status === "available").length;
     const busy = workers.filter((w) => w.status === "busy").length;
-    const onLeave = workers.filter((w) => w.status === "on_leave" || w.status === "inactive").length;
-    const activeTasks = workers.reduce((sum, w) => sum + (w.activeTasksCount || 0), 0);
+    const onLeave = workers.filter(
+      (w) => w.status === "on_leave" || w.status === "inactive",
+    ).length;
+    const activeTasks = workers.reduce(
+      (sum, w) => sum + (w.activeTasksCount || 0),
+      0,
+    );
     return { available, busy, onLeave, activeTasks };
   }, [workers]);
 
   // خريطة أيقونات وتسميات التخصص
   const specialtyMap = useMemo(() => {
-    const map: Record<string, { labelAr: string; labelEn: string; icon: any }> = {};
+    const map: Record<string, { labelAr: string; labelEn: string; icon: any }> =
+      {};
     for (const s of WORKER_SPECIALTIES) {
       map[s.key] = s;
     }
@@ -160,11 +191,13 @@ export function WorkersTab({
     try {
       const res = await fetch(
         `/api/workers/${deleteTarget.id}?propertyId=${propertyId}`,
-        { method: "DELETE" }
+        { method: "DELETE" },
       );
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || (ar ? "فشل حذف الفني" : "Failed to delete"));
+        throw new Error(
+          data.error || (ar ? "فشل حذف الفني" : "Failed to delete"),
+        );
       }
       toast.success(ar ? "تم حذف الفني بنجاح" : "Worker deleted successfully");
       await queryClient.invalidateQueries({ queryKey: ["/api/workers"] });
@@ -187,14 +220,20 @@ export function WorkersTab({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-foreground">
-                {ar ? "سجل فريق الصيانة والفنيين" : "Technicians & Maintenance Team"}
+                {ar
+                  ? "سجل فريق الصيانة والفنيين"
+                  : "Technicians & Maintenance Team"}
               </h2>
               <Badge variant="secondary" className="font-mono text-xs">
                 {totalWorkers} {ar ? "فني" : "workers"}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {propertyName ? `${ar ? "الفندق / العقار:" : "Property:"} ${propertyName}` : (ar ? "إدارة وتوزيع فنيي الصيانة والعمالة والمقاولين" : "Manage technicians, trade workers, and contractors")}
+              {propertyName
+                ? `${ar ? "الفندق / العقار:" : "Property:"} ${propertyName}`
+                : ar
+                  ? "إدارة وتوزيع فنيي الصيانة والعمالة والمقاولين"
+                  : "Manage technicians, trade workers, and contractors"}
             </p>
           </div>
         </div>
@@ -268,7 +307,9 @@ export function WorkersTab({
               className="h-9 px-2.5 text-xs gap-1"
               title={ar ? "تحديث" : "Refresh"}
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${isRefetching ? "animate-spin" : ""}`}
+              />
             </Button>
           </div>
         </div>
@@ -293,9 +334,15 @@ export function WorkersTab({
                 <SelectValue placeholder={ar ? "القسم" : "Department"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{ar ? "كل الأقسام" : "All Departments"}</SelectItem>
-                <SelectItem value="maintenance">{ar ? "الصيانة الفنية" : "Maintenance"}</SelectItem>
-                <SelectItem value="housekeeping">{ar ? "الهاوس كيبنج" : "Housekeeping"}</SelectItem>
+                <SelectItem value="all">
+                  {ar ? "كل الأقسام" : "All Departments"}
+                </SelectItem>
+                <SelectItem value="maintenance">
+                  {ar ? "الصيانة الفنية" : "Maintenance"}
+                </SelectItem>
+                <SelectItem value="housekeeping">
+                  {ar ? "الهاوس كيبنج" : "Housekeeping"}
+                </SelectItem>
               </SelectContent>
             </Select>
           )}
@@ -306,7 +353,9 @@ export function WorkersTab({
               <SelectValue placeholder={ar ? "التخصص" : "Specialty"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{ar ? "كل التخصصات" : "All Specialties"}</SelectItem>
+              <SelectItem value="all">
+                {ar ? "كل التخصصات" : "All Specialties"}
+              </SelectItem>
               {availableSpecialties.map((sp) => (
                 <SelectItem key={sp.key} value={sp.key}>
                   {ar ? sp.labelAr : sp.labelEn}
@@ -321,18 +370,33 @@ export function WorkersTab({
               <SelectValue placeholder={ar ? "النوع" : "Type"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{ar ? "الكل (داخلي ومقاول)" : "All Types"}</SelectItem>
-              <SelectItem value="internal">{ar ? "فني داخلي" : "Internal Staff"}</SelectItem>
-              <SelectItem value="contractor">{ar ? "مقاول خارجي" : "Contractor"}</SelectItem>
+              <SelectItem value="all">
+                {ar ? "الكل (داخلي ومقاول)" : "All Types"}
+              </SelectItem>
+              <SelectItem value="internal">
+                {ar ? "فني داخلي" : "Internal Staff"}
+              </SelectItem>
+              <SelectItem value="contractor">
+                {ar ? "مقاول خارجي" : "Contractor"}
+              </SelectItem>
             </SelectContent>
           </Select>
 
-          {(specialtyFilter !== "all" || workerTypeFilter !== "all" || (hasBoth && departmentFilter !== "all") || search) && (
+          {(specialtyFilter !== "all" ||
+            workerTypeFilter !== "all" ||
+            (hasBoth && departmentFilter !== "all") ||
+            search) && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
-                setDepartmentFilter(canHsk && !canMnt ? "housekeeping" : canMnt && !canHsk ? "maintenance" : "all");
+                setDepartmentFilter(
+                  canHsk && !canMnt
+                    ? "housekeeping"
+                    : canMnt && !canHsk
+                      ? "maintenance"
+                      : "all",
+                );
                 setSpecialtyFilter("all");
                 setWorkerTypeFilter("all");
                 setSearch("");
@@ -344,7 +408,9 @@ export function WorkersTab({
           )}
 
           <div className="ms-auto text-xs text-muted-foreground">
-            {ar ? `عرض ${workers.length} فني` : `Showing ${workers.length} workers`}
+            {ar
+              ? `عرض ${workers.length} فني`
+              : `Showing ${workers.length} workers`}
           </div>
         </div>
       </div>
@@ -373,7 +439,9 @@ export function WorkersTab({
             <Users className="w-7 h-7" />
           </div>
           <h3 className="text-base font-bold text-foreground">
-            {ar ? "لا يوجد فنيون مسجلون لهذا الفندق بعد" : "No workers registered for this property"}
+            {ar
+              ? "لا يوجد فنيون مسجلون لهذا الفندق بعد"
+              : "No workers registered for this property"}
           </h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
             {ar
@@ -429,7 +497,9 @@ export function WorkersTab({
                               }}
                             >
                               <Edit2 className="w-3.5 h-3.5 mr-2 rtl:ml-2 text-primary" />
-                              <span>{ar ? "تعديل البيانات" : "Edit Worker"}</span>
+                              <span>
+                                {ar ? "تعديل البيانات" : "Edit Worker"}
+                              </span>
                             </DropdownMenuItem>
                           </PermissionGate>
 
@@ -548,7 +618,9 @@ export function WorkersTab({
                     </>
                   ) : (
                     <span className="text-[11px] text-muted-foreground/60 w-full text-center py-1">
-                      {ar ? "لا يوجد رقم هاتف مسجل" : "No phone number registered"}
+                      {ar
+                        ? "لا يوجد رقم هاتف مسجل"
+                        : "No phone number registered"}
                     </span>
                   )}
 
@@ -558,7 +630,9 @@ export function WorkersTab({
                       size="sm"
                       onClick={() => onFilterByWorker(w.id!)}
                       className="h-8 px-2 text-xs text-primary"
-                      title={ar ? "عرض تذاكر هذا الفني" : "Filter tickets by worker"}
+                      title={
+                        ar ? "عرض تذاكر هذا الفني" : "Filter tickets by worker"
+                      }
                     >
                       <Wrench className="w-3.5 h-3.5" />
                     </Button>
@@ -606,11 +680,15 @@ export function WorkersTab({
 
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-bold text-sm text-foreground">{w.name}</span>
+                        <span className="font-bold text-sm text-foreground">
+                          {w.name}
+                        </span>
                         <span className="text-[10px] text-muted-foreground">
                           {w.workerType === "contractor"
                             ? `${ar ? "مقاول" : "Contractor"}${w.companyName ? ` • ${w.companyName}` : ""}`
-                            : ar ? "فني داخلي" : "Internal"}
+                            : ar
+                              ? "فني داخلي"
+                              : "Internal"}
                         </span>
                       </div>
                     </TableCell>
@@ -634,12 +712,16 @@ export function WorkersTab({
                           </a>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground/50 text-xs">—</span>
+                        <span className="text-muted-foreground/50 text-xs">
+                          —
+                        </span>
                       )}
                     </TableCell>
 
                     <TableCell className="text-center font-bold text-foreground">
-                      <span className={`inline-flex items-center gap-1 ${w.activeTasksCount ? "text-amber-600 font-bold" : "text-muted-foreground"}`}>
+                      <span
+                        className={`inline-flex items-center gap-1 ${w.activeTasksCount ? "text-amber-600 font-bold" : "text-muted-foreground"}`}
+                      >
                         <Clock className="w-3 h-3" />
                         {w.activeTasksCount || 0}
                       </span>
@@ -722,7 +804,13 @@ export function WorkersTab({
               disabled={deleting}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              {deleting ? (ar ? "جاري الحذف..." : "Deleting...") : (ar ? "نعم، احذف" : "Yes, Delete")}
+              {deleting
+                ? ar
+                  ? "جاري الحذف..."
+                  : "Deleting..."
+                : ar
+                  ? "نعم، احذف"
+                  : "Yes, Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

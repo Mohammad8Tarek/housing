@@ -40,18 +40,22 @@ export function WhatsAppDialog({
   return (
     <Dialog
       open={whatsAppDialog.open}
-      onOpenChange={(open) =>
-        setWhatsAppDialog((prev) => ({ ...prev, open }))
-      }
+      onOpenChange={(open) => setWhatsAppDialog((prev) => ({ ...prev, open }))}
     >
       <DialogContent
         className="max-w-md"
-        srTitle={ar ? "إرسال تفاصيل التسكين عبر الواتساب" : "Send WhatsApp Check-in Details"}
+        srTitle={
+          ar
+            ? "إرسال تفاصيل التسكين عبر الواتساب"
+            : "Send WhatsApp Check-in Details"
+        }
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-emerald-600">
             <MessageSquare className="w-5 h-5 text-emerald-600" />
-            {ar ? "إرسال تفاصيل التسكين عبر الواتساب" : "Send WhatsApp Check-in Details"}
+            {ar
+              ? "إرسال تفاصيل التسكين عبر الواتساب"
+              : "Send WhatsApp Check-in Details"}
           </DialogTitle>
         </DialogHeader>
 
@@ -63,13 +67,17 @@ export function WhatsAppDialog({
                 {whatsAppDialog.emp.firstName} {whatsAppDialog.emp.lastName}
               </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                <span className="font-mono font-medium">#{whatsAppDialog.emp.id || whatsAppDialog.emp.profileId}</span>
+                <span className="font-mono font-medium">
+                  #{whatsAppDialog.emp.id || whatsAppDialog.emp.profileId}
+                </span>
                 {whatsAppDialog.roomNumber && (
                   <>
                     <span>•</span>
                     <span>
                       {ar ? "غرفة" : "Room"} {whatsAppDialog.roomNumber}
-                      {whatsAppDialog.bedNumber ? ` (${ar ? "سرير" : "Bed"} ${whatsAppDialog.bedNumber})` : ""}
+                      {whatsAppDialog.bedNumber
+                        ? ` (${ar ? "سرير" : "Bed"} ${whatsAppDialog.bedNumber})`
+                        : ""}
                     </span>
                   </>
                 )}
@@ -83,7 +91,9 @@ export function WhatsAppDialog({
             <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-bold">
-                {ar ? "لا يوجد رقم هاتف مسجل في ملف الموظف" : "No phone number registered for this employee"}
+                {ar
+                  ? "لا يوجد رقم هاتف مسجل في ملف الموظف"
+                  : "No phone number registered for this employee"}
               </p>
               <p className="mt-0.5 text-muted-foreground">
                 {ar
@@ -117,7 +127,9 @@ export function WhatsAppDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setWhatsAppDialog((prev) => ({ ...prev, open: false }))}
+              onClick={() =>
+                setWhatsAppDialog((prev) => ({ ...prev, open: false }))
+              }
               disabled={isSendingWhatsApp}
             >
               {ar ? "إلغاء" : "Cancel"}

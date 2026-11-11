@@ -41,22 +41,41 @@ import {
 } from "../utils/ticket-constants";
 import { formatDuration, STATUS_AR, STATUS_EN } from "../utils/ticket-duration";
 
-export function TicketRequesterCell({ ticket, ar }: { ticket: any; ar: boolean }) {
+export function TicketRequesterCell({
+  ticket,
+  ar,
+}: {
+  ticket: any;
+  ar: boolean;
+}) {
   const rep = (ticket.reportedBy || "").trim();
   if (rep) {
-    const isSystemAdmin = ["admin", "super_admin", "system_admin", "system", "test_superadmin"].includes(rep.toLowerCase());
+    const isSystemAdmin = [
+      "admin",
+      "super_admin",
+      "system_admin",
+      "system",
+      "test_superadmin",
+    ].includes(rep.toLowerCase());
     if (isSystemAdmin) {
       return (
         <div className="flex flex-col gap-0.5">
           <span className="inline-flex items-center gap-1 font-semibold text-xs text-foreground">
             <ShieldCheck className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
             <span>{ar ? "إدارة السكن" : "Housing Admin"}</span>
-            <span className="text-[10px] text-muted-foreground font-mono">({rep})</span>
+            <span className="text-[10px] text-muted-foreground font-mono">
+              ({rep})
+            </span>
           </span>
           {ticket.residentName && (
-            <span className="text-[11px] text-muted-foreground flex items-center gap-1" title={ticket.residentName}>
+            <span
+              className="text-[11px] text-muted-foreground flex items-center gap-1"
+              title={ticket.residentName}
+            >
               <User className="w-3 h-3 text-slate-400 shrink-0" />
-              <span className="truncate max-w-[140px]">{ticket.residentName}</span>
+              <span className="truncate max-w-[140px]">
+                {ticket.residentName}
+              </span>
             </span>
           )}
         </div>
@@ -70,10 +89,15 @@ export function TicketRequesterCell({ ticket, ar }: { ticket: any; ar: boolean }
       <div className="flex flex-col gap-0.5">
         <span className="inline-flex items-center gap-1 font-bold text-xs text-foreground">
           <User className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span className="truncate max-w-[160px]" title={cleanName}>{cleanName}</span>
+          <span className="truncate max-w-[160px]" title={cleanName}>
+            {cleanName}
+          </span>
         </span>
         {isQr && (
-          <Badge variant="outline" className="w-fit text-[9px] px-1 py-0 h-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300">
+          <Badge
+            variant="outline"
+            className="w-fit text-[9px] px-1 py-0 h-3.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300"
+          >
             {ar ? "مسح QR الغرفة" : "Room QR Scan"}
           </Badge>
         )}
@@ -83,7 +107,10 @@ export function TicketRequesterCell({ ticket, ar }: { ticket: any; ar: boolean }
 
   if (ticket.residentName) {
     return (
-      <span className="inline-flex items-center gap-1 font-semibold text-xs text-foreground" title={ticket.residentName}>
+      <span
+        className="inline-flex items-center gap-1 font-semibold text-xs text-foreground"
+        title={ticket.residentName}
+      >
         <User className="w-3.5 h-3.5 text-primary shrink-0" />
         <span className="truncate max-w-[160px]">{ticket.residentName}</span>
       </span>
@@ -255,7 +282,10 @@ export function TicketsTable({
               onClick={() => onSelectTicket(req.id)}
               className="cursor-pointer hover:bg-muted/40 transition-colors group"
             >
-              <TableCell className="w-10 px-3" onClick={(e) => e.stopPropagation()}>
+              <TableCell
+                className="w-10 px-3"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Checkbox
                   checked={selectedTicketIds.has(req.id)}
                   onCheckedChange={(checked) => {
@@ -277,18 +307,28 @@ export function TicketsTable({
 
               {isColVisible("building_floor") && (
                 <TableCell className="text-xs font-medium px-2 overflow-hidden">
-                  {(req.buildingName || req.floorNumber) ? (
+                  {req.buildingName || req.floorNumber ? (
                     <div className="flex items-center gap-1 flex-wrap">
                       {req.buildingName && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800 text-[11px] font-medium truncate max-w-full" title={req.buildingName}>
+                        <span
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800 text-[11px] font-medium truncate max-w-full"
+                          title={req.buildingName}
+                        >
                           <Building2 className="w-3 h-3 shrink-0 text-sky-600 dark:text-sky-400" />
                           <span className="truncate">{req.buildingName}</span>
                         </span>
                       )}
                       {req.floorNumber && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800 text-[11px] font-medium shrink-0" title={ar ? "الدور / الطابق" : "Floor"}>
+                        <span
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800 text-[11px] font-medium shrink-0"
+                          title={ar ? "الدور / الطابق" : "Floor"}
+                        >
                           <Layers className="w-3 h-3 shrink-0 text-amber-600 dark:text-amber-400" />
-                          <span>{ar ? `د ${req.floorNumber}` : `Fl ${req.floorNumber}`}</span>
+                          <span>
+                            {ar
+                              ? `د ${req.floorNumber}`
+                              : `Fl ${req.floorNumber}`}
+                          </span>
                         </span>
                       )}
                     </div>
@@ -300,9 +340,20 @@ export function TicketsTable({
 
               {isColVisible("room") && (
                 <TableCell className="text-xs font-bold text-foreground whitespace-nowrap px-2 overflow-hidden">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 border text-xs font-bold" title={req.roomNumber || roomMap[req.roomId] || (req.roomId ? `#${req.roomId}` : "—")}>
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/60 border text-xs font-bold"
+                    title={
+                      req.roomNumber ||
+                      roomMap[req.roomId] ||
+                      (req.roomId ? `#${req.roomId}` : "—")
+                    }
+                  >
                     <DoorClosed className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span className="truncate">{req.roomNumber || roomMap[req.roomId] || (req.roomId ? `#${req.roomId}` : "—")}</span>
+                    <span className="truncate">
+                      {req.roomNumber ||
+                        roomMap[req.roomId] ||
+                        (req.roomId ? `#${req.roomId}` : "—")}
+                    </span>
                   </span>
                 </TableCell>
               )}
@@ -315,12 +366,22 @@ export function TicketsTable({
 
               {isColVisible("property") && (
                 <TableCell className="text-xs px-2 overflow-hidden">
-                  <div className="flex items-center gap-1.5 truncate" title={req.propertyName || properties.find((p: any) => p.id === req.propertyId)?.displayName || (ar ? "سكن العاملين" : "Staff Housing")}>
+                  <div
+                    className="flex items-center gap-1.5 truncate"
+                    title={
+                      req.propertyName ||
+                      properties.find((p: any) => p.id === req.propertyId)
+                        ?.displayName ||
+                      (ar ? "سكن العاملين" : "Staff Housing")
+                    }
+                  >
                     <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span className="font-medium text-foreground truncate">
                       {req.propertyName ||
-                        properties.find((p: any) => p.id === req.propertyId)?.displayName ||
-                        properties.find((p: any) => p.id === req.propertyId)?.name ||
+                        properties.find((p: any) => p.id === req.propertyId)
+                          ?.displayName ||
+                        properties.find((p: any) => p.id === req.propertyId)
+                          ?.name ||
                         (ar ? "سكن العاملين" : "Staff Housing")}
                     </span>
                   </div>
@@ -330,11 +391,23 @@ export function TicketsTable({
               {isVisible("problem") && (
                 <TableCell className="text-xs px-2 overflow-hidden">
                   <div className="flex flex-col gap-0.5 min-w-0">
-                    <span className="font-semibold text-foreground text-xs truncate" title={req.title || req.description}>
-                      {req.title || (ar ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType) : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType)) || (ar ? "طلب صيانة" : "Maintenance Ticket")}
+                    <span
+                      className="font-semibold text-foreground text-xs truncate"
+                      title={req.title || req.description}
+                    >
+                      {req.title ||
+                        (ar
+                          ? PROBLEM_TYPES_MAP[req.problemType]?.labelAr ||
+                            req.problemType
+                          : PROBLEM_TYPES_MAP[req.problemType]?.labelEn ||
+                            req.problemType) ||
+                        (ar ? "طلب صيانة" : "Maintenance Ticket")}
                     </span>
                     {req.description && (
-                      <span className="text-[11px] text-muted-foreground truncate" title={req.description}>
+                      <span
+                        className="text-[11px] text-muted-foreground truncate"
+                        title={req.description}
+                      >
                         {req.description}
                       </span>
                     )}
@@ -347,13 +420,19 @@ export function TicketsTable({
                   <div className="flex flex-col min-w-0">
                     <span className="font-bold text-foreground truncate">
                       {ar
-                        ? ((CATEGORIES_AR as Record<string, string>)[req.category] || req.category)
-                        : ((CATEGORIES_EN as Record<string, string>)[req.category] || req.category?.toUpperCase())}
+                        ? (CATEGORIES_AR as Record<string, string>)[
+                            req.category
+                          ] || req.category
+                        : (CATEGORIES_EN as Record<string, string>)[
+                            req.category
+                          ] || req.category?.toUpperCase()}
                     </span>
                     <span className="text-[11px] text-muted-foreground truncate">
                       {ar
-                        ? (PROBLEM_TYPES_MAP[req.problemType]?.labelAr || req.problemType)
-                        : (PROBLEM_TYPES_MAP[req.problemType]?.labelEn || req.problemType)}
+                        ? PROBLEM_TYPES_MAP[req.problemType]?.labelAr ||
+                          req.problemType
+                        : PROBLEM_TYPES_MAP[req.problemType]?.labelEn ||
+                          req.problemType}
                     </span>
                   </div>
                 </TableCell>
@@ -363,9 +442,11 @@ export function TicketsTable({
                 <TableCell className="px-2 overflow-hidden">
                   <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border max-w-full ${statusColor(req.status)}`}
-                    title={ar
-                      ? (STATUS_AR[req.status?.toLowerCase()] || req.status)
-                      : (STATUS_EN[req.status?.toLowerCase()] || req.status)}
+                    title={
+                      ar
+                        ? STATUS_AR[req.status?.toLowerCase()] || req.status
+                        : STATUS_EN[req.status?.toLowerCase()] || req.status
+                    }
                   >
                     <span
                       className={`w-1.5 h-1.5 rounded-full shrink-0 ${
@@ -380,8 +461,8 @@ export function TicketsTable({
                     />
                     <span className="truncate">
                       {ar
-                        ? (STATUS_AR[req.status?.toLowerCase()] || req.status)
-                        : (STATUS_EN[req.status?.toLowerCase()] || req.status)}
+                        ? STATUS_AR[req.status?.toLowerCase()] || req.status
+                        : STATUS_EN[req.status?.toLowerCase()] || req.status}
                     </span>
                   </span>
                 </TableCell>
@@ -391,16 +472,28 @@ export function TicketsTable({
                 <TableCell className="px-2 overflow-hidden">
                   <span
                     className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold border max-w-full ${priorityColor(req.priority)}`}
-                    title={ar ? (PRIORITY_AR[req.priority?.toUpperCase()] || req.priority) : req.priority}
+                    title={
+                      ar
+                        ? PRIORITY_AR[req.priority?.toUpperCase()] ||
+                          req.priority
+                        : req.priority
+                    }
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      (req.priority || "").toUpperCase() === "URGENT" ? "bg-red-600 animate-pulse" :
-                      (req.priority || "").toUpperCase() === "HIGH" ? "bg-orange-500" :
-                      (req.priority || "").toUpperCase() === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
-                    }`} />
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        (req.priority || "").toUpperCase() === "URGENT"
+                          ? "bg-red-600 animate-pulse"
+                          : (req.priority || "").toUpperCase() === "HIGH"
+                            ? "bg-orange-500"
+                            : (req.priority || "").toUpperCase() === "MEDIUM"
+                              ? "bg-yellow-500"
+                              : "bg-slate-400"
+                      }`}
+                    />
                     <span className="truncate">
                       {ar
-                        ? (PRIORITY_AR[req.priority?.toUpperCase()] || req.priority)
+                        ? PRIORITY_AR[req.priority?.toUpperCase()] ||
+                          req.priority
                         : req.priority}
                     </span>
                   </span>
@@ -410,9 +503,14 @@ export function TicketsTable({
               {isColVisible("assigned_to") && (
                 <TableCell className="text-xs px-2 overflow-hidden">
                   {req.assignedToName || req.workerName ? (
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-medium max-w-full" title={req.assignedToName || req.workerName}>
+                    <div
+                      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-medium max-w-full"
+                      title={req.assignedToName || req.workerName}
+                    >
                       <Wrench className="w-3 h-3 shrink-0 text-purple-600 dark:text-purple-400" />
-                      <span className="truncate">{req.assignedToName || req.workerName}</span>
+                      <span className="truncate">
+                        {req.assignedToName || req.workerName}
+                      </span>
                     </div>
                   ) : (
                     <span className="text-muted-foreground/50 text-[11px] italic">
@@ -426,10 +524,15 @@ export function TicketsTable({
                 <TableCell className="text-xs text-muted-foreground whitespace-nowrap px-2 overflow-hidden">
                   <div className="flex flex-col">
                     <span className="font-semibold text-foreground truncate">
-                      {ar ? "البدء: " : "Start: "}{req.reportedAt ? format(new Date(req.reportedAt), "dd-MM-yyyy") : "—"}
+                      {ar ? "البدء: " : "Start: "}
+                      {req.reportedAt
+                        ? format(new Date(req.reportedAt), "dd-MM-yyyy")
+                        : "—"}
                     </span>
                     <span className="text-muted-foreground text-[10px] font-mono">
-                      {req.reportedAt ? format(new Date(req.reportedAt), "hh:mm:ss a") : ""}
+                      {req.reportedAt
+                        ? format(new Date(req.reportedAt), "hh:mm:ss a")
+                        : ""}
                     </span>
                   </div>
                 </TableCell>
@@ -486,18 +589,29 @@ export function TicketsTable({
               )}
 
               {isVisible("actions") && (
-                <TableCell className="px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                <TableCell
+                  className="px-2 text-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="flex items-center justify-center gap-1">
                     <Button
                       size="icon"
                       className="h-7 w-7 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs"
                       onClick={() => onSelectTicket(req.id)}
-                      title={ar ? "عرض التفاصيل ومتابعة سير العمل" : "View Details & Workflow"}
+                      title={
+                        ar
+                          ? "عرض التفاصيل ومتابعة سير العمل"
+                          : "View Details & Workflow"
+                      }
                     >
                       <Eye className="w-3.5 h-3.5" />
                     </Button>
 
-                    {(isSuperAdmin || isAdmin || (req.category === "housekeeping" ? canDeleteHsk : canDeleteMnt)) && (
+                    {(isSuperAdmin ||
+                      isAdmin ||
+                      (req.category === "housekeeping"
+                        ? canDeleteHsk
+                        : canDeleteMnt)) && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -508,13 +622,20 @@ export function TicketsTable({
                             <MoreVertical className="w-3.5 h-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44 text-xs">
+                        <DropdownMenuContent
+                          align="end"
+                          className="w-44 text-xs"
+                        >
                           <DropdownMenuItem
                             onClick={() => onSelectTicket(req.id)}
                             className="gap-2 cursor-pointer font-medium"
                           >
                             <Eye className="w-3.5 h-3.5 text-primary" />
-                            <span>{ar ? "سير العمل والتفاصيل" : "Workflow & Details"}</span>
+                            <span>
+                              {ar
+                                ? "سير العمل والتفاصيل"
+                                : "Workflow & Details"}
+                            </span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -549,10 +670,16 @@ export function TicketsTable({
                   </div>
                   <p className="text-base font-bold text-foreground">
                     {categoryFilter === "housekeeping"
-                      ? (ar ? "لا توجد طلبات هاوس كيبنج حالياً" : "No housekeeping orders found")
+                      ? ar
+                        ? "لا توجد طلبات هاوس كيبنج حالياً"
+                        : "No housekeeping orders found"
                       : categoryFilter === "maintenance"
-                        ? (ar ? "لا توجد بلاغات صيانة حالياً" : "No maintenance orders found")
-                        : (ar ? "لم يتم العثور على أي تذاكر مطابقة" : "No tickets found")}
+                        ? ar
+                          ? "لا توجد بلاغات صيانة حالياً"
+                          : "No maintenance orders found"
+                        : ar
+                          ? "لم يتم العثور على أي تذاكر مطابقة"
+                          : "No tickets found"}
                   </p>
                   <p className="text-xs text-muted-foreground max-w-sm text-center">
                     {ar

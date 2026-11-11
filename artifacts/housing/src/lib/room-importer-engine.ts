@@ -61,7 +61,8 @@ export const SYSTEM_FIELDS: SystemFieldDef[] = [
     labelEn: "Room Classification",
     required: false,
     descriptionAr: "تصنيف الغرفة (مثل Staff, Supervisor, Management, VIP)",
-    descriptionEn: "Room classification (e.g. Staff, Supervisor, Management, VIP)",
+    descriptionEn:
+      "Room classification (e.g. Staff, Supervisor, Management, VIP)",
     aliases: [
       "room classification",
       "room_classification",
@@ -82,8 +83,10 @@ export const SYSTEM_FIELDS: SystemFieldDef[] = [
     labelAr: "نوع الغرفة",
     labelEn: "Room Type",
     required: true,
-    descriptionAr: "نوع الغرفة الهندسي كـ Single أو Double أو Triple أو Suite (إجباري)",
-    descriptionEn: "Physical room type (Single, Double, Triple, Suite) (Required)",
+    descriptionAr:
+      "نوع الغرفة الهندسي كـ Single أو Double أو Triple أو Suite (إجباري)",
+    descriptionEn:
+      "Physical room type (Single, Double, Triple, Suite) (Required)",
     aliases: [
       "room type",
       "roomtype",
@@ -263,13 +266,7 @@ export const SYSTEM_FIELDS: SystemFieldDef[] = [
     required: false,
     descriptionAr: "تخصيص الغرفة رجال أو سيدات (male / female)",
     descriptionEn: "Gender preference (male / female)",
-    aliases: [
-      "gender",
-      "sex",
-      "النوع",
-      "الجنس",
-      "تخصيص الجنس",
-    ],
+    aliases: ["gender", "sex", "النوع", "الجنس", "تخصيص الجنس"],
   },
 ];
 
@@ -300,24 +297,82 @@ export function detectColumnField(headerName: string): SystemFieldKey {
   }
 
   // 2. Specific feature/attribute checks before generic room checks
-  if (norm.includes("feat") || norm.includes("amenit") || norm.includes("ميز") || norm.includes("مرافق")) return "features";
-  if (norm.includes("view") || norm.includes("إطلال") || norm.includes("فيو")) return "view";
-  if (norm.includes("door") || norm.includes("separat") || norm.includes("connect") || norm.includes("فاصل") || norm.includes("متصل")) return "separatorDoor";
-  if (norm.includes("bed") || norm.includes("سرير") || norm.includes("أسرة")) return "bedType";
-  if (norm.includes("class") || norm.includes("category") || norm.includes("صنيف") || norm.includes("فئة")) return "classification";
+  if (
+    norm.includes("feat") ||
+    norm.includes("amenit") ||
+    norm.includes("ميز") ||
+    norm.includes("مرافق")
+  )
+    return "features";
+  if (norm.includes("view") || norm.includes("إطلال") || norm.includes("فيو"))
+    return "view";
+  if (
+    norm.includes("door") ||
+    norm.includes("separat") ||
+    norm.includes("connect") ||
+    norm.includes("فاصل") ||
+    norm.includes("متصل")
+  )
+    return "separatorDoor";
+  if (norm.includes("bed") || norm.includes("سرير") || norm.includes("أسرة"))
+    return "bedType";
+  if (
+    norm.includes("class") ||
+    norm.includes("category") ||
+    norm.includes("صنيف") ||
+    norm.includes("فئة")
+  )
+    return "classification";
   if (norm.includes("type") || norm.includes("نوع")) return "roomType";
-  if (norm.includes("occ") || norm.includes("capac") || norm.includes("pax") || norm.includes("سعة") || norm.includes("إشغال")) return "capacity";
-  if (norm.includes("floor") || norm.includes("level") || norm.includes("story") || norm.includes("دور") || norm.includes("طابق")) return "floor";
-  if (norm.includes("size") || norm.includes("area") || norm.includes("sqm") || norm.includes("m2") || norm.includes("مساح")) return "size";
-  if (norm.includes("build") || norm.includes("block") || norm.includes("مبنى") || norm.includes("عمار")) return "building";
-  if (norm.includes("gender") || norm.includes("sex") || norm.includes("جنس") || norm.includes("نوع")) return "gender";
+  if (
+    norm.includes("occ") ||
+    norm.includes("capac") ||
+    norm.includes("pax") ||
+    norm.includes("سعة") ||
+    norm.includes("إشغال")
+  )
+    return "capacity";
+  if (
+    norm.includes("floor") ||
+    norm.includes("level") ||
+    norm.includes("story") ||
+    norm.includes("دور") ||
+    norm.includes("طابق")
+  )
+    return "floor";
+  if (
+    norm.includes("size") ||
+    norm.includes("area") ||
+    norm.includes("sqm") ||
+    norm.includes("m2") ||
+    norm.includes("مساح")
+  )
+    return "size";
+  if (
+    norm.includes("build") ||
+    norm.includes("block") ||
+    norm.includes("مبنى") ||
+    norm.includes("عمار")
+  )
+    return "building";
+  if (
+    norm.includes("gender") ||
+    norm.includes("sex") ||
+    norm.includes("جنس") ||
+    norm.includes("نوع")
+  )
+    return "gender";
 
   // 3. Room number checks
   if (
     norm === "no." ||
     norm === "no" ||
     norm === "#" ||
-    (norm.includes("room") && (norm.includes("num") || norm.includes("no") || norm.includes("#") || norm.includes("s"))) ||
+    (norm.includes("room") &&
+      (norm.includes("num") ||
+        norm.includes("no") ||
+        norm.includes("#") ||
+        norm.includes("s"))) ||
     norm.includes("غرف")
   ) {
     return "roomNumber";
@@ -336,8 +391,13 @@ export function normalizeBoolean(val: any): boolean {
   return ["yes", "y", "true", "1", "نعم", "ايوه", "متاح", "صح"].includes(s);
 }
 
-export function normalizeSize(val: any): { numeric: number | null; unit: string; original: string } {
-  if (val === null || val === undefined) return { numeric: null, unit: "m²", original: "" };
+export function normalizeSize(val: any): {
+  numeric: number | null;
+  unit: string;
+  original: string;
+} {
+  if (val === null || val === undefined)
+    return { numeric: null, unit: "m²", original: "" };
   const orig = String(val).trim();
   const match = orig.match(/([0-9]+(?:\.[0-9]+)?)/);
   const numeric = match ? Math.round(parseFloat(match[1])) : null;
@@ -348,7 +408,13 @@ export function normalizeFloor(val: any): string {
   if (val === null || val === undefined) return "1";
   const s = String(val).trim().toLowerCase();
   if (s === "gf" || s.includes("ground") || s.includes("أرضي")) return "0";
-  if (s === "1st" || s.includes("first") || s.includes("اول") || s.includes("أول")) return "1";
+  if (
+    s === "1st" ||
+    s.includes("first") ||
+    s.includes("اول") ||
+    s.includes("أول")
+  )
+    return "1";
   if (s === "2nd" || s.includes("second") || s.includes("ثاني")) return "2";
   if (s === "3rd" || s.includes("third") || s.includes("ثالث")) return "3";
   if (s === "4th" || s.includes("fourth") || s.includes("رابع")) return "4";
@@ -532,7 +598,9 @@ export function validateAndNormalizeRows({
 
     // 2. Room Type & Classification Validation
     const cleanRoomType = rawRoomType ? normalizeRoomType(rawRoomType) : "";
-    const cleanClassification = rawClassification ? String(rawClassification).trim() : "";
+    const cleanClassification = rawClassification
+      ? String(rawClassification).trim()
+      : "";
 
     if (!cleanRoomType && !cleanClassification) {
       errors.push({
@@ -542,19 +610,26 @@ export function validateAndNormalizeRows({
         value: rawRoomType || rawClassification,
         errorAr: "نوع أو تصنيف الغرفة مفقود",
         errorEn: "Room type/classification is missing",
-        suggestedFixAr: "حدد نوع الغرفة (مثل Double أو Suite) أو تصنيفها (مثل Deluxe أو Staff)",
-        suggestedFixEn: "Specify room classification or type (e.g. Deluxe, Standard)",
+        suggestedFixAr:
+          "حدد نوع الغرفة (مثل Double أو Suite) أو تصنيفها (مثل Deluxe أو Staff)",
+        suggestedFixEn:
+          "Specify room classification or type (e.g. Deluxe, Standard)",
         severity: "error",
       });
     }
 
     const finalRoomType = cleanRoomType || cleanClassification || "Standard";
-    const finalClassification = cleanClassification || cleanRoomType || "Standard";
+    const finalClassification =
+      cleanClassification || cleanRoomType || "Standard";
 
     // 3. Capacity Validation
     let capacityNum = parseInt(String(rawCapacity ?? ""), 10);
     if (isNaN(capacityNum) || capacityNum <= 0) {
-      if (rawCapacity !== undefined && rawCapacity !== null && String(rawCapacity).trim() !== "") {
+      if (
+        rawCapacity !== undefined &&
+        rawCapacity !== null &&
+        String(rawCapacity).trim() !== ""
+      ) {
         errors.push({
           rowNumber,
           column: "Max. Occ.",
@@ -590,8 +665,12 @@ export function validateAndNormalizeRows({
     const normFeatures = normalizeFeatures(rawFeatures);
     const normSepDoor = normalizeBoolean(rawSeparatorDoor);
 
-    const isExisting = cleanRoomNumber ? existingMap.has(cleanRoomNumber.toLowerCase()) : false;
-    const existingRoom = cleanRoomNumber ? existingMap.get(cleanRoomNumber.toLowerCase()) : undefined;
+    const isExisting = cleanRoomNumber
+      ? existingMap.has(cleanRoomNumber.toLowerCase())
+      : false;
+    const existingRoom = cleanRoomNumber
+      ? existingMap.get(cleanRoomNumber.toLowerCase())
+      : undefined;
 
     if (isExisting) {
       warnings.push({
@@ -601,7 +680,8 @@ export function validateAndNormalizeRows({
         value: cleanRoomNumber,
         errorAr: `الغرفة "${cleanRoomNumber}" مسجلة مسبقاً بالنظام (سيتم تحديثها أو تخطيها حسب نمط الاستيراد)`,
         errorEn: `Room "${cleanRoomNumber}" already exists (will be updated or skipped by mode)`,
-        suggestedFixAr: "اختر نمط الاستيراد المناسب (Create + Update أو Update Only)",
+        suggestedFixAr:
+          "اختر نمط الاستيراد المناسب (Create + Update أو Update Only)",
         suggestedFixEn: "Select appropriate import mode",
         severity: "warning",
       });
@@ -674,12 +754,12 @@ export function downloadRoomImportTemplate(
       "Room Type": "Double Room",
       "Bed Type": "Twin Bed",
       "Max. Occ.": 3,
-      "Floor": "1st",
+      Floor: "1st",
       "Rooms View": "Back view",
       "Separator door": "Yes",
       "Room Features": "bedroom, seating area, bathroom",
-      "Size": "40m2",
-      "Building": "Main Building",
+      Size: "40m2",
+      Building: "Main Building",
     },
     {
       "NO.": 2,
@@ -688,12 +768,12 @@ export function downloadRoomImportTemplate(
       "Room Type": "Double Room",
       "Bed Type": "Twin Bed",
       "Max. Occ.": 3,
-      "Floor": "1st",
+      Floor: "1st",
       "Rooms View": "Tal View",
       "Separator door": "Yes",
       "Room Features": "bedroom, seating area, bathroom",
-      "Size": "40m2",
-      "Building": "Main Building",
+      Size: "40m2",
+      Building: "Main Building",
     },
     {
       "NO.": 3,
@@ -702,12 +782,12 @@ export function downloadRoomImportTemplate(
       "Room Type": "Single Room",
       "Bed Type": "Queen Bed",
       "Max. Occ.": 1,
-      "Floor": "1st",
+      Floor: "1st",
       "Rooms View": "Back view",
       "Separator door": "Yes",
       "Room Features": "bedroom, seating area, bathroom",
-      "Size": "40m2",
-      "Building": "Main Building",
+      Size: "40m2",
+      Building: "Main Building",
     },
     {
       "NO.": 4,
@@ -716,12 +796,12 @@ export function downloadRoomImportTemplate(
       "Room Type": "Single Room",
       "Bed Type": "Queen Bed",
       "Max. Occ.": 1,
-      "Floor": "1st",
+      Floor: "1st",
       "Rooms View": "Tal View",
       "Separator door": "Yes",
       "Room Features": "bedroom, seating area, bathroom",
-      "Size": "40m2",
-      "Building": "Main Building",
+      Size: "40m2",
+      Building: "Main Building",
     },
     {
       "NO.": 5,
@@ -730,12 +810,12 @@ export function downloadRoomImportTemplate(
       "Room Type": "Double Room",
       "Bed Type": "Queen Bed",
       "Max. Occ.": 2,
-      "Floor": "1st",
+      Floor: "1st",
       "Rooms View": "Tal View",
       "Separator door": "NO",
       "Room Features": "bedroom, bathroom",
-      "Size": "40m2",
-      "Building": "Main Building",
+      Size: "40m2",
+      Building: "Main Building",
     },
     {
       "NO.": 6,
@@ -744,12 +824,12 @@ export function downloadRoomImportTemplate(
       "Room Type": "Suite",
       "Bed Type": "Twin Bed",
       "Max. Occ.": 4,
-      "Floor": "1st",
+      Floor: "1st",
       "Rooms View": "Tal View",
       "Separator door": "Yes",
       "Room Features": "two bedrooms, dressing room, bathroom",
-      "Size": "50m2",
-      "Building": "Main Building",
+      Size: "50m2",
+      Building: "Main Building",
     },
   ];
 
@@ -768,7 +848,9 @@ export function downloadRoomImportTemplate(
         : "Unique room code or number within the building",
     },
     {
-      [colKey]: isAr ? "تصنيف الغرفة (Room Classification)" : "Room Classification",
+      [colKey]: isAr
+        ? "تصنيف الغرفة (Room Classification)"
+        : "Room Classification",
       [reqKey]: isAr ? "اختياري" : "Optional",
       [exKey]: "Deluxe, Superior, Family Suite, Staff, Supervisor",
       [descKey]: isAr
@@ -802,7 +884,9 @@ export function downloadRoomImportTemplate(
     {
       [colKey]: isAr ? "الطابق (Floor)" : "Floor",
       [reqKey]: isAr ? "اختياري" : "Optional",
-      [exKey]: isAr ? "0, 1, 2 أو Ground, 1st, 2nd" : "Ground, 1st, 2nd, 3rd or 0, 1, 2",
+      [exKey]: isAr
+        ? "0, 1, 2 أو Ground, 1st, 2nd"
+        : "Ground, 1st, 2nd, 3rd or 0, 1, 2",
       [descKey]: isAr
         ? "رقم أو اسم الطابق (سيتم إنشاؤه تلقائياً إذا لم يكن موجوداً)"
         : "Floor name or number (auto-created if missing)",
@@ -869,12 +953,7 @@ export function downloadRoomImportTemplate(
   XLSX.utils.book_append_sheet(wb, wsRooms, "Room Configuration");
 
   const wsGuide = XLSX.utils.json_to_sheet(guideData);
-  wsGuide["!cols"] = [
-    { wch: 32 },
-    { wch: 18 },
-    { wch: 35 },
-    { wch: 55 },
-  ];
+  wsGuide["!cols"] = [{ wch: 32 }, { wch: 18 }, { wch: 35 }, { wch: 55 }];
   XLSX.utils.book_append_sheet(
     wb,
     wsGuide,
@@ -884,6 +963,8 @@ export function downloadRoomImportTemplate(
   if (format === "csv") {
     XLSX.writeFile(wb, "Room_Configuration_Template.csv", { bookType: "csv" });
   } else {
-    XLSX.writeFile(wb, "Room_Configuration_Template.xlsx", { bookType: "xlsx" });
+    XLSX.writeFile(wb, "Room_Configuration_Template.xlsx", {
+      bookType: "xlsx",
+    });
   }
 }

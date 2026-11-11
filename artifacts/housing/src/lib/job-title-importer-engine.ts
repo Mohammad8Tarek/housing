@@ -196,13 +196,15 @@ export const hasArabic = (text: string | null | undefined): boolean => {
 export function downloadLookupTemplate(
   category: string = "job_title",
   format: "xlsx" | "csv" = "xlsx",
-  language: "ar" | "en" = "ar"
+  language: "ar" | "en" = "ar",
 ) {
   const ar = language === "ar";
   const wb = XLSX.utils.book_new();
 
   if (category === "department") {
-    const colDeptEn = ar ? "القسم بالإنجليزية (Department EN)" : "Department (EN)";
+    const colDeptEn = ar
+      ? "القسم بالإنجليزية (Department EN)"
+      : "Department (EN)";
     const colDeptAr = ar ? "القسم بالعربية (Department AR)" : "Department (AR)";
     const sampleData = [
       { [colDeptEn]: "Front Office", [colDeptAr]: "المكاتب الأمامية" },
@@ -218,33 +220,55 @@ export function downloadLookupTemplate(
     const ws = XLSX.utils.json_to_sheet(sampleData);
     ws["!cols"] = [{ wch: 35 }, { wch: 35 }];
     XLSX.utils.book_append_sheet(wb, ws, ar ? "الأقسام" : "Departments");
-    const filename = format === "csv" ? "departments_template.csv" : "departments_template.xlsx";
+    const filename =
+      format === "csv"
+        ? "departments_template.csv"
+        : "departments_template.xlsx";
     XLSX.writeFile(wb, filename, { bookType: format });
     return;
   }
 
   if (category === "room_classification") {
-    const colEn = ar ? "تصنيف الغرفة بالإنجليزية (Classification EN)" : "Classification (EN)";
-    const colAr = ar ? "تصنيف الغرفة بالعربية (Classification AR)" : "Classification (AR)";
-    const colTier = ar ? "المستوى المستهدف (Target Tier / Level)" : "Target Level";
+    const colEn = ar
+      ? "تصنيف الغرفة بالإنجليزية (Classification EN)"
+      : "Classification (EN)";
+    const colAr = ar
+      ? "تصنيف الغرفة بالعربية (Classification AR)"
+      : "Classification (AR)";
+    const colTier = ar
+      ? "المستوى المستهدف (Target Tier / Level)"
+      : "Target Level";
     const sampleData = [
       { [colEn]: "Standard", [colAr]: "قياسية", [colTier]: "Staff" },
       { [colEn]: "Deluxe", [colAr]: "ديلوكس", [colTier]: "Supervisor" },
       { [colEn]: "Superior", [colAr]: "سوبيريور", [colTier]: "Management" },
       { [colEn]: "Family Suite", [colAr]: "جناح عائلي", [colTier]: "Families" },
-      { [colEn]: "Executive Suite", [colAr]: "جناح تنفيذي", [colTier]: "Executives" },
+      {
+        [colEn]: "Executive Suite",
+        [colAr]: "جناح تنفيذي",
+        [colTier]: "Executives",
+      },
       { [colEn]: "VIP", [colAr]: "كبار الشخصيات VIP", [colTier]: "VIP Guests" },
     ];
     const ws = XLSX.utils.json_to_sheet(sampleData);
     ws["!cols"] = [{ wch: 35 }, { wch: 35 }, { wch: 25 }];
-    XLSX.utils.book_append_sheet(wb, ws, ar ? "تصنيفات الغرف" : "Room Classifications");
-    const filename = format === "csv" ? "room_classifications_template.csv" : "room_classifications_template.xlsx";
+    XLSX.utils.book_append_sheet(
+      wb,
+      ws,
+      ar ? "تصنيفات الغرف" : "Room Classifications",
+    );
+    const filename =
+      format === "csv"
+        ? "room_classifications_template.csv"
+        : "room_classifications_template.xlsx";
     XLSX.writeFile(wb, filename, { bookType: format });
     return;
   }
 
   if (category === "room_type") {
-    const colEn = ar ? "نوع الغرفة بالإنجليزية (Room Type EN)" : "Room Type (EN)";
+    const colEn = ar
+      ? "نوع الغرفة بالإنجليزية (Room Type EN)"
+      : "Room Type (EN)";
     const colAr = ar ? "نوع الغرفة بالعربية (Room Type AR)" : "Room Type (AR)";
     const colCap = ar ? "أقصى سعة أسرة (Capacity)" : "Capacity";
     const sampleData = [
@@ -258,7 +282,8 @@ export function downloadLookupTemplate(
     const ws = XLSX.utils.json_to_sheet(sampleData);
     ws["!cols"] = [{ wch: 30 }, { wch: 30 }, { wch: 18 }];
     XLSX.utils.book_append_sheet(wb, ws, ar ? "أنواع الغرف" : "Room Types");
-    const filename = format === "csv" ? "room_types_template.csv" : "room_types_template.xlsx";
+    const filename =
+      format === "csv" ? "room_types_template.csv" : "room_types_template.xlsx";
     XLSX.writeFile(wb, filename, { bookType: format });
     return;
   }
@@ -276,14 +301,19 @@ export function downloadLookupTemplate(
     const ws = XLSX.utils.json_to_sheet(sampleData);
     ws["!cols"] = [{ wch: 30 }, { wch: 30 }];
     XLSX.utils.book_append_sheet(wb, ws, ar ? "أنواع الأسرة" : "Bed Types");
-    const filename = format === "csv" ? "bed_types_template.csv" : "bed_types_template.xlsx";
+    const filename =
+      format === "csv" ? "bed_types_template.csv" : "bed_types_template.xlsx";
     XLSX.writeFile(wb, filename, { bookType: format });
     return;
   }
 
   if (category === "room_view") {
-    const colEn = ar ? "إطلالة الغرفة بالإنجليزية (Room View EN)" : "Room View (EN)";
-    const colAr = ar ? "إطلالة الغرفة بالعربية (Room View AR)" : "Room View (AR)";
+    const colEn = ar
+      ? "إطلالة الغرفة بالإنجليزية (Room View EN)"
+      : "Room View (EN)";
+    const colAr = ar
+      ? "إطلالة الغرفة بالعربية (Room View AR)"
+      : "Room View (AR)";
     const sampleData = [
       { [colEn]: "Sea View", [colAr]: "إطلالة على البحر" },
       { [colEn]: "Pool View", [colAr]: "إطلالة على حمام السباحة" },
@@ -296,14 +326,17 @@ export function downloadLookupTemplate(
     const ws = XLSX.utils.json_to_sheet(sampleData);
     ws["!cols"] = [{ wch: 30 }, { wch: 30 }];
     XLSX.utils.book_append_sheet(wb, ws, ar ? "إطلالات الغرف" : "Room Views");
-    const filename = format === "csv" ? "room_views_template.csv" : "room_views_template.xlsx";
+    const filename =
+      format === "csv" ? "room_views_template.csv" : "room_views_template.xlsx";
     XLSX.writeFile(wb, filename, { bookType: format });
     return;
   }
 
   // Default: Job Titles Template with bilingual support
   const colDept = ar ? "القسم (Department)" : "Department";
-  const colTitleEn = ar ? "المسمى بالإنجليزية (Job Title EN)" : "Job Title (EN)";
+  const colTitleEn = ar
+    ? "المسمى بالإنجليزية (Job Title EN)"
+    : "Job Title (EN)";
   const colTitleAr = ar ? "المسمى بالعربية (Job Title AR)" : "Job Title (AR)";
   const colLevel = ar ? "الدرجة / المستوى (Level)" : "Level";
 
@@ -425,14 +458,21 @@ export function downloadLookupTemplate(
 
   const filename =
     format === "csv"
-      ? (ar ? "نموذج_استيراد_المسميات_والاقسام.csv" : "job_titles_template.csv")
-      : (ar ? "نموذج_استيراد_المسميات_والاقسام.xlsx" : "job_titles_template.xlsx");
+      ? ar
+        ? "نموذج_استيراد_المسميات_والاقسام.csv"
+        : "job_titles_template.csv"
+      : ar
+        ? "نموذج_استيراد_المسميات_والاقسام.xlsx"
+        : "job_titles_template.xlsx";
 
   XLSX.writeFile(wb, filename, { bookType: format });
-}/**
+} /**
  * Intelligently identifies matching column in a row object
  */
-function findValueByAliases(row: Record<string, any>, aliases: string[]): string {
+function findValueByAliases(
+  row: Record<string, any>,
+  aliases: string[],
+): string {
   const rowKeys = Object.keys(row);
   for (const alias of aliases) {
     const matchedKey = rowKeys.find((k) => {
@@ -443,7 +483,11 @@ function findValueByAliases(row: Record<string, any>, aliases: string[]): string
         alias.includes(normalizedKey)
       );
     });
-    if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== null) {
+    if (
+      matchedKey &&
+      row[matchedKey] !== undefined &&
+      row[matchedKey] !== null
+    ) {
       const val = String(row[matchedKey]).trim();
       if (val) return val;
     }
@@ -463,7 +507,7 @@ export async function parseJobTitlesFile(
     jobTitles?: any[];
     lookupValues?: any[];
     category?: string;
-  }
+  },
 ): Promise<ParseResult> {
   const buffer = await file.arrayBuffer();
   const wb = XLSX.read(buffer, { type: "array" });
@@ -483,21 +527,33 @@ export async function parseJobTitlesFile(
 
   // Pre-build indexed maps of existing database lookups for instant matching
   const existingDeptSet = new Set<string>(
-    (existingLookups?.departments || []).map((d) => String(d.value || "").trim().toLowerCase())
+    (existingLookups?.departments || []).map((d) =>
+      String(d.value || "")
+        .trim()
+        .toLowerCase(),
+    ),
   );
 
   const existingJobTitleMap = new Map<string, any>();
   for (const jt of existingLookups?.jobTitles || []) {
-    const titleVal = String(jt.value || "").trim().toLowerCase();
-    const deptVal = String(jt.parentValue || "").trim().toLowerCase();
+    const titleVal = String(jt.value || "")
+      .trim()
+      .toLowerCase();
+    const deptVal = String(jt.parentValue || "")
+      .trim()
+      .toLowerCase();
     existingJobTitleMap.set(`${deptVal}:::${titleVal}`, jt);
   }
 
   // Generic existing lookup map for other categories
   const existingLookupMap = new Map<string, any>();
   for (const item of existingLookups?.lookupValues || []) {
-    const v = String(item.value || "").trim().toLowerCase();
-    const vAr = String(item.valueAr || "").trim().toLowerCase();
+    const v = String(item.value || "")
+      .trim()
+      .toLowerCase();
+    const vAr = String(item.valueAr || "")
+      .trim()
+      .toLowerCase();
     if (v) existingLookupMap.set(v, item);
     if (vAr) existingLookupMap.set(vAr, item);
   }
@@ -542,8 +598,8 @@ export async function parseJobTitlesFile(
     let valueAr = titleAr || (hasArabic(title) ? title : "");
 
     if (activeCategory === "department") {
-      valueEn = deptEn || (!hasArabic(dept || title) ? (dept || title) : "");
-      valueAr = deptAr || (hasArabic(dept || title) ? (dept || title) : "");
+      valueEn = deptEn || (!hasArabic(dept || title) ? dept || title : "");
+      valueAr = deptAr || (hasArabic(dept || title) ? dept || title : "");
       title = valueEn || valueAr;
     }
 
@@ -554,8 +610,11 @@ export async function parseJobTitlesFile(
 
     const normDept = dept.trim().toLowerCase();
     const normTitle = title.trim().toLowerCase();
-    const normExtra = (level || (capacityNum ? String(capacityNum) : "")).trim();
-    const fileKey = activeCategory === "job_title" ? `${normDept}:::${normTitle}` : normTitle;
+    const normExtra = (
+      level || (capacityNum ? String(capacityNum) : "")
+    ).trim();
+    const fileKey =
+      activeCategory === "job_title" ? `${normDept}:::${normTitle}` : normTitle;
 
     if (!dept && !title && !valueEn && !valueAr) {
       status = "invalid";
@@ -564,7 +623,10 @@ export async function parseJobTitlesFile(
       issues.push("البيانات الأساسية مفقودة في هذا الصف");
     } else if (activeCategory === "job_title" && !title && dept) {
       // Department only row in Job Titles
-      if (existingDeptSet.has(normDept) || seenRowsInFile.has(`dept_only:::${normDept}`)) {
+      if (
+        existingDeptSet.has(normDept) ||
+        seenRowsInFile.has(`dept_only:::${normDept}`)
+      ) {
         action = "duplicate_skip";
         status = "warning";
         duplicateCount++;
@@ -580,7 +642,10 @@ export async function parseJobTitlesFile(
     } else {
       if (activeCategory === "job_title") {
         if (dept) {
-          if (!existingDeptSet.has(normDept) && !seenRowsInFile.has(`seen_dept:::${normDept}`)) {
+          if (
+            !existingDeptSet.has(normDept) &&
+            !seenRowsInFile.has(`seen_dept:::${normDept}`)
+          ) {
             newDepartmentsCount++;
             seenRowsInFile.set(`seen_dept:::${normDept}`, "new");
           }
@@ -592,9 +657,11 @@ export async function parseJobTitlesFile(
       }
 
       // Check against existing database records
-      const dbMatch = activeCategory === "job_title"
-        ? existingJobTitleMap.get(fileKey)
-        : (existingLookupMap.get(normTitle) || (valueAr ? existingLookupMap.get(valueAr.toLowerCase()) : null));
+      const dbMatch =
+        activeCategory === "job_title"
+          ? existingJobTitleMap.get(fileKey)
+          : existingLookupMap.get(normTitle) ||
+            (valueAr ? existingLookupMap.get(valueAr.toLowerCase()) : null);
 
       const prevFileLevel = seenRowsInFile.get(fileKey);
 
@@ -610,31 +677,43 @@ export async function parseJobTitlesFile(
           status = "valid";
           existingLevel = prevFileLevel || "غير محدد";
           updateCount++;
-          issues.push(`تعديل القيمة / الدرجة عن الصف السابق في الملف إلى "${normExtra}"`);
+          issues.push(
+            `تعديل القيمة / الدرجة عن الصف السابق في الملف إلى "${normExtra}"`,
+          );
           seenRowsInFile.set(fileKey, normExtra);
         }
       } else if (dbMatch) {
         // Exists in Database!
-        const dbExtra = dbMatch.extraValue ? String(dbMatch.extraValue).trim() : (dbMatch.parentValue || "");
+        const dbExtra = dbMatch.extraValue
+          ? String(dbMatch.extraValue).trim()
+          : dbMatch.parentValue || "";
         existingLevel = dbExtra;
 
-        const needsValueArUpdate = valueAr && (!dbMatch.valueAr || dbMatch.valueAr.trim() !== valueAr);
-        const needsExtraUpdate = normExtra && normExtra.toLowerCase() !== dbExtra.toLowerCase();
+        const needsValueArUpdate =
+          valueAr && (!dbMatch.valueAr || dbMatch.valueAr.trim() !== valueAr);
+        const needsExtraUpdate =
+          normExtra && normExtra.toLowerCase() !== dbExtra.toLowerCase();
 
         if (needsExtraUpdate || needsValueArUpdate) {
           action = "update";
           status = "valid";
           updateCount++;
           const reasonParts: string[] = [];
-          if (needsExtraUpdate) reasonParts.push(`تحديث الدرجة/السعة من (${dbExtra || "فارغ"}) إلى (${normExtra})`);
-          if (needsValueArUpdate) reasonParts.push(`تحديث الترجمة العربية إلى (${valueAr})`);
+          if (needsExtraUpdate)
+            reasonParts.push(
+              `تحديث الدرجة/السعة من (${dbExtra || "فارغ"}) إلى (${normExtra})`,
+            );
+          if (needsValueArUpdate)
+            reasonParts.push(`تحديث الترجمة العربية إلى (${valueAr})`);
           issues.push(`موجود مسبقاً — ${reasonParts.join(" و ")}`);
           seenRowsInFile.set(fileKey, normExtra);
         } else {
           action = "duplicate_skip";
           status = "warning";
           duplicateCount++;
-          issues.push("مطابق تماماً للسجل الموجود في النظام — لن ينزل مجدداً لمنع التكرار");
+          issues.push(
+            "مطابق تماماً للسجل الموجود في النظام — لن ينزل مجدداً لمنع التكرار",
+          );
           seenRowsInFile.set(fileKey, normExtra);
         }
       } else {

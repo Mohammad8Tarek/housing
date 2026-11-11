@@ -3,8 +3,6 @@
 // Shared report engine types.
 // ============================================================================
 
-
-
 export interface ReportKpiCard {
   label: string;
   labelAr?: string;

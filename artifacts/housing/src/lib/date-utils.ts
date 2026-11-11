@@ -14,10 +14,7 @@ export {
  * Standard Day/Month/Year display across the entire system: DD/MM/YYYY.
  * Thin alias over the canonical `@workspace/dates` implementation.
  */
-export function formatDate(
-  date: DateInput,
-  fallback: string = "—",
-): string {
+export function formatDate(date: DateInput, fallback: string = "—"): string {
   return formatDMY(date, fallback);
 }
 

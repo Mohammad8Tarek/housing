@@ -13,7 +13,7 @@ import { propertiesTable } from "./properties";
 /**
  * Property Housing Ratings (تقييمات جودة السكن الأسبوعية)
  * Automated recurring 7-day employee satisfaction pulse.
- * 
+ *
  * Strict Anonymity Rule:
  * `profileId` is stored ONLY for throttling / 7-day cooldown enforcement.
  * Management reports and APIs strictly omit profileId, employee names, and identifiable details.
@@ -35,13 +35,19 @@ export const propertyHousingRatingsTable = pgTable(
       .defaultNow(),
   },
   (table) => [
-    index("idx_prop_housing_ratings_cooldown").on(table.profileId, table.createdAt),
-    index("idx_prop_housing_ratings_prop").on(table.propertyId, table.createdAt),
-  ]
+    index("idx_prop_housing_ratings_cooldown").on(
+      table.profileId,
+      table.createdAt,
+    ),
+    index("idx_prop_housing_ratings_prop").on(
+      table.propertyId,
+      table.createdAt,
+    ),
+  ],
 );
 
 export const insertPropertyHousingRatingSchema = createInsertSchema(
-  propertyHousingRatingsTable
+  propertyHousingRatingsTable,
 ).omit({ id: true, createdAt: true });
 
 export type InsertPropertyHousingRating = z.infer<

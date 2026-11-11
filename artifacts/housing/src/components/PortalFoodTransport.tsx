@@ -371,9 +371,7 @@ function FoodMenuSection({
                 <Label>{ar ? "التاريخ" : "Date"}</Label>
                 <DateInput
                   value={form.date}
-                  onChange={(iso) =>
-                    setForm((f) => ({ ...f, date: iso }))
-                  }
+                  onChange={(iso) => setForm((f) => ({ ...f, date: iso }))}
                 />
               </div>
             </div>

@@ -1,24 +1,33 @@
-import { pgTable, serial, integer, text, timestamp, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  integer,
+  text,
+  timestamp,
+  index,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { usersTable } from "./users";
 
-export const userSignaturesTable = pgTable("user_signatures", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" })
-    .unique(),
-  signatureImageUrl: text("signature_image_url").notNull(),
-  uploadedAt: timestamp("uploaded_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-}, (table) => [
-  index("idx_user_signatures_user_id").on(table.userId),
-]);
+export const userSignaturesTable = pgTable(
+  "user_signatures",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" })
+      .unique(),
+    signatureImageUrl: text("signature_image_url").notNull(),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("idx_user_signatures_user_id").on(table.userId)],
+);
 
 export const insertUserSignatureSchema = createInsertSchema(
   userSignaturesTable,

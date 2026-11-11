@@ -3,7 +3,21 @@ import { useQuery } from "@tanstack/react-query";
 import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
-import { HeartHandshake, Star, Smile, Meh, Frown, Building2, Lock, Search, CheckCircle2, TrendingUp, MessageSquare, RefreshCw, Sparkles } from "lucide-react";
+import {
+  HeartHandshake,
+  Star,
+  Smile,
+  Meh,
+  Frown,
+  Building2,
+  Lock,
+  Search,
+  CheckCircle2,
+  TrendingUp,
+  MessageSquare,
+  RefreshCw,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
@@ -32,7 +46,10 @@ interface HousingRatingsTabProps {
   ar: boolean;
   activePropertyId?: number | string | null;
   properties?: any[];
-  onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
+  onRegisterExport?: (actions: {
+    exportExcel?: () => void;
+    exportPDF?: () => void;
+  }) => void;
 }
 
 export function HousingRatingsTab({
@@ -42,7 +59,9 @@ export function HousingRatingsTab({
   onRegisterExport,
 }: HousingRatingsTabProps) {
   const [selectedProp, setSelectedProp] = useState<string>(
-    activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all"
+    activePropertyId && activePropertyId !== "all"
+      ? String(activePropertyId)
+      : "all",
   );
   const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [fromDate, setFromDate] = useState<string>("");
@@ -51,20 +70,42 @@ export function HousingRatingsTab({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(15);
 
-  const queryPropertyId = selectedProp !== "all" ? selectedProp : (activePropertyId && activePropertyId !== "all" ? String(activePropertyId) : "all");
+  const queryPropertyId =
+    selectedProp !== "all"
+      ? selectedProp
+      : activePropertyId && activePropertyId !== "all"
+        ? String(activePropertyId)
+        : "all";
 
-  const { data: responseData, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["housing-ratings-report", queryPropertyId, ratingFilter, fromDate, toDate, currentPage, pageSize],
+  const {
+    data: responseData,
+    isLoading,
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: [
+      "housing-ratings-report",
+      queryPropertyId,
+      ratingFilter,
+      fromDate,
+      toDate,
+      currentPage,
+      pageSize,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (queryPropertyId && queryPropertyId !== "all") params.append("propertyId", queryPropertyId);
-      if (ratingFilter && ratingFilter !== "all") params.append("rating", ratingFilter);
+      if (queryPropertyId && queryPropertyId !== "all")
+        params.append("propertyId", queryPropertyId);
+      if (ratingFilter && ratingFilter !== "all")
+        params.append("rating", ratingFilter);
       if (fromDate) params.append("fromDate", fromDate);
       if (toDate) params.append("toDate", toDate);
       params.append("page", String(currentPage));
       params.append("limit", String(pageSize));
 
-      const res = await fetch(`/api/reports/housing-ratings?${params.toString()}`);
+      const res = await fetch(
+        `/api/reports/housing-ratings?${params.toString()}`,
+      );
       if (!res.ok) {
         throw new Error("Failed to fetch housing ratings report");
       }
@@ -95,23 +136,32 @@ export function HousingRatingsTab({
     return commentsList.filter(
       (c) =>
         (c.comment && c.comment.toLowerCase().includes(s)) ||
-        (c.propertyName && c.propertyName.toLowerCase().includes(s))
+        (c.propertyName && c.propertyName.toLowerCase().includes(s)),
     );
   }, [commentsList, searchComment]);
 
   const handleExportExcel = () => {
-    const rowsToExport = allCommentsList.length > 0 ? allCommentsList : commentsList;
+    const rowsToExport =
+      allCommentsList.length > 0 ? allCommentsList : commentsList;
     const excelRows = rowsToExport.map((r: any, idx: number) => ({
       "#": idx + 1,
       [ar ? "السكن / الفندق" : "Property"]: r.propertyName || "-",
       [ar ? "التقييم" : "Rating"]:
         r.rating === "satisfied"
-          ? ar ? "راضي" : "Satisfied"
+          ? ar
+            ? "راضي"
+            : "Satisfied"
           : r.rating === "neutral"
-          ? ar ? "متوسط" : "Neutral"
-          : ar ? "غير راضي" : "Dissatisfied",
+            ? ar
+              ? "متوسط"
+              : "Neutral"
+            : ar
+              ? "غير راضي"
+              : "Dissatisfied",
       [ar ? "الدرجة (من 5)" : "Score (out of 5)"]: r.score || "-",
-      [ar ? "الملاحظة / المقترح (سري ومجهول)" : "Feedback / Comment (Anonymous)"]: r.comment || "-",
+      [ar
+        ? "الملاحظة / المقترح (سري ومجهول)"
+        : "Feedback / Comment (Anonymous)"]: r.comment || "-",
       [ar ? "تاريخ التقييم" : "Date"]: formatDate(r.createdAt),
     }));
 
@@ -119,8 +169,14 @@ export function HousingRatingsTab({
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Housing Pulse Ratings");
 
-    const propName = properties.find((p) => String(p.id) === String(queryPropertyId))?.name || "All_Properties";
-    writeSunriseWorkbook(wb, getExportFileName(`Housing_Pulse_Ratings_${propName}`, "xlsx"), { rtl: ar });
+    const propName =
+      properties.find((p) => String(p.id) === String(queryPropertyId))?.name ||
+      "All_Properties";
+    writeSunriseWorkbook(
+      wb,
+      getExportFileName(`Housing_Pulse_Ratings_${propName}`, "xlsx"),
+      { rtl: ar },
+    );
   };
 
   const [isStudioOpen, setIsStudioOpen] = useState(false);
@@ -130,19 +186,31 @@ export function HousingRatingsTab({
     { key: "property", header: "Property", headerAr: "السكن" },
     { key: "rating", header: "Rating", headerAr: "التقييم" },
     { key: "score", header: "Score", headerAr: "الدرجة" },
-    { key: "comment", header: "Feedback / Comment", headerAr: "الملاحظة (سرية ومجهولة)" },
+    {
+      key: "comment",
+      header: "Feedback / Comment",
+      headerAr: "الملاحظة (سرية ومجهولة)",
+    },
     { key: "date", header: "Date", headerAr: "التاريخ", type: "date" },
   ];
 
   const handlePrintReport = () => {
-    const rows = (allCommentsList.length > 0 ? allCommentsList : commentsList).map((r: any) => ({
+    const rows = (
+      allCommentsList.length > 0 ? allCommentsList : commentsList
+    ).map((r: any) => ({
       property: r.propertyName || "-",
       rating:
         r.rating === "satisfied"
-          ? ar ? "راضي" : "Satisfied"
+          ? ar
+            ? "راضي"
+            : "Satisfied"
           : r.rating === "neutral"
-          ? ar ? "متوسط" : "Neutral"
-          : ar ? "غير راضي" : "Dissatisfied",
+            ? ar
+              ? "متوسط"
+              : "Neutral"
+            : ar
+              ? "غير راضي"
+              : "Dissatisfied",
       score: `${r.score} / 5`,
       comment: r.comment || "-",
       date: formatDate(r.createdAt),
@@ -160,7 +228,14 @@ export function HousingRatingsTab({
         exportPDF: handlePrintReport,
       });
     }
-  }, [onRegisterExport, allCommentsList, commentsList, queryPropertyId, ar, stats]);
+  }, [
+    onRegisterExport,
+    allCommentsList,
+    commentsList,
+    queryPropertyId,
+    ar,
+    stats,
+  ]);
 
   const resetFilters = () => {
     setSelectedProp("all");
@@ -193,7 +268,10 @@ export function HousingRatingsTab({
                 {stats.satisfiedCount} {ar ? "راضي" : "Satisfied"}
               </span>
             </div>
-            <Progress value={stats.satisfactionRate} className="h-2 mt-3 bg-muted" />
+            <Progress
+              value={stats.satisfactionRate}
+              className="h-2 mt-3 bg-muted"
+            />
           </div>
         </div>
 
@@ -210,11 +288,17 @@ export function HousingRatingsTab({
           <div className="mt-3">
             <div className="text-3xl font-black tracking-tight text-foreground flex items-baseline gap-1.5">
               <span>{stats.averageScore}</span>
-              <span className="text-sm font-medium text-muted-foreground">/ 5.0</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                / 5.0
+              </span>
             </div>
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
               <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
-              <span>{ar ? "مقياس جودة السكن الأسبوعي" : "Weekly Housing Quality Index"}</span>
+              <span>
+                {ar
+                  ? "مقياس جودة السكن الأسبوعي"
+                  : "Weekly Housing Quality Index"}
+              </span>
             </p>
           </div>
         </div>
@@ -235,7 +319,9 @@ export function HousingRatingsTab({
             </div>
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-muted-foreground/70" />
-              <span>{ar ? "تحديث تلقائي كل 7 أيام" : "Auto-recurring every 7 days"}</span>
+              <span>
+                {ar ? "تحديث تلقائي كل 7 أيام" : "Auto-recurring every 7 days"}
+              </span>
             </p>
           </div>
         </div>
@@ -256,7 +342,11 @@ export function HousingRatingsTab({
             </div>
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-              <span>{ar ? "ملاحظات سرية لتحسين الخدمات" : "Anonymous suggestions for improvement"}</span>
+              <span>
+                {ar
+                  ? "ملاحظات سرية لتحسين الخدمات"
+                  : "Anonymous suggestions for improvement"}
+              </span>
             </p>
           </div>
         </div>
@@ -266,7 +356,11 @@ export function HousingRatingsTab({
       <div className="rounded-2xl border bg-card p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <span>{ar ? "توزيع نسب الرضا (استطلاع الـ 7 أيام)" : "Satisfaction Distribution (7-Day Pulse)"}</span>
+            <span>
+              {ar
+                ? "توزيع نسب الرضا (استطلاع الـ 7 أيام)"
+                : "Satisfaction Distribution (7-Day Pulse)"}
+            </span>
           </h3>
           <span className="text-xs text-muted-foreground font-mono">
             {stats.totalRatings} {ar ? "مشارك" : "responses"}
@@ -336,7 +430,11 @@ export function HousingRatingsTab({
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" />
-              <span>{ar ? "مقارنة مستويات الرضا بين السكنات والفنادق" : "Property Satisfaction Benchmark"}</span>
+              <span>
+                {ar
+                  ? "مقارنة مستويات الرضا بين السكنات والفنادق"
+                  : "Property Satisfaction Benchmark"}
+              </span>
             </h3>
           </div>
 
@@ -344,13 +442,27 @@ export function HousingRatingsTab({
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
-                  <TableHead className="font-bold">{ar ? "السكن / الخاصية" : "Property"}</TableHead>
-                  <TableHead className="text-center font-bold">{ar ? "إجمالي التقييمات" : "Total Ratings"}</TableHead>
-                  <TableHead className="text-center font-bold text-emerald-600 dark:text-emerald-400">{ar ? "راضي" : "Satisfied"}</TableHead>
-                  <TableHead className="text-center font-bold text-amber-600 dark:text-amber-400">{ar ? "متوسط" : "Neutral"}</TableHead>
-                  <TableHead className="text-center font-bold text-rose-600 dark:text-rose-400">{ar ? "غير راضي" : "Dissatisfied"}</TableHead>
-                  <TableHead className="text-center font-bold">{ar ? "متوسط الدرجة" : "Avg Score"}</TableHead>
-                  <TableHead className="font-bold">{ar ? "مؤشر الرضا" : "Satisfaction Index"}</TableHead>
+                  <TableHead className="font-bold">
+                    {ar ? "السكن / الخاصية" : "Property"}
+                  </TableHead>
+                  <TableHead className="text-center font-bold">
+                    {ar ? "إجمالي التقييمات" : "Total Ratings"}
+                  </TableHead>
+                  <TableHead className="text-center font-bold text-emerald-600 dark:text-emerald-400">
+                    {ar ? "راضي" : "Satisfied"}
+                  </TableHead>
+                  <TableHead className="text-center font-bold text-amber-600 dark:text-amber-400">
+                    {ar ? "متوسط" : "Neutral"}
+                  </TableHead>
+                  <TableHead className="text-center font-bold text-rose-600 dark:text-rose-400">
+                    {ar ? "غير راضي" : "Dissatisfied"}
+                  </TableHead>
+                  <TableHead className="text-center font-bold">
+                    {ar ? "متوسط الدرجة" : "Avg Score"}
+                  </TableHead>
+                  <TableHead className="font-bold">
+                    {ar ? "مؤشر الرضا" : "Satisfaction Index"}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -360,25 +472,47 @@ export function HousingRatingsTab({
                       <div className="w-2 h-2 rounded-full bg-primary" />
                       <span>{pb.propertyName}</span>
                     </TableCell>
-                    <TableCell className="text-center font-mono font-medium">{pb.total}</TableCell>
+                    <TableCell className="text-center font-mono font-medium">
+                      {pb.total}
+                    </TableCell>
                     <TableCell className="text-center font-medium text-emerald-600 dark:text-emerald-400">
-                      {pb.satisfied} ({pb.total > 0 ? Math.round((pb.satisfied / pb.total) * 100) : 0}%)
+                      {pb.satisfied} (
+                      {pb.total > 0
+                        ? Math.round((pb.satisfied / pb.total) * 100)
+                        : 0}
+                      %)
                     </TableCell>
                     <TableCell className="text-center font-medium text-amber-600 dark:text-amber-400">
-                      {pb.neutral} ({pb.total > 0 ? Math.round((pb.neutral / pb.total) * 100) : 0}%)
+                      {pb.neutral} (
+                      {pb.total > 0
+                        ? Math.round((pb.neutral / pb.total) * 100)
+                        : 0}
+                      %)
                     </TableCell>
                     <TableCell className="text-center font-medium text-rose-600 dark:text-rose-400">
-                      {pb.dissatisfied} ({pb.total > 0 ? Math.round((pb.dissatisfied / pb.total) * 100) : 0}%)
+                      {pb.dissatisfied} (
+                      {pb.total > 0
+                        ? Math.round((pb.dissatisfied / pb.total) * 100)
+                        : 0}
+                      %)
                     </TableCell>
                     <TableCell className="text-center font-bold">
-                      <Badge variant="outline" className="font-mono bg-amber-500/10 text-amber-600 border-amber-300">
+                      <Badge
+                        variant="outline"
+                        className="font-mono bg-amber-500/10 text-amber-600 border-amber-300"
+                      >
                         {pb.averageScore} / 5
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Progress value={pb.satisfactionRate} className="h-2 w-24" />
-                        <span className="text-xs font-bold">{pb.satisfactionRate}%</span>
+                        <Progress
+                          value={pb.satisfactionRate}
+                          className="h-2 w-24"
+                        />
+                        <span className="text-xs font-bold">
+                          {pb.satisfactionRate}%
+                        </span>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -398,12 +532,22 @@ export function HousingRatingsTab({
               <Label className="text-xs font-medium text-muted-foreground">
                 {ar ? "تصفية بالسكن" : "Filter Property"}
               </Label>
-              <Select value={selectedProp} onValueChange={(val) => { setSelectedProp(val); setCurrentPage(1); }}>
+              <Select
+                value={selectedProp}
+                onValueChange={(val) => {
+                  setSelectedProp(val);
+                  setCurrentPage(1);
+                }}
+              >
                 <SelectTrigger className="text-xs h-9">
-                  <SelectValue placeholder={ar ? "كافة السكنات" : "All Properties"} />
+                  <SelectValue
+                    placeholder={ar ? "كافة السكنات" : "All Properties"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{ar ? "كافة السكنات والفنادق" : "All Properties"}</SelectItem>
+                  <SelectItem value="all">
+                    {ar ? "كافة السكنات والفنادق" : "All Properties"}
+                  </SelectItem>
                   {properties.map((p) => (
                     <SelectItem key={p.id} value={String(p.id)}>
                       {p.displayName || p.name}
@@ -418,15 +562,31 @@ export function HousingRatingsTab({
               <Label className="text-xs font-medium text-muted-foreground">
                 {ar ? "تصفية بالتقييم" : "Filter Rating"}
               </Label>
-              <Select value={ratingFilter} onValueChange={(val) => { setRatingFilter(val); setCurrentPage(1); }}>
+              <Select
+                value={ratingFilter}
+                onValueChange={(val) => {
+                  setRatingFilter(val);
+                  setCurrentPage(1);
+                }}
+              >
                 <SelectTrigger className="text-xs h-9">
-                  <SelectValue placeholder={ar ? "كافة التقييمات" : "All Ratings"} />
+                  <SelectValue
+                    placeholder={ar ? "كافة التقييمات" : "All Ratings"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{ar ? "كافة التقييمات" : "All Ratings"}</SelectItem>
-                  <SelectItem value="satisfied">{ar ? "راضي فقط" : "Satisfied Only"}</SelectItem>
-                  <SelectItem value="neutral">{ar ? "متوسط فقط" : "Neutral Only"}</SelectItem>
-                  <SelectItem value="dissatisfied">{ar ? "غير راضي فقط" : "Dissatisfied Only"}</SelectItem>
+                  <SelectItem value="all">
+                    {ar ? "كافة التقييمات" : "All Ratings"}
+                  </SelectItem>
+                  <SelectItem value="satisfied">
+                    {ar ? "راضي فقط" : "Satisfied Only"}
+                  </SelectItem>
+                  <SelectItem value="neutral">
+                    {ar ? "متوسط فقط" : "Neutral Only"}
+                  </SelectItem>
+                  <SelectItem value="dissatisfied">
+                    {ar ? "غير راضي فقط" : "Dissatisfied Only"}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -438,7 +598,10 @@ export function HousingRatingsTab({
               </Label>
               <DateInput
                 value={fromDate}
-                onChange={(iso) => { setFromDate(iso); setCurrentPage(1); }}
+                onChange={(iso) => {
+                  setFromDate(iso);
+                  setCurrentPage(1);
+                }}
                 className="text-xs h-9"
               />
             </div>
@@ -450,7 +613,10 @@ export function HousingRatingsTab({
               </Label>
               <DateInput
                 value={toDate}
-                onChange={(iso) => { setToDate(iso); setCurrentPage(1); }}
+                onChange={(iso) => {
+                  setToDate(iso);
+                  setCurrentPage(1);
+                }}
                 className="text-xs h-9"
               />
             </div>
@@ -494,7 +660,11 @@ export function HousingRatingsTab({
           <div>
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-primary" />
-              <span>{ar ? "سجل التقييمات والملاحظات المجهولة (سرية الموظفين 100%)" : "Anonymous Feedback & Comments Stream"}</span>
+              <span>
+                {ar
+                  ? "سجل التقييمات والملاحظات المجهولة (سرية الموظفين 100%)"
+                  : "Anonymous Feedback & Comments Stream"}
+              </span>
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
               <Lock className="w-3 h-3 text-muted-foreground/70" />
@@ -513,19 +683,35 @@ export function HousingRatingsTab({
         {filteredComments.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground text-xs space-y-2">
             <MessageSquare className="w-8 h-8 mx-auto opacity-30" />
-            <p>{ar ? "لا توجد تقييمات تطابق معايير البحث الحالية." : "No ratings found matching current filters."}</p>
+            <p>
+              {ar
+                ? "لا توجد تقييمات تطابق معايير البحث الحالية."
+                : "No ratings found matching current filters."}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
-                  <TableHead className="w-14 text-center font-bold">#</TableHead>
-                  <TableHead className="w-40 font-bold">{ar ? "السكن" : "Property"}</TableHead>
-                  <TableHead className="w-32 text-center font-bold">{ar ? "التقييم" : "Rating"}</TableHead>
-                  <TableHead className="w-24 text-center font-bold">{ar ? "الدرجة" : "Score"}</TableHead>
-                  <TableHead className="font-bold">{ar ? "الملاحظة / المقترح المكتوب" : "Resident Feedback"}</TableHead>
-                  <TableHead className="w-32 text-end font-bold">{ar ? "التاريخ" : "Date"}</TableHead>
+                  <TableHead className="w-14 text-center font-bold">
+                    #
+                  </TableHead>
+                  <TableHead className="w-40 font-bold">
+                    {ar ? "السكن" : "Property"}
+                  </TableHead>
+                  <TableHead className="w-32 text-center font-bold">
+                    {ar ? "التقييم" : "Rating"}
+                  </TableHead>
+                  <TableHead className="w-24 text-center font-bold">
+                    {ar ? "الدرجة" : "Score"}
+                  </TableHead>
+                  <TableHead className="font-bold">
+                    {ar ? "الملاحظة / المقترح المكتوب" : "Resident Feedback"}
+                  </TableHead>
+                  <TableHead className="w-32 text-end font-bold">
+                    {ar ? "التاريخ" : "Date"}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -539,7 +725,10 @@ export function HousingRatingsTab({
                         {(currentPage - 1) * pageSize + idx + 1}
                       </TableCell>
                       <TableCell className="text-xs font-semibold">
-                        <Badge variant="outline" className="font-normal text-xs bg-background">
+                        <Badge
+                          variant="outline"
+                          className="font-normal text-xs bg-background"
+                        >
                           {r.propertyName}
                         </Badge>
                       </TableCell>
@@ -593,7 +782,10 @@ export function HousingRatingsTab({
             pageSize={pageSize}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
-            onPageSizeChange={(newSize) => { setPageSize(newSize); setCurrentPage(1); }}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
           />
         </div>
       </div>
@@ -603,19 +795,41 @@ export function HousingRatingsTab({
         onOpenChange={setIsStudioOpen}
         title="Weekly Housing Quality Pulse Report (Anonymous)"
         titleAr="تقرير استطلاع جودة السكن الأسبوعي (سري تماماً)"
-        subtitle={ar ? "نتائج قياس رضا الموظفين الدوري عن جودة السكن والخدمات" : "Periodic staff housing satisfaction metrics & anonymous feedback"}
+        subtitle={
+          ar
+            ? "نتائج قياس رضا الموظفين الدوري عن جودة السكن والخدمات"
+            : "Periodic staff housing satisfaction metrics & anonymous feedback"
+        }
         propertyName={
           queryPropertyId !== "all"
-            ? properties.find((p: any) => String(p.id) === String(queryPropertyId))?.name
+            ? properties.find(
+                (p: any) => String(p.id) === String(queryPropertyId),
+              )?.name
             : undefined
         }
         availableColumns={studioColumns}
         allRows={studioRows}
         kpis={[
-          { label: "Total Ratings", labelAr: "إجمالي التقييمات", value: stats.totalRatings },
-          { label: "Satisfaction Rate", labelAr: "نسبة الرضا العامة", value: `${stats.satisfactionRate}%` },
-          { label: "Average Score", labelAr: "متوسط التقييم", value: `${stats.averageScore} / 5` },
-          { label: "Written Comments", labelAr: "عدد الملاحظات المكتوبة", value: stats.commentsCount },
+          {
+            label: "Total Ratings",
+            labelAr: "إجمالي التقييمات",
+            value: stats.totalRatings,
+          },
+          {
+            label: "Satisfaction Rate",
+            labelAr: "نسبة الرضا العامة",
+            value: `${stats.satisfactionRate}%`,
+          },
+          {
+            label: "Average Score",
+            labelAr: "متوسط التقييم",
+            value: `${stats.averageScore} / 5`,
+          },
+          {
+            label: "Written Comments",
+            labelAr: "عدد الملاحظات المكتوبة",
+            value: stats.commentsCount,
+          },
         ]}
         initialLanguage={ar ? "ar" : "en"}
       />

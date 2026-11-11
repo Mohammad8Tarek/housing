@@ -4,7 +4,7 @@
 **Track:** Dual-Track E2E Testing Track (Milestone M4)  
 **Author:** Lead Test Writer (`test_writer_e2e_1`)  
 **Timestamp:** 2026-09-07T16:06:00Z  
-**Status:** **READY — 100% PASS RATE (86/86 Tests Passing)**  
+**Status:** **READY — 100% PASS RATE (86/86 Tests Passing)**
 
 ---
 
@@ -26,6 +26,7 @@ npx vitest run tests/e2e-user-permissions.test.mjs
 ```
 
 ### Execution Speed & Health
+
 - **Node Runner Timing:** **40.14 ms**
 - **Node --test Timing:** **184.08 ms**
 - **Vitest Runner Timing:** **907 ms**
@@ -36,29 +37,30 @@ npx vitest run tests/e2e-user-permissions.test.mjs
 
 ## 2. Executive Test Results Summary
 
-| Tier | Category | Functional Area | Tests Executed | Passed | Failed | Pass Rate |
-| :--- | :--- | :--- | :---: | :---: | :---: | :---: |
-| **Tier 1** | Feature Coverage | User Dialogs Form Inputs & Validation | 5 | 5 | 0 | 100% |
-| **Tier 1** | Feature Coverage | Password Policy Engine & Strength Scoring | 5 | 5 | 0 | 100% |
-| **Tier 1** | Feature Coverage | Hotel / Property Multi-Select Assignment | 5 | 5 | 0 | 100% |
-| **Tier 1** | Feature Coverage | Permission Matrix Structure & Notation | 6 | 6 | 0 | 100% |
-| **Tier 1** | Feature Coverage | Action-Aware Bilingual Search Filtering | 5 | 5 | 0 | 100% |
-| **Tier 1** | Feature Coverage | Role Baseline Presets & Hierarchy | 6 | 6 | 0 | 100% |
-| **Tier 2** | Boundary & Corner Cases | Password Policy Boundary & Stress Tests | 6 | 6 | 0 | 100% |
-| **Tier 2** | Boundary & Corner Cases | Username & Form Field Boundaries | 5 | 5 | 0 | 100% |
-| **Tier 2** | Boundary & Corner Cases | Property Multi-Select Edge Conditions | 5 | 5 | 0 | 100% |
-| **Tier 2** | Boundary & Corner Cases | Permission Sentinel & Array Boundaries | 5 | 5 | 0 | 100% |
-| **Tier 2** | Boundary & Corner Cases | Search Query Edge Cases & Regex Safety | 6 | 6 | 0 | 100% |
-| **Tier 2** | Boundary & Corner Cases | Bilingual RTL/LTR & String Encoding | 6 | 6 | 0 | 100% |
-| **Tier 3** | Cross-Feature Interactions | Role Changes, Diff Engine & Cascades | 15 | 15 | 0 | 100% |
-| **Tier 4** | Real-World Enterprise Flows | End-to-End Enterprise Scenarios | 6 | 6 | 0 | 100% |
-| **TOTAL** | **All 4 Tiers Combined** | **Requirements R1, R2, R3** | **86** | **86** | **0** | **100%** |
+| Tier       | Category                    | Functional Area                           | Tests Executed | Passed | Failed | Pass Rate |
+| :--------- | :-------------------------- | :---------------------------------------- | :------------: | :----: | :----: | :-------: |
+| **Tier 1** | Feature Coverage            | User Dialogs Form Inputs & Validation     |       5        |   5    |   0    |   100%    |
+| **Tier 1** | Feature Coverage            | Password Policy Engine & Strength Scoring |       5        |   5    |   0    |   100%    |
+| **Tier 1** | Feature Coverage            | Hotel / Property Multi-Select Assignment  |       5        |   5    |   0    |   100%    |
+| **Tier 1** | Feature Coverage            | Permission Matrix Structure & Notation    |       6        |   6    |   0    |   100%    |
+| **Tier 1** | Feature Coverage            | Action-Aware Bilingual Search Filtering   |       5        |   5    |   0    |   100%    |
+| **Tier 1** | Feature Coverage            | Role Baseline Presets & Hierarchy         |       6        |   6    |   0    |   100%    |
+| **Tier 2** | Boundary & Corner Cases     | Password Policy Boundary & Stress Tests   |       6        |   6    |   0    |   100%    |
+| **Tier 2** | Boundary & Corner Cases     | Username & Form Field Boundaries          |       5        |   5    |   0    |   100%    |
+| **Tier 2** | Boundary & Corner Cases     | Property Multi-Select Edge Conditions     |       5        |   5    |   0    |   100%    |
+| **Tier 2** | Boundary & Corner Cases     | Permission Sentinel & Array Boundaries    |       5        |   5    |   0    |   100%    |
+| **Tier 2** | Boundary & Corner Cases     | Search Query Edge Cases & Regex Safety    |       6        |   6    |   0    |   100%    |
+| **Tier 2** | Boundary & Corner Cases     | Bilingual RTL/LTR & String Encoding       |       6        |   6    |   0    |   100%    |
+| **Tier 3** | Cross-Feature Interactions  | Role Changes, Diff Engine & Cascades      |       15       |   15   |   0    |   100%    |
+| **Tier 4** | Real-World Enterprise Flows | End-to-End Enterprise Scenarios           |       6        |   6    |   0    |   100%    |
+| **TOTAL**  | **All 4 Tiers Combined**    | **Requirements R1, R2, R3**               |     **86**     | **86** | **0**  | **100%**  |
 
 ---
 
 ## 3. Requirements Traceability Matrix
 
 ### Requirement R1: Modern Add & Edit User Dialog Experience
+
 - **Form Fields & Validation**:
   - `T1.1.1` - `T1.1.5`: User creation schema conforms to `CreateUserBody`, whitespace trimming, email format checks, nullable jobTitle, status lifecycle.
   - `T2.2.1` - `T2.2.5`: Duplicate username rejection, username < 3 chars boundary, international phone formatting, email malformed input rejection.
@@ -75,6 +77,7 @@ npx vitest run tests/e2e-user-permissions.test.mjs
   - `T4.3`: Account lockout and instant unlock flow (`POST /api/users/:id/unlock`).
 
 ### Requirement R2: Interactive Permission Matrix & Center Redesign
+
 - **22 Modules & 5 Logical Groups**:
   - `T1.4.1`: Exactly 22 modules structured into `daily_operations`, `accommodation_flow`, `employee_portal`, `management`, `security`.
   - `T1.4.2` - `T1.4.4`: Canonical `module.action` dot-notation, legacy `module:action` normalization, `employees.` to `profiles.` alias translation.
@@ -98,6 +101,7 @@ npx vitest run tests/e2e-user-permissions.test.mjs
   - `T4.6`: Bulk category group toggles in Permission Matrix Center.
 
 ### Requirement R3: Bilingual RTL/LTR Consistency & Strict Quality Standards
+
 - **Bilingual & RTL Layout Fidelity**:
   - `T2.6.1` - `T2.6.6`: Arabic tashkeel normalization, long Arabic descriptions, bidirectional string handling ("غرفة Room 101 - مبنى B"), missing translation key fallbacks, `dir="rtl"` direction flags, Arabic error strings.
 - **Dual-Layer RBAC Parity**:
@@ -110,6 +114,7 @@ npx vitest run tests/e2e-user-permissions.test.mjs
 ## 4. Complete Test Inventory (86 Tests)
 
 ### Tier 1: Feature Coverage (32 Tests)
+
 - `T1.1.1`: Valid user payload conforms to CreateUserBody specification.
 - `T1.1.2`: Username validation enforces min 3 characters and trims surrounding whitespace.
 - `T1.1.3`: Email and phone formatting validation accepts valid formats and nullish values.
@@ -144,6 +149,7 @@ npx vitest run tests/e2e-user-permissions.test.mjs
 - `T1.6.6`: Read-Only All preset grants exactly view on all 22 modules (22 permissions).
 
 ### Tier 2: Boundary & Corner Cases (33 Tests)
+
 - `T2.1.1`: Password with 7 characters (< minLength 8) fails validation with explicit length error.
 - `T2.1.2`: Password with exactly 8 characters passes length requirement.
 - `T2.1.3`: Password lacking uppercase character fails with uppercase error message.
@@ -166,10 +172,10 @@ npx vitest run tests/e2e-user-permissions.test.mjs
 - `T2.4.4`: All 119 permissions explicitly granted in custom array.
 - `T2.4.5`: Unrecognized or malformed permission string (e.g. 'invalid.action', '') is safely ignored.
 - `T2.5.1`: Empty query string '' returns all 22 modules without filtering.
-- `T2.5.2`: Whitespace-only query '   ' is trimmed and returns all 22 modules.
+- `T2.5.2`: Whitespace-only query ' ' is trimmed and returns all 22 modules.
 - `T2.5.3`: Single character query (e.g. 'h') filters modules safely.
 - `T2.5.4`: Non-matching query (e.g. 'xyznonexistent') returns 0 modules without throwing exceptions.
-- `T2.5.5`: Special regex characters in query (.*+?^${}()|[]\\) do NOT crash or execute regex injection.
+- `T2.5.5`: Special regex characters in query (.\*+?^${}()|[]\\) do NOT crash or execute regex injection.
 - `T2.5.6`: Mixed Arabic-English query handles bidirectional characters without crashing.
 - `T2.6.1`: Arabic text with diacritics / tashkeel normalizes or matches without error.
 - `T2.6.2`: Long Arabic role description string renders without layout breaking or truncation.
@@ -179,6 +185,7 @@ npx vitest run tests/e2e-user-permissions.test.mjs
 - `T2.6.6`: Arabic error messages returned correctly for validation failures in Arabic mode.
 
 ### Tier 3: Cross-Feature Combinations (15 Tests)
+
 - `T3.1`: Role Change + Diff Engine Recalculation.
 - `T3.2`: Action Dependency Cascading - Disabling View Revokes All Module Actions.
 - `T3.3`: Action Dependency Cascading - Enabling Sub-Action Forces View ON.
@@ -196,6 +203,7 @@ npx vitest run tests/e2e-user-permissions.test.mjs
 - `T3.15`: Multi-Property Database Sync & Primary Property Fallback.
 
 ### Tier 4: Real-World Enterprise Scenarios (6 Scenarios)
+
 - `T4.1`: Scenario 1 - Front Desk Receptionist Onboarding with Maintenance Overrides.
 - `T4.2`: Scenario 2 - Property Manager Profile Update with Custom Permissions Preservation.
 - `T4.3`: Scenario 3 - Account Lockout, Brute-Force Defense & Instant Unlock Flow.
@@ -210,19 +218,23 @@ npx vitest run tests/e2e-user-permissions.test.mjs
 Both core subsystems pass production build gates cleanly:
 
 1. **Frontend Production Build (`artifacts/housing`)**:
+
    ```bash
    cd artifacts/housing
    npm run build
    ```
+
    - **Result:** Exit Code 0.
    - **Build Time:** 18.46s.
    - **Artifacts:** Verified in `dist/public/` with zero TypeScript or bundling errors.
 
 2. **API Server Production Build (`artifacts/api-server`)**:
+
    ```bash
    cd artifacts/api-server
    npm run build
    ```
+
    - **Result:** Exit Code 0.
    - **Build Time:** 502ms.
    - **Artifacts:** Verified in `dist/index.mjs` (3.8 MB) and `dist/run-migration.mjs` (853.4 KB).

@@ -50,7 +50,10 @@ export function TicketsStatusStrip({
             }`}
           >
             <span>{ar ? "كل التذاكر" : "All Tickets"}</span>
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold">
+            <Badge
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold"
+            >
               {totalCount}
             </Badge>
           </button>
@@ -66,7 +69,10 @@ export function TicketsStatusStrip({
           >
             <span className="w-2 h-2 rounded-full bg-blue-500" />
             <span>{ar ? "مفتوحة" : "Open"}</span>
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+            <Badge
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300"
+            >
               {openCount}
             </Badge>
           </button>
@@ -82,7 +88,10 @@ export function TicketsStatusStrip({
           >
             <span className="w-2 h-2 rounded-full bg-amber-500" />
             <span>{ar ? "قيد التنفيذ" : "In Progress"}</span>
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300">
+            <Badge
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300"
+            >
               {inProgressCount}
             </Badge>
           </button>
@@ -98,7 +107,10 @@ export function TicketsStatusStrip({
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span>{ar ? "تم الحل" : "Resolved"}</span>
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+            <Badge
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
+            >
               {resolvedCount}
             </Badge>
           </button>
@@ -114,7 +126,10 @@ export function TicketsStatusStrip({
           >
             <span className="w-2 h-2 rounded-full bg-slate-400" />
             <span>{ar ? "مغلقة" : "Closed"}</span>
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold">
+            <Badge
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0 h-4 font-mono font-bold"
+            >
               {closedCount}
             </Badge>
           </button>
@@ -149,7 +164,10 @@ export function TicketsStatusStrip({
               <Wrench className="w-3.5 h-3.5" />
               <span>{ar ? "أوردرات الصيانة" : "Maintenance"}</span>
               {isOnlyMaintenance && (
-                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 bg-amber-700 text-white font-semibold">
+                <Badge
+                  variant="secondary"
+                  className="text-[9px] px-1 py-0 h-3.5 bg-amber-700 text-white font-semibold"
+                >
                   {ar ? "فقط" : "Only"}
                 </Badge>
               )}
@@ -169,7 +187,10 @@ export function TicketsStatusStrip({
               <Sparkles className="w-3.5 h-3.5" />
               <span>{ar ? "أوردرات الهاوس كيبنج" : "Housekeeping"}</span>
               {isOnlyHousekeeping && (
-                <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5 bg-sky-700 text-white font-semibold">
+                <Badge
+                  variant="secondary"
+                  className="text-[9px] px-1 py-0 h-3.5 bg-sky-700 text-white font-semibold"
+                >
                   {ar ? "فقط" : "Only"}
                 </Badge>
               )}

@@ -4,7 +4,12 @@ import { useTheme } from "../../lib/theme";
 import { apiFetch } from "../../lib/api";
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
-import { requestNotificationPermission, playNotificationSound, showNotification, getNotificationMessagePreview } from "./chat-helpers";
+import {
+  requestNotificationPermission,
+  playNotificationSound,
+  showNotification,
+  getNotificationMessagePreview,
+} from "./chat-helpers";
 import type { Conversation, Message, Employee, TabChatProps } from "./types";
 
 export function useTabChat({
@@ -22,7 +27,9 @@ export function useTabChat({
 
   const [showAttachments, setShowAttachments] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-  const [convFilter, setConvFilter] = useState<"all" | "unread" | "groups">("all");
+  const [convFilter, setConvFilter] = useState<"all" | "unread" | "groups">(
+    "all",
+  );
   const [convSearch, setConvSearch] = useState("");
   const [showChatSearch, setShowChatSearch] = useState(false);
   const [chatSearch, setChatSearch] = useState("");
@@ -32,8 +39,10 @@ export function useTabChat({
     if (myEmployeeId) return myEmployeeId;
     try {
       const raw =
-        (typeof sessionStorage !== "undefined" && sessionStorage.getItem("portal_employee")) ||
-        (typeof localStorage !== "undefined" && localStorage.getItem("portal_employee"));
+        (typeof sessionStorage !== "undefined" &&
+          sessionStorage.getItem("portal_employee")) ||
+        (typeof localStorage !== "undefined" &&
+          localStorage.getItem("portal_employee"));
       if (raw) {
         const parsed = JSON.parse(raw);
         return Number(parsed.id ?? parsed.profileDbId ?? 0) || undefined;
@@ -48,8 +57,10 @@ export function useTabChat({
     } else {
       try {
         const raw =
-          (typeof sessionStorage !== "undefined" && sessionStorage.getItem("portal_employee")) ||
-          (typeof localStorage !== "undefined" && localStorage.getItem("portal_employee"));
+          (typeof sessionStorage !== "undefined" &&
+            sessionStorage.getItem("portal_employee")) ||
+          (typeof localStorage !== "undefined" &&
+            localStorage.getItem("portal_employee"));
         if (raw) {
           const parsed = JSON.parse(raw);
           const id = Number(parsed.id ?? parsed.profileDbId ?? 0) || undefined;
@@ -100,12 +111,16 @@ export function useTabChat({
   const typingTimeoutRef = useRef<Record<string, any>>({});
 
   /* ── Live Real-Time Presence States ── */
-  const [onlineEmployees, setOnlineEmployees] = useState<Set<number>>(new Set());
+  const [onlineEmployees, setOnlineEmployees] = useState<Set<number>>(
+    new Set(),
+  );
   const [lastSeenMap, setLastSeenMap] = useState<Record<number, string>>({});
 
   const fetchPresence = useCallback(async () => {
     try {
-      const res = await apiFetch("/api/portal-chat/presence", { credentials: "include" });
+      const res = await apiFetch("/api/portal-chat/presence", {
+        credentials: "include",
+      });
       if (res.ok) {
         const d = await res.json();
         if (d.success && Array.isArray(d.onlineEmployeeIds)) {
@@ -134,8 +149,12 @@ export function useTabChat({
     contactPhoto: string | null;
   } | null>(null);
 
-  const [activeLightboxImage, setActiveLightboxImage] = useState<string | null>(null);
-  const [selectedContactInfo, setSelectedContactInfo] = useState<any | null>(null);
+  const [activeLightboxImage, setActiveLightboxImage] = useState<string | null>(
+    null,
+  );
+  const [selectedContactInfo, setSelectedContactInfo] = useState<any | null>(
+    null,
+  );
 
   // Real Voice Recording States
   const [isRecording, setIsRecording] = useState(false);
@@ -147,7 +166,9 @@ export function useTabChat({
 
   // Audio Playback for Voice Notes
   const [playingAudioId, setPlayingAudioId] = useState<number | null>(null);
-  const [audioProgress, setAudioProgress] = useState<Record<number, number>>({});
+  const [audioProgress, setAudioProgress] = useState<Record<number, number>>(
+    {},
+  );
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // File Inputs
@@ -156,8 +177,11 @@ export function useTabChat({
   const docInputRef = useRef<HTMLInputElement | null>(null);
 
   const waveformHeights = useMemo(
-    () => [14, 24, 10, 26, 18, 28, 12, 24, 16, 26, 8, 20, 15, 24, 18, 28, 12, 22, 16, 20, 14, 18],
-    []
+    () => [
+      14, 24, 10, 26, 18, 28, 12, 24, 16, 26, 8, 20, 15, 24, 18, 28, 12, 22, 16,
+      20, 14, 18,
+    ],
+    [],
   );
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -218,7 +242,10 @@ export function useTabChat({
 
   const loadMessages = useCallback(async (convId: number, silent = false) => {
     try {
-      const r = await apiFetch(`/api/portal-chat/conversations/${convId}/messages`, { credentials: "include" });
+      const r = await apiFetch(
+        `/api/portal-chat/conversations/${convId}/messages`,
+        { credentials: "include" },
+      );
       if (r.ok) {
         const d = await r.json();
         if (d.success) {
@@ -264,18 +291,29 @@ export function useTabChat({
       if (configuredWs) return configuredWs;
 
       if (Capacitor.isNativePlatform()) {
-        const prodUrl = import.meta.env.VITE_API_URL?.trim() || "https://resident.sunrise-resorts.com";
+        const prodUrl =
+          import.meta.env.VITE_API_URL?.trim() ||
+          "https://resident.sunrise-resorts.com";
         return prodUrl.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws";
       }
 
-      const isVercel = typeof window !== "undefined" && window.location.hostname.endsWith(".vercel.app");
+      const isVercel =
+        typeof window !== "undefined" &&
+        window.location.hostname.endsWith(".vercel.app");
       if (isVercel) {
-        const railwayUrl = import.meta.env.VITE_API_URL?.trim() || "https://resident.sunrise-resorts.com";
-        return railwayUrl.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws";
+        const railwayUrl =
+          import.meta.env.VITE_API_URL?.trim() ||
+          "https://resident.sunrise-resorts.com";
+        return (
+          railwayUrl.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws"
+        );
       }
 
       if (typeof window !== "undefined") {
-        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
           return "ws://localhost:4000/ws";
         }
         const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -370,7 +408,11 @@ export function useTabChat({
                           : "New message";
                   showNotification(
                     senderName,
-                    getNotificationMessagePreview(newMsg.content, newMsg.contentType, isRtl)
+                    getNotificationMessagePreview(
+                      newMsg.content,
+                      newMsg.contentType,
+                      isRtl,
+                    ),
                   );
                 }
 
@@ -431,7 +473,9 @@ export function useTabChat({
           clearInterval(pingTimer);
           if (!isUnmounted) {
             if (event.code === 1008 || event.code === 4001) {
-              console.warn("[Chat WS] Authentication required (1008). Standing by until session is authenticated.");
+              console.warn(
+                "[Chat WS] Authentication required (1008). Standing by until session is authenticated.",
+              );
               return;
             }
             reconnectTimer = setTimeout(connectWs, 3000);
@@ -637,7 +681,7 @@ export function useTabChat({
   /* ── Send message with content ── */
   const sendMessageWithContent = async (
     customContent: string,
-    contentType: "text" | "image" = "text"
+    contentType: "text" | "image" = "text",
   ) => {
     if (!activeConv || !customContent || !customContent.trim()) return;
     const contentToSend = customContent.trim();
@@ -666,7 +710,7 @@ export function useTabChat({
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ content: contentToSend, contentType }),
-        }
+        },
       );
       if (!res.ok) {
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -676,7 +720,7 @@ export function useTabChat({
       const d = await res.json();
       if (d.success && d.message) {
         setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? d.message : m))
+          prev.map((m) => (m.id === tempId ? d.message : m)),
         );
       }
     } catch {
@@ -702,7 +746,7 @@ export function useTabChat({
   /* ── Handle File Select (Camera / Gallery / Docs) ── */
   const handleFileSelect = (
     e: React.ChangeEvent<HTMLInputElement>,
-    isImage: boolean = true
+    isImage: boolean = true,
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -711,7 +755,7 @@ export function useTabChat({
       toast.error(
         isRtl
           ? "حجم الملف كبير جداً (الحد الأقصى 25 ميجابايت)"
-          : "File size exceeds 25MB limit"
+          : "File size exceeds 25MB limit",
       );
       return;
     }
@@ -727,7 +771,10 @@ export function useTabChat({
           file.size > 1048576
             ? (file.size / 1048576).toFixed(1) + " MB"
             : Math.round(file.size / 1024) + " KB";
-        sendMessageWithContent(`[FILE]:${file.name}|${sizeFormatted}|${dataUrl}`, "text");
+        sendMessageWithContent(
+          `[FILE]:${file.name}|${sizeFormatted}|${dataUrl}`,
+          "text",
+        );
         toast.success(isRtl ? "تم إرسال المستند" : "Document sent");
       }
       setShowAttachments(false);
@@ -739,7 +786,9 @@ export function useTabChat({
   /* ── Handle Share Location ── */
   const handleShareLocation = () => {
     setShowAttachments(false);
-    toast.info(isRtl ? "جارٍ تحديد موقعك الحالي..." : "Locating your position...");
+    toast.info(
+      isRtl ? "جارٍ تحديد موقعك الحالي..." : "Locating your position...",
+    );
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -753,18 +802,26 @@ export function useTabChat({
           // Graceful fallback to Sunrise Resort Sharm El Sheikh / Hurghada
           const lat = "27.915820";
           const lng = "34.329950";
-          const label = isRtl ? "سكن موظفي منتجع صن رايز" : "Sunrise Staff Housing Resort";
+          const label = isRtl
+            ? "سكن موظفي منتجع صن رايز"
+            : "Sunrise Staff Housing Resort";
           sendMessageWithContent(`[LOCATION]:${lat},${lng}|${label}`, "text");
-          toast.success(isRtl ? "تمت مشاركة موقع سكن الموظفين" : "Resort location shared");
+          toast.success(
+            isRtl ? "تمت مشاركة موقع سكن الموظفين" : "Resort location shared",
+          );
         },
-        { timeout: 5000 }
+        { timeout: 5000 },
       );
     } else {
       const lat = "27.915820";
       const lng = "34.329950";
-      const label = isRtl ? "سكن موظفي منتجع صن رايز" : "Sunrise Staff Housing Resort";
+      const label = isRtl
+        ? "سكن موظفي منتجع صن رايز"
+        : "Sunrise Staff Housing Resort";
       sendMessageWithContent(`[LOCATION]:${lat},${lng}|${label}`, "text");
-      toast.success(isRtl ? "تمت مشاركة موقع سكن الموظفين" : "Resort location shared");
+      toast.success(
+        isRtl ? "تمت مشاركة موقع سكن الموظفين" : "Resort location shared",
+      );
     }
   };
 
@@ -781,8 +838,8 @@ export function useTabChat({
       const mimeType = MediaRecorder.isTypeSupported("audio/webm")
         ? "audio/webm"
         : MediaRecorder.isTypeSupported("audio/ogg")
-        ? "audio/ogg"
-        : "";
+          ? "audio/ogg"
+          : "";
 
       const recorder = mimeType
         ? new MediaRecorder(stream, { mimeType })
@@ -809,13 +866,18 @@ export function useTabChat({
       recordingTimerRef.current = setInterval(() => {
         setRecordingDuration((d) => d + 1);
       }, 1000);
-      toast.info(isRtl ? "بدأ تسجيل الملاحظة الصوتية" : "Voice recording started");
+      toast.info(
+        isRtl ? "بدأ تسجيل الملاحظة الصوتية" : "Voice recording started",
+      );
     }
   };
 
   const cancelVoiceRecording = () => {
     if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
       try {
         mediaRecorderRef.current.stop();
       } catch {}
@@ -845,7 +907,9 @@ export function useTabChat({
         reader.onload = () => {
           const dataUrl = reader.result as string;
           sendMessageWithContent(`[AUDIO]:${dataUrl}|${finalDuration}`, "text");
-          toast.success(isRtl ? "تم إرسال التسجيل الصوتي" : "Voice message sent");
+          toast.success(
+            isRtl ? "تم إرسال التسجيل الصوتي" : "Voice message sent",
+          );
         };
         reader.readAsDataURL(audioBlob);
 
@@ -865,7 +929,9 @@ export function useTabChat({
     } else {
       // Synthesize realistic audio tone voice note if recording chunks empty
       try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const audioCtx = new (
+          window.AudioContext || (window as any).webkitAudioContext
+        )();
         const sampleRate = audioCtx.sampleRate;
         const length = sampleRate * Math.min(finalDuration, 3);
         const buffer = audioCtx.createBuffer(1, length, sampleRate);
@@ -876,14 +942,13 @@ export function useTabChat({
         // Send simulated note
         sendMessageWithContent(
           `[AUDIO]:data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=|${finalDuration}`,
-          "text"
+          "text",
         );
-        toast.success(isRtl ? "تم إرسال التسجيل الصوتي بنجاح" : "Voice note sent");
+        toast.success(
+          isRtl ? "تم إرسال التسجيل الصوتي بنجاح" : "Voice note sent",
+        );
       } catch {
-        sendMessageWithContent(
-          `[AUDIO]:sample|${finalDuration}`,
-          "text"
-        );
+        sendMessageWithContent(`[AUDIO]:sample|${finalDuration}`, "text");
       }
       cancelVoiceRecording();
     }
@@ -959,11 +1024,11 @@ export function useTabChat({
             .toString()
             .padStart(2, "0")}`
         : isRtl
-        ? "لم يتم الرد"
-        : "Missed";
+          ? "لم يتم الرد"
+          : "Missed";
     sendMessageWithContent(
       `[CALL]:${type}|${durationFormatted}|completed`,
-      "text"
+      "text",
     );
   };
 
@@ -984,11 +1049,15 @@ export function useTabChat({
       if (m.contentType === "image" || m.content.startsWith("data:image/")) {
         body = "<Image Attachment>";
       } else if (m.content.startsWith("[FILE]:")) {
-        body = "<Document: " + m.content.split("|")[0].replace("[FILE]:", "") + ">";
+        body =
+          "<Document: " + m.content.split("|")[0].replace("[FILE]:", "") + ">";
       } else if (m.content.startsWith("[AUDIO]:")) {
         body = "<Voice Note: " + m.content.split("|")[1] + "s>";
       } else if (m.content.startsWith("[LOCATION]:")) {
-        body = "<Shared Location: " + m.content.split("|")[0].replace("[LOCATION]:", "") + ">";
+        body =
+          "<Shared Location: " +
+          m.content.split("|")[0].replace("[LOCATION]:", "") +
+          ">";
       }
       text += `[${time}] ${sender}: ${body}\n`;
     });
@@ -1000,7 +1069,9 @@ export function useTabChat({
     a.download = `chat-${title.replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, "_")}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(isRtl ? "تم تصدير المحادثة بنجاح" : "Chat exported successfully");
+    toast.success(
+      isRtl ? "تم تصدير المحادثة بنجاح" : "Chat exported successfully",
+    );
   };
 
   /* ── Contact Info Dialog ── */
@@ -1011,8 +1082,7 @@ export function useTabChat({
       toast.info(isRtl ? "محادثة جماعية" : "Group Chat");
       return;
     }
-    const contact =
-      contacts.find((c: any) => c.id === otherId) ||
+    const contact = contacts.find((c: any) => c.id === otherId) ||
       senders[otherId] || {
         id: otherId,
         firstName: getConvTitle(conv),

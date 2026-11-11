@@ -22,8 +22,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, XCircle, ArrowRight, ArrowLeft, Building2, RefreshCw, Download, Check, Eye, Save, Search, RotateCcw, Pencil } from "lucide-react";
-import { SYSTEM_FIELDS, detectColumnField, validateAndNormalizeRows, downloadRoomImportTemplate, type SystemFieldKey } from "@/lib/room-importer-engine";
+import {
+  Upload,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  ArrowRight,
+  ArrowLeft,
+  Building2,
+  RefreshCw,
+  Download,
+  Check,
+  Eye,
+  Save,
+  Search,
+  RotateCcw,
+  Pencil,
+} from "lucide-react";
+import {
+  SYSTEM_FIELDS,
+  detectColumnField,
+  validateAndNormalizeRows,
+  downloadRoomImportTemplate,
+  type SystemFieldKey,
+} from "@/lib/room-importer-engine";
 
 type Props = {
   open: boolean;
@@ -35,7 +58,14 @@ type Props = {
   onImportSuccess?: () => void;
 };
 
-type Step = "property" | "upload" | "mapping" | "mode" | "preview" | "progress" | "result";
+type Step =
+  | "property"
+  | "upload"
+  | "mapping"
+  | "mode"
+  | "preview"
+  | "progress"
+  | "result";
 
 export function RoomImportWizard({
   open,
@@ -55,7 +85,7 @@ export function RoomImportWizard({
   // Wizard State
   const [step, setStep] = useState<Step>("property");
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(
-    currentPropertyId ? String(currentPropertyId) : ""
+    currentPropertyId ? String(currentPropertyId) : "",
   );
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>("auto");
 
@@ -68,7 +98,9 @@ export function RoomImportWizard({
   const [rawRows, setRawRows] = useState<Record<string, any>[]>([]);
 
   // Mapping state: fileHeader -> systemFieldKey
-  const [columnMapping, setColumnMapping] = useState<Record<string, SystemFieldKey>>({});
+  const [columnMapping, setColumnMapping] = useState<
+    Record<string, SystemFieldKey>
+  >({});
 
   // Templates
   const [templates, setTemplates] = useState<any[]>([]);
@@ -76,11 +108,15 @@ export function RoomImportWizard({
   const [saveTemplateDialogOpen, setSaveTemplateDialogOpen] = useState(false);
 
   // Import mode
-  const [importMode, setImportMode] = useState<"create_update" | "create_only" | "update_only" | "replace">("create_update");
+  const [importMode, setImportMode] = useState<
+    "create_update" | "create_only" | "update_only" | "replace"
+  >("create_update");
 
   // Preview filtering & search
   const [previewSearch, setPreviewSearch] = useState("");
-  const [previewFilter, setPreviewFilter] = useState<"all" | "errors" | "warnings" | "new" | "existing">("all");
+  const [previewFilter, setPreviewFilter] = useState<
+    "all" | "errors" | "warnings" | "new" | "existing"
+  >("all");
 
   // Execution & Progress state
   const [isExecuting, setIsExecuting] = useState(false);
@@ -97,13 +133,20 @@ export function RoomImportWizard({
     const fetchFullPropertyData = async () => {
       try {
         const [rRes, bRes] = await Promise.all([
-          fetch(`/api/rooms?propertyId=${selectedPropertyId}&limit=1000`).then((r) => r.ok ? r.json() : null),
-          fetch(`/api/buildings?propertyId=${selectedPropertyId}&limit=100`).then((r) => r.ok ? r.json() : null),
+          fetch(`/api/rooms?propertyId=${selectedPropertyId}&limit=1000`).then(
+            (r) => (r.ok ? r.json() : null),
+          ),
+          fetch(
+            `/api/buildings?propertyId=${selectedPropertyId}&limit=100`,
+          ).then((r) => (r.ok ? r.json() : null)),
         ]);
         if (rRes?.data) setFetchedExistingRooms(rRes.data);
         if (bRes?.data) setFetchedBuildings(bRes.data);
       } catch (err) {
-        console.error("Failed to prefetch existing property rooms/buildings:", err);
+        console.error(
+          "Failed to prefetch existing property rooms/buildings:",
+          err,
+        );
       }
     };
     fetchFullPropertyData();
@@ -115,11 +158,15 @@ export function RoomImportWizard({
 
   const propertyBuildings = useMemo(() => {
     if (!selectedPropertyId) return [];
-    return allAvailableBuildings.filter((b) => !b.propertyId || String(b.propertyId) === selectedPropertyId);
+    return allAvailableBuildings.filter(
+      (b) => !b.propertyId || String(b.propertyId) === selectedPropertyId,
+    );
   }, [allAvailableBuildings, selectedPropertyId]);
 
   const allExistingRooms = useMemo(() => {
-    return fetchedExistingRooms.length > 0 ? fetchedExistingRooms : existingRooms;
+    return fetchedExistingRooms.length > 0
+      ? fetchedExistingRooms
+      : existingRooms;
   }, [fetchedExistingRooms, existingRooms]);
 
   // Handle File Selection
@@ -144,7 +191,11 @@ export function RoomImportWizard({
         setSelectedSheet(firstSheet);
         loadSheetData(wb, firstSheet);
       } catch (err: any) {
-        toast.error(ar ? "فشل قراءة الملف: " + err.message : "Failed to read file: " + err.message);
+        toast.error(
+          ar
+            ? "فشل قراءة الملف: " + err.message
+            : "Failed to read file: " + err.message,
+        );
       }
     };
 
@@ -156,9 +207,13 @@ export function RoomImportWizard({
     if (!ws) return;
 
     // Read as array of objects
-    const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: "" });
+    const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(ws, {
+      defval: "",
+    });
     if (jsonData.length === 0) {
-      toast.error(ar ? "الشيت فارغ لا يحتوي على بيانات" : "Selected sheet is empty");
+      toast.error(
+        ar ? "الشيت فارغ لا يحتوي على بيانات" : "Selected sheet is empty",
+      );
       return;
     }
 
@@ -180,7 +235,9 @@ export function RoomImportWizard({
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch(`/api/rooms/import/templates?propertyId=${selectedPropertyId}`);
+      const res = await fetch(
+        `/api/rooms/import/templates?propertyId=${selectedPropertyId}`,
+      );
       if (res.ok) {
         const data = await res.json();
         setTemplates(data);
@@ -191,12 +248,16 @@ export function RoomImportWizard({
   const applyTemplate = (tmpl: any) => {
     if (!tmpl?.columnMapping) return;
     setColumnMapping((prev) => ({ ...prev, ...tmpl.columnMapping }));
-    toast.success(ar ? `تم تطبيق القالب "${tmpl.name}"` : `Applied template "${tmpl.name}"`);
+    toast.success(
+      ar ? `تم تطبيق القالب "${tmpl.name}"` : `Applied template "${tmpl.name}"`,
+    );
   };
 
   const handleSaveTemplate = async () => {
     if (!templateName.trim()) {
-      toast.error(ar ? "الرجاء إدخال اسم القالب" : "Please enter template name");
+      toast.error(
+        ar ? "الرجاء إدخال اسم القالب" : "Please enter template name",
+      );
       return;
     }
     try {
@@ -210,7 +271,9 @@ export function RoomImportWizard({
         }),
       });
       if (res.ok) {
-        toast.success(ar ? "تم حفظ قالب الاستيراد بنجاح" : "Template saved successfully");
+        toast.success(
+          ar ? "تم حفظ قالب الاستيراد بنجاح" : "Template saved successfully",
+        );
         setSaveTemplateDialogOpen(false);
         fetchTemplates();
       } else {
@@ -267,7 +330,7 @@ export function RoomImportWizard({
           r.normalizedRoom.roomNumber.toLowerCase().includes(q) ||
           r.normalizedRoom.roomType.toLowerCase().includes(q) ||
           r.normalizedRoom.floor.toLowerCase().includes(q) ||
-          r.normalizedRoom.view.toLowerCase().includes(q)
+          r.normalizedRoom.view.toLowerCase().includes(q),
       );
     }
 
@@ -277,14 +340,18 @@ export function RoomImportWizard({
   // Execute Import
   const handleExecuteImport = async () => {
     if (!validationResult || validationResult.validRows === 0) {
-      toast.error(ar ? "لا توجد صفوف صالحة للاستيراد" : "No valid rows to import");
+      toast.error(
+        ar ? "لا توجد صفوف صالحة للاستيراد" : "No valid rows to import",
+      );
       return;
     }
 
     setStep("progress");
     setIsExecuting(true);
     setExecutionProgress(15);
-    setExecutionPhase(ar ? "جاري تحضير وتدقيق الغرف..." : "Preparing room configurations...");
+    setExecutionPhase(
+      ar ? "جاري تحضير وتدقيق الغرف..." : "Preparing room configurations...",
+    );
 
     try {
       // Filter only valid rows
@@ -293,14 +360,21 @@ export function RoomImportWizard({
         .map((r) => r.normalizedRoom);
 
       setExecutionProgress(40);
-      setExecutionPhase(ar ? "جاري إرسال البيانات ومعالجة المعاملة..." : "Executing database transaction...");
+      setExecutionPhase(
+        ar
+          ? "جاري إرسال البيانات ومعالجة المعاملة..."
+          : "Executing database transaction...",
+      );
 
       const response = await fetch("/api/rooms/import/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           propertyId: parseInt(selectedPropertyId),
-          buildingId: selectedBuildingId !== "auto" ? parseInt(selectedBuildingId) : undefined,
+          buildingId:
+            selectedBuildingId !== "auto"
+              ? parseInt(selectedBuildingId)
+              : undefined,
           importMode,
           fileName: file?.name || "import.xlsx",
           rooms: validPayload,
@@ -308,7 +382,11 @@ export function RoomImportWizard({
       });
 
       setExecutionProgress(80);
-      setExecutionPhase(ar ? "جاري حفظ الطوابق والأسرة وسجل الاستيراد..." : "Finalizing rooms and physical beds...");
+      setExecutionPhase(
+        ar
+          ? "جاري حفظ الطوابق والأسرة وسجل الاستيراد..."
+          : "Finalizing rooms and physical beds...",
+      );
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
@@ -324,7 +402,7 @@ export function RoomImportWizard({
       toast.success(
         ar
           ? `تم استيراد ${result.createdRows} غرفة جديدة وتحديث ${result.updatedRows} غرفة`
-          : `Imported ${result.createdRows} new rooms, updated ${result.updatedRows} rooms`
+          : `Imported ${result.createdRows} new rooms, updated ${result.updatedRows} rooms`,
       );
 
       if (onImportSuccess) onImportSuccess();
@@ -348,7 +426,9 @@ export function RoomImportWizard({
       [ar ? "العمود" : "Column"]: e.column,
       [ar ? "القيمة" : "Original Value"]: String(e.value ?? ""),
       [ar ? "الخطأ" : "Error"]: ar ? e.errorAr : e.errorEn,
-      [ar ? "مقترح التصحيح" : "Suggested Fix"]: ar ? e.suggestedFixAr : e.suggestedFixEn,
+      [ar ? "مقترح التصحيح" : "Suggested Fix"]: ar
+        ? e.suggestedFixAr
+        : e.suggestedFixEn,
     }));
 
     const ws = XLSX.utils.json_to_sheet(errorRows);
@@ -369,7 +449,15 @@ export function RoomImportWizard({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!isExecuting) { onOpenChange(v); if (!v) resetWizard(); } }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!isExecuting) {
+          onOpenChange(v);
+          if (!v) resetWizard();
+        }
+      }}
+    >
       <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col p-0 overflow-hidden shadow-2xl rounded-2xl border bg-card">
         {/* ── DIALOG HEADER ── */}
         <div className="p-5 border-b bg-gradient-to-r from-primary/10 via-primary/5 to-transparent flex items-center justify-between">
@@ -379,7 +467,9 @@ export function RoomImportWizard({
             </div>
             <div>
               <DialogTitle className="text-lg font-black text-foreground">
-                {ar ? "معالج استيراد وتكوين الغرف الشامل" : "Universal Room Configuration Importer"}
+                {ar
+                  ? "معالج استيراد وتكوين الغرف الشامل"
+                  : "Universal Room Configuration Importer"}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                 {ar
@@ -424,7 +514,9 @@ export function RoomImportWizard({
               <div className="p-4 rounded-xl border bg-primary/5 border-primary/20 space-y-1">
                 <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-primary" />
-                  {ar ? "الخطوة الأولى: تحديد الفندق / السكن المستهدف" : "Step 1: Select Target Property"}
+                  {ar
+                    ? "الخطوة الأولى: تحديد الفندق / السكن المستهدف"
+                    : "Step 1: Select Target Property"}
                 </h4>
                 <p className="text-xs text-muted-foreground">
                   {ar
@@ -436,15 +528,27 @@ export function RoomImportWizard({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-bold">
-                    {ar ? "اختر الفندق / السكن" : "Select Property"} <span className="text-red-500">*</span>
+                    {ar ? "اختر الفندق / السكن" : "Select Property"}{" "}
+                    <span className="text-red-500">*</span>
                   </Label>
-                  <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
+                  <Select
+                    value={selectedPropertyId}
+                    onValueChange={setSelectedPropertyId}
+                  >
                     <SelectTrigger className="h-11 font-semibold">
-                      <SelectValue placeholder={ar ? "اختر الفندق..." : "Select Property..."} />
+                      <SelectValue
+                        placeholder={
+                          ar ? "اختر الفندق..." : "Select Property..."
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {properties.map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)} className="font-semibold">
+                        <SelectItem
+                          key={p.id}
+                          value={String(p.id)}
+                          className="font-semibold"
+                        >
                           {p.name}
                         </SelectItem>
                       ))}
@@ -454,15 +558,26 @@ export function RoomImportWizard({
 
                 <div className="space-y-2">
                   <Label className="text-xs font-bold">
-                    {ar ? "المبنى المستهدف (اختياري)" : "Target Building (Optional)"}
+                    {ar
+                      ? "المبنى المستهدف (اختياري)"
+                      : "Target Building (Optional)"}
                   </Label>
-                  <Select value={selectedBuildingId} onValueChange={setSelectedBuildingId}>
+                  <Select
+                    value={selectedBuildingId}
+                    onValueChange={setSelectedBuildingId}
+                  >
                     <SelectTrigger className="h-11 font-semibold">
-                      <SelectValue placeholder={ar ? "تحديد تلقائي / بحسب الملف" : "Auto / From File"} />
+                      <SelectValue
+                        placeholder={
+                          ar ? "تحديد تلقائي / بحسب الملف" : "Auto / From File"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="auto">
-                        {ar ? "تحديد تلقائي (أو إنشاء مبنى رئيسي)" : "Auto detect / Create Main"}
+                        {ar
+                          ? "تحديد تلقائي (أو إنشاء مبنى رئيسي)"
+                          : "Auto detect / Create Main"}
                       </SelectItem>
                       {propertyBuildings.map((b) => (
                         <SelectItem key={b.id} value={String(b.id)}>
@@ -487,7 +602,9 @@ export function RoomImportWizard({
                   </div>
                   <div>
                     <h5 className="font-bold text-xs text-foreground">
-                      {ar ? "ليس لديك ملف مهيأ؟ حمّل النموذج الجاهز" : "Need a template? Download our ready file"}
+                      {ar
+                        ? "ليس لديك ملف مهيأ؟ حمّل النموذج الجاهز"
+                        : "Need a template? Download our ready file"}
                     </h5>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       {ar
@@ -502,7 +619,9 @@ export function RoomImportWizard({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => downloadRoomImportTemplate("xlsx", ar ? "ar" : "en")}
+                    onClick={() =>
+                      downloadRoomImportTemplate("xlsx", ar ? "ar" : "en")
+                    }
                     className="gap-1.5 text-xs font-bold border-blue-300 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-950/40 text-blue-700 dark:text-blue-300 flex-1 sm:flex-none shadow-xs"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -512,7 +631,9 @@ export function RoomImportWizard({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => downloadRoomImportTemplate("csv", ar ? "ar" : "en")}
+                    onClick={() =>
+                      downloadRoomImportTemplate("csv", ar ? "ar" : "en")
+                    }
                     className="gap-1.5 text-xs text-muted-foreground hover:text-foreground flex-1 sm:flex-none"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -537,17 +658,23 @@ export function RoomImportWizard({
                 </div>
                 <div>
                   <h4 className="font-extrabold text-base text-foreground">
-                    {ar ? "اضغط لاختيار ملف أو اسحب الملف وأفلته هنا" : "Click to select or drag & drop file here"}
+                    {ar
+                      ? "اضغط لاختيار ملف أو اسحب الملف وأفلته هنا"
+                      : "Click to select or drag & drop file here"}
                   </h4>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {ar ? "يدعم ملفات Excel (.xlsx, .xls) وملفات القيم المفصولة (.csv)" : "Supports Excel (.xlsx, .xls) and CSV (.csv)"}
+                    {ar
+                      ? "يدعم ملفات Excel (.xlsx, .xls) وملفات القيم المفصولة (.csv)"
+                      : "Supports Excel (.xlsx, .xls) and CSV (.csv)"}
                   </p>
                 </div>
                 {file && (
                   <div className="mt-2 px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold text-xs flex items-center gap-2">
                     <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                     <span>{file.name}</span>
-                    <span className="opacity-70">({(file.size / 1024).toFixed(1)} KB)</span>
+                    <span className="opacity-70">
+                      ({(file.size / 1024).toFixed(1)} KB)
+                    </span>
                   </div>
                 )}
               </div>
@@ -599,7 +726,9 @@ export function RoomImportWizard({
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-xl border bg-muted/30">
                 <div>
                   <h4 className="font-bold text-sm text-foreground">
-                    {ar ? "مطابقة أعمدة الملف مع حقول النظام" : "Map File Columns to System Fields"}
+                    {ar
+                      ? "مطابقة أعمدة الملف مع حقول النظام"
+                      : "Map File Columns to System Fields"}
                   </h4>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {ar
@@ -610,12 +739,18 @@ export function RoomImportWizard({
 
                 <div className="flex items-center gap-2">
                   {templates.length > 0 && (
-                    <Select onValueChange={(id) => {
-                      const t = templates.find((x) => String(x.id) === id);
-                      if (t) applyTemplate(t);
-                    }}>
+                    <Select
+                      onValueChange={(id) => {
+                        const t = templates.find((x) => String(x.id) === id);
+                        if (t) applyTemplate(t);
+                      }}
+                    >
                       <SelectTrigger className="h-8 text-xs w-[160px]">
-                        <SelectValue placeholder={ar ? "تحميل قالب محفوظ..." : "Load template..."} />
+                        <SelectValue
+                          placeholder={
+                            ar ? "تحميل قالب محفوظ..." : "Load template..."
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {templates.map((t) => (
@@ -641,17 +776,48 @@ export function RoomImportWizard({
 
               {/* Required Fields Status */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold text-muted-foreground">{ar ? "الحقول الإجبارية:" : "Required Fields:"}</span>
-                <Badge variant={requiredFieldsMapped.hasRoomNumber ? "default" : "destructive"} className="text-xs gap-1">
-                  {requiredFieldsMapped.hasRoomNumber ? <Check className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                <span className="text-xs font-bold text-muted-foreground">
+                  {ar ? "الحقول الإجبارية:" : "Required Fields:"}
+                </span>
+                <Badge
+                  variant={
+                    requiredFieldsMapped.hasRoomNumber
+                      ? "default"
+                      : "destructive"
+                  }
+                  className="text-xs gap-1"
+                >
+                  {requiredFieldsMapped.hasRoomNumber ? (
+                    <Check className="w-3 h-3" />
+                  ) : (
+                    <XCircle className="w-3 h-3" />
+                  )}
                   {ar ? "رقم الغرفة" : "Room Number"}
                 </Badge>
-                <Badge variant={requiredFieldsMapped.hasRoomType ? "default" : "destructive"} className="text-xs gap-1">
-                  {requiredFieldsMapped.hasRoomType ? <Check className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                <Badge
+                  variant={
+                    requiredFieldsMapped.hasRoomType ? "default" : "destructive"
+                  }
+                  className="text-xs gap-1"
+                >
+                  {requiredFieldsMapped.hasRoomType ? (
+                    <Check className="w-3 h-3" />
+                  ) : (
+                    <XCircle className="w-3 h-3" />
+                  )}
                   {ar ? "نوع الغرفة" : "Room Type"}
                 </Badge>
-                <Badge variant={requiredFieldsMapped.hasCapacity ? "default" : "destructive"} className="text-xs gap-1">
-                  {requiredFieldsMapped.hasCapacity ? <Check className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                <Badge
+                  variant={
+                    requiredFieldsMapped.hasCapacity ? "default" : "destructive"
+                  }
+                  className="text-xs gap-1"
+                >
+                  {requiredFieldsMapped.hasCapacity ? (
+                    <Check className="w-3 h-3" />
+                  ) : (
+                    <XCircle className="w-3 h-3" />
+                  )}
                   {ar ? "أقصى سعة" : "Capacity"}
                 </Badge>
               </div>
@@ -661,9 +827,15 @@ export function RoomImportWizard({
                 <table className="w-full text-xs">
                   <thead className="bg-muted/50 border-b font-bold text-muted-foreground">
                     <tr>
-                      <th className="p-3 text-start">{ar ? "عمود ملف Excel" : "Excel Header"}</th>
-                      <th className="p-3 text-start">{ar ? "عينة من الصف الأول" : "Sample Value"}</th>
-                      <th className="p-3 text-start">{ar ? "حقل النظام المقابل" : "Target System Field"}</th>
+                      <th className="p-3 text-start">
+                        {ar ? "عمود ملف Excel" : "Excel Header"}
+                      </th>
+                      <th className="p-3 text-start">
+                        {ar ? "عينة من الصف الأول" : "Sample Value"}
+                      </th>
+                      <th className="p-3 text-start">
+                        {ar ? "حقل النظام المقابل" : "Target System Field"}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -673,29 +845,44 @@ export function RoomImportWizard({
                       const isAuto = currentField !== "ignore";
 
                       return (
-                        <tr key={header} className="hover:bg-muted/20 transition-colors">
+                        <tr
+                          key={header}
+                          className="hover:bg-muted/20 transition-colors"
+                        >
                           <td className="p-3 font-semibold text-foreground">
                             {header}
                           </td>
                           <td className="p-3 text-muted-foreground font-mono truncate max-w-[200px]">
-                            {sampleVal !== undefined && sampleVal !== null ? String(sampleVal) : "—"}
+                            {sampleVal !== undefined && sampleVal !== null
+                              ? String(sampleVal)
+                              : "—"}
                           </td>
                           <td className="p-3">
                             <Select
                               value={currentField}
                               onValueChange={(val: SystemFieldKey) => {
-                                setColumnMapping((prev) => ({ ...prev, [header]: val }));
+                                setColumnMapping((prev) => ({
+                                  ...prev,
+                                  [header]: val,
+                                }));
                               }}
                             >
                               <SelectTrigger className="h-8 text-xs font-semibold w-[220px]">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="ignore" className="text-muted-foreground font-normal">
+                                <SelectItem
+                                  value="ignore"
+                                  className="text-muted-foreground font-normal"
+                                >
                                   {ar ? "تجاهل هذا العمود" : "Ignore Column"}
                                 </SelectItem>
                                 {SYSTEM_FIELDS.map((field) => (
-                                  <SelectItem key={field.key} value={field.key} className="font-semibold">
+                                  <SelectItem
+                                    key={field.key}
+                                    value={field.key}
+                                    className="font-semibold"
+                                  >
                                     {ar ? field.labelAr : field.labelEn}
                                     {field.required ? " *" : ""}
                                   </SelectItem>
@@ -717,7 +904,9 @@ export function RoomImportWizard({
             <div className="space-y-6 animate-in fade-in">
               <div className="p-4 rounded-xl border bg-muted/30">
                 <h4 className="font-bold text-sm text-foreground">
-                  {ar ? "حدد كيفية التعامل مع الغرف المسجلة مسبقاً" : "Choose Duplicate Room Handling Mode"}
+                  {ar
+                    ? "حدد كيفية التعامل مع الغرف المسجلة مسبقاً"
+                    : "Choose Duplicate Room Handling Mode"}
                 </h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {ar
@@ -739,9 +928,13 @@ export function RoomImportWizard({
                   <div className="flex items-center justify-between">
                     <span className="font-black text-sm text-foreground flex items-center gap-1.5">
                       <RotateCcw className="w-4 h-4 text-primary" />
-                      {ar ? "إنشاء وتحديث (موصى به)" : "Create + Update (Recommended)"}
+                      {ar
+                        ? "إنشاء وتحديث (موصى به)"
+                        : "Create + Update (Recommended)"}
                     </span>
-                    {importMode === "create_update" && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                    {importMode === "create_update" && (
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {ar
@@ -763,7 +956,9 @@ export function RoomImportWizard({
                     <span className="font-black text-sm text-foreground flex items-center gap-1.5">
                       🆕 {ar ? "إنشاء جديد فقط" : "Create Only"}
                     </span>
-                    {importMode === "create_only" && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                    {importMode === "create_only" && (
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {ar
@@ -786,7 +981,9 @@ export function RoomImportWizard({
                       <Pencil className="w-4 h-4 text-primary" />
                       {ar ? "تحديث الموجود فقط" : "Update Only"}
                     </span>
-                    {importMode === "update_only" && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                    {importMode === "update_only" && (
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {ar
@@ -809,7 +1006,9 @@ export function RoomImportWizard({
                       <AlertTriangle className="w-4 h-4 text-amber-500" />
                       {ar ? "مزامنة كاملة واستبدال" : "Replace Configuration"}
                     </span>
-                    {importMode === "replace" && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                    {importMode === "replace" && (
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {ar
@@ -827,24 +1026,44 @@ export function RoomImportWizard({
               {/* Summary KPIs */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                 <div className="p-3 rounded-xl border bg-muted/20 text-center">
-                  <span className="text-[11px] text-muted-foreground font-bold">{ar ? "إجمالي الصفوف" : "Total"}</span>
-                  <p className="text-xl font-black text-foreground">{validationResult.totalRows}</p>
+                  <span className="text-[11px] text-muted-foreground font-bold">
+                    {ar ? "إجمالي الصفوف" : "Total"}
+                  </span>
+                  <p className="text-xl font-black text-foreground">
+                    {validationResult.totalRows}
+                  </p>
                 </div>
                 <div className="p-3 rounded-xl border bg-emerald-500/10 border-emerald-500/20 text-center">
-                  <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold">{ar ? "صفوف سليمة" : "Valid"}</span>
-                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">{validationResult.validRows}</p>
+                  <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold">
+                    {ar ? "صفوف سليمة" : "Valid"}
+                  </span>
+                  <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                    {validationResult.validRows}
+                  </p>
                 </div>
                 <div className="p-3 rounded-xl border bg-red-500/10 border-red-500/20 text-center">
-                  <span className="text-[11px] text-red-800 dark:text-red-300 font-bold">{ar ? "بها أخطاء" : "Invalid"}</span>
-                  <p className="text-xl font-black text-red-600 dark:text-red-400">{validationResult.invalidRows}</p>
+                  <span className="text-[11px] text-red-800 dark:text-red-300 font-bold">
+                    {ar ? "بها أخطاء" : "Invalid"}
+                  </span>
+                  <p className="text-xl font-black text-red-600 dark:text-red-400">
+                    {validationResult.invalidRows}
+                  </p>
                 </div>
                 <div className="p-3 rounded-xl border bg-blue-500/10 border-blue-500/20 text-center">
-                  <span className="text-[11px] text-blue-800 dark:text-blue-300 font-bold">{ar ? "غرف جديدة" : "New"}</span>
-                  <p className="text-xl font-black text-blue-600 dark:text-blue-400">{validationResult.newRoomsCount}</p>
+                  <span className="text-[11px] text-blue-800 dark:text-blue-300 font-bold">
+                    {ar ? "غرف جديدة" : "New"}
+                  </span>
+                  <p className="text-xl font-black text-blue-600 dark:text-blue-400">
+                    {validationResult.newRoomsCount}
+                  </p>
                 </div>
                 <div className="p-3 rounded-xl border bg-amber-500/10 border-amber-500/20 text-center col-span-2 sm:col-span-1">
-                  <span className="text-[11px] text-amber-800 dark:text-amber-300 font-bold">{ar ? "مسجلة مسبقاً" : "Existing"}</span>
-                  <p className="text-xl font-black text-amber-600 dark:text-amber-400">{validationResult.existingRoomsCount}</p>
+                  <span className="text-[11px] text-amber-800 dark:text-amber-300 font-bold">
+                    {ar ? "مسجلة مسبقاً" : "Existing"}
+                  </span>
+                  <p className="text-xl font-black text-amber-600 dark:text-amber-400">
+                    {validationResult.existingRoomsCount}
+                  </p>
                 </div>
               </div>
 
@@ -853,7 +1072,11 @@ export function RoomImportWizard({
                 <div className="relative flex-1 max-w-xs">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                   <Input
-                    placeholder={ar ? "ابحث برقم الغرفة أو النوع..." : "Search room or type..."}
+                    placeholder={
+                      ar
+                        ? "ابحث برقم الغرفة أو النوع..."
+                        : "Search room or type..."
+                    }
                     value={previewSearch}
                     onChange={(e) => setPreviewSearch(e.target.value)}
                     className="pl-8 h-8 text-xs"
@@ -872,18 +1095,27 @@ export function RoomImportWizard({
                   {validationResult.invalidRows > 0 && (
                     <Button
                       size="sm"
-                      variant={previewFilter === "errors" ? "destructive" : "outline"}
-                      onClick={() => setPreviewFilter(previewFilter === "errors" ? "all" : "errors")}
+                      variant={
+                        previewFilter === "errors" ? "destructive" : "outline"
+                      }
+                      onClick={() =>
+                        setPreviewFilter(
+                          previewFilter === "errors" ? "all" : "errors",
+                        )
+                      }
                       className="h-8 text-xs gap-1"
                     >
                       <XCircle className="w-3.5 h-3.5" />
-                      {ar ? "الأخطاء فقط" : "Errors Only"} ({validationResult.invalidRows})
+                      {ar ? "الأخطاء فقط" : "Errors Only"} (
+                      {validationResult.invalidRows})
                     </Button>
                   )}
                   <Button
                     size="sm"
                     variant={previewFilter === "new" ? "default" : "outline"}
-                    onClick={() => setPreviewFilter(previewFilter === "new" ? "all" : "new")}
+                    onClick={() =>
+                      setPreviewFilter(previewFilter === "new" ? "all" : "new")
+                    }
                     className="h-8 text-xs"
                   >
                     {ar ? "الجديدة" : "New"} ({validationResult.newRoomsCount})
@@ -897,22 +1129,45 @@ export function RoomImportWizard({
                   <thead className="bg-muted/50 border-b font-bold text-muted-foreground sticky top-0 backdrop-blur">
                     <tr>
                       <th className="p-2.5 text-center w-12">#</th>
-                      <th className="p-2.5 text-start">{ar ? "رقم الغرفة" : "Room #"}</th>
-                      <th className="p-2.5 text-start">{ar ? "التصنيف" : "Classification"}</th>
-                      <th className="p-2.5 text-start">{ar ? "النوع" : "Type"}</th>
-                      <th className="p-2.5 text-start">{ar ? "السرير" : "Bed"}</th>
-                      <th className="p-2.5 text-center">{ar ? "السعة" : "Occ."}</th>
-                      <th className="p-2.5 text-center">{ar ? "الدور" : "Floor"}</th>
-                      <th className="p-2.5 text-start">{ar ? "الإطلالة" : "View"}</th>
-                      <th className="p-2.5 text-center">{ar ? "المساحة" : "Size"}</th>
-                      <th className="p-2.5 text-start">{ar ? "الحالة والتدقيق" : "Validation"}</th>
+                      <th className="p-2.5 text-start">
+                        {ar ? "رقم الغرفة" : "Room #"}
+                      </th>
+                      <th className="p-2.5 text-start">
+                        {ar ? "التصنيف" : "Classification"}
+                      </th>
+                      <th className="p-2.5 text-start">
+                        {ar ? "النوع" : "Type"}
+                      </th>
+                      <th className="p-2.5 text-start">
+                        {ar ? "السرير" : "Bed"}
+                      </th>
+                      <th className="p-2.5 text-center">
+                        {ar ? "السعة" : "Occ."}
+                      </th>
+                      <th className="p-2.5 text-center">
+                        {ar ? "الدور" : "Floor"}
+                      </th>
+                      <th className="p-2.5 text-start">
+                        {ar ? "الإطلالة" : "View"}
+                      </th>
+                      <th className="p-2.5 text-center">
+                        {ar ? "المساحة" : "Size"}
+                      </th>
+                      <th className="p-2.5 text-start">
+                        {ar ? "الحالة والتدقيق" : "Validation"}
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {previewRows.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="p-8 text-center text-muted-foreground">
-                          {ar ? "لا توجد صفوف تطابق الفلتر" : "No rows match filter"}
+                        <td
+                          colSpan={10}
+                          className="p-8 text-center text-muted-foreground"
+                        >
+                          {ar
+                            ? "لا توجد صفوف تطابق الفلتر"
+                            : "No rows match filter"}
                         </td>
                       </tr>
                     ) : (
@@ -925,19 +1180,33 @@ export function RoomImportWizard({
                               !row.isValid
                                 ? "bg-red-500/10 hover:bg-red-500/15"
                                 : row.isExisting
-                                ? "bg-amber-500/5 hover:bg-amber-500/10"
-                                : "hover:bg-muted/20"
+                                  ? "bg-amber-500/5 hover:bg-amber-500/10"
+                                  : "hover:bg-muted/20"
                             }`}
                           >
-                            <td className="p-2.5 text-center font-mono text-muted-foreground">{row.rowNumber}</td>
-                            <td className="p-2.5 font-bold font-mono text-foreground">{r.roomNumber || "—"}</td>
-                            <td className="p-2.5 font-medium">{r.classification || "—"}</td>
+                            <td className="p-2.5 text-center font-mono text-muted-foreground">
+                              {row.rowNumber}
+                            </td>
+                            <td className="p-2.5 font-bold font-mono text-foreground">
+                              {r.roomNumber || "—"}
+                            </td>
+                            <td className="p-2.5 font-medium">
+                              {r.classification || "—"}
+                            </td>
                             <td className="p-2.5">{r.roomType || "—"}</td>
-                            <td className="p-2.5 text-muted-foreground">{r.bedType || "—"}</td>
-                            <td className="p-2.5 text-center font-bold">{r.capacity}</td>
+                            <td className="p-2.5 text-muted-foreground">
+                              {r.bedType || "—"}
+                            </td>
+                            <td className="p-2.5 text-center font-bold">
+                              {r.capacity}
+                            </td>
                             <td className="p-2.5 text-center">{r.floor}</td>
-                            <td className="p-2.5 text-muted-foreground">{r.view || "—"}</td>
-                            <td className="p-2.5 text-center font-mono">{r.size || "—"}</td>
+                            <td className="p-2.5 text-muted-foreground">
+                              {r.view || "—"}
+                            </td>
+                            <td className="p-2.5 text-center font-mono">
+                              {r.size || "—"}
+                            </td>
                             <td className="p-2.5">
                               {row.errors.length > 0 ? (
                                 <div className="space-y-0.5">
@@ -952,7 +1221,9 @@ export function RoomImportWizard({
                                 </div>
                               ) : row.isExisting ? (
                                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                                  {ar ? "موجودة (سيتم التحديث)" : "Existing (Update)"}
+                                  {ar
+                                    ? "موجودة (سيتم التحديث)"
+                                    : "Existing (Update)"}
                                 </span>
                               ) : (
                                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
@@ -977,9 +1248,13 @@ export function RoomImportWizard({
                 <RefreshCw className="w-8 h-8" />
               </div>
               <div>
-                <h4 className="font-black text-base text-foreground">{executionPhase}</h4>
+                <h4 className="font-black text-base text-foreground">
+                  {executionPhase}
+                </h4>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {ar ? "يرجى الانتظار، جاري تطبيق التغييرات داخل معاملة آمنة..." : "Please wait, processing database transaction..."}
+                  {ar
+                    ? "يرجى الانتظار، جاري تطبيق التغييرات داخل معاملة آمنة..."
+                    : "Please wait, processing database transaction..."}
                 </p>
               </div>
               <div className="w-full max-w-md h-2 rounded-full bg-muted overflow-hidden">
@@ -1000,25 +1275,41 @@ export function RoomImportWizard({
 
               <div>
                 <h3 className="text-xl font-black text-foreground">
-                  {ar ? "اكتملت عملية الاستيراد بنجاح!" : "Import Completed Successfully!"}
+                  {ar
+                    ? "اكتملت عملية الاستيراد بنجاح!"
+                    : "Import Completed Successfully!"}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {ar ? "تم تسجيل وتحديث الغرف والأسرة الفيزيائية في النظام بنجاح" : "Rooms and beds were saved into the database"}
+                  {ar
+                    ? "تم تسجيل وتحديث الغرف والأسرة الفيزيائية في النظام بنجاح"
+                    : "Rooms and beds were saved into the database"}
                 </p>
               </div>
 
               <div className="grid grid-cols-3 gap-3 max-w-md mx-auto">
                 <div className="p-3.5 rounded-xl border bg-emerald-500/10 text-emerald-800 dark:text-emerald-300">
-                  <span className="text-xs font-bold">{ar ? "غرف جديدة" : "Created"}</span>
-                  <p className="text-2xl font-black">{importResult.createdRows}</p>
+                  <span className="text-xs font-bold">
+                    {ar ? "غرف جديدة" : "Created"}
+                  </span>
+                  <p className="text-2xl font-black">
+                    {importResult.createdRows}
+                  </p>
                 </div>
                 <div className="p-3.5 rounded-xl border bg-blue-500/10 text-blue-800 dark:text-blue-300">
-                  <span className="text-xs font-bold">{ar ? "غرف تم تحديثها" : "Updated"}</span>
-                  <p className="text-2xl font-black">{importResult.updatedRows}</p>
+                  <span className="text-xs font-bold">
+                    {ar ? "غرف تم تحديثها" : "Updated"}
+                  </span>
+                  <p className="text-2xl font-black">
+                    {importResult.updatedRows}
+                  </p>
                 </div>
                 <div className="p-3.5 rounded-xl border bg-muted/40 text-muted-foreground">
-                  <span className="text-xs font-bold">{ar ? "إجمالي المعالج" : "Total"}</span>
-                  <p className="text-2xl font-black">{importResult.totalRows}</p>
+                  <span className="text-xs font-bold">
+                    {ar ? "إجمالي المعالج" : "Total"}
+                  </span>
+                  <p className="text-2xl font-black">
+                    {importResult.totalRows}
+                  </p>
                 </div>
               </div>
 
@@ -1043,7 +1334,9 @@ export function RoomImportWizard({
                   className="gap-2 bg-gradient-to-r from-primary to-indigo-600 font-bold text-xs text-white shadow-md"
                 >
                   <Eye className="w-4 h-4" />
-                  {ar ? "استعراض في مخطط الغرف والأسرة" : "View in Room Space View"}
+                  {ar
+                    ? "استعراض في مخطط الغرف والأسرة"
+                    : "View in Room Space View"}
                 </Button>
               </div>
             </div>
@@ -1053,22 +1346,24 @@ export function RoomImportWizard({
         {/* ── FOOTER CONTROLS ── */}
         <div className="p-4 border-t bg-muted/20 flex items-center justify-between">
           <div>
-            {step !== "property" && step !== "progress" && step !== "result" && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (step === "upload") setStep("property");
-                  else if (step === "mapping") setStep("upload");
-                  else if (step === "mode") setStep("mapping");
-                  else if (step === "preview") setStep("mode");
-                }}
-                className="gap-1.5 text-xs font-bold"
-              >
-                <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
-                {ar ? "السابق" : "Back"}
-              </Button>
-            )}
+            {step !== "property" &&
+              step !== "progress" &&
+              step !== "result" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (step === "upload") setStep("property");
+                    else if (step === "mapping") setStep("upload");
+                    else if (step === "mode") setStep("mapping");
+                    else if (step === "preview") setStep("mode");
+                  }}
+                  className="gap-1.5 text-xs font-bold"
+                >
+                  <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
+                  {ar ? "السابق" : "Back"}
+                </Button>
+              )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -1137,7 +1432,9 @@ export function RoomImportWizard({
                 className="gap-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                {ar ? `تأكيد وبدء الاستيراد (${validationResult?.validRows} غرفة)` : `Confirm Import (${validationResult?.validRows} Rooms)`}
+                {ar
+                  ? `تأكيد وبدء الاستيراد (${validationResult?.validRows} غرفة)`
+                  : `Confirm Import (${validationResult?.validRows} Rooms)`}
               </Button>
             )}
           </div>
@@ -1145,26 +1442,41 @@ export function RoomImportWizard({
       </DialogContent>
 
       {/* Save Template Mini Dialog */}
-      <Dialog open={saveTemplateDialogOpen} onOpenChange={setSaveTemplateDialogOpen}>
+      <Dialog
+        open={saveTemplateDialogOpen}
+        onOpenChange={setSaveTemplateDialogOpen}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-base font-bold">
               {ar ? "حفظ قالب مطابقة الأعمدة" : "Save Column Mapping Template"}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              {ar ? "احفظ هذا التعيين لاستخدامه مستقبلاً لأي ملف من نفس المصدر" : "Save this mapping for future imports"}
+              {ar
+                ? "احفظ هذا التعيين لاستخدامه مستقبلاً لأي ملف من نفس المصدر"
+                : "Save this mapping for future imports"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-2">
-            <Label className="text-xs font-bold">{ar ? "اسم القالب" : "Template Name"}</Label>
+            <Label className="text-xs font-bold">
+              {ar ? "اسم القالب" : "Template Name"}
+            </Label>
             <Input
-              placeholder={ar ? "مثال: Tal Avenue Room Configuration" : "e.g. Tal Avenue Config"}
+              placeholder={
+                ar
+                  ? "مثال: Tal Avenue Room Configuration"
+                  : "e.g. Tal Avenue Config"
+              }
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
               className="h-9 text-xs"
             />
             <div className="flex justify-end gap-2 pt-2">
-              <Button size="sm" variant="outline" onClick={() => setSaveTemplateDialogOpen(false)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setSaveTemplateDialogOpen(false)}
+              >
                 {ar ? "إلغاء" : "Cancel"}
               </Button>
               <Button size="sm" onClick={handleSaveTemplate}>

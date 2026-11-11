@@ -23,12 +23,7 @@ type Props = {
   profiles: any[];
 };
 
-export function RoomLogDialog({
-  room,
-  onClose,
-  assignments,
-  profiles,
-}: Props) {
+export function RoomLogDialog({ room, onClose, assignments, profiles }: Props) {
   const { language } = useLanguage();
   const ar = language === "ar";
 

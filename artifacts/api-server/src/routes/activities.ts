@@ -302,9 +302,7 @@ router.get(
           .where(eq(activityRegistrationsTable.activityId, activityId))
           .orderBy(desc(activityRegistrationsTable.createdAt));
 
-        const profileIds = [
-          ...new Set(registrations.map((r) => r.profileId)),
-        ];
+        const profileIds = [...new Set(registrations.map((r) => r.profileId))];
         const profiles =
           profileIds.length > 0
             ? await tenantDb

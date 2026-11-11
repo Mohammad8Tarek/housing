@@ -122,7 +122,9 @@ export function ReadinessTrackerBar({
 
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
-          <span className="font-medium text-foreground">{maintenance}</span>{" "}
+          <span className="font-medium text-foreground">
+            {maintenance}
+          </span>{" "}
           <span>{ar ? "تحت الصيانة" : "In Maintenance"}</span>
         </div>
       </div>

@@ -32,7 +32,10 @@ import { useColumnVisibility } from "@/components/ui/column-chooser";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { DataPagination } from "@/components/DataPagination";
 import { generateHousingLetterPdf } from "@/lib/pdf-utils";
-import { usePrintLanguage, PrintLanguageDialog } from "@/lib/PrintLanguageDialog";
+import {
+  usePrintLanguage,
+  PrintLanguageDialog,
+} from "@/lib/PrintLanguageDialog";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { formatDate } from "@/lib/date-utils";
 import { exportExcel } from "@/pages/reports/utils/export";
@@ -40,8 +43,19 @@ import { Plus, CalendarDays } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { useCheckDuplicates } from "@/hooks/use-check-duplicates";
 import { getBedOptions } from "../shared/profile-search";
-import type { CancelDialogState, EditDialogState, EditFormState, WhatsAppDialogState } from "./types";
-import { RES_COLS, getStatusLabel, statusColor, isRoomBookable, makeEmptyNewForm } from "./utils";
+import type {
+  CancelDialogState,
+  EditDialogState,
+  EditFormState,
+  WhatsAppDialogState,
+} from "./types";
+import {
+  RES_COLS,
+  getStatusLabel,
+  statusColor,
+  isRoomBookable,
+  makeEmptyNewForm,
+} from "./utils";
 import { useNewProfileForm } from "./hooks/useNewProfileForm";
 import { useProfileSearch } from "./hooks/useProfileSearch";
 import { useRoomOccupancy } from "./hooks/useRoomOccupancy";
@@ -61,7 +75,6 @@ import { DeleteReservationDialog } from "./components/DeleteReservationDialog";
 import { KeyPromptDialog } from "./components/KeyPromptDialog";
 import { CrossPropertyConfirmDialog } from "./components/CrossPropertyConfirmDialog";
 
-
 export default function ReservationsPage() {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
@@ -75,12 +88,20 @@ export default function ReservationsPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("UPCOMING");
-  useEffect(() => { const h = setTimeout(() => setDebouncedSearch(search), 500); return () => clearTimeout(h); }, [search]);
-  useEffect(() => { setCurrentPage(1); }, [debouncedSearch, statusFilter]);
+  useEffect(() => {
+    const h = setTimeout(() => setDebouncedSearch(search), 500);
+    return () => clearTimeout(h);
+  }, [search]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter]);
 
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [editDialog, setEditDialog] = useState<EditDialogState>({ open: false, reservation: null });
+  const [editDialog, setEditDialog] = useState<EditDialogState>({
+    open: false,
+    reservation: null,
+  });
   const [editForm, setEditForm] = useState<EditFormState>({
     checkInDate: "",
     checkOutDate: "",
@@ -114,7 +135,10 @@ export default function ReservationsPage() {
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
   // WhatsApp reservation confirmation dialog state
-  const [whatsAppDialog, setWhatsAppDialog] = useState<WhatsAppDialogState>({ open: false, reservation: null });
+  const [whatsAppDialog, setWhatsAppDialog] = useState<WhatsAppDialogState>({
+    open: false,
+    reservation: null,
+  });
   const [whatsAppPhone, setWhatsAppPhone] = useState("");
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
 
@@ -129,33 +153,49 @@ export default function ReservationsPage() {
   const handleSendWhatsAppConfirmation = async () => {
     if (!whatsAppDialog.reservation?.id) return;
     if (!whatsAppPhone.trim()) {
-      toast.error(ar ? "يرجى إدخال رقم هاتف الواتساب للنزيل" : "Please enter a valid WhatsApp phone number");
+      toast.error(
+        ar
+          ? "يرجى إدخال رقم هاتف الواتساب للنزيل"
+          : "Please enter a valid WhatsApp phone number",
+      );
       return;
     }
     setIsSendingWhatsApp(true);
     try {
-      const res = await fetch(`/api/reservations/${whatsAppDialog.reservation.id}/send-whatsapp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          propertyId: activePropertyId,
-          phone: whatsAppPhone.trim(),
-        }),
-      });
+      const res = await fetch(
+        `/api/reservations/${whatsAppDialog.reservation.id}/send-whatsapp`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            propertyId: activePropertyId,
+            phone: whatsAppPhone.trim(),
+          }),
+        },
+      );
       const data = await res.json();
       if (!res.ok || data.error) {
-        throw new Error(data.error || (ar ? "فشل إرسال رسالة الواتساب" : "Failed to send WhatsApp message"));
+        throw new Error(
+          data.error ||
+            (ar
+              ? "فشل إرسال رسالة الواتساب"
+              : "Failed to send WhatsApp message"),
+        );
       }
       toast.success(
         ar
           ? `تم إرسال تأكيد الحجز عبر الواتساب بنجاح إلى الرقم (${whatsAppPhone.trim()})`
-          : `Reservation confirmation sent successfully to (${whatsAppPhone.trim()})`
+          : `Reservation confirmation sent successfully to (${whatsAppPhone.trim()})`,
       );
       setWhatsAppDialog({ open: false, reservation: null });
-      queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
+      queryClient.invalidateQueries({
+        queryKey: getListReservationsQueryKey(),
+      });
     } catch (err: any) {
-      toast.error(err.message || (ar ? "حدث خطأ أثناء الإرسال" : "Error sending message"));
+      toast.error(
+        err.message || (ar ? "حدث خطأ أثناء الإرسال" : "Error sending message"),
+      );
     } finally {
       setIsSendingWhatsApp(false);
     }
@@ -165,12 +205,18 @@ export default function ReservationsPage() {
   const [personMode, setPersonMode] = useState<"existing" | "new" | null>(null);
   const [expectedCheckOut, setExpectedCheckOut] = useState("");
   const {
-    selectedProfile, setSelectedProfile,
-    empSearch, setEmpSearch,
-    empResults, isSearching, showDropdown,
-    searchPropertyId, setSearchPropertyId,
+    selectedProfile,
+    setSelectedProfile,
+    empSearch,
+    setEmpSearch,
+    empResults,
+    isSearching,
+    showDropdown,
+    searchPropertyId,
+    setSearchPropertyId,
     searchRef,
-    selectProfile, clearProfile,
+    selectProfile,
+    clearProfile,
   } = useProfileSearch({
     activePropertyId,
     onProfileSelected: (emp) => {
@@ -181,20 +227,35 @@ export default function ReservationsPage() {
     },
   });
 
-  const [transferType, setTransferType] = useState<"PERMANENT" | "TASK_FORCE">("PERMANENT");
-  const [archiveSourceProfile, setArchiveSourceProfile] = useState<boolean>(true);
-  const [crossPropertyModalOpen, setCrossPropertyModalOpen] = useState<boolean>(false);
+  const [transferType, setTransferType] = useState<"PERMANENT" | "TASK_FORCE">(
+    "PERMANENT",
+  );
+  const [archiveSourceProfile, setArchiveSourceProfile] =
+    useState<boolean>(true);
+  const [crossPropertyModalOpen, setCrossPropertyModalOpen] =
+    useState<boolean>(false);
 
   const {
-    newForm, setNewForm,
-    photoPreview, photoData, photoRef, docsRef,
-    handlePhotoSelect, clearPhoto, handleDocSelect, removeDoc,
+    newForm,
+    setNewForm,
+    photoPreview,
+    photoData,
+    photoRef,
+    docsRef,
+    handlePhotoSelect,
+    clearPhoto,
+    handleDocSelect,
+    removeDoc,
   } = useNewProfileForm(ar);
 
-  const [bookingType, setBookingType] = useState<"direct" | "upcoming">("direct");
+  const [bookingType, setBookingType] = useState<"direct" | "upcoming">(
+    "direct",
+  );
   const [selectedRoomId, setSelectedRoomId] = useState("");
   const [selectedBed, setSelectedBed] = useState("");
-  const [checkInDate, setCheckInDate] = useState(new Date().toISOString().split("T")[0]);
+  const [checkInDate, setCheckInDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
   const [notes, setNotes] = useState("");
   const [searchBuilding, setSearchBuilding] = useState("all");
   const [searchFloor, setSearchFloor] = useState("all");
@@ -230,18 +291,53 @@ export default function ReservationsPage() {
     } catch {}
   }, []);
 
-  const { langDialogOpen, openDialog, handleSelect, handleCancel } = usePrintLanguage();
-  const currentPropId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const { langDialogOpen, openDialog, handleSelect, handleCancel } =
+    usePrintLanguage();
+  const currentPropId =
+    typeof activePropertyId === "number" ? activePropertyId : undefined;
 
   const { data: _resWrapper, isLoading } = useListReservations(
-    { propertyId: currentPropId, page: currentPage, limit: pageSize, search: debouncedSearch, status: statusFilter === "all" ? undefined : statusFilter } as any,
-    { query: { queryKey: ["listReservations", currentPropId, currentPage, pageSize, debouncedSearch, statusFilter], enabled: !!currentPropId, staleTime: 0, placeholderData: (prev: any) => prev } },
+    {
+      propertyId: currentPropId,
+      page: currentPage,
+      limit: pageSize,
+      search: debouncedSearch,
+      status: statusFilter === "all" ? undefined : statusFilter,
+    } as any,
+    {
+      query: {
+        queryKey: [
+          "listReservations",
+          currentPropId,
+          currentPage,
+          pageSize,
+          debouncedSearch,
+          statusFilter,
+        ],
+        enabled: !!currentPropId,
+        staleTime: 0,
+        placeholderData: (prev: any) => prev,
+      },
+    },
   );
-  const reservations: any[] = (_resWrapper as any)?.data || (Array.isArray(_resWrapper) ? _resWrapper : []);
+  const reservations: any[] =
+    (_resWrapper as any)?.data ||
+    (Array.isArray(_resWrapper) ? _resWrapper : []);
   const paginationTotal = (_resWrapper as any)?.pagination?.total || 0;
 
-  const { data: _rData } = useListRooms({ propertyId: currentPropId, limit: 1000 } as any, { query: { queryKey: ["/api/rooms", currentPropId], enabled: !!currentPropId, staleTime: 30000 } as any });
-  const rooms: any[] = Array.isArray(_rData) ? _rData : ((_rData as any)?.data || []);
+  const { data: _rData } = useListRooms(
+    { propertyId: currentPropId, limit: 1000 } as any,
+    {
+      query: {
+        queryKey: ["/api/rooms", currentPropId],
+        enabled: !!currentPropId,
+        staleTime: 30000,
+      } as any,
+    },
+  );
+  const rooms: any[] = Array.isArray(_rData)
+    ? _rData
+    : (_rData as any)?.data || [];
 
   useEffect(() => {
     try {
@@ -260,12 +356,29 @@ export default function ReservationsPage() {
       }
     } catch {}
   }, [rooms]);
-  const { data: _bData } = useListBuildings({ propertyId: currentPropId } as any, { query: { queryKey: ["/api/buildings", currentPropId], enabled: !!currentPropId, staleTime: 300000 } as any });
-  const buildings: any[] = Array.isArray(_bData) ? _bData : ((_bData as any)?.data || []);
-  const { data: _fData } = useListFloors({ propertyId: currentPropId } as any, { query: { queryKey: ["/api/floors", currentPropId], enabled: !!currentPropId, staleTime: 300000 } as any });
+  const { data: _bData } = useListBuildings(
+    { propertyId: currentPropId } as any,
+    {
+      query: {
+        queryKey: ["/api/buildings", currentPropId],
+        enabled: !!currentPropId,
+        staleTime: 300000,
+      } as any,
+    },
+  );
+  const buildings: any[] = Array.isArray(_bData)
+    ? _bData
+    : (_bData as any)?.data || [];
+  const { data: _fData } = useListFloors({ propertyId: currentPropId } as any, {
+    query: {
+      queryKey: ["/api/floors", currentPropId],
+      enabled: !!currentPropId,
+      staleTime: 300000,
+    } as any,
+  });
   const floors = Array.isArray(_fData)
     ? _fData
-    : (((_fData as any)?.data as any[]) || []);
+    : ((_fData as any)?.data as any[]) || [];
 
   const roomMap = useMemo(() => {
     const map = new Map<number, any>();
@@ -275,9 +388,16 @@ export default function ReservationsPage() {
 
   const { data: _profData } = useListProfiles(
     { propertyId: currentPropId, limit: 1000 } as any,
-    { query: { queryKey: ["/api/profiles", currentPropId], enabled: !!currentPropId, staleTime: 60000 } as any }
+    {
+      query: {
+        queryKey: ["/api/profiles", currentPropId],
+        enabled: !!currentPropId,
+        staleTime: 60000,
+      } as any,
+    },
   );
-  const profilesList = (_profData as any)?.profiles || (_profData as any)?.data || [];
+  const profilesList =
+    (_profData as any)?.profiles || (_profData as any)?.data || [];
 
   const { data: settings } = useGetSettings(undefined, {
     query: {
@@ -290,28 +410,34 @@ export default function ReservationsPage() {
   const canOverrideSingleOccupancy = Boolean(
     isSuperAdmin ||
     isAdmin ||
-    (typeof hasRole === "function" && (
-      hasRole("super_admin") ||
-      hasRole("admin") ||
-      hasRole("housing_manager") ||
-      hasRole("manager")
-    )) ||
-    (typeof can === "function" && (
-      can("reservations", "override_single_occupancy") ||
-      can("accommodation", "override_single_occupancy")
-    ))
+    (typeof hasRole === "function" &&
+      (hasRole("super_admin") ||
+        hasRole("admin") ||
+        hasRole("housing_manager") ||
+        hasRole("manager"))) ||
+    (typeof can === "function" &&
+      (can("reservations", "override_single_occupancy") ||
+        can("accommodation", "override_single_occupancy"))),
   );
 
   const { data: _aData } = useListAssignments(
     { propertyId: currentPropId, limit: 5000 } as any,
-    { query: { queryKey: ["/api/assignments", currentPropId], enabled: !!currentPropId, staleTime: 30000 } as any }
+    {
+      query: {
+        queryKey: ["/api/assignments", currentPropId],
+        enabled: !!currentPropId,
+        staleTime: 30000,
+      } as any,
+    },
   );
   const allAssignments = Array.isArray(_aData)
     ? _aData
-    : (((_aData as any)?.data as any[]) || []);
+    : ((_aData as any)?.data as any[]) || [];
 
   const { data: _pData } = useListProperties();
-  const allProperties: any[] = Array.isArray(_pData) ? _pData : ((_pData as any)?.data || []);
+  const allProperties: any[] = Array.isArray(_pData)
+    ? _pData
+    : (_pData as any)?.data || [];
 
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
 
@@ -319,30 +445,54 @@ export default function ReservationsPage() {
     personMode === "existing" &&
     selectedProfile &&
     activePropertyId &&
-    (
-      (selectedProfile.propertyId && Number(selectedProfile.propertyId) !== Number(activePropertyId)) ||
-      (selectedProfile.propertyName && activeProp?.name && selectedProfile.propertyName.trim().toLowerCase() !== activeProp?.name.trim().toLowerCase())
-    )
+    ((selectedProfile.propertyId &&
+      Number(selectedProfile.propertyId) !== Number(activePropertyId)) ||
+      (selectedProfile.propertyName &&
+        activeProp?.name &&
+        selectedProfile.propertyName.trim().toLowerCase() !==
+          activeProp?.name.trim().toLowerCase())),
   );
-  const { data: departmentValues = [] } = useLookupValues(currentPropId, LOOKUP_CATEGORIES.DEPARTMENT);
-  const { data: jobTitleValues = [] } = useLookupValues(currentPropId, LOOKUP_CATEGORIES.JOB_TITLE);
-  const { data: nationalityValues = [] } = useLookupValues(currentPropId, LOOKUP_CATEGORIES.NATIONALITY);
+  const { data: departmentValues = [] } = useLookupValues(
+    currentPropId,
+    LOOKUP_CATEGORIES.DEPARTMENT,
+  );
+  const { data: jobTitleValues = [] } = useLookupValues(
+    currentPropId,
+    LOOKUP_CATEGORIES.JOB_TITLE,
+  );
+  const { data: nationalityValues = [] } = useLookupValues(
+    currentPropId,
+    LOOKUP_CATEGORIES.NATIONALITY,
+  );
 
-  const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
-  const floorMap = Object.fromEntries(floors.map((f) => [f.id, { name: f.name, number: f.floorNumber }]));
+  const buildingMap = Object.fromEntries(
+    buildings.map((b: any) => [b.id, b.name]),
+  );
+  const floorMap = Object.fromEntries(
+    floors.map((f) => [f.id, { name: f.name, number: f.floorNumber }]),
+  );
 
   const filteredJobTitles = useMemo(() => {
-    if (!newForm.department || newForm.department === "none") return jobTitleValues;
-    return jobTitleValues.filter((t: any) => !t.parentValue || t.parentValue === newForm.department);
+    if (!newForm.department || newForm.department === "none")
+      return jobTitleValues;
+    return jobTitleValues.filter(
+      (t: any) => !t.parentValue || t.parentValue === newForm.department,
+    );
   }, [jobTitleValues, newForm.department]);
 
   const filteredEditJobTitles = useMemo(() => {
-    if (!editForm.department || editForm.department === "none") return jobTitleValues;
-    return jobTitleValues.filter((t: any) => !t.parentValue || t.parentValue === editForm.department);
+    if (!editForm.department || editForm.department === "none")
+      return jobTitleValues;
+    return jobTitleValues.filter(
+      (t: any) => !t.parentValue || t.parentValue === editForm.department,
+    );
   }, [jobTitleValues, editForm.department]);
 
   const {
-    entireRoomOccupiedSet, singleOccupantRoomsMap, selectedRoomBedMap, occupiedBeds,
+    entireRoomOccupiedSet,
+    singleOccupantRoomsMap,
+    selectedRoomBedMap,
+    occupiedBeds,
   } = useRoomOccupancy({ rooms, allAssignments, selectedRoomId, ar });
 
   const availableRooms = rooms.filter((r: any) => isRoomBookable(r));
@@ -350,17 +500,34 @@ export default function ReservationsPage() {
   const filteredRooms = availableRooms.filter((r: any) => {
     const bId = r.buildingId ?? r.building_id;
     const fId = r.floorId ?? r.floor_id;
-    if (searchBuilding !== "all" && String(bId) !== String(searchBuilding)) return false;
-    if (searchFloor !== "all" && String(fId) !== String(searchFloor)) return false;
+    if (searchBuilding !== "all" && String(bId) !== String(searchBuilding))
+      return false;
+    if (searchFloor !== "all" && String(fId) !== String(searchFloor))
+      return false;
     if (searchRoomNumber.trim()) {
-      if (!matchesSearch([r.roomNumber, r.roomType, r.bedType, r.features], searchRoomNumber)) {
+      if (
+        !matchesSearch(
+          [r.roomNumber, r.roomType, r.bedType, r.features],
+          searchRoomNumber,
+        )
+      ) {
         return false;
       }
     }
     return true;
   });
 
-  const profileForRecommend = selectedProfile || (personMode === "new" && newForm.firstName ? { level: newForm.level, gender: newForm.gender, department: newForm.department, employmentType: newForm.employmentType, jobTitle: newForm.jobTitle } : null);
+  const profileForRecommend =
+    selectedProfile ||
+    (personMode === "new" && newForm.firstName
+      ? {
+          level: newForm.level,
+          gender: newForm.gender,
+          department: newForm.department,
+          employmentType: newForm.employmentType,
+          jobTitle: newForm.jobTitle,
+        }
+      : null);
   const recommendation = useMemo(() => {
     if (!profileForRecommend || !rooms.length) return null;
     return recommendBestRooms({
@@ -405,24 +572,41 @@ export default function ReservationsPage() {
       }
 
       // Default room number numeric sort
-      return String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+      return String(a.roomNumber || "").localeCompare(
+        String(b.roomNumber || ""),
+        undefined,
+        { numeric: true },
+      );
     });
   }, [filteredRooms, recommendation, entireRoomOccupiedSet]);
 
-  const selectedRoom = rooms.find((r: any) => r.id === parseInt(selectedRoomId));
-  const bedOptions = selectedRoom ? getBedOptions(selectedRoom.roomType, selectedRoom.capacity) : [];
+  const selectedRoom = rooms.find(
+    (r: any) => r.id === parseInt(selectedRoomId),
+  );
+  const bedOptions = selectedRoom
+    ? getBedOptions(selectedRoom.roomType, selectedRoom.capacity)
+    : [];
   const isMultiBed = bedOptions.length > 1;
 
   const invalidate = () => {
-    const numPropId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+    const numPropId =
+      typeof activePropertyId === "number" ? activePropertyId : undefined;
     queryClient.invalidateQueries({ queryKey: ["listReservations"] });
-    queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey({ propertyId: numPropId }) });
+    queryClient.invalidateQueries({
+      queryKey: getListReservationsQueryKey({ propertyId: numPropId }),
+    });
     queryClient.invalidateQueries({ queryKey: getListReservationsQueryKey() });
-    queryClient.invalidateQueries({ queryKey: getListRoomsQueryKey({ propertyId: numPropId }) });
-    queryClient.invalidateQueries({ queryKey: getListAssignmentsQueryKey({ propertyId: numPropId }) });
+    queryClient.invalidateQueries({
+      queryKey: getListRoomsQueryKey({ propertyId: numPropId }),
+    });
+    queryClient.invalidateQueries({
+      queryKey: getListAssignmentsQueryKey({ propertyId: numPropId }),
+    });
     queryClient.invalidateQueries({ queryKey: ["/api/assignments"] });
     queryClient.invalidateQueries({ queryKey: ["/api/assignments/in-house"] });
-    queryClient.invalidateQueries({ queryKey: getListProfilesQueryKey({ propertyId: numPropId }) });
+    queryClient.invalidateQueries({
+      queryKey: getListProfilesQueryKey({ propertyId: numPropId }),
+    });
     queryClient.invalidateQueries({ queryKey: getListProfilesQueryKey() });
     queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
   };
@@ -431,10 +615,13 @@ export default function ReservationsPage() {
     mutation: {
       onSuccess: () => {
         invalidate();
-        toast.success(ar ? "تم إنشاء الحجز بنجاح" : "Reservation created successfully");
+        toast.success(
+          ar ? "تم إنشاء الحجز بنجاح" : "Reservation created successfully",
+        );
         closeNewDialog();
       },
-      onError: (e: any) => toast.error(e?.data?.error || e?.message || (ar ? "خطأ" : "Error")),
+      onError: (e: any) =>
+        toast.error(e?.data?.error || e?.message || (ar ? "خطأ" : "Error")),
     },
   });
 
@@ -442,7 +629,9 @@ export default function ReservationsPage() {
     mutation: {
       onSuccess: (data: any) => {
         invalidate();
-        toast.success(ar ? "تم التسكين بنجاح" : "Assignment created successfully");
+        toast.success(
+          ar ? "تم التسكين بنجاح" : "Assignment created successfully",
+        );
         setLastAssignment(data);
         setKeyPromptOpen(true);
         closeNewDialog();
@@ -450,10 +639,21 @@ export default function ReservationsPage() {
       onError: async (err: any) => {
         let msg = err.message;
         try {
-          const b = err?.data || (await err?.response?.clone?.()?.json?.().catch(() => null)) || {};
-          if (b?.code === "BED_TAKEN") msg = ar ? "هذا السرير مشغول بالفعل." : "Bed is taken.";
-          else if (b?.code === "PROFILE_ALREADY_ASSIGNED") msg = ar ? "الموظف مسكّن بالفعل في غرفة أخرى." : "Already assigned.";
-          else if (b?.code === "ROOM_FULL") msg = ar ? "الغرفة ممتلئة بالكامل." : "Room is full.";
+          const b =
+            err?.data ||
+            (await err?.response
+              ?.clone?.()
+              ?.json?.()
+              .catch(() => null)) ||
+            {};
+          if (b?.code === "BED_TAKEN")
+            msg = ar ? "هذا السرير مشغول بالفعل." : "Bed is taken.";
+          else if (b?.code === "PROFILE_ALREADY_ASSIGNED")
+            msg = ar
+              ? "الموظف مسكّن بالفعل في غرفة أخرى."
+              : "Already assigned.";
+          else if (b?.code === "ROOM_FULL")
+            msg = ar ? "الغرفة ممتلئة بالكامل." : "Room is full.";
           else if (b?.error) msg = b.error;
         } catch {}
         toast.error(msg || (ar ? "خطأ" : "Error"));
@@ -469,22 +669,41 @@ export default function ReservationsPage() {
         setDeleteId(null);
       },
       onError: (e: any) => {
-        toast.error(e?.data?.error || e?.message || (ar ? "فشل الحذف" : "Failed to delete"));
+        toast.error(
+          e?.data?.error ||
+            e?.message ||
+            (ar ? "فشل الحذف" : "Failed to delete"),
+        );
       },
     },
   });
 
   const {
-    checkinDialog, setCheckinDialog,
-    checkinRoomId, setCheckinRoomId,
-    checkinRoomSearch, setCheckinRoomSearch,
-    resPolicyModal, setResPolicyModal,
-    checkinRecommendations, filteredCheckinRooms,
+    checkinDialog,
+    setCheckinDialog,
+    checkinRoomId,
+    setCheckinRoomId,
+    checkinRoomSearch,
+    setCheckinRoomSearch,
+    resPolicyModal,
+    setResPolicyModal,
+    checkinRecommendations,
+    filteredCheckinRooms,
     checkinMutation,
-    handleStartCheckin, handleCheckin,
+    handleStartCheckin,
+    handleCheckin,
   } = useReservationCheckin({
-    ar, activePropertyId, rooms, allAssignments, profilesList, settings, invalidate,
-    setSelectedProfile, setLastAssignment, setKeyPromptOpen, setSelectedRows,
+    ar,
+    activePropertyId,
+    rooms,
+    allAssignments,
+    profilesList,
+    settings,
+    invalidate,
+    setSelectedProfile,
+    setLastAssignment,
+    setKeyPromptOpen,
+    setSelectedRows,
   });
 
   const updateMutation = useUpdateReservation({
@@ -500,9 +719,10 @@ export default function ReservationsPage() {
 
   const cancelMutation = useMutation({
     mutationFn: async ({ id, reason }: { id: number; reason?: string }) => {
-      const url = activePropertyId && activePropertyId !== "all"
-        ? `/api/reservations/${id}/cancel?propertyId=${activePropertyId}`
-        : `/api/reservations/${id}/cancel`;
+      const url =
+        activePropertyId && activePropertyId !== "all"
+          ? `/api/reservations/${id}/cancel?propertyId=${activePropertyId}`
+          : `/api/reservations/${id}/cancel`;
       const res = await fetch(url, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -510,18 +730,25 @@ export default function ReservationsPage() {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || (ar ? "فشل إلغاء الحجز" : "Failed to cancel reservation"));
+        throw new Error(
+          d.error || (ar ? "فشل إلغاء الحجز" : "Failed to cancel reservation"),
+        );
       }
       return res.json();
     },
     onSuccess: () => {
       invalidate();
-      toast.success(ar ? "تم إلغاء الحجز بنجاح" : "Reservation cancelled successfully");
+      toast.success(
+        ar ? "تم إلغاء الحجز بنجاح" : "Reservation cancelled successfully",
+      );
       setCancelDialog({ open: false, reservation: null, reason: "" });
       setEditDialog({ open: false, reservation: null });
     },
     onError: (err: any) => {
-      toast.error(err.message || (ar ? "فشل إلغاء الحجز" : "Failed to cancel reservation"));
+      toast.error(
+        err.message ||
+          (ar ? "فشل إلغاء الحجز" : "Failed to cancel reservation"),
+      );
     },
   });
 
@@ -547,21 +774,30 @@ export default function ReservationsPage() {
     setNewDialogOpen(false);
     try {
       if (window.location.search) {
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname,
+        );
       }
     } catch {}
   };
 
-  const { duplicates: resDuplicates, hasDuplicates: resHasDuplicates } = useCheckDuplicates({
-    profileId: newForm.profileId,
-    nationalId: newForm.nationalId,
-    phone: newForm.phone,
-    enabled: newDialogOpen && personMode === "new" && step === 2,
-  });
+  const { duplicates: resDuplicates, hasDuplicates: resHasDuplicates } =
+    useCheckDuplicates({
+      profileId: newForm.profileId,
+      nationalId: newForm.nationalId,
+      phone: newForm.phone,
+      enabled: newDialogOpen && personMode === "new" && step === 2,
+    });
 
   const handleSubmit = async () => {
     if (personMode === "new" && resHasDuplicates) {
-      toast.error(ar ? "يرجى تعديل البيانات المكررة قبل المتابعة" : "Please resolve duplicate fields before proceeding");
+      toast.error(
+        ar
+          ? "يرجى تعديل البيانات المكررة قبل المتابعة"
+          : "Please resolve duplicate fields before proceeding",
+      );
       return;
     }
     if (!selectedRoomId) {
@@ -569,10 +805,18 @@ export default function ReservationsPage() {
       return;
     }
     if (isMultiBed && !selectedBed) {
-      toast.error(ar ? "الرجاء تحديد رقم السرير أو اختيار (الغرفة كاملة)" : "Please select bed number or choose Entire Room");
+      toast.error(
+        ar
+          ? "الرجاء تحديد رقم السرير أو اختيار (الغرفة كاملة)"
+          : "Please select bed number or choose Entire Room",
+      );
       return;
     }
-    if (isMultiBed && selectedBed !== "ALL" && occupiedBeds.has(parseInt(selectedBed))) {
+    if (
+      isMultiBed &&
+      selectedBed !== "ALL" &&
+      occupiedBeds.has(parseInt(selectedBed))
+    ) {
       toast.error(
         ar
           ? "السرير المحدد مشغول حالياً بنزيل آخر. لا يمكن اختياره."
@@ -580,7 +824,11 @@ export default function ReservationsPage() {
       );
       return;
     }
-    if (selectedRoomId && singleOccupantRoomsMap.has(parseInt(selectedRoomId)) && !canOverrideSingleOccupancy) {
+    if (
+      selectedRoomId &&
+      singleOccupantRoomsMap.has(parseInt(selectedRoomId)) &&
+      !canOverrideSingleOccupancy
+    ) {
       toast.error(
         ar
           ? "هذه الغرفة يشغلها شخص بمفرده وبها أسِرّة شاغرة. تسكين نزيل إضافي مع النزيل يتطلب صلاحية إدارية."
@@ -596,11 +844,16 @@ export default function ReservationsPage() {
       );
       return;
     }
-    if (bookingType === "direct" && personMode === "existing" && selectedProfile?.accommodationRoom && !isCrossProperty) {
+    if (
+      bookingType === "direct" &&
+      personMode === "existing" &&
+      selectedProfile?.accommodationRoom &&
+      !isCrossProperty
+    ) {
       toast.error(
         ar
           ? `الموظف (${selectedProfile.firstName} ${selectedProfile.lastName}) مقيم بالفعل بالسكن في غرفة #${selectedProfile.accommodationRoom}. لا يمكن تسكينه مرتين؛ استخدم خيار (نقل الغرفة) لنقله.`
-          : `Employee is already residing in Room #${selectedProfile.accommodationRoom}. Use Room Move instead.`
+          : `Employee is already residing in Room #${selectedProfile.accommodationRoom}. Use Room Move instead.`,
       );
       return;
     }
@@ -615,28 +868,34 @@ export default function ReservationsPage() {
   };
 
   const executeSubmission = async (archiveOverride?: boolean) => {
-    const finalArchive = archiveOverride !== undefined ? archiveOverride : archiveSourceProfile;
+    const finalArchive =
+      archiveOverride !== undefined ? archiveOverride : archiveSourceProfile;
     const finalTransferType = finalArchive ? "PERMANENT" : "TASK_FORCE";
 
     // Effective Checkout: if not entered, pull contractEndDate for internal employees
     const effectiveCheckOut =
       expectedCheckOut ||
-      (personMode === "existing" && selectedProfile?.employmentType !== "THIRD_PARTY"
+      (personMode === "existing" &&
+      selectedProfile?.employmentType !== "THIRD_PARTY"
         ? selectedProfile?.contractEndDate
         : newForm.employmentType !== "THIRD_PARTY"
-        ? newForm.contractEndDate
-        : undefined) ||
+          ? newForm.contractEndDate
+          : undefined) ||
       undefined;
 
-    const reservationNotes = selectedBed === "ALL"
-      ? `[حجز الغرفة بالكامل] ${notes || ""}`.trim()
-      : selectedBed
-      ? `[سرير رقم: ${selectedBed}] ${notes || ""}`.trim()
-      : notes || "";
+    const reservationNotes =
+      selectedBed === "ALL"
+        ? `[حجز الغرفة بالكامل] ${notes || ""}`.trim()
+        : selectedBed
+          ? `[سرير رقم: ${selectedBed}] ${notes || ""}`.trim()
+          : notes || "";
 
-    const reservationRoomType = selectedBed === "ALL"
-      ? (ar ? `الغرفة بالكامل (${selectedRoom?.roomType || ""})` : `Entire Room (${selectedRoom?.roomType || ""})`)
-      : selectedRoom?.roomType || undefined;
+    const reservationRoomType =
+      selectedBed === "ALL"
+        ? ar
+          ? `الغرفة بالكامل (${selectedRoom?.roomType || ""})`
+          : `Entire Room (${selectedRoom?.roomType || ""})`
+        : selectedRoom?.roomType || undefined;
 
     if (personMode === "existing" && selectedProfile) {
       if (bookingType === "direct") {
@@ -646,14 +905,27 @@ export default function ReservationsPage() {
             profileId: selectedProfile.id,
             roomId: parseInt(selectedRoomId),
             checkInDate: new Date(checkInDate).toISOString(),
-            expectedCheckOutDate: effectiveCheckOut ? new Date(effectiveCheckOut).toISOString() : undefined,
-            bedNumber: selectedBed === "ALL" ? 1 : (selectedBed ? parseInt(selectedBed) : 1),
+            expectedCheckOutDate: effectiveCheckOut
+              ? new Date(effectiveCheckOut).toISOString()
+              : undefined,
+            bedNumber:
+              selectedBed === "ALL"
+                ? 1
+                : selectedBed
+                  ? parseInt(selectedBed)
+                  : 1,
             isEntireRoom: selectedBed === "ALL",
-            notes: selectedBed === "ALL" ? `[حجز الغرفة بالكامل] ${notes || ""}`.trim() : (notes || undefined),
-            sourcePropertyId: isCrossProperty ? selectedProfile.propertyId : undefined,
+            notes:
+              selectedBed === "ALL"
+                ? `[حجز الغرفة بالكامل] ${notes || ""}`.trim()
+                : notes || undefined,
+            sourcePropertyId: isCrossProperty
+              ? selectedProfile.propertyId
+              : undefined,
             transferType: isCrossProperty ? finalTransferType : undefined,
             archiveSourceProfile: isCrossProperty ? finalArchive : undefined,
-            checkoutPreviousAssignment: isCrossProperty && Boolean(selectedProfile.accommodationRoom),
+            checkoutPreviousAssignment:
+              isCrossProperty && Boolean(selectedProfile.accommodationRoom),
           } as any,
         });
       } else {
@@ -662,7 +934,8 @@ export default function ReservationsPage() {
             propertyId: activePropertyId!,
             firstName: selectedProfile.firstName,
             lastName: selectedProfile.lastName,
-            guestIdCardNumber: selectedProfile.nationalId || selectedProfile.profileId,
+            guestIdCardNumber:
+              selectedProfile.nationalId || selectedProfile.profileId,
             guestPhone: selectedProfile.phone || "",
             department: selectedProfile.department || "",
             jobTitle: selectedProfile.jobTitle || "",
@@ -673,7 +946,9 @@ export default function ReservationsPage() {
             employmentType: selectedProfile.employmentType || "INTERNAL",
             companyName: (selectedProfile as any).companyName || "",
             checkInDate: new Date(checkInDate).toISOString(),
-            checkOutDate: effectiveCheckOut ? new Date(effectiveCheckOut).toISOString() : undefined,
+            checkOutDate: effectiveCheckOut
+              ? new Date(effectiveCheckOut).toISOString()
+              : undefined,
             roomId: parseInt(selectedRoomId),
             bedNumber: selectedBed,
             roomType: reservationRoomType,
@@ -683,7 +958,9 @@ export default function ReservationsPage() {
       }
     } else if (personMode === "new") {
       try {
-        const generatedId = (newForm.profileId?.trim()) || `${newForm.employmentType === "THIRD_PARTY" ? "TP" : "EMP"}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
+        const generatedId =
+          newForm.profileId?.trim() ||
+          `${newForm.employmentType === "THIRD_PARTY" ? "TP" : "EMP"}-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
         const fullPayload = {
           propertyId: activePropertyId,
           profileId: generatedId,
@@ -698,8 +975,17 @@ export default function ReservationsPage() {
           dateOfBirth: newForm.dateOfBirth || "",
           address: newForm.address || "",
           hireDate: newForm.hireDate || new Date().toISOString().split("T")[0],
-          contractEndDate: newForm.employmentType !== "THIRD_PARTY" ? (newForm.contractEndDate || null) : null,
-          department: newForm.department || (newForm.employmentType === "THIRD_PARTY" ? (ar ? "طرف ثالث" : "Third Party") : ""),
+          contractEndDate:
+            newForm.employmentType !== "THIRD_PARTY"
+              ? newForm.contractEndDate || null
+              : null,
+          department:
+            newForm.department ||
+            (newForm.employmentType === "THIRD_PARTY"
+              ? ar
+                ? "طرف ثالث"
+                : "Third Party"
+              : ""),
           jobTitle: newForm.jobTitle || "",
           level: newForm.level || "",
           employmentType: newForm.employmentType,
@@ -748,10 +1034,20 @@ export default function ReservationsPage() {
               profileId: np.id,
               roomId: parseInt(selectedRoomId),
               checkInDate: new Date(checkInDate).toISOString(),
-              expectedCheckOutDate: effectiveCheckOut ? new Date(effectiveCheckOut).toISOString() : undefined,
-              bedNumber: selectedBed === "ALL" ? 1 : (selectedBed ? parseInt(selectedBed) : 1),
+              expectedCheckOutDate: effectiveCheckOut
+                ? new Date(effectiveCheckOut).toISOString()
+                : undefined,
+              bedNumber:
+                selectedBed === "ALL"
+                  ? 1
+                  : selectedBed
+                    ? parseInt(selectedBed)
+                    : 1,
               isEntireRoom: selectedBed === "ALL",
-              notes: selectedBed === "ALL" ? `[حجز الغرفة بالكامل] ${notes || ""}`.trim() : (notes || undefined),
+              notes:
+                selectedBed === "ALL"
+                  ? `[حجز الغرفة بالكامل] ${notes || ""}`.trim()
+                  : notes || undefined,
             } as any,
           });
         } else {
@@ -768,10 +1064,13 @@ export default function ReservationsPage() {
               gender: np.gender,
               profileCode: np.profileId,
               level: np.level,
-              employmentType: np.employmentType || newForm.employmentType || "THIRD_PARTY",
+              employmentType:
+                np.employmentType || newForm.employmentType || "THIRD_PARTY",
               companyName: np.companyName || newForm.companyName || "",
               checkInDate: new Date(checkInDate).toISOString(),
-              checkOutDate: effectiveCheckOut ? new Date(effectiveCheckOut).toISOString() : undefined,
+              checkOutDate: effectiveCheckOut
+                ? new Date(effectiveCheckOut).toISOString()
+                : undefined,
               roomId: parseInt(selectedRoomId),
               bedNumber: selectedBed,
               roomType: reservationRoomType,
@@ -780,7 +1079,10 @@ export default function ReservationsPage() {
           });
         }
       } catch (e: any) {
-        toast.error(e.message || (ar ? "خطأ في إنشاء الملف الشخصي" : "Error creating profile"));
+        toast.error(
+          e.message ||
+            (ar ? "خطأ في إنشاء الملف الشخصي" : "Error creating profile"),
+        );
       }
     }
     setCrossPropertyModalOpen(false);
@@ -789,13 +1091,15 @@ export default function ReservationsPage() {
   const filteredEditRooms = useMemo(() => {
     return rooms.filter((r: any) => {
       if (!isRoomBookable(r)) return false;
-      if (editBuildingId !== "all" && String(r.buildingId) !== editBuildingId) return false;
+      if (editBuildingId !== "all" && String(r.buildingId) !== editBuildingId)
+        return false;
       if (editRoomSearch.trim()) {
         const q = editRoomSearch.trim().toLowerCase();
         const rNum = String(r.roomNumber || "").toLowerCase();
         const bName = String(buildingMap[r.buildingId] || "").toLowerCase();
         const rType = String(r.roomType || "").toLowerCase();
-        if (!rNum.includes(q) && !bName.includes(q) && !rType.includes(q)) return false;
+        if (!rNum.includes(q) && !bName.includes(q) && !rType.includes(q))
+          return false;
       }
       return true;
     });
@@ -833,8 +1137,12 @@ export default function ReservationsPage() {
     updateMutation.mutate({
       id: editDialog.reservation.id,
       data: {
-        checkInDate: editForm.checkInDate ? new Date(editForm.checkInDate).toISOString() : undefined,
-        checkOutDate: editForm.checkOutDate ? new Date(editForm.checkOutDate).toISOString() : undefined,
+        checkInDate: editForm.checkInDate
+          ? new Date(editForm.checkInDate).toISOString()
+          : undefined,
+        checkOutDate: editForm.checkOutDate
+          ? new Date(editForm.checkOutDate).toISOString()
+          : undefined,
         notes: editForm.notes,
         firstName: editForm.firstName,
         lastName: editForm.lastName,
@@ -858,7 +1166,9 @@ export default function ReservationsPage() {
   const statusLabel = getStatusLabel(ar);
 
   const pagedResIds = (reservations || []).map((r: any) => r.id);
-  const allResPageSelected = pagedResIds.length > 0 && pagedResIds.every((id: number) => selectedRows.has(id));
+  const allResPageSelected =
+    pagedResIds.length > 0 &&
+    pagedResIds.every((id: number) => selectedRows.has(id));
   const toggleSelectAllRes = () => {
     if (allResPageSelected) {
       setSelectedRows((p) => {
@@ -883,7 +1193,10 @@ export default function ReservationsPage() {
 
   const exportResExcel = () => {
     const all = reservations || [];
-    const target = selectedRows.size > 0 ? all.filter((r: any) => selectedRows.has(r.id)) : all;
+    const target =
+      selectedRows.size > 0
+        ? all.filter((r: any) => selectedRows.has(r.id))
+        : all;
     const rows = target.map((r: any) => ({
       Guest: `${r.firstName} ${r.lastName}`,
       "Check-in": formatDate(r.checkInDate, ""),
@@ -900,7 +1213,9 @@ export default function ReservationsPage() {
 
   const printHousingLetter = async (profile: any, assignment: any) => {
     const chosenAr = ar;
-    const room = rooms.find((r: any) => r.id === (assignment.roomId || assignment.data?.roomId));
+    const room = rooms.find(
+      (r: any) => r.id === (assignment.roomId || assignment.data?.roomId),
+    );
     const building = room ? buildingMap[room.buildingId] : null;
     const floorNum = room ? floorMap[room.floorId]?.number : null;
     await generateHousingLetterPdf({
@@ -918,28 +1233,46 @@ export default function ReservationsPage() {
     });
   };
 
-  const { visible: resVisible, toggle: resToggle, showAll: resShowAll, hideAll: resHideAll, isVisible: isResVisible } = useColumnVisibility(RES_COLS);
-  const upcomingCount = (reservations || []).filter((r: any) => r.status === "UPCOMING").length;
-
+  const {
+    visible: resVisible,
+    toggle: resToggle,
+    showAll: resShowAll,
+    hideAll: resHideAll,
+    isVisible: isResVisible,
+  } = useColumnVisibility(RES_COLS);
+  const upcomingCount = (reservations || []).filter(
+    (r: any) => r.status === "UPCOMING",
+  ).length;
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{ar ? "الحجوزات والتسكين" : "Reservations & Housing"}</h1>
+          <h1 className="text-2xl font-bold">
+            {ar ? "الحجوزات والتسكين" : "Reservations & Housing"}
+          </h1>
         </div>
         <PermissionGate module="accommodation" action="create">
-          <Button onClick={openNewDialog} className="gap-2 self-start sm:self-auto shadow-sm">
+          <Button
+            onClick={openNewDialog}
+            className="gap-2 self-start sm:self-auto shadow-sm"
+          >
             <Plus className="w-4 h-4" />
             {ar ? "حجز / تسكين جديد" : "New Reservation / Assignment"}
           </Button>
         </PermissionGate>
       </div>
 
-      {(statusFilter === "UPCOMING" ? paginationTotal > 0 : upcomingCount > 0) && (
+      {(statusFilter === "UPCOMING"
+        ? paginationTotal > 0
+        : upcomingCount > 0) && (
         <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-800 dark:text-blue-300">
           <CalendarDays className="w-4 h-4 flex-shrink-0" />
-          <span>{ar ? `${statusFilter === "UPCOMING" ? paginationTotal : upcomingCount} حجز مستقبلي ينتظر التسكين` : `${statusFilter === "UPCOMING" ? paginationTotal : upcomingCount} future reservation(s) awaiting check-in`}</span>
+          <span>
+            {ar
+              ? `${statusFilter === "UPCOMING" ? paginationTotal : upcomingCount} حجز مستقبلي ينتظر التسكين`
+              : `${statusFilter === "UPCOMING" ? paginationTotal : upcomingCount} future reservation(s) awaiting check-in`}
+          </span>
         </div>
       )}
 
@@ -969,7 +1302,7 @@ export default function ReservationsPage() {
                 window.confirm(
                   ar
                     ? `هل أنت متأكد من حذف ${selectedRows.size} حجز محدد؟`
-                    : `Are you sure you want to delete ${selectedRows.size} selected reservations?`
+                    : `Are you sure you want to delete ${selectedRows.size} selected reservations?`,
                 )
               ) {
                 selectedRows.forEach((id) => deleteMutation.mutate({ id }));
@@ -1002,11 +1335,26 @@ export default function ReservationsPage() {
       />
 
       {paginationTotal > 0 && (
-        <DataPagination total={paginationTotal} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }} />
+        <DataPagination
+          total={paginationTotal}
+          pageSize={pageSize}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(s) => {
+            setPageSize(s);
+            setCurrentPage(1);
+          }}
+        />
       )}
 
       {/* NEW RESERVATION / ASSIGNMENT DIALOG */}
-      <NewReservationDialog ar={ar} newDialogOpen={newDialogOpen} setNewDialogOpen={setNewDialogOpen} step={step} personMode={personMode}>
+      <NewReservationDialog
+        ar={ar}
+        newDialogOpen={newDialogOpen}
+        setNewDialogOpen={setNewDialogOpen}
+        step={step}
+        personMode={personMode}
+      >
         {/* STEP 1: CHOOSE MODE */}
         {step === 1 && (
           <WizardStepMode
@@ -1125,22 +1473,22 @@ export default function ReservationsPage() {
         checkinMutation={checkinMutation}
       />
 
-          {/* Reservation Policy Exception Approval Modal */}
-          <PolicyExceptionApprovalModal
-            open={resPolicyModal.open}
-            onOpenChange={(open) =>
-              setResPolicyModal((prev) => ({ ...prev, open }))
-            }
-            titleAr="اعتماد استثناء لتسكين الحجز خارج السياسات"
-            titleEn="Approve Policy Exception for Reservation Check-In"
-            violations={resPolicyModal.violations}
-            isLoading={checkinMutation.isPending}
-            onConfirm={(approval) => {
-              const action = resPolicyModal.pendingAction;
-              setResPolicyModal({ open: false, violations: [] });
-              if (action) action(approval);
-            }}
-          />
+      {/* Reservation Policy Exception Approval Modal */}
+      <PolicyExceptionApprovalModal
+        open={resPolicyModal.open}
+        onOpenChange={(open) =>
+          setResPolicyModal((prev) => ({ ...prev, open }))
+        }
+        titleAr="اعتماد استثناء لتسكين الحجز خارج السياسات"
+        titleEn="Approve Policy Exception for Reservation Check-In"
+        violations={resPolicyModal.violations}
+        isLoading={checkinMutation.isPending}
+        onConfirm={(approval) => {
+          const action = resPolicyModal.pendingAction;
+          setResPolicyModal({ open: false, violations: [] });
+          if (action) action(approval);
+        }}
+      />
 
       {/* WHATSAPP RESERVATION CONFIRMATION DIALOG */}
       <WhatsAppConfirmationDialog
@@ -1180,10 +1528,20 @@ export default function ReservationsPage() {
       />
 
       {/* CANCEL RESERVATION CONFIRMATION */}
-      <CancelReservationDialog ar={ar} cancelDialog={cancelDialog} setCancelDialog={setCancelDialog} cancelMutation={cancelMutation} />
+      <CancelReservationDialog
+        ar={ar}
+        cancelDialog={cancelDialog}
+        setCancelDialog={setCancelDialog}
+        cancelMutation={cancelMutation}
+      />
 
       {/* DELETE CONFIRM */}
-      <DeleteReservationDialog ar={ar} deleteId={deleteId} setDeleteId={setDeleteId} deleteMutation={deleteMutation} />
+      <DeleteReservationDialog
+        ar={ar}
+        deleteId={deleteId}
+        setDeleteId={setDeleteId}
+        deleteMutation={deleteMutation}
+      />
 
       {/* KEY PROMPT */}
       <KeyPromptDialog
@@ -1215,7 +1573,11 @@ export default function ReservationsPage() {
         createReservationMutation={createReservationMutation}
       />
 
-      <PrintLanguageDialog open={langDialogOpen} onSelect={handleSelect} onCancel={handleCancel} />
+      <PrintLanguageDialog
+        open={langDialogOpen}
+        onSelect={handleSelect}
+        onCancel={handleCancel}
+      />
     </div>
   );
 }

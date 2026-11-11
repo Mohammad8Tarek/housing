@@ -1,5 +1,3 @@
-
-
 // Hourly and Daily quota windows for anti-ban rate limiting
 export interface QuotaWindow {
   count: number;
@@ -12,16 +10,19 @@ export const propertyDailySent = new Map<number, QuotaWindow>();
 
 export const SAFE_HOURLY_LIMIT = 30;
 
- // Max 30 messages per rolling hour
+// Max 30 messages per rolling hour
 export const SAFE_DAILY_LIMIT = 150;
 
- // Max 150 messages per rolling 24 hours
+// Max 150 messages per rolling 24 hours
 
 /**
  * Checks and increments anti-ban quota counters.
  * Prevents account from triggering WhatsApp velocity filters.
  */
-export function checkAndIncrementAntiBanQuota(propertyId: number): { allowed: boolean; reason?: string } {
+export function checkAndIncrementAntiBanQuota(propertyId: number): {
+  allowed: boolean;
+  reason?: string;
+} {
   const now = Date.now();
 
   // 1. Hourly check

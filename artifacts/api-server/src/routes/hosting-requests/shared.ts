@@ -146,12 +146,17 @@ export async function ensureProfileInTargetSchema(
   let sourceSchema = `prop_${sourcePropertyId}`;
   let targetSchema = `prop_${targetPropertyId}`;
   for (const p of propRes.rows) {
-    if (p.id === sourcePropertyId && p.schema_name) sourceSchema = p.schema_name;
-    if (p.id === targetPropertyId && p.schema_name) targetSchema = p.schema_name;
+    if (p.id === sourcePropertyId && p.schema_name)
+      sourceSchema = p.schema_name;
+    if (p.id === targetPropertyId && p.schema_name)
+      targetSchema = p.schema_name;
   }
 
-  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(sourceSchema) || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(targetSchema)) {
-     return null;
+  if (
+    !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(sourceSchema) ||
+    !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(targetSchema)
+  ) {
+    return null;
   }
 
   // 1. Check target
@@ -159,7 +164,8 @@ export async function ensureProfileInTargetSchema(
     `SELECT id FROM "${targetSchema}".profiles WHERE profile_id = $1 LIMIT 1`,
     [clockNumber],
   );
-  if (targetCheck.rows.length > 0) return { profileId: targetCheck.rows[0].id, targetSchema };
+  if (targetCheck.rows.length > 0)
+    return { profileId: targetCheck.rows[0].id, targetSchema };
 
   // 2. Try source if different
   if (sourceSchema !== targetSchema) {
@@ -202,7 +208,9 @@ export async function ensureProfileInTargetSchema(
   return null;
 }
 
-export async function resolveRequestId(paramId: string): Promise<number | null> {
+export async function resolveRequestId(
+  paramId: string,
+): Promise<number | null> {
   let requestId = parseInt(paramId);
   if (isNaN(requestId)) {
     const lookupRes = await pool.query(

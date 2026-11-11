@@ -19,7 +19,19 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, MessageSquare, CheckCircle2, Play, Lock, Star, Loader2, DoorClosed, Building2, Layers, User } from "lucide-react";
+import {
+  ArrowLeft,
+  MessageSquare,
+  CheckCircle2,
+  Play,
+  Lock,
+  Star,
+  Loader2,
+  DoorClosed,
+  Building2,
+  Layers,
+  User,
+} from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { differenceInMinutes, differenceInHours } from "date-fns";
 import { formatDateTime } from "@/lib/date-utils";
@@ -63,7 +75,12 @@ const STATUS_EN: Record<string, string> = {
   closed: "Closed",
 };
 
-function formatDuration(startedAt: any, resolvedAt: any, reportedAt: any, ar: boolean = false) {
+function formatDuration(
+  startedAt: any,
+  resolvedAt: any,
+  reportedAt: any,
+  ar: boolean = false,
+) {
   const start = reportedAt ?? startedAt;
   if (!start) return "—";
   const startDate = new Date(start);
@@ -73,7 +90,13 @@ function formatDuration(startedAt: any, resolvedAt: any, reportedAt: any, ar: bo
   if (totalMins < 60) return ar ? `${totalMins} دقيقة` : `${totalMins}m`;
   const hrs = differenceInHours(endDate, startDate);
   const mins = totalMins % 60;
-  return mins > 0 ? (ar ? `${hrs} س ${mins} د` : `${hrs}h ${mins}m`) : (ar ? `${hrs} ساعة` : `${hrs}h`);
+  return mins > 0
+    ? ar
+      ? `${hrs} س ${mins} د`
+      : `${hrs}h ${mins}m`
+    : ar
+      ? `${hrs} ساعة`
+      : `${hrs}h`;
 }
 
 export default function MaintenanceDetails() {
@@ -107,7 +130,9 @@ export default function MaintenanceDetails() {
     can("housekeeping", "edit") ||
     can("housekeeping", "view") ||
     can("maintenance", "view_housekeeping");
-  const canEditTicket = isSuperAdmin || (ticket?.category === "housekeeping" ? canEditHsk : canEditMnt);
+  const canEditTicket =
+    isSuperAdmin ||
+    (ticket?.category === "housekeeping" ? canEditHsk : canEditMnt);
 
   // Direct fetch for single ticket by ID to guarantee resolution regardless of pagination
   const {
@@ -117,7 +142,9 @@ export default function MaintenanceDetails() {
   } = useQuery({
     queryKey: ["maintenance-detail", id, activePropertyId],
     queryFn: async () => {
-      const res = await fetch(`/api/maintenance/${id}?propertyId=${activePropertyId || ""}`);
+      const res = await fetch(
+        `/api/maintenance/${id}?propertyId=${activePropertyId || ""}`,
+      );
       if (!res.ok) throw new Error("Failed to fetch maintenance ticket");
       const json = await res.json();
       return json.data || json;
@@ -125,18 +152,25 @@ export default function MaintenanceDetails() {
     enabled: !!id,
   });
 
-  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const numericPropertyId =
+    typeof activePropertyId === "number" ? activePropertyId : undefined;
   const { data: _allTicketsWrapper } = useListMaintenance(
     { propertyId: numericPropertyId } as any,
     { query: { enabled: !!numericPropertyId && !singleTicketData } as any },
   );
-  const allTickets: any[] = Array.isArray(_allTicketsWrapper) ? _allTicketsWrapper : (((_allTicketsWrapper as any)?.data as any[]) || []);
+  const allTickets: any[] = Array.isArray(_allTicketsWrapper)
+    ? _allTicketsWrapper
+    : ((_allTicketsWrapper as any)?.data as any[]) || [];
 
   const { data: _eDataWrapper } = useListProfiles(
     { propertyId: numericPropertyId, limit: 1000 } as any,
     { query: { enabled: !!numericPropertyId } as any },
   );
-  const profiles: any[] = Array.isArray(_eDataWrapper) ? _eDataWrapper : (((_eDataWrapper as any)?.profiles || (_eDataWrapper as any)?.data || []) as any[]);
+  const profiles: any[] = Array.isArray(_eDataWrapper)
+    ? _eDataWrapper
+    : (((_eDataWrapper as any)?.profiles ||
+        (_eDataWrapper as any)?.data ||
+        []) as any[]);
 
   const updateMutation = useUpdateMaintenance({
     mutation: {
@@ -155,7 +189,9 @@ export default function MaintenanceDetails() {
     if (singleTicketData) {
       setTicket(singleTicketData);
     } else if (allTickets.length > 0) {
-      const found = allTickets.find((t: any) => t.id === parseInt(id || "0", 10));
+      const found = allTickets.find(
+        (t: any) => t.id === parseInt(id || "0", 10),
+      );
       if (found) setTicket(found);
     }
   }, [singleTicketData, allTickets, id]);
@@ -172,7 +208,9 @@ export default function MaintenanceDetails() {
     });
     const entry = `[${timeStr}] ${comment.trim()}`;
     const newNotes = ticket.notes ? `${ticket.notes}\n\n${entry}` : entry;
-    const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+    const pId =
+      ticket.propertyId ||
+      (activePropertyId !== "all" ? activePropertyId : undefined);
 
     updateMutation.mutate(
       {
@@ -183,10 +221,14 @@ export default function MaintenanceDetails() {
       {
         onSuccess: () => {
           setComment("");
-          setTicket((prev: any) => (prev ? { ...prev, notes: newNotes } : prev));
-          toast.success(ar ? "تمت إضافة الملاحظة بنجاح" : "Note added successfully");
+          setTicket((prev: any) =>
+            prev ? { ...prev, notes: newNotes } : prev,
+          );
+          toast.success(
+            ar ? "تمت إضافة الملاحظة بنجاح" : "Note added successfully",
+          );
         },
-      }
+      },
     );
   };
 
@@ -202,12 +244,21 @@ export default function MaintenanceDetails() {
             {isSingleLoading ? (
               <div className="flex flex-col items-center justify-center gap-3">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="text-sm font-medium">{ar ? "جاري تحميل تفاصيل البلاغ..." : "Loading ticket details..."}</p>
+                <p className="text-sm font-medium">
+                  {ar
+                    ? "جاري تحميل تفاصيل البلاغ..."
+                    : "Loading ticket details..."}
+                </p>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center gap-3">
-                <p className="font-semibold text-rose-600">{ar ? "لم يتم العثور على البلاغ المطلوب" : "Ticket not found"}</p>
-                <Button variant="outline" onClick={() => setLocation("/maintenance")}>
+                <p className="font-semibold text-rose-600">
+                  {ar ? "لم يتم العثور على البلاغ المطلوب" : "Ticket not found"}
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => setLocation("/maintenance")}
+                >
                   {ar ? "الانتقال لجدول الصيانة" : "Go to Maintenance"}
                 </Button>
               </div>
@@ -248,12 +299,21 @@ export default function MaintenanceDetails() {
   };
 
   const cleanReportedBy = ticket?.reportedBy
-    ? ticket.reportedBy.replace(/\s*-\s*\[مسح QR.*?\]/g, "").replace(/\s*-\s*\[QR.*?\]/g, "").trim()
+    ? ticket.reportedBy
+        .replace(/\s*-\s*\[مسح QR.*?\]/g, "")
+        .replace(/\s*-\s*\[QR.*?\]/g, "")
+        .trim()
     : "";
-  const isSystemAdmin = /^(admin|super_admin|supervisor|مشرف|مدير)/i.test(cleanReportedBy);
+  const isSystemAdmin = /^(admin|super_admin|supervisor|مشرف|مدير)/i.test(
+    cleanReportedBy,
+  );
   const requesterDisplay = isSystemAdmin
-    ? (ar ? "إدارة السكن" : "Housing Administration")
-    : cleanReportedBy || ticket?.residentName || (ar ? "شاغرة (بدون نزيل)" : "Vacant");
+    ? ar
+      ? "إدارة السكن"
+      : "Housing Administration"
+    : cleanReportedBy ||
+      ticket?.residentName ||
+      (ar ? "شاغرة (بدون نزيل)" : "Vacant");
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -306,7 +366,10 @@ export default function MaintenanceDetails() {
                   </p>
                   <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
                     <DoorClosed className="w-4 h-4 text-primary shrink-0" />
-                    <span>{ar ? "غرفة" : "Room"} {ticket.roomNumber || ticket.roomId || "—"}</span>
+                    <span>
+                      {ar ? "غرفة" : "Room"}{" "}
+                      {ticket.roomNumber || ticket.roomId || "—"}
+                    </span>
                   </p>
                   {(ticket.buildingName || ticket.floorNumber) && (
                     <div className="flex items-center gap-1.5 mt-1 text-xs flex-wrap">
@@ -319,7 +382,11 @@ export default function MaintenanceDetails() {
                       {ticket.floorNumber && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 text-xs">
                           <Layers className="w-3 h-3 text-amber-600" />
-                          <span>{ar ? `الدور ${ticket.floorNumber}` : `Floor ${ticket.floorNumber}`}</span>
+                          <span>
+                            {ar
+                              ? `الدور ${ticket.floorNumber}`
+                              : `Floor ${ticket.floorNumber}`}
+                          </span>
                         </span>
                       )}
                     </div>
@@ -342,7 +409,10 @@ export default function MaintenanceDetails() {
                   </p>
                   <p className="text-sm font-medium text-gray-900 flex items-center gap-1.5">
                     <Building2 className="w-4 h-4 text-primary shrink-0" />
-                    <span>{ticket.propertyName || (ar ? "سكن العاملين" : "Staff Housing")}</span>
+                    <span>
+                      {ticket.propertyName ||
+                        (ar ? "سكن العاملين" : "Staff Housing")}
+                    </span>
                   </p>
                 </div>
 
@@ -351,7 +421,9 @@ export default function MaintenanceDetails() {
                     {ar ? "المسند إليه" : "Assigned To"}
                   </p>
                   <p className="text-sm font-medium text-gray-900">
-                    {ticket.assignedToName || ticket.workerName || (ar ? "غير مسند" : "Unassigned")}
+                    {ticket.assignedToName ||
+                      ticket.workerName ||
+                      (ar ? "غير مسند" : "Unassigned")}
                   </p>
                 </div>
 
@@ -363,8 +435,12 @@ export default function MaintenanceDetails() {
                     className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${statusColor(ticket.status)}`}
                   >
                     {ar
-                      ? ((STATUS_AR as Record<string, string>)[ticket.status?.toLowerCase()] || ticket.status)
-                      : ((STATUS_EN as Record<string, string>)[ticket.status?.toLowerCase()] || ticket.status?.replace("_", " "))}
+                      ? (STATUS_AR as Record<string, string>)[
+                          ticket.status?.toLowerCase()
+                        ] || ticket.status
+                      : (STATUS_EN as Record<string, string>)[
+                          ticket.status?.toLowerCase()
+                        ] || ticket.status?.replace("_", " ")}
                   </div>
                 </div>
                 <div>
@@ -375,7 +451,9 @@ export default function MaintenanceDetails() {
                     className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${priorityColor(ticket.priority)}`}
                   >
                     {ar
-                      ? ((PRIORITY_AR as Record<string, string>)[ticket.priority?.toUpperCase()] || ticket.priority)
+                      ? (PRIORITY_AR as Record<string, string>)[
+                          ticket.priority?.toUpperCase()
+                        ] || ticket.priority
                       : ticket.priority}
                   </div>
                 </div>
@@ -385,8 +463,12 @@ export default function MaintenanceDetails() {
                   </p>
                   <p className="text-sm font-medium">
                     {ar
-                      ? ((CATEGORIES_AR as Record<string, string>)[ticket.category] || ticket.category)
-                      : ((CATEGORIES_EN as Record<string, string>)[ticket.category] || ticket.category)}
+                      ? (CATEGORIES_AR as Record<string, string>)[
+                          ticket.category
+                        ] || ticket.category
+                      : (CATEGORIES_EN as Record<string, string>)[
+                          ticket.category
+                        ] || ticket.category}
                   </p>
                 </div>
                 <div>
@@ -395,8 +477,9 @@ export default function MaintenanceDetails() {
                   </p>
                   <p className="text-sm font-medium">
                     {ar
-                      ? ((PROBLEM_TYPES_AR as Record<string, string>)[ticket.problemType] ??
-                        ticket.problemType)
+                      ? ((PROBLEM_TYPES_AR as Record<string, string>)[
+                          ticket.problemType
+                        ] ?? ticket.problemType)
                       : ticket.problemType}
                   </p>
                 </div>
@@ -410,7 +493,11 @@ export default function MaintenanceDetails() {
                   <div className="col-span-2 pt-3 border-t">
                     <p className="text-xs text-gray-500 mb-1 font-semibold flex items-center gap-1.5">
                       <MessageSquare className="w-3.5 h-3.5 text-primary" />
-                      <span>{ar ? "سجل الملاحظات والتعليقات الإدارية" : "Administrative Notes & Comments Log"}</span>
+                      <span>
+                        {ar
+                          ? "سجل الملاحظات والتعليقات الإدارية"
+                          : "Administrative Notes & Comments Log"}
+                      </span>
                     </p>
                     <div className="bg-muted/40 p-3 rounded-lg text-xs whitespace-pre-line text-foreground border leading-relaxed">
                       {ticket.notes}
@@ -474,7 +561,11 @@ export default function MaintenanceDetails() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                <span>{ar ? "تقييم جودة الخدمة ورضا النزيل" : "Service Quality & Rating"}</span>
+                <span>
+                  {ar
+                    ? "تقييم جودة الخدمة ورضا النزيل"
+                    : "Service Quality & Rating"}
+                </span>
               </h2>
 
               {ticket.rating ? (
@@ -497,21 +588,33 @@ export default function MaintenanceDetails() {
                     </span>
                     <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
                       {ticket.rating === 5
-                        ? (ar ? "ممتاز جداً" : "Excellent")
+                        ? ar
+                          ? "ممتاز جداً"
+                          : "Excellent"
                         : ticket.rating === 4
-                        ? (ar ? "جيد جداً" : "Very Good")
-                        : ticket.rating === 3
-                        ? (ar ? "مقبول" : "Acceptable")
-                        : ticket.rating === 2
-                        ? (ar ? "ضعيف" : "Poor")
-                        : (ar ? "غير مرضٍ تماماً" : "Very Poor")}
+                          ? ar
+                            ? "جيد جداً"
+                            : "Very Good"
+                          : ticket.rating === 3
+                            ? ar
+                              ? "مقبول"
+                              : "Acceptable"
+                            : ticket.rating === 2
+                              ? ar
+                                ? "ضعيف"
+                                : "Poor"
+                              : ar
+                                ? "غير مرضٍ تماماً"
+                                : "Very Poor"}
                     </span>
                   </div>
 
                   {ticket.ratingComment && (
                     <div className="p-3 bg-gray-50 rounded-lg border">
                       <p className="text-xs text-gray-500 mb-1 font-semibold">
-                        {ar ? "ملاحظات وتعليق الموظف:" : "Employee Feedback / Comment:"}
+                        {ar
+                          ? "ملاحظات وتعليق الموظف:"
+                          : "Employee Feedback / Comment:"}
                       </p>
                       <p className="text-sm text-gray-800 italic">
                         "{ticket.ratingComment}"
@@ -529,7 +632,9 @@ export default function MaintenanceDetails() {
               ) : ["resolved", "closed"].includes(ticket.status) ? (
                 <div className="p-4 bg-amber-50/50 rounded-xl border border-dashed border-amber-300 text-center">
                   <p className="text-sm font-semibold text-amber-800 mb-1">
-                    {ar ? "بانتظار تقييم الموظف من البوابة" : "Awaiting Employee Rating from Resident Portal"}
+                    {ar
+                      ? "بانتظار تقييم الموظف من البوابة"
+                      : "Awaiting Employee Rating from Resident Portal"}
                   </p>
                   <p className="text-xs text-amber-700/80">
                     {ar
@@ -569,7 +674,11 @@ export default function MaintenanceDetails() {
                       value={ticket.assignedTo ? String(ticket.assignedTo) : ""}
                       onValueChange={(v) => {
                         const empId = v ? parseInt(v) : null;
-                        const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                        const pId =
+                          ticket.propertyId ||
+                          (activePropertyId !== "all"
+                            ? activePropertyId
+                            : undefined);
                         updateMutation.mutate({
                           id: ticket.id,
                           data: { assignedTo: empId, propertyId: pId } as any,
@@ -578,7 +687,9 @@ export default function MaintenanceDetails() {
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={ar ? "اختر..." : "Select..."} />
+                        <SelectValue
+                          placeholder={ar ? "اختر..." : "Select..."}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="unassigned">
@@ -600,7 +711,11 @@ export default function MaintenanceDetails() {
                     <Select
                       value={ticket.status || ""}
                       onValueChange={(status) => {
-                        const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                        const pId =
+                          ticket.propertyId ||
+                          (activePropertyId !== "all"
+                            ? activePropertyId
+                            : undefined);
                         updateMutation.mutate({
                           id: ticket.id,
                           data: { status, propertyId: pId } as any,
@@ -644,7 +759,11 @@ export default function MaintenanceDetails() {
                     {ticket.status?.toLowerCase() === "open" && (
                       <Button
                         onClick={() => {
-                          const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                          const pId =
+                            ticket.propertyId ||
+                            (activePropertyId !== "all"
+                              ? activePropertyId
+                              : undefined);
                           updateMutation.mutate({
                             id: ticket.id,
                             data: {
@@ -664,7 +783,11 @@ export default function MaintenanceDetails() {
                     {ticket.status?.toLowerCase() === "in_progress" && (
                       <Button
                         onClick={() => {
-                          const pId = ticket.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+                          const pId =
+                            ticket.propertyId ||
+                            (activePropertyId !== "all"
+                              ? activePropertyId
+                              : undefined);
                           updateMutation.mutate({
                             id: ticket.id,
                             data: {
@@ -689,22 +812,36 @@ export default function MaintenanceDetails() {
                     >
                       <MessageSquare className="w-4 h-4 mr-2" />
                       {updateMutation.isPending
-                        ? (ar ? "جاري الحفظ..." : "Saving...")
-                        : (ar ? "حفظ الملاحظة" : "Add Note")}
+                        ? ar
+                          ? "جاري الحفظ..."
+                          : "Saving..."
+                        : ar
+                          ? "حفظ الملاحظة"
+                          : "Add Note"}
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-gray-500">{ar ? "المسند إليه:" : "Assigned To:"}</span>
+                    <span className="text-gray-500">
+                      {ar ? "المسند إليه:" : "Assigned To:"}
+                    </span>
                     <span className="font-semibold text-gray-900">
                       {ticket.assignedTo
                         ? (() => {
-                            const emp = empOptions.find((e: any) => e.id === ticket.assignedTo);
-                            return emp ? `${emp.firstName} ${emp.lastName}` : (ar ? "غير مسند" : "Unassigned");
+                            const emp = empOptions.find(
+                              (e: any) => e.id === ticket.assignedTo,
+                            );
+                            return emp
+                              ? `${emp.firstName} ${emp.lastName}`
+                              : ar
+                                ? "غير مسند"
+                                : "Unassigned";
                           })()
-                        : (ar ? "غير مسند" : "Unassigned")}
+                        : ar
+                          ? "غير مسند"
+                          : "Unassigned"}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground pt-1">

@@ -1,10 +1,19 @@
 import { Router } from "express";
 import { withTenant, buildingsTable } from "@workspace/db";
 import { eq, and, ilike, sql, SQL, asc } from "drizzle-orm";
-import { CreateBuildingBody, UpdateBuildingBody, UpdateBuildingParams, DeleteBuildingParams, UpdateBuildingResponse } from "@workspace/api-zod";
+import {
+  CreateBuildingBody,
+  UpdateBuildingBody,
+  UpdateBuildingParams,
+  DeleteBuildingParams,
+  UpdateBuildingResponse,
+} from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import {
+  requirePermission,
+  requireAnyPermission,
+} from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { CommonListQuery, IdParams } from "../validation/schemas.js";
 
@@ -31,7 +40,10 @@ router.get(
 
       const conditions: SQL[] = [];
       let page = Math.max(1, parseInt(req.query.page as string) || 1);
-      let limit = Math.min(1000, Math.max(1, parseInt(req.query.limit as string) || 25));
+      let limit = Math.min(
+        1000,
+        Math.max(1, parseInt(req.query.limit as string) || 25),
+      );
       const search = req.query.search as string;
 
       if (search) {
@@ -41,8 +53,11 @@ router.get(
       const offset = (page - 1) * limit;
 
       const { data, total } = await withTenant(propertyId, async (tenantDb) => {
-        let countQuery = tenantDb.select({ count: sql<number>`count(*)` }).from(buildingsTable) as any;
-        if (conditions.length > 0) countQuery = countQuery.where(and(...conditions));
+        let countQuery = tenantDb
+          .select({ count: sql<number>`count(*)` })
+          .from(buildingsTable) as any;
+        if (conditions.length > 0)
+          countQuery = countQuery.where(and(...conditions));
         const countResult = await countQuery;
         const totalCount = Number(countResult[0]?.count ?? 0);
 
@@ -82,7 +97,10 @@ router.get(
           baseQuery = baseQuery.where(and(...conditions));
         }
 
-        const rows = await baseQuery.orderBy(asc(buildingsTable.name), asc(buildingsTable.id)).limit(limit).offset(offset);
+        const rows = await baseQuery
+          .orderBy(asc(buildingsTable.name), asc(buildingsTable.id))
+          .limit(limit)
+          .offset(offset);
         return { data: rows, total: totalCount };
       });
 
@@ -106,7 +124,9 @@ router.get(
       });
     } catch (err: any) {
       console.error("[buildings/list] Error:", err);
-      res.status(500).json({ error: err.message || "Failed to fetch buildings" });
+      res
+        .status(500)
+        .json({ error: err.message || "Failed to fetch buildings" });
     }
   },
 );
@@ -129,12 +149,15 @@ router.post(
       }
 
       // ── Prevent duplicate building name in same property ────────────────
-      const existingBuilding = await withTenant(propertyId, async (tenantDb) => {
-        return await tenantDb
-          .select({ id: buildingsTable.id })
-          .from(buildingsTable)
-          .where(ilike(buildingsTable.name, parsed.data.name.trim()));
-      });
+      const existingBuilding = await withTenant(
+        propertyId,
+        async (tenantDb) => {
+          return await tenantDb
+            .select({ id: buildingsTable.id })
+            .from(buildingsTable)
+            .where(ilike(buildingsTable.name, parsed.data.name.trim()));
+        },
+      );
       if (existingBuilding.length > 0) {
         res.status(409).json({
           error: `Building "${parsed.data.name}" already exists in this property`,
@@ -166,7 +189,9 @@ router.post(
       res.status(201).json({ ...building, propertyId });
     } catch (err: any) {
       console.error("[buildings/create] Error:", err);
-      res.status(500).json({ error: err.message || "Failed to create building" });
+      res
+        .status(500)
+        .json({ error: err.message || "Failed to create building" });
     }
   },
 );
@@ -245,7 +270,9 @@ router.patch(
       res.json(UpdateBuildingResponse.parse({ ...updated, propertyId }));
     } catch (err: any) {
       console.error("[buildings/update] Error:", err);
-      res.status(500).json({ error: err.message || "Failed to update building" });
+      res
+        .status(500)
+        .json({ error: err.message || "Failed to update building" });
     }
   },
 );
@@ -345,7 +372,9 @@ router.delete(
       res.sendStatus(204);
     } catch (err: any) {
       console.error("[buildings/delete] Error:", err);
-      res.status(500).json({ error: err.message || "Failed to delete building" });
+      res
+        .status(500)
+        .json({ error: err.message || "Failed to delete building" });
     }
   },
 );

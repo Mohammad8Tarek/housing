@@ -1,9 +1,23 @@
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatDate } from "@/lib/date-utils";
-import { CalendarCheck, Clock, Wrench, FileWarning, AlertTriangle, CheckCircle2, Zap } from "lucide-react";
+import {
+  CalendarCheck,
+  Clock,
+  Wrench,
+  FileWarning,
+  AlertTriangle,
+  CheckCircle2,
+  Zap,
+} from "lucide-react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 import { QuickAssistTab, QUICK_PAGES } from "./QuickAssistTab";
@@ -28,7 +42,9 @@ export function DailyOperationsHub({
   const ar = language === "ar";
 
   const { canView, isSuperAdmin } = usePermission();
-  const [activeTab, setActiveTab] = React.useState<"quick_assist" | "checkouts" | "checkins" | "maintenance" | "contracts">("quick_assist");
+  const [activeTab, setActiveTab] = React.useState<
+    "quick_assist" | "checkouts" | "checkins" | "maintenance" | "contracts"
+  >("quick_assist");
 
   const permittedCount = React.useMemo(() => {
     if (isSuperAdmin) return QUICK_PAGES.length;
@@ -41,7 +57,9 @@ export function DailyOperationsHub({
         <div>
           <CardTitle className="text-base font-bold flex items-center gap-2">
             <Zap className="w-4 h-4 text-amber-500" />
-            {ar ? "مركز العمليات والمساعد السريع" : "Operations & Quick Assist Hub"}
+            {ar
+              ? "مركز العمليات والمساعد السريع"
+              : "Operations & Quick Assist Hub"}
           </CardTitle>
           <CardDescription className="text-xs mt-0.5">
             {ar
@@ -61,12 +79,21 @@ export function DailyOperationsHub({
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Zap className={cn("w-3.5 h-3.5", activeTab === "quick_assist" ? "text-white animate-pulse" : "text-amber-500")} />
+            <Zap
+              className={cn(
+                "w-3.5 h-3.5",
+                activeTab === "quick_assist"
+                  ? "text-white animate-pulse"
+                  : "text-amber-500",
+              )}
+            />
             <span>{ar ? "المساعد السريع" : "Quick Assist"}</span>
             <span
               className={cn(
                 "px-1.5 py-0.2 rounded-full text-[10px] font-bold font-mono",
-                activeTab === "quick_assist" ? "bg-white/20 text-white" : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+                activeTab === "quick_assist"
+                  ? "bg-white/20 text-white"
+                  : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
               )}
             >
               {permittedCount}
@@ -167,8 +194,8 @@ export function DailyOperationsHub({
                           alert.daysRemaining <= 1
                             ? "bg-red-100 text-red-600 dark:bg-red-950/40"
                             : alert.daysRemaining <= 3
-                            ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40"
-                            : "bg-primary/10 text-primary",
+                              ? "bg-amber-100 text-amber-600 dark:bg-amber-950/40"
+                              : "bg-primary/10 text-primary",
                         )}
                       >
                         <AlertTriangle className="h-3.5 w-3.5" />
@@ -178,7 +205,8 @@ export function DailyOperationsHub({
                           {alert.profileName}
                         </p>
                         <p className="text-[11px] text-muted-foreground truncate">
-                          {alert.buildingName ? `${alert.buildingName}, ` : ""}{ar ? "الغرفة" : "Room"} {alert.roomNumber}
+                          {alert.buildingName ? `${alert.buildingName}, ` : ""}
+                          {ar ? "الغرفة" : "Room"} {alert.roomNumber}
                           {alert.department ? ` · ${alert.department}` : ""}
                         </p>
                       </div>
@@ -191,8 +219,8 @@ export function DailyOperationsHub({
                           alert.daysRemaining <= 1
                             ? "text-red-600 dark:text-red-400"
                             : alert.daysRemaining <= 3
-                            ? "text-amber-600 dark:text-amber-400"
-                            : "text-foreground",
+                              ? "text-amber-600 dark:text-amber-400"
+                              : "text-foreground",
                         )}
                       >
                         {alert.daysRemaining < 0
@@ -200,10 +228,10 @@ export function DailyOperationsHub({
                             ? "إخلاء متأخر"
                             : "Overdue"
                           : alert.daysRemaining === 0
-                          ? ar
-                            ? "اليوم"
-                            : "Today"
-                          : `${alert.daysRemaining}d`}
+                            ? ar
+                              ? "اليوم"
+                              : "Today"
+                            : `${alert.daysRemaining}d`}
                       </p>
                       <p className="text-[10px] text-muted-foreground font-mono">
                         {formatDate(alert.expectedCheckOutDate)}
@@ -216,7 +244,9 @@ export function DailyOperationsHub({
               <div className="h-full min-h-[160px] flex items-center justify-center text-muted-foreground text-xs flex-col gap-2 pt-4">
                 <CheckCircle2 className="h-8 w-8 text-emerald-500 opacity-60" />
                 <p className="font-medium text-emerald-600 dark:text-emerald-400">
-                  {ar ? "لا مغادرات قادمة مجدولة خلال الـ 7 أيام القادمة" : "No upcoming checkouts scheduled in next 7 days"}
+                  {ar
+                    ? "لا مغادرات قادمة مجدولة خلال الـ 7 أيام القادمة"
+                    : "No upcoming checkouts scheduled in next 7 days"}
                 </p>
               </div>
             )}
@@ -228,7 +258,10 @@ export function DailyOperationsHub({
           <div className="space-y-2">
             {checkIns && checkIns.length > 0 ? (
               checkIns.slice(0, 8).map((cin, i) => (
-                <Link key={i} href={buildNavHref("/accommodation/reservations")}>
+                <Link
+                  key={i}
+                  href={buildNavHref("/accommodation/reservations")}
+                >
                   <div className="flex items-center justify-between p-2.5 rounded-xl border border-border/50 bg-card/50 hover:bg-muted/80 transition-all duration-200 cursor-pointer">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="p-1.5 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-950/40 flex-shrink-0">
@@ -236,10 +269,12 @@ export function DailyOperationsHub({
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs sm:text-sm font-semibold truncate text-foreground">
-                          {cin.guestName || (ar ? "حجز بدون اسم" : "Unnamed Booking")}
+                          {cin.guestName ||
+                            (ar ? "حجز بدون اسم" : "Unnamed Booking")}
                         </p>
                         <p className="text-[11px] text-muted-foreground truncate">
-                          {cin.buildingName ? `${cin.buildingName}, ` : ""}{ar ? "الغرفة:" : "Room:"} {cin.roomNumber || "TBD"}
+                          {cin.buildingName ? `${cin.buildingName}, ` : ""}
+                          {ar ? "الغرفة:" : "Room:"} {cin.roomNumber || "TBD"}
                           {cin.department ? ` · ${cin.department}` : ""}
                         </p>
                       </div>
@@ -260,10 +295,10 @@ export function DailyOperationsHub({
                             ? "يصل اليوم"
                             : "Arriving Today"
                           : cin.daysUntil === 1
-                          ? ar
-                            ? "يصل غداً"
-                            : "Tomorrow"
-                          : `+${cin.daysUntil}d`}
+                            ? ar
+                              ? "يصل غداً"
+                              : "Tomorrow"
+                            : `+${cin.daysUntil}d`}
                       </Badge>
                       <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
                         {formatDate(cin.checkInDate)}
@@ -276,7 +311,9 @@ export function DailyOperationsHub({
               <div className="h-full min-h-[160px] flex items-center justify-center text-muted-foreground text-xs flex-col gap-2 pt-4">
                 <CheckCircle2 className="h-8 w-8 text-blue-500 opacity-60" />
                 <p className="font-medium text-blue-600 dark:text-blue-400">
-                  {ar ? "لا وصول قادم خلال الأسبوع الحالي" : "No pending arrivals in the next 7 days"}
+                  {ar
+                    ? "لا وصول قادم خلال الأسبوع الحالي"
+                    : "No pending arrivals in the next 7 days"}
                 </p>
               </div>
             )}
@@ -303,10 +340,12 @@ export function DailyOperationsHub({
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs sm:text-sm font-semibold truncate text-foreground">
-                          {m.problemType || (ar ? "طلب صيانة" : "Maintenance Order")}
+                          {m.problemType ||
+                            (ar ? "طلب صيانة" : "Maintenance Order")}
                         </p>
                         <p className="text-[11px] text-muted-foreground truncate">
-                          {m.buildingName ? `${m.buildingName}, ` : ""}{ar ? "الغرفة" : "Room"} {m.roomNumber}
+                          {m.buildingName ? `${m.buildingName}, ` : ""}
+                          {ar ? "الغرفة" : "Room"} {m.roomNumber}
                           {m.description ? ` · ${m.description}` : ""}
                         </p>
                       </div>
@@ -320,8 +359,8 @@ export function DailyOperationsHub({
                           m.priority === "emergency"
                             ? "bg-rose-500/10 text-rose-600 border-rose-500/30"
                             : m.priority === "high"
-                            ? "bg-orange-500/10 text-orange-600 border-orange-500/30"
-                            : "bg-amber-500/10 text-amber-600 border-amber-500/30",
+                              ? "bg-orange-500/10 text-orange-600 border-orange-500/30"
+                              : "bg-amber-500/10 text-amber-600 border-amber-500/30",
                         )}
                       >
                         {m.priority || "open"}
@@ -334,7 +373,9 @@ export function DailyOperationsHub({
               <div className="h-full min-h-[160px] flex items-center justify-center text-muted-foreground text-xs flex-col gap-2 pt-4">
                 <CheckCircle2 className="h-8 w-8 text-emerald-500 opacity-60" />
                 <p className="font-medium text-emerald-600 dark:text-emerald-400">
-                  {ar ? "لا توجد بلاغات صيانة مفتوحة حالياً" : "All maintenance tickets resolved!"}
+                  {ar
+                    ? "لا توجد بلاغات صيانة مفتوحة حالياً"
+                    : "All maintenance tickets resolved!"}
                 </p>
               </div>
             )}
@@ -357,7 +398,8 @@ export function DailyOperationsHub({
                           {c.name}
                         </p>
                         <p className="text-[11px] text-muted-foreground truncate">
-                          {c.department ? `${c.department} · ` : ""}{c.jobTitle || (ar ? "موظف" : "Staff")}
+                          {c.department ? `${c.department} · ` : ""}
+                          {c.jobTitle || (ar ? "موظف" : "Staff")}
                         </p>
                       </div>
                     </div>
@@ -366,7 +408,9 @@ export function DailyOperationsHub({
                       <p
                         className={cn(
                           "text-xs font-bold font-mono",
-                          c.daysUntil <= 7 ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400",
+                          c.daysUntil <= 7
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-amber-600 dark:text-amber-400",
                         )}
                       >
                         {c.daysUntil <= 0
@@ -386,7 +430,9 @@ export function DailyOperationsHub({
               <div className="h-full min-h-[160px] flex items-center justify-center text-muted-foreground text-xs flex-col gap-2 pt-4">
                 <CheckCircle2 className="h-8 w-8 text-purple-500 opacity-60" />
                 <p className="font-medium text-purple-600 dark:text-purple-400">
-                  {ar ? "لا عقود تنتهي خلال الـ 30 يوماً القادمة" : "No employee contracts expiring in next 30 days"}
+                  {ar
+                    ? "لا عقود تنتهي خلال الـ 30 يوماً القادمة"
+                    : "No employee contracts expiring in next 30 days"}
                 </p>
               </div>
             )}

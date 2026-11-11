@@ -12,7 +12,10 @@ import {
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
-import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
+import {
+  requirePermission,
+  requireAnyPermission,
+} from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { CommonListQuery, IdParams } from "../validation/schemas.js";
 
@@ -145,9 +148,12 @@ router.patch(
           .limit(1);
         return f;
       });
-      const targetBuildingId = (parsed.data as any).buildingId || currentFloor?.buildingId;
+      const targetBuildingId =
+        (parsed.data as any).buildingId || currentFloor?.buildingId;
       const existingFloor = await withTenant(propertyId, async (tenantDb) => {
-        const conditions = [eq(floorsTable.floorNumber, parsed.data.floorNumber!)];
+        const conditions = [
+          eq(floorsTable.floorNumber, parsed.data.floorNumber!),
+        ];
         if (targetBuildingId) {
           conditions.push(eq(floorsTable.buildingId, targetBuildingId));
         }

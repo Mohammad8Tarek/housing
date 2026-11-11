@@ -42,9 +42,9 @@ export function buildProfileSearchConditions(
   if (tokens.length === 0) return null;
 
   const arFullNameSql = sqlNormalizeArabic(
-    sql`concat_ws(' ', ${profilesTable.firstNameAr}, ${profilesTable.lastNameAr}, ${profilesTable.thirdNameAr}, ${profilesTable.fourthNameAr})`
+    sql`concat_ws(' ', ${profilesTable.firstNameAr}, ${profilesTable.lastNameAr}, ${profilesTable.thirdNameAr}, ${profilesTable.fourthNameAr})`,
   );
-  const enFullNameSql = sql`lower(concat_ws(' ', coalesce(${profilesTable.firstName}, ''), coalesce(${profilesTable.lastName}, ''), coalesce(${profilesTable.thirdName}, ''), coalesce(${profilesTable.fourthName}, '')))` ;
+  const enFullNameSql = sql`lower(concat_ws(' ', coalesce(${profilesTable.firstName}, ''), coalesce(${profilesTable.lastName}, ''), coalesce(${profilesTable.thirdName}, ''), coalesce(${profilesTable.fourthName}, '')))`;
 
   const arDeptSql = sqlNormalizeArabic(profilesTable.departmentAr);
   const arJobSql = sqlNormalizeArabic(profilesTable.jobTitleAr);
@@ -82,15 +82,16 @@ export function buildAssignmentSearchConditions(
     assignmentsTable?: any;
   },
 ): SQL | null {
-  const { profilesTable, roomsTable, buildingsTable, assignmentsTable } = tables;
+  const { profilesTable, roomsTable, buildingsTable, assignmentsTable } =
+    tables;
   const norm = normalizeSearchString(searchQuery);
   const tokens = norm.split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return null;
 
   const arFullNameSql = sqlNormalizeArabic(
-    sql`concat_ws(' ', ${profilesTable.firstNameAr}, ${profilesTable.lastNameAr}, ${profilesTable.thirdNameAr}, ${profilesTable.fourthNameAr})`
+    sql`concat_ws(' ', ${profilesTable.firstNameAr}, ${profilesTable.lastNameAr}, ${profilesTable.thirdNameAr}, ${profilesTable.fourthNameAr})`,
   );
-  const enFullNameSql = sql`lower(concat_ws(' ', coalesce(${profilesTable.firstName}, ''), coalesce(${profilesTable.lastName}, ''), coalesce(${profilesTable.thirdName}, ''), coalesce(${profilesTable.fourthName}, '')))` ;
+  const enFullNameSql = sql`lower(concat_ws(' ', coalesce(${profilesTable.firstName}, ''), coalesce(${profilesTable.lastName}, ''), coalesce(${profilesTable.thirdName}, ''), coalesce(${profilesTable.fourthName}, '')))`;
 
   const arDeptSql = sqlNormalizeArabic(profilesTable.departmentAr);
   const arJobSql = sqlNormalizeArabic(profilesTable.jobTitleAr);
@@ -113,7 +114,9 @@ export function buildAssignmentSearchConditions(
     ];
 
     if (assignmentsTable?.bedNumber) {
-      checks.push(sql`cast(${assignmentsTable.bedNumber} as text) ILIKE ${pattern}`);
+      checks.push(
+        sql`cast(${assignmentsTable.bedNumber} as text) ILIKE ${pattern}`,
+      );
     }
 
     return or(...checks)!;
@@ -138,9 +141,9 @@ export function buildReservationSearchConditions(
   const tokens = norm.split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return null;
 
-  const guestNameEnSql = sql`lower(concat_ws(' ', coalesce(${reservationsTable.firstName}, ''), coalesce(${reservationsTable.lastName}, '')))` ;
+  const guestNameEnSql = sql`lower(concat_ws(' ', coalesce(${reservationsTable.firstName}, ''), coalesce(${reservationsTable.lastName}, '')))`;
   const guestNameArSql = sqlNormalizeArabic(
-    sql`concat_ws(' ', ${reservationsTable.firstName}, ${reservationsTable.lastName})`
+    sql`concat_ws(' ', ${reservationsTable.firstName}, ${reservationsTable.lastName})`,
   );
   const deptArSql = sqlNormalizeArabic(reservationsTable.department);
   const jobArSql = sqlNormalizeArabic(reservationsTable.jobTitle);
@@ -166,7 +169,9 @@ export function buildReservationSearchConditions(
       checks.push(ilike(roomsTable.roomNumber, pattern));
     }
     if (buildingsTable?.name) {
-      checks.push(sql`${sqlNormalizeArabic(buildingsTable.name)} ILIKE ${pattern}`);
+      checks.push(
+        sql`${sqlNormalizeArabic(buildingsTable.name)} ILIKE ${pattern}`,
+      );
     }
 
     return or(...checks)!;

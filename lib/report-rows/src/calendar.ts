@@ -14,7 +14,14 @@ function zoneOffsetMs(ts: number, timeZone: string): number {
     second: "2-digit",
   }).formatToParts(new Date(ts));
   const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
-  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  const asUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second"),
+  );
   return asUtc - Math.floor(ts / 1000) * 1000;
 }
 
@@ -40,18 +47,31 @@ export function wallClock(
 export function fieldsOf(date: Date, timeZone: string | undefined) {
   if (!timeZone) {
     return {
-      y: date.getFullYear(), m: date.getMonth(), d: date.getDate(),
-      h: date.getHours(), mi: date.getMinutes(), s: date.getSeconds(), ms: date.getMilliseconds(),
+      y: date.getFullYear(),
+      m: date.getMonth(),
+      d: date.getDate(),
+      h: date.getHours(),
+      mi: date.getMinutes(),
+      s: date.getSeconds(),
+      ms: date.getMilliseconds(),
     };
   }
-  const shifted = new Date(date.getTime() + zoneOffsetMs(date.getTime(), timeZone));
+  const shifted = new Date(
+    date.getTime() + zoneOffsetMs(date.getTime(), timeZone),
+  );
   return {
-    y: shifted.getUTCFullYear(), m: shifted.getUTCMonth(), d: shifted.getUTCDate(),
-    h: shifted.getUTCHours(), mi: shifted.getUTCMinutes(), s: shifted.getUTCSeconds(), ms: shifted.getUTCMilliseconds(),
+    y: shifted.getUTCFullYear(),
+    m: shifted.getUTCMonth(),
+    d: shifted.getUTCDate(),
+    h: shifted.getUTCHours(),
+    mi: shifted.getUTCMinutes(),
+    s: shifted.getUTCSeconds(),
+    ms: shifted.getUTCMilliseconds(),
   };
 }
 
-const ZONELESS_DATETIME = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3})\d*)?)?$/;
+const ZONELESS_DATETIME =
+  /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3})\d*)?)?$/;
 
 /** `new Date(value)`, except zone-less date-times are read in `timeZone`. */
 export function parseDate(value: any, timeZone: string | undefined): Date {
@@ -59,17 +79,38 @@ export function parseDate(value: any, timeZone: string | undefined): Date {
     const m = ZONELESS_DATETIME.exec(value.trim());
     if (m) {
       return wallClock(
-        timeZone, Number(m[1]), Number(m[2]) - 1, Number(m[3]),
-        Number(m[4]), Number(m[5]), Number(m[6] ?? 0), Number((m[7] ?? "0").padEnd(3, "0")),
+        timeZone,
+        Number(m[1]),
+        Number(m[2]) - 1,
+        Number(m[3]),
+        Number(m[4]),
+        Number(m[5]),
+        Number(m[6] ?? 0),
+        Number((m[7] ?? "0").padEnd(3, "0")),
       );
     }
   }
   return new Date(value);
 }
 
-
-const WEEKDAYS_AR = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-const WEEKDAYS_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WEEKDAYS_AR = [
+  "الأحد",
+  "الاثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+];
+const WEEKDAYS_EN = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 /**
  * The calendar day `offset` days after today (in `timeZone`), as the forecast

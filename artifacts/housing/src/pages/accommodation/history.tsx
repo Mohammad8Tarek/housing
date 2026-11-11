@@ -46,20 +46,32 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatDate } from "@/lib/date-utils";
 import { DataPagination } from "@/components/DataPagination";
-import { Search, Building2, BedDouble, History, FileSpreadsheet, Trash2, Printer } from "lucide-react";
+import {
+  Search,
+  Building2,
+  BedDouble,
+  History,
+  FileSpreadsheet,
+  Trash2,
+  Printer,
+} from "lucide-react";
 import {
   ColumnChooser,
   useColumnVisibility,
 } from "@/components/ui/column-chooser";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { ReportPrintStudioModal } from "@/pages/reports/components/ReportPrintStudioModal";
-import type { ReportColumnConfig, ReportKpiItem } from "@/pages/reports/components/PrintableReportDocument";
+import type {
+  ReportColumnConfig,
+  ReportKpiItem,
+} from "@/pages/reports/components/PrintableReportDocument";
 import { exportExcel as exportExcelUtil } from "@/pages/reports/utils/export";
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
     ENDED: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-    CHECKED_OUT: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+    CHECKED_OUT:
+      "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
     TRANSFERRED:
       "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
     CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
@@ -84,9 +96,8 @@ function ProfileMini({
 }) {
   const fName = emp?.firstName || "";
   const lName = emp?.lastName || "";
-  const initials = (fName || lName)
-    ? `${fName[0] ?? ""}${lName[0] ?? ""}`.toUpperCase()
-    : "ID";
+  const initials =
+    fName || lName ? `${fName[0] ?? ""}${lName[0] ?? ""}`.toUpperCase() : "ID";
   return (
     <div className="flex items-center gap-2">
       {photoUrl ? (
@@ -153,26 +164,36 @@ export default function HistoryPage() {
       qs.set("page", currentPage.toString());
       qs.set("limit", pageSize.toString());
       if (debouncedSearch) qs.set("search", debouncedSearch);
-      if (filterStatus && filterStatus !== "ALL") qs.set("status", filterStatus);
+      if (filterStatus && filterStatus !== "ALL")
+        qs.set("status", filterStatus);
 
-      const token = localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const token =
+        localStorage.getItem("auth_token") ||
+        sessionStorage.getItem("auth_token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
       if (token) headers["Authorization"] = `Bearer ${token}`;
-      
-      const res = await fetch(`/api/assignments/history?${qs.toString()}`, { 
+
+      const res = await fetch(`/api/assignments/history?${qs.toString()}`, {
         headers,
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch history");
-      return res.json() as Promise<{ data: any[]; pagination: { total: number } }>;
+      return res.json() as Promise<{
+        data: any[];
+        pagination: { total: number };
+      }>;
     },
     enabled: !!activePropertyId,
   });
 
-  const propId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const propId =
+    typeof activePropertyId === "number" ? activePropertyId : undefined;
 
   const { data: _eDataWrapper } = useListProfiles({ propertyId: propId });
-  const profiles = (_eDataWrapper as any)?.profiles || (_eDataWrapper as any)?.data || [];
+  const profiles =
+    (_eDataWrapper as any)?.profiles || (_eDataWrapper as any)?.data || [];
   const { data: _rData } = useListRooms({ propertyId: propId });
   const rooms = (_rData as any)?.data || [];
   const { data: _bData } = useListBuildings({ propertyId: propId });
@@ -185,9 +206,14 @@ export default function HistoryPage() {
 
   const empMap = Object.fromEntries(profiles.map((e: any) => [e.id, e]));
   const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));
-  const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
+  const buildingMap = Object.fromEntries(
+    buildings.map((b: any) => [b.id, b.name]),
+  );
   const floorMap = Object.fromEntries(
-    floors.map((f: any) => [f.id, { name: f.floorNumber, number: f.floorNumber }]),
+    floors.map((f: any) => [
+      f.id,
+      { name: f.floorNumber, number: f.floorNumber },
+    ]),
   );
 
   const paged = assignmentsData?.data || [];
@@ -222,9 +248,7 @@ export default function HistoryPage() {
 
   // Get selected or all fetched assignments
   const exportTarget = () =>
-    selectedRows.size > 0
-      ? paged.filter((a) => selectedRows.has(a.id))
-      : paged;
+    selectedRows.size > 0 ? paged.filter((a) => selectedRows.has(a.id)) : paged;
 
   const handleDeleteSingle = async () => {
     if (!deleteRecord) return;
@@ -247,26 +271,26 @@ export default function HistoryPage() {
         },
       );
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed to delete" }));
+        const err = await res
+          .json()
+          .catch(() => ({ error: "Failed to delete" }));
         throw new Error(err.error || "Failed to delete");
       }
       setDeleteRecord(null);
       queryClient.invalidateQueries({ queryKey: ["accommodationHistory"] });
-      toast.success(
-        ar ? "تم حذف السجل بنجاح" : "Record Deleted Successfully",
-        {
-          description: ar
-            ? "تمت إزالة سجل التسكين بنجاح من قاعدة البيانات"
-            : "The accommodation record was removed successfully from the system",
-        },
-      );
+      toast.success(ar ? "تم حذف السجل بنجاح" : "Record Deleted Successfully", {
+        description: ar
+          ? "تمت إزالة سجل التسكين بنجاح من قاعدة البيانات"
+          : "The accommodation record was removed successfully from the system",
+      });
     } catch (e: any) {
-      toast.error(
-        ar ? "فشل حذف السجل" : "Failed to Delete Record",
-        {
-          description: e.message || (ar ? "حدث خطأ أثناء محاولة حذف السجل" : "An error occurred while attempting to delete the record"),
-        },
-      );
+      toast.error(ar ? "فشل حذف السجل" : "Failed to Delete Record", {
+        description:
+          e.message ||
+          (ar
+            ? "حدث خطأ أثناء محاولة حذف السجل"
+            : "An error occurred while attempting to delete the record"),
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -285,35 +309,38 @@ export default function HistoryPage() {
       };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      const res = await fetch(`/api/assignments/bulk-delete?propertyId=${activePropertyId}`, {
-        method: "POST",
-        headers,
-        credentials: "include",
-        body: JSON.stringify({ ids, propertyId: activePropertyId }),
-      });
+      const res = await fetch(
+        `/api/assignments/bulk-delete?propertyId=${activePropertyId}`,
+        {
+          method: "POST",
+          headers,
+          credentials: "include",
+          body: JSON.stringify({ ids, propertyId: activePropertyId }),
+        },
+      );
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed to delete" }));
+        const err = await res
+          .json()
+          .catch(() => ({ error: "Failed to delete" }));
         throw new Error(err.error || "Failed to delete");
       }
       const data = await res.json();
       setSelectedRows(new Set());
       setConfirmBulkDelete(false);
       queryClient.invalidateQueries({ queryKey: ["accommodationHistory"] });
-      toast.success(
-        ar ? "تم الحذف الجماعي بنجاح" : "Bulk Deletion Completed",
-        {
-          description: ar
-            ? `تم حذف ${data.deletedCount ?? ids.length} سجل بنجاح من الأرشيف`
-            : `Successfully deleted ${data.deletedCount ?? ids.length} records from history`,
-        },
-      );
+      toast.success(ar ? "تم الحذف الجماعي بنجاح" : "Bulk Deletion Completed", {
+        description: ar
+          ? `تم حذف ${data.deletedCount ?? ids.length} سجل بنجاح من الأرشيف`
+          : `Successfully deleted ${data.deletedCount ?? ids.length} records from history`,
+      });
     } catch (e: any) {
-      toast.error(
-        ar ? "فشل الحذف الجماعي" : "Bulk Deletion Failed",
-        {
-          description: e.message || (ar ? "حدث خطأ أثناء محاولة الحذف الجماعي" : "An error occurred during bulk deletion"),
-        },
-      );
+      toast.error(ar ? "فشل الحذف الجماعي" : "Bulk Deletion Failed", {
+        description:
+          e.message ||
+          (ar
+            ? "حدث خطأ أثناء محاولة الحذف الجماعي"
+            : "An error occurred during bulk deletion"),
+      });
     } finally {
       setIsBulkDeleting(false);
     }
@@ -323,15 +350,22 @@ export default function HistoryPage() {
     const rows = exportTarget().map((a) => {
       const emp = empMap[a.profileId];
       const room = roomMap[a.roomId];
-      const building = a.buildingName || (room ? buildingMap[room.buildingId] : null);
-      const floorNum = a.floorNumber ?? (room && floorMap[room.floorId] ? floorMap[room.floorId].number : "");
+      const building =
+        a.buildingName || (room ? buildingMap[room.buildingId] : null);
+      const floorNum =
+        a.floorNumber ??
+        (room && floorMap[room.floorId] ? floorMap[room.floorId].number : "");
       const roomNum = a.roomNumber || room?.roomNumber || String(a.roomId);
-      const empName = (a.profileFirstName && a.profileLastName)
-        ? `${a.profileFirstName} ${a.profileLastName}`
-        : (emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`);
+      const empName =
+        a.profileFirstName && a.profileLastName
+          ? `${a.profileFirstName} ${a.profileLastName}`
+          : emp
+            ? `${emp.firstName} ${emp.lastName}`
+            : `#${a.profileId}`;
       const empCode = a.profileCode || emp?.profileId || "";
       const nationalId = a.profileNationalId || emp?.nationalId || "";
-      const nationality = a.profileNationality || (emp as any)?.nationality || "";
+      const nationality =
+        a.profileNationality || (emp as any)?.nationality || "";
       const jobTitle = a.profileJobTitle || emp?.jobTitle || "";
       const department = a.profileDepartment || emp?.department || "";
       const checkOutDate = a.checkOutDate || (a as any).actualCheckOutDate;
@@ -375,19 +409,38 @@ export default function HistoryPage() {
   const formatHistoryRow = (a: any) => {
     const emp = empMap[a.profileId];
     const room = roomMap[a.roomId];
-    const building = a.buildingName || (room ? buildingMap[room.buildingId] : null);
-    const floorNum = a.floorNumber ?? (room && floorMap[room.floorId] ? String(floorMap[room.floorId].number) : "—");
+    const building =
+      a.buildingName || (room ? buildingMap[room.buildingId] : null);
+    const floorNum =
+      a.floorNumber ??
+      (room && floorMap[room.floorId]
+        ? String(floorMap[room.floorId].number)
+        : "—");
     const roomNum = a.roomNumber || room?.roomNumber || String(a.roomId);
 
     const empName = ar
-      ? (a.profileFirstNameAr && a.profileLastNameAr ? `${a.profileFirstNameAr} ${a.profileLastNameAr}` : (emp?.firstNameAr ? `${emp.firstNameAr} ${emp.lastNameAr || ""}`.trim() : (emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`)))
-      : (a.profileFirstName && a.profileLastName ? `${a.profileFirstName} ${a.profileLastName}` : (emp ? `${emp.firstName} ${emp.lastName}` : `#${a.profileId}`));
+      ? a.profileFirstNameAr && a.profileLastNameAr
+        ? `${a.profileFirstNameAr} ${a.profileLastNameAr}`
+        : emp?.firstNameAr
+          ? `${emp.firstNameAr} ${emp.lastNameAr || ""}`.trim()
+          : emp
+            ? `${emp.firstName} ${emp.lastName}`
+            : `#${a.profileId}`
+      : a.profileFirstName && a.profileLastName
+        ? `${a.profileFirstName} ${a.profileLastName}`
+        : emp
+          ? `${emp.firstName} ${emp.lastName}`
+          : `#${a.profileId}`;
 
     const empCode = a.profileCode || emp?.profileId || "";
     const nationalId = a.profileNationalId || emp?.nationalId || "";
     const department = ar
-      ? (a.profileDepartmentAr || emp?.departmentAr || a.profileDepartment || emp?.department || "—")
-      : (a.profileDepartment || emp?.department || "—");
+      ? a.profileDepartmentAr ||
+        emp?.departmentAr ||
+        a.profileDepartment ||
+        emp?.department ||
+        "—"
+      : a.profileDepartment || emp?.department || "—";
 
     const checkOutDate = a.checkOutDate || (a as any).actualCheckOutDate;
     const daysStayed =
@@ -419,18 +472,99 @@ export default function HistoryPage() {
   };
 
   const studioColumns: ReportColumnConfig[] = [
-    { key: "empName", header: "Employee Name", headerAr: "اسم الموظف", type: "text", align: "right" },
-    { key: "empCode", header: "Code", headerAr: "كود الموظف", type: "badge", align: "center", width: "85px" },
-    { key: "nationalId", header: "National ID", headerAr: "الرقم القومي", type: "text", align: "center", width: "110px" },
-    { key: "department", header: "Department", headerAr: "القسم", type: "text", align: "right" },
-    { key: "building", header: "Building", headerAr: "المبنى", type: "text", align: "right" },
-    { key: "floor", header: "Floor", headerAr: "الدور", type: "text", align: "center", width: "55px" },
-    { key: "room", header: "Room", headerAr: "الغرفة", type: "badge", align: "center", width: "65px" },
-    { key: "bed", header: "Bed", headerAr: "السرير", type: "text", align: "center", width: "55px" },
-    { key: "checkIn", header: "Check-in", headerAr: "تاريخ التسكين", type: "date", align: "center", width: "95px" },
-    { key: "checkOut", header: "Check-out", headerAr: "تاريخ المغادرة", type: "date", align: "center", width: "95px" },
-    { key: "days", header: "Days", headerAr: "المدة (أيام)", type: "number", align: "center", width: "70px" },
-    { key: "status", header: "Status", headerAr: "حالة السجل", type: "status", align: "center", width: "90px" },
+    {
+      key: "empName",
+      header: "Employee Name",
+      headerAr: "اسم الموظف",
+      type: "text",
+      align: "right",
+    },
+    {
+      key: "empCode",
+      header: "Code",
+      headerAr: "كود الموظف",
+      type: "badge",
+      align: "center",
+      width: "85px",
+    },
+    {
+      key: "nationalId",
+      header: "National ID",
+      headerAr: "الرقم القومي",
+      type: "text",
+      align: "center",
+      width: "110px",
+    },
+    {
+      key: "department",
+      header: "Department",
+      headerAr: "القسم",
+      type: "text",
+      align: "right",
+    },
+    {
+      key: "building",
+      header: "Building",
+      headerAr: "المبنى",
+      type: "text",
+      align: "right",
+    },
+    {
+      key: "floor",
+      header: "Floor",
+      headerAr: "الدور",
+      type: "text",
+      align: "center",
+      width: "55px",
+    },
+    {
+      key: "room",
+      header: "Room",
+      headerAr: "الغرفة",
+      type: "badge",
+      align: "center",
+      width: "65px",
+    },
+    {
+      key: "bed",
+      header: "Bed",
+      headerAr: "السرير",
+      type: "text",
+      align: "center",
+      width: "55px",
+    },
+    {
+      key: "checkIn",
+      header: "Check-in",
+      headerAr: "تاريخ التسكين",
+      type: "date",
+      align: "center",
+      width: "95px",
+    },
+    {
+      key: "checkOut",
+      header: "Check-out",
+      headerAr: "تاريخ المغادرة",
+      type: "date",
+      align: "center",
+      width: "95px",
+    },
+    {
+      key: "days",
+      header: "Days",
+      headerAr: "المدة (أيام)",
+      type: "number",
+      align: "center",
+      width: "70px",
+    },
+    {
+      key: "status",
+      header: "Status",
+      headerAr: "حالة السجل",
+      type: "status",
+      align: "center",
+      width: "90px",
+    },
   ];
 
   const studioKpis: ReportKpiItem[] = [
@@ -443,13 +577,27 @@ export default function HistoryPage() {
     {
       label: "Checked Out",
       labelAr: "تمت المغادرة",
-      value: (studioRows.filter((r) => r.status && (r.status.includes("مغادرة") || r.status.toLowerCase().includes("out"))).length || 0).toLocaleString(),
+      value: (
+        studioRows.filter(
+          (r) =>
+            r.status &&
+            (r.status.includes("مغادرة") ||
+              r.status.toLowerCase().includes("out")),
+        ).length || 0
+      ).toLocaleString(),
       color: "amber",
     },
     {
       label: "Transferred",
       labelAr: "منقولون",
-      value: (studioRows.filter((r) => r.status && (r.status.includes("منقول") || r.status.toLowerCase().includes("transfer"))).length || 0).toLocaleString(),
+      value: (
+        studioRows.filter(
+          (r) =>
+            r.status &&
+            (r.status.includes("منقول") ||
+              r.status.toLowerCase().includes("transfer")),
+        ).length || 0
+      ).toLocaleString(),
       color: "emerald",
     },
   ];
@@ -466,10 +614,15 @@ export default function HistoryPage() {
         qs.set("page", "1");
         qs.set("limit", "2000");
         if (debouncedSearch) qs.set("search", debouncedSearch);
-        if (filterStatus && filterStatus !== "ALL") qs.set("status", filterStatus);
+        if (filterStatus && filterStatus !== "ALL")
+          qs.set("status", filterStatus);
 
-        const token = localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
-        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        const token =
+          localStorage.getItem("auth_token") ||
+          sessionStorage.getItem("auth_token");
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
         const res = await fetch(`/api/assignments/history?${qs.toString()}`, {
@@ -594,7 +747,13 @@ export default function HistoryPage() {
             className="gap-2 text-primary border-primary/20 hover:bg-primary/5"
           >
             <Printer className="w-4 h-4" />
-            {isFetchingStudio ? (ar ? "جاري التجهيز..." : "Preparing...") : (ar ? "استوديو الطباعة و PDF" : "Print Studio & PDF")}
+            {isFetchingStudio
+              ? ar
+                ? "جاري التجهيز..."
+                : "Preparing..."
+              : ar
+                ? "استوديو الطباعة و PDF"
+                : "Print Studio & PDF"}
           </Button>
         </div>
       </div>
@@ -780,7 +939,8 @@ export default function HistoryPage() {
                 };
                 const room = roomMap[a.roomId];
                 const building =
-                  a.buildingName || (room ? buildingMap[room.buildingId] : null);
+                  a.buildingName ||
+                  (room ? buildingMap[room.buildingId] : null);
                 const floorNumber =
                   a.floorNumber ??
                   (room && floorMap[room.floorId]
@@ -836,7 +996,9 @@ export default function HistoryPage() {
                     )}
                     {isHistVisible("nationality") && (
                       <TableCell className="text-sm">
-                        {a.profileNationality || (emp as any)?.nationality || "—"}
+                        {a.profileNationality ||
+                          (emp as any)?.nationality ||
+                          "—"}
                       </TableCell>
                     )}
                     {isHistVisible("jobtitle") && (
@@ -991,8 +1153,10 @@ export default function HistoryPage() {
                   <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   {ar ? "جاري الحذف..." : "Deleting..."}
                 </span>
+              ) : ar ? (
+                "تأكيد الحذف"
               ) : (
-                ar ? "تأكيد الحذف" : "Confirm Delete"
+                "Confirm Delete"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1000,10 +1164,7 @@ export default function HistoryPage() {
       </AlertDialog>
 
       {/* Bulk Delete Confirmation Dialog */}
-      <AlertDialog
-        open={confirmBulkDelete}
-        onOpenChange={setConfirmBulkDelete}
-      >
+      <AlertDialog open={confirmBulkDelete} onOpenChange={setConfirmBulkDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -1029,8 +1190,10 @@ export default function HistoryPage() {
                   <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   {ar ? "جاري الحذف..." : "Deleting..."}
                 </span>
+              ) : ar ? (
+                "تأكيد الحذف"
               ) : (
-                ar ? "تأكيد الحذف" : "Confirm Delete"
+                "Confirm Delete"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1043,15 +1206,28 @@ export default function HistoryPage() {
         onOpenChange={setIsStudioOpen}
         title="Housing Historical Stays Archive"
         titleAr="سجل التسكين وحركات الإقامة التاريخية"
-        subtitle={ar ? "سجل تاريخي بكافة تسكينات ومغادرات الموظفين" : "Historical record of staff stays, movements and departures"}
+        subtitle={
+          ar
+            ? "سجل تاريخي بكافة تسكينات ومغادرات الموظفين"
+            : "Historical record of staff stays, movements and departures"
+        }
         subtitleAr="سجل تاريخي بكافة تسكينات ومغادرات الموظفين"
-        propertyName={activePropObj?.displayName || activePropObj?.name || undefined}
+        propertyName={
+          activePropObj?.displayName || activePropObj?.name || undefined
+        }
         propertyCode={activePropObj?.code || undefined}
         systemLogoUrl={(settings as any)?.systemLogo || undefined}
         propertyLogoUrl={(activePropObj as any)?.logo || undefined}
         filtersSummary={{
-          [ar ? "الحالة" : "Status"]: filterStatus === "ALL" ? (ar ? "كل الحالات" : "All Status") : formatStatus(filterStatus, ar),
-          ...(debouncedSearch ? { [ar ? "البحث" : "Search"]: debouncedSearch } : {}),
+          [ar ? "الحالة" : "Status"]:
+            filterStatus === "ALL"
+              ? ar
+                ? "كل الحالات"
+                : "All Status"
+              : formatStatus(filterStatus, ar),
+          ...(debouncedSearch
+            ? { [ar ? "البحث" : "Search"]: debouncedSearch }
+            : {}),
         }}
         kpis={studioKpis}
         availableColumns={studioColumns}

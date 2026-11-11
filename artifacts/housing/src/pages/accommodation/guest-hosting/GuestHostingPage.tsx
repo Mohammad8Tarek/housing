@@ -7,7 +7,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Users, Baby, Image as ImageIcon, FileText, FileDown } from "lucide-react";
+import {
+  Users,
+  Baby,
+  Image as ImageIcon,
+  FileText,
+  FileDown,
+} from "lucide-react";
 import { ColumnChooser } from "@/components/ui/column-chooser";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 import {
@@ -25,8 +31,37 @@ import { resolveApiUrl } from "@/lib/api-origin";
 
 export default function GuestHosting() {
   const s = useGuestHostingState();
-  const { ar, profileEmpId, setProfileEmpId, companionsDetailHostingId, setCompanionsDetailHostingId, lightboxSrc, setLightboxSrc, lightboxName, setLightboxName, isLoading, isError, refetch, numericPropertyId, hostings, pagedHostings, dateText, getHostProfile, getHostName, getHostCode, getCompanions, getRoom, getRoomNumber, exportHostExcel, HOSTING_COLS, hVisible, hToggle, hShowAll, hHideAll, exportGuestProfilePdf } = s;
-
+  const {
+    ar,
+    profileEmpId,
+    setProfileEmpId,
+    companionsDetailHostingId,
+    setCompanionsDetailHostingId,
+    lightboxSrc,
+    setLightboxSrc,
+    lightboxName,
+    setLightboxName,
+    isLoading,
+    isError,
+    refetch,
+    numericPropertyId,
+    hostings,
+    pagedHostings,
+    dateText,
+    getHostProfile,
+    getHostName,
+    getHostCode,
+    getCompanions,
+    getRoom,
+    getRoomNumber,
+    exportHostExcel,
+    HOSTING_COLS,
+    hVisible,
+    hToggle,
+    hShowAll,
+    hHideAll,
+    exportGuestProfilePdf,
+  } = s;
 
   return (
     <div className="space-y-4">
@@ -358,7 +393,11 @@ export default function GuestHosting() {
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        setLightboxSrc(resolveApiUrl(companion.documentImage));
+                                        setLightboxSrc(
+                                          resolveApiUrl(
+                                            companion.documentImage,
+                                          ),
+                                        );
                                         setLightboxName(
                                           companion.documentFileName,
                                         );
@@ -366,7 +405,9 @@ export default function GuestHosting() {
                                       className="w-full block text-left"
                                     >
                                       <img
-                                        src={resolveApiUrl(companion.documentImage)}
+                                        src={resolveApiUrl(
+                                          companion.documentImage,
+                                        )}
                                         alt={
                                           companion.documentFileName ||
                                           (ar

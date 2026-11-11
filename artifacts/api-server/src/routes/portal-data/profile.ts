@@ -1,6 +1,13 @@
 import { Router } from "express";
 import { withTenant } from "@workspace/db";
-import { profilesTable, assignmentsTable, roomsTable, buildingsTable, floorsTable, propertiesTable } from "@workspace/db";
+import {
+  profilesTable,
+  assignmentsTable,
+  roomsTable,
+  buildingsTable,
+  floorsTable,
+  propertiesTable,
+} from "@workspace/db";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { portalSession } from "../portal-auth/shared.js";
 import { logActivity } from "../../lib/activity-logger.js";
@@ -63,10 +70,7 @@ router.get("/room", async (req, res): Promise<void> => {
     const roommates = await tenantDb
       .select()
       .from(assignmentsTable)
-      .leftJoin(
-        profilesTable,
-        eq(assignmentsTable.profileId, profilesTable.id),
-      )
+      .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
       .where(
         and(
           eq(assignmentsTable.roomId, room.id),
@@ -132,64 +136,67 @@ router.get("/my-profile", async (req, res): Promise<void> => {
   });
 });
 
-router.patch("/my-profile", validate({ body: MyProfileBody }),
+router.patch(
+  "/my-profile",
+  validate({ body: MyProfileBody }),
   async (req, res): Promise<void> => {
-  const sess = portalSession(req)!;
-  const { phone, address, photo, email, emergencyContact } = req.body;
+    const sess = portalSession(req)!;
+    const { phone, address, photo, email, emergencyContact } = req.body;
 
-  const updateData: Record<string, any> = {};
-  if (phone !== undefined) updateData.phone = phone;
-  if (address !== undefined) updateData.address = address;
-  if (photo !== undefined) updateData.photoUrl = photo;
-  if (email !== undefined) updateData.email = email;
-  if (emergencyContact !== undefined)
-    updateData.emergencyContact = emergencyContact;
+    const updateData: Record<string, any> = {};
+    if (phone !== undefined) updateData.phone = phone;
+    if (address !== undefined) updateData.address = address;
+    if (photo !== undefined) updateData.photoUrl = photo;
+    if (email !== undefined) updateData.email = email;
+    if (emergencyContact !== undefined)
+      updateData.emergencyContact = emergencyContact;
 
-  if (Object.keys(updateData).length === 0) {
-    res.status(400).json({ success: false, message: "No fields to update" });
-    return;
-  }
+    if (Object.keys(updateData).length === 0) {
+      res.status(400).json({ success: false, message: "No fields to update" });
+      return;
+    }
 
-  const [updated] = await withTenant(sess.propertyId, async (tenantDb) => {
-    return await tenantDb
-      .update(profilesTable)
-      .set(updateData)
-      .where(eq(profilesTable.id, sess.profileDbId))
-      .returning();
-  });
+    const [updated] = await withTenant(sess.propertyId, async (tenantDb) => {
+      return await tenantDb
+        .update(profilesTable)
+        .set(updateData)
+        .where(eq(profilesTable.id, sess.profileDbId))
+        .returning();
+    });
 
-  if (!updated) {
-    res.status(404).json({ success: false, message: "Profile not found" });
-    return;
-  }
+    if (!updated) {
+      res.status(404).json({ success: false, message: "Profile not found" });
+      return;
+    }
 
-  const details = Object.entries(updateData)
-    .map(([k, v]) => `${k}: ${k === "photoUrl" ? "(image)" : v}`)
-    .join(" | ");
+    const details = Object.entries(updateData)
+      .map(([k, v]) => `${k}: ${k === "photoUrl" ? "(image)" : v}`)
+      .join(" | ");
 
-  await logActivity({
-    req,
-    propertyId: sess.propertyId,
-    username: sess.fullName,
-    userRole: "profile",
-    action: `تحديث البيانات الشخصية من البوابة`,
-    actionType: "UPDATE",
-    module: "profiles",
-    entityType: "profile",
-    entityId: updated.id,
-    details,
-  });
+    await logActivity({
+      req,
+      propertyId: sess.propertyId,
+      username: sess.fullName,
+      userRole: "profile",
+      action: `تحديث البيانات الشخصية من البوابة`,
+      actionType: "UPDATE",
+      module: "profiles",
+      entityType: "profile",
+      entityId: updated.id,
+      details,
+    });
 
-  res.json({
-    success: true,
-    message: "Profile updated successfully",
-    profile: {
-      phone: updated.phone,
-      address: updated.address,
-      photoUrl: updated.photoUrl,
-    },
-  });
-});
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      profile: {
+        phone: updated.phone,
+        address: updated.address,
+        photoUrl: updated.photoUrl,
+      },
+    });
+  },
+);
 
 router.get("/my-room", async (req, res): Promise<void> => {
   const sess = portalSession(req)!;

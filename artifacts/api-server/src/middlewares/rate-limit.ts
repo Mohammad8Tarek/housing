@@ -52,7 +52,11 @@ function createRateLimiter(opts: {
   message?: string;
   keyFn?: (req: Request) => string;
 }) {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     // Exempt background polling and health check routes
     if (EXEMPT_PATHS.some((p) => p.test(req.originalUrl || req.path))) {
       next();
@@ -68,7 +72,7 @@ function createRateLimiter(opts: {
         const redisKey = `ratelimit:${key}`;
         // Increment the key
         const currentCount = await redis.incr(redisKey);
-        
+
         // If it's the first request in the window, set the expiry
         if (currentCount === 1) {
           await redis.pexpire(redisKey, opts.windowMs);
@@ -84,7 +88,10 @@ function createRateLimiter(opts: {
           const ttl = await redis.pttl(redisKey);
           const retryAfter = Math.ceil(ttl / 1000);
           res.set("Retry-After", String(Math.max(1, retryAfter)));
-          res.status(429).json({ error: opts.message ?? "Too many requests.", retryAfter: Math.max(1, retryAfter) });
+          res.status(429).json({
+            error: opts.message ?? "Too many requests.",
+            retryAfter: Math.max(1, retryAfter),
+          });
           return;
         }
 
@@ -104,15 +111,17 @@ function createRateLimiter(opts: {
       next();
       return;
     }
-    
+
     entry.count++;
     if (entry.count > opts.max) {
       const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
       res.set("Retry-After", String(retryAfter));
-      res.status(429).json({ error: opts.message ?? "Too many requests.", retryAfter });
+      res
+        .status(429)
+        .json({ error: opts.message ?? "Too many requests.", retryAfter });
       return;
     }
-    
+
     next();
   };
 }
@@ -163,7 +172,7 @@ export const portalRateLimit = createRateLimiter({
  */
 export async function resetLoginAttempts(req: Request): Promise<void> {
   const key = `login:${getIp(req)}`;
-  
+
   const redis = getRedisConnection();
   if (redis) {
     try {
@@ -172,6 +181,6 @@ export async function resetLoginAttempts(req: Request): Promise<void> {
       logger.warn({ err }, "Failed to clear Redis rate limit on login success");
     }
   }
-  
+
   store.delete(key);
 }

@@ -4,7 +4,13 @@ import { useLanguage } from "@/context/LanguageContext";
 
 interface BulkActionItem {
   label: string;
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  variant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
   onClick: () => void;
   icon?: React.ReactNode;
   disabled?: boolean;
@@ -71,19 +77,20 @@ export function BulkActionBar({
             {ar ? "تصدير PDF فاخر" : "Luxury PDF"}
           </Button>
         )}
-        {actions && actions.map((act, idx) => (
-          <Button
-            key={idx}
-            variant={act.variant || "outline"}
-            size="sm"
-            onClick={act.onClick}
-            disabled={act.disabled}
-            className="gap-1.5 font-medium"
-          >
-            {act.icon}
-            {act.label}
-          </Button>
-        ))}
+        {actions &&
+          actions.map((act, idx) => (
+            <Button
+              key={idx}
+              variant={act.variant || "outline"}
+              size="sm"
+              onClick={act.onClick}
+              disabled={act.disabled}
+              className="gap-1.5 font-medium"
+            >
+              {act.icon}
+              {act.label}
+            </Button>
+          ))}
         {extraActions}
         <Button
           variant="ghost"

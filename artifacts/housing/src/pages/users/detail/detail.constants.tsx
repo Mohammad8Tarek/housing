@@ -3,4 +3,9 @@ import { SYSTEM_ROLES, WORKFLOW_ROLES } from "../utils";
 
 export const ALL_ROLES = [...SYSTEM_ROLES, ...WORKFLOW_ROLES];
 
-export type ActiveTab = "profile" | "permissions" | "properties" | "signature" | "audit";
+export type ActiveTab =
+  | "profile"
+  | "permissions"
+  | "properties"
+  | "signature"
+  | "audit";

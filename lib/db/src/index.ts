@@ -127,7 +127,9 @@ export async function warmupPool(count = 5): Promise<void> {
       Array.from({ length: actualCount }, () => pool.connect()),
     );
     clients.forEach((c) => c.release());
-    console.info(`[DB Pool] Warmup complete: ${actualCount} idle connections ready.`);
+    console.info(
+      `[DB Pool] Warmup complete: ${actualCount} idle connections ready.`,
+    );
   } catch (err: any) {
     console.warn("[DB Pool] Warmup warning:", err?.message || err);
   }
@@ -166,15 +168,22 @@ export function invalidateSchemaCache(propertyId?: number): void {
 /** Pre-warms the schema name cache for all properties to avoid runtime roundtrips */
 export async function prewarmSchemaCache(): Promise<void> {
   try {
-    const res = await pool.query("SELECT id, schema_name FROM public.properties;");
+    const res = await pool.query(
+      "SELECT id, schema_name FROM public.properties;",
+    );
     for (const row of res.rows) {
       if (row.id && row.schema_name) {
         schemaCache.set(Number(row.id), String(row.schema_name));
       }
     }
-    console.info(`[DB Schema] Pre-warmed schema cache for ${res.rows.length} properties.`);
+    console.info(
+      `[DB Schema] Pre-warmed schema cache for ${res.rows.length} properties.`,
+    );
   } catch (err: any) {
-    console.warn("[DB Schema] Schema cache pre-warm warning:", err?.message || err);
+    console.warn(
+      "[DB Schema] Schema cache pre-warm warning:",
+      err?.message || err,
+    );
   }
 }
 

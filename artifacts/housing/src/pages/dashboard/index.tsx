@@ -1,5 +1,9 @@
 import * as React from "react";
-import { useGetDashboardStats, useGetOccupancyByBuilding, useListProfiles } from "@workspace/api-client-react";
+import {
+  useGetDashboardStats,
+  useGetOccupancyByBuilding,
+  useListProfiles,
+} from "@workspace/api-client-react";
 import {
   Card,
   CardContent,
@@ -7,7 +11,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Users, Building2, BedDouble, AlertCircle, Wrench, ArrowRight, CalendarCheck, Sparkles, LayoutGrid, TrendingUp, Layers, Activity, BarChart3, RefreshCw, DoorOpen, Home, SlidersHorizontal } from "lucide-react";
+import {
+  Users,
+  Building2,
+  BedDouble,
+  AlertCircle,
+  Wrench,
+  ArrowRight,
+  CalendarCheck,
+  Sparkles,
+  LayoutGrid,
+  TrendingUp,
+  Layers,
+  Activity,
+  BarChart3,
+  RefreshCw,
+  DoorOpen,
+  Home,
+  SlidersHorizontal,
+} from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { motion, useSpring, useTransform } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/use-reduced-motion";
@@ -93,16 +115,22 @@ export default function Dashboard() {
     setIsRefreshing(true);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/housing-breakdown"] }),
+      queryClient.invalidateQueries({
+        queryKey: ["/api/dashboard/housing-breakdown"],
+      }),
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/analytics"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/pending"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/occupancy-by-building"] }),
+      queryClient.invalidateQueries({
+        queryKey: ["/api/dashboard/occupancy-by-building"],
+      }),
     ]);
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const [chartTab, setChartTab] = React.useState<"buildings" | "trends">("buildings");
+  const [chartTab, setChartTab] = React.useState<"buildings" | "trends">(
+    "buildings",
+  );
 
   // Dashboard multi-view mode state (comprehensive, operations, analytics, compact)
   const [dashboardViewMode, setDashboardViewMode] = React.useState<
@@ -129,16 +157,28 @@ export default function Dashboard() {
     return propertySlug ? `/${propertySlug}${baseHref}` : baseHref;
   };
 
-  const { data: statsData, isLoading: statsLoading, isError: statsError } = useGetDashboardStats(
+  const {
+    data: statsData,
+    isLoading: statsLoading,
+    isError: statsError,
+  } = useGetDashboardStats(
     { propertyId: isAll ? 0 : activePropertyId! },
-    { query: { enabled: !isAll && !!activePropertyId, refetchInterval: 15000 } as any },
+    {
+      query: {
+        enabled: !isAll && !!activePropertyId,
+        refetchInterval: 15000,
+      } as any,
+    },
   );
   const stats = statsData as any;
 
   const hasProfiles = canView("profiles");
 
   const { data: profilesData } = useListProfiles(
-    { propertyId: isAll ? undefined : (activePropertyId as number), limit: 1 } as any,
+    {
+      propertyId: isAll ? undefined : (activePropertyId as number),
+      limit: 1,
+    } as any,
     {
       query: {
         enabled: !isAll && !!activePropertyId && hasProfiles,
@@ -146,7 +186,8 @@ export default function Dashboard() {
       } as any,
     },
   );
-  const totalProfilesCount = (profilesData as any)?.pagination?.total ?? stats?.totalProfiles ?? 0;
+  const totalProfilesCount =
+    (profilesData as any)?.pagination?.total ?? stats?.totalProfiles ?? 0;
 
   // Aggregate stats for 'all' mode
   const {
@@ -179,7 +220,11 @@ export default function Dashboard() {
     refetchInterval: 15000,
   });
 
-  const { data: pendingData, isLoading: depLoading, isError: pendingError } = useQuery({
+  const {
+    data: pendingData,
+    isLoading: depLoading,
+    isError: pendingError,
+  } = useQuery({
     queryKey: ["/api/dashboard/pending", isAll ? 0 : activePropertyId!],
     queryFn: async () => {
       const res = await fetch(
@@ -195,11 +240,19 @@ export default function Dashboard() {
 
   const { data: occupancy } = useGetOccupancyByBuilding(
     { propertyId: isAll ? 0 : activePropertyId! },
-    { query: { enabled: !isAll && !!activePropertyId, refetchInterval: 15000 } as any },
+    {
+      query: {
+        enabled: !isAll && !!activePropertyId,
+        refetchInterval: 15000,
+      } as any,
+    },
   );
 
   const { data: housingBreakdown } = useQuery({
-    queryKey: ["/api/dashboard/housing-breakdown", isAll ? 0 : activePropertyId!],
+    queryKey: [
+      "/api/dashboard/housing-breakdown",
+      isAll ? 0 : activePropertyId!,
+    ],
     queryFn: async () => {
       const res = await fetch(
         `/api/dashboard/housing-breakdown?propertyId=${isAll ? 0 : activePropertyId!}`,
@@ -213,14 +266,27 @@ export default function Dashboard() {
 
   const rawSummary = housingBreakdown?.summary || housingBreakdown?.housing;
   const ribbonSummary = {
-    totalBuildings: rawSummary?.totalBuildings ?? stats?.totalBuildings ?? occupancy?.length ?? 0,
+    totalBuildings:
+      rawSummary?.totalBuildings ??
+      stats?.totalBuildings ??
+      occupancy?.length ??
+      0,
     totalFloors: rawSummary?.totalFloors ?? stats?.totalFloors ?? 0,
     totalRooms: rawSummary?.totalRooms ?? stats?.totalRooms ?? 0,
     occupiedRooms: rawSummary?.occupiedRooms ?? stats?.occupiedRooms ?? 0,
-    totalBeds: rawSummary?.totalBeds ?? rawSummary?.totalCapacity ?? stats?.totalBeds ?? 0,
+    totalBeds:
+      rawSummary?.totalBeds ??
+      rawSummary?.totalCapacity ??
+      stats?.totalBeds ??
+      0,
     occupiedBeds: rawSummary?.occupiedBeds ?? stats?.occupiedBeds ?? 0,
-    availableBeds: rawSummary?.availableBeds ?? rawSummary?.vacantBeds ?? stats?.availableBeds ?? 0,
-    bedOccupancyRate: rawSummary?.bedOccupancyRate ?? stats?.bedOccupancyRate ?? 0,
+    availableBeds:
+      rawSummary?.availableBeds ??
+      rawSummary?.vacantBeds ??
+      stats?.availableBeds ??
+      0,
+    bedOccupancyRate:
+      rawSummary?.bedOccupancyRate ?? stats?.bedOccupancyRate ?? 0,
   };
 
   const totals = allStats?.totals;
@@ -241,7 +307,11 @@ export default function Dashboard() {
                 className="text-xs px-2.5 py-0.5 border-violet-400 bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 font-mono font-bold flex items-center gap-1 shadow-xs"
               >
                 <span>👑</span>
-                <span>{ar ? "إجمالي كل الفروع (سوبر أدمن)" : "ALL PROPERTIES (SUPER ADMIN)"}</span>
+                <span>
+                  {ar
+                    ? "إجمالي كل الفروع (سوبر أدمن)"
+                    : "ALL PROPERTIES (SUPER ADMIN)"}
+                </span>
               </Badge>
             ) : activeProperty ? (
               <Badge
@@ -262,7 +332,11 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => setDashboardViewMode("comprehensive")}
-                title={ar ? "الوضع الشامل لجميع المؤشرات والعمليات" : "Comprehensive full overview"}
+                title={
+                  ar
+                    ? "الوضع الشامل لجميع المؤشرات والعمليات"
+                    : "Comprehensive full overview"
+                }
                 className={cn(
                   "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all",
                   dashboardViewMode === "comprehensive"
@@ -276,7 +350,11 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => setDashboardViewMode("operations")}
-                title={ar ? "التركيز على العمليات اليومية وتجهيز الغرف" : "Operational daily focus"}
+                title={
+                  ar
+                    ? "التركيز على العمليات اليومية وتجهيز الغرف"
+                    : "Operational daily focus"
+                }
                 className={cn(
                   "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all",
                   dashboardViewMode === "operations"
@@ -290,7 +368,11 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => setDashboardViewMode("analytics")}
-                title={ar ? "التحليلات التفصيلية للمباني والأقسام" : "Capacity & Department analytics"}
+                title={
+                  ar
+                    ? "التحليلات التفصيلية للمباني والأقسام"
+                    : "Capacity & Department analytics"
+                }
                 className={cn(
                   "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all",
                   dashboardViewMode === "analytics"
@@ -304,7 +386,11 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => setDashboardViewMode("compact")}
-                title={ar ? "العرض المضغوط عالي الكثافة" : "Compact high-density view"}
+                title={
+                  ar
+                    ? "العرض المضغوط عالي الكثافة"
+                    : "Compact high-density view"
+                }
                 className={cn(
                   "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all",
                   dashboardViewMode === "compact"
@@ -331,11 +417,20 @@ export default function Dashboard() {
                 size="sm"
                 onClick={() => setCustomizeOpen(true)}
                 className="h-8 gap-1.5 text-xs rounded-xl shadow-xs border-border/60 hover:bg-muted font-semibold"
-                title={ar ? "تخصيص أقسام ومؤشرات لوحة التحكم" : "Customize dashboard widgets"}
+                title={
+                  ar
+                    ? "تخصيص أقسام ومؤشرات لوحة التحكم"
+                    : "Customize dashboard widgets"
+                }
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
-                <span className="hidden sm:inline">{ar ? "تخصيص اللوحة" : "Customize"}</span>
-                <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-mono h-4">
+                <span className="hidden sm:inline">
+                  {ar ? "تخصيص اللوحة" : "Customize"}
+                </span>
+                <Badge
+                  variant="secondary"
+                  className="px-1.5 py-0 text-[10px] font-mono h-4"
+                >
                   {visibleCount}
                 </Badge>
               </Button>
@@ -347,8 +442,15 @@ export default function Dashboard() {
                 className="h-8 gap-1.5 text-xs rounded-xl shadow-xs border-border/60 hover:bg-muted"
                 title={ar ? "تحديث فوري لبيانات الداشبورد" : "Instant refresh"}
               >
-                <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin text-primary")} />
-                <span className="hidden sm:inline">{ar ? "تحديث" : "Refresh"}</span>
+                <RefreshCw
+                  className={cn(
+                    "w-3.5 h-3.5",
+                    isRefreshing && "animate-spin text-primary",
+                  )}
+                />
+                <span className="hidden sm:inline">
+                  {ar ? "تحديث" : "Refresh"}
+                </span>
               </Button>
             </div>
           </div>
@@ -366,12 +468,12 @@ export default function Dashboard() {
                   ? "وضع التركيز التشغيلي: إبراز حركات اليوم والوصول والمغادرة وتجهيز الغرف الفوري"
                   : "Operations Focus: Prioritizing daily movements, check-ins/outs & turnover health"
                 : dashboardViewMode === "analytics"
-                ? ar
-                  ? "وضع التحليلات المتقدمة: استعراض شامل لمعدلات إشغال المباني وتوزيع الأقسام الكامل والديموغرافيا"
-                  : "Advanced Analytics: Full building occupancy trajectory, complete department breakdown & demographics"
-                : ar
-                ? "الوضع المضغوط: تنظيم متجاور عالي الكثافة بدون تمرير رأسي طويل"
-                : "Compact Executive: High-density side-by-side view for swift operational monitoring"}
+                  ? ar
+                    ? "وضع التحليلات المتقدمة: استعراض شامل لمعدلات إشغال المباني وتوزيع الأقسام الكامل والديموغرافيا"
+                    : "Advanced Analytics: Full building occupancy trajectory, complete department breakdown & demographics"
+                  : ar
+                    ? "الوضع المضغوط: تنظيم متجاور عالي الكثافة بدون تمرير رأسي طويل"
+                    : "Compact Executive: High-density side-by-side view for swift operational monitoring"}
             </span>
           </div>
           <button
@@ -422,575 +524,740 @@ export default function Dashboard() {
             isWidgetVisible("kpi_arrivals") ||
             isWidgetVisible("kpi_maintenance")) && (
             <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-5">
-            {/* Card 1: Total Profiles */}
-            {isWidgetVisible("kpi_profiles") && (
-              <DashboardKpiCard
-                title={ar ? "إجمالي الموظفين" : "Total Profiles"}
-                value={<AnimatedNumber value={totalProfilesCount} />}
-                sub={`${stats?.activeProfiles ?? 0} ${ar ? "نشط" : "active"} · ${Math.max(
-                  0,
-                  totalProfilesCount - (stats?.activeAssignments ?? 0),
-                )} ${ar ? "غير مسكن" : "unhoused"}`}
-                icon={Users}
-                href={buildNavHref("/profiles")}
-                color="text-blue-600 dark:text-blue-400"
-                bg="bg-blue-500/10"
-                delta={{ value: "+3.4%", isPositive: true }}
-                sparklineData={[105, 106, 107, 107, 108, 108, totalProfilesCount]}
-              />
-            )}
+              {/* Card 1: Total Profiles */}
+              {isWidgetVisible("kpi_profiles") && (
+                <DashboardKpiCard
+                  title={ar ? "إجمالي الموظفين" : "Total Profiles"}
+                  value={<AnimatedNumber value={totalProfilesCount} />}
+                  sub={`${stats?.activeProfiles ?? 0} ${ar ? "نشط" : "active"} · ${Math.max(
+                    0,
+                    totalProfilesCount - (stats?.activeAssignments ?? 0),
+                  )} ${ar ? "غير مسكن" : "unhoused"}`}
+                  icon={Users}
+                  href={buildNavHref("/profiles")}
+                  color="text-blue-600 dark:text-blue-400"
+                  bg="bg-blue-500/10"
+                  delta={{ value: "+3.4%", isPositive: true }}
+                  sparklineData={[
+                    105,
+                    106,
+                    107,
+                    107,
+                    108,
+                    108,
+                    totalProfilesCount,
+                  ]}
+                />
+              )}
 
-            {/* Card 2: Bed Occupancy Rate (Live Calculated) */}
-            {isWidgetVisible("kpi_beds") && (
-              <DashboardKpiCard
-                title={ar ? "إشغال الأسرة" : "Bed Occupancy"}
-                value={
-                  <AnimatedNumber
-                    value={`${stats?.bedOccupancyRate ?? analytics?.bedCapacity?.utilizationPercent ?? stats?.occupancyRate ?? 0}%`}
-                  />
-                }
-                sub={`${stats?.occupiedBeds ?? analytics?.bedCapacity?.occupiedBeds ?? 0} / ${
-                  stats?.totalBeds ?? analytics?.bedCapacity?.totalBeds ?? 0
-                } ${ar ? "سرير مأهول" : "beds occupied"}`}
-                icon={BedDouble}
-                href={buildNavHref("/accommodation/in-house")}
-                color="text-amber-600 dark:text-amber-400"
-                bg="bg-amber-500/10"
-                delta={{ value: "+2.1%", isPositive: true }}
-                sparklineData={[70, 72, 75, 78, 80, 81, stats?.bedOccupancyRate ?? 82]}
-              />
-            )}
+              {/* Card 2: Bed Occupancy Rate (Live Calculated) */}
+              {isWidgetVisible("kpi_beds") && (
+                <DashboardKpiCard
+                  title={ar ? "إشغال الأسرة" : "Bed Occupancy"}
+                  value={
+                    <AnimatedNumber
+                      value={`${stats?.bedOccupancyRate ?? analytics?.bedCapacity?.utilizationPercent ?? stats?.occupancyRate ?? 0}%`}
+                    />
+                  }
+                  sub={`${stats?.occupiedBeds ?? analytics?.bedCapacity?.occupiedBeds ?? 0} / ${
+                    stats?.totalBeds ?? analytics?.bedCapacity?.totalBeds ?? 0
+                  } ${ar ? "سرير مأهول" : "beds occupied"}`}
+                  icon={BedDouble}
+                  href={buildNavHref("/accommodation/in-house")}
+                  color="text-amber-600 dark:text-amber-400"
+                  bg="bg-amber-500/10"
+                  delta={{ value: "+2.1%", isPositive: true }}
+                  sparklineData={[
+                    70,
+                    72,
+                    75,
+                    78,
+                    80,
+                    81,
+                    stats?.bedOccupancyRate ?? 82,
+                  ]}
+                />
+              )}
 
-            {/* Card 3: Room Occupancy Rate (Live Calculated) */}
-            {isWidgetVisible("kpi_rooms") && (
-              <DashboardKpiCard
-                title={ar ? "إشغال الغرف" : "Room Occupancy"}
-                value={
-                  <AnimatedNumber
-                    value={`${stats?.roomOccupancyRate ?? analytics?.roomStatusBreakdown?.occupancyRate ?? stats?.occupancyRate ?? 0}%`}
-                  />
-                }
-                sub={`${stats?.occupiedRooms ?? analytics?.roomStatusBreakdown?.occupied ?? 0} / ${
-                  stats?.totalRooms ?? analytics?.roomStatusBreakdown?.totalRooms ?? 0
-                } ${ar ? "غرفة مأهولة" : "rooms occupied"}`}
-                icon={Building2}
-                href={buildNavHref("/housing")}
-                color="text-emerald-600 dark:text-emerald-400"
-                bg="bg-emerald-500/10"
-                delta={{ value: "+1.8%", isPositive: true }}
-                sparklineData={[50, 52, 55, 58, 62, 60, stats?.roomOccupancyRate ?? 65]}
-              />
-            )}
+              {/* Card 3: Room Occupancy Rate (Live Calculated) */}
+              {isWidgetVisible("kpi_rooms") && (
+                <DashboardKpiCard
+                  title={ar ? "إشغال الغرف" : "Room Occupancy"}
+                  value={
+                    <AnimatedNumber
+                      value={`${stats?.roomOccupancyRate ?? analytics?.roomStatusBreakdown?.occupancyRate ?? stats?.occupancyRate ?? 0}%`}
+                    />
+                  }
+                  sub={`${stats?.occupiedRooms ?? analytics?.roomStatusBreakdown?.occupied ?? 0} / ${
+                    stats?.totalRooms ??
+                    analytics?.roomStatusBreakdown?.totalRooms ??
+                    0
+                  } ${ar ? "غرفة مأهولة" : "rooms occupied"}`}
+                  icon={Building2}
+                  href={buildNavHref("/housing")}
+                  color="text-emerald-600 dark:text-emerald-400"
+                  bg="bg-emerald-500/10"
+                  delta={{ value: "+1.8%", isPositive: true }}
+                  sparklineData={[
+                    50,
+                    52,
+                    55,
+                    58,
+                    62,
+                    60,
+                    stats?.roomOccupancyRate ?? 65,
+                  ]}
+                />
+              )}
 
-            {/* Card 4: Expected Arrivals */}
-            {isWidgetVisible("kpi_arrivals") && (
-              <DashboardKpiCard
-                title={ar ? "المتوقع وصولهم" : "Arrivals"}
-                value={<AnimatedNumber value={stats?.upcomingReservations ?? 0} />}
-                sub={ar ? "وصول مؤكد قيد الانتظار" : "Confirmed pending arrivals"}
-                icon={CalendarCheck}
-                href={buildNavHref("/accommodation/reservations")}
-                color="text-purple-600 dark:text-purple-400"
-                bg="bg-purple-500/10"
-                delta={{ value: "0.0%", isNeutral: true }}
-                sparklineData={[4, 6, 5, 8, 7, 9, stats?.upcomingReservations ?? 8]}
-              />
-            )}
+              {/* Card 4: Expected Arrivals */}
+              {isWidgetVisible("kpi_arrivals") && (
+                <DashboardKpiCard
+                  title={ar ? "المتوقع وصولهم" : "Arrivals"}
+                  value={
+                    <AnimatedNumber value={stats?.upcomingReservations ?? 0} />
+                  }
+                  sub={
+                    ar ? "وصول مؤكد قيد الانتظار" : "Confirmed pending arrivals"
+                  }
+                  icon={CalendarCheck}
+                  href={buildNavHref("/accommodation/reservations")}
+                  color="text-purple-600 dark:text-purple-400"
+                  bg="bg-purple-500/10"
+                  delta={{ value: "0.0%", isNeutral: true }}
+                  sparklineData={[
+                    4,
+                    6,
+                    5,
+                    8,
+                    7,
+                    9,
+                    stats?.upcomingReservations ?? 8,
+                  ]}
+                />
+              )}
 
-            {/* Card 5: Maintenance & Tickets */}
-            {isWidgetVisible("kpi_maintenance") && (
-              <DashboardKpiCard
-                title={ar ? "تذاكر الصيانة" : "Active Tickets"}
-                value={<AnimatedNumber value={stats?.openMaintenance ?? 0} />}
-                sub={`${stats?.overdueMaintenance ?? 0} ${ar ? "قيد المتابعة" : "in progress"}`}
-                icon={Wrench}
-                href={buildNavHref("/maintenance")}
-                color="text-amber-600 dark:text-amber-400"
-                bg="bg-amber-500/10"
-                alert={(stats?.openMaintenance ?? 0) > 0}
-                delta={
-                  (stats?.openMaintenance ?? 0) > 0
-                    ? { value: `+${stats?.openMaintenance}`, isPositive: false }
-                    : { value: "0", isPositive: true }
-                }
-                sparklineData={[8, 6, 5, 7, 4, 3, stats?.openMaintenance ?? 2]}
-              />
-            )}
-          </div>
-        )}
-
-      {/* Live Room Readiness & Turnover Tracker Bar */}
-      {isWidgetVisible("readiness_tracker") && (
-        <ReadinessTrackerBar
-          totalRooms={analytics?.roomStatusBreakdown?.total ?? stats?.totalRooms ?? 0}
-          available={analytics?.roomStatusBreakdown?.available ?? stats?.availableRooms ?? 0}
-          occupied={analytics?.roomStatusBreakdown?.occupied ?? stats?.occupiedRooms ?? 0}
-          dirty={analytics?.roomStatusBreakdown?.dirty ?? 0}
-          maintenance={analytics?.roomStatusBreakdown?.maintenance ?? stats?.openMaintenance ?? 0}
-          cleanRate={analytics?.turnoverHealth?.cleanRate}
-        />
-      )}
-
-      {/* Live Housing Capacity Ribbon (Matching exact design under Readiness Tracker) */}
-      {isWidgetVisible("capacity_ribbon") && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-          {/* 1. Buildings */}
-          <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-              <Building2 className="w-5 h-5" />
+              {/* Card 5: Maintenance & Tickets */}
+              {isWidgetVisible("kpi_maintenance") && (
+                <DashboardKpiCard
+                  title={ar ? "تذاكر الصيانة" : "Active Tickets"}
+                  value={<AnimatedNumber value={stats?.openMaintenance ?? 0} />}
+                  sub={`${stats?.overdueMaintenance ?? 0} ${ar ? "قيد المتابعة" : "in progress"}`}
+                  icon={Wrench}
+                  href={buildNavHref("/maintenance")}
+                  color="text-amber-600 dark:text-amber-400"
+                  bg="bg-amber-500/10"
+                  alert={(stats?.openMaintenance ?? 0) > 0}
+                  delta={
+                    (stats?.openMaintenance ?? 0) > 0
+                      ? {
+                          value: `+${stats?.openMaintenance}`,
+                          isPositive: false,
+                        }
+                      : { value: "0", isPositive: true }
+                  }
+                  sparklineData={[
+                    8,
+                    6,
+                    5,
+                    7,
+                    4,
+                    3,
+                    stats?.openMaintenance ?? 2,
+                  ]}
+                />
+              )}
             </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                {ar ? "المباني" : "BUILDINGS"}
-              </span>
-              <span className="text-xl font-black text-foreground font-mono leading-tight">
-                {ribbonSummary.totalBuildings}
-              </span>
-            </div>
-          </div>
+          )}
 
-          {/* 2. Floors */}
-          <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-              <Layers className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                {ar ? "الأدوار" : "FLOORS"}
-              </span>
-              <span className="text-xl font-black text-foreground font-mono leading-tight">
-                {ribbonSummary.totalFloors}
-              </span>
-            </div>
-          </div>
+          {/* Live Room Readiness & Turnover Tracker Bar */}
+          {isWidgetVisible("readiness_tracker") && (
+            <ReadinessTrackerBar
+              totalRooms={
+                analytics?.roomStatusBreakdown?.total ?? stats?.totalRooms ?? 0
+              }
+              available={
+                analytics?.roomStatusBreakdown?.available ??
+                stats?.availableRooms ??
+                0
+              }
+              occupied={
+                analytics?.roomStatusBreakdown?.occupied ??
+                stats?.occupiedRooms ??
+                0
+              }
+              dirty={analytics?.roomStatusBreakdown?.dirty ?? 0}
+              maintenance={
+                analytics?.roomStatusBreakdown?.maintenance ??
+                stats?.openMaintenance ??
+                0
+              }
+              cleanRate={analytics?.turnoverHealth?.cleanRate}
+            />
+          )}
 
-          {/* 3. Total Rooms */}
-          <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-              <Home className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                {ar ? "إجمالي الغرف" : "TOTAL ROOMS"}
-              </span>
-              <div className="flex items-baseline gap-1.5 leading-tight">
-                <span className="text-xl font-black text-foreground font-mono">
-                  {ribbonSummary.totalRooms}
-                </span>
-                <span className="text-xs font-semibold text-muted-foreground font-mono">
-                  ({ribbonSummary.occupiedRooms} {ar ? "مشغولة" : "occ"})
-                </span>
+          {/* Live Housing Capacity Ribbon (Matching exact design under Readiness Tracker) */}
+          {isWidgetVisible("capacity_ribbon") && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+              {/* 1. Buildings */}
+              <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    {ar ? "المباني" : "BUILDINGS"}
+                  </span>
+                  <span className="text-xl font-black text-foreground font-mono leading-tight">
+                    {ribbonSummary.totalBuildings}
+                  </span>
+                </div>
+              </div>
+
+              {/* 2. Floors */}
+              <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    {ar ? "الأدوار" : "FLOORS"}
+                  </span>
+                  <span className="text-xl font-black text-foreground font-mono leading-tight">
+                    {ribbonSummary.totalFloors}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. Total Rooms */}
+              <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                  <Home className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    {ar ? "إجمالي الغرف" : "TOTAL ROOMS"}
+                  </span>
+                  <div className="flex items-baseline gap-1.5 leading-tight">
+                    <span className="text-xl font-black text-foreground font-mono">
+                      {ribbonSummary.totalRooms}
+                    </span>
+                    <span className="text-xs font-semibold text-muted-foreground font-mono">
+                      ({ribbonSummary.occupiedRooms} {ar ? "مشغولة" : "occ"})
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Bed Capacity */}
+              <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <BedDouble className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    {ar ? "سعة الأسرة" : "BED CAPACITY"}
+                  </span>
+                  <span className="text-xl font-black text-foreground font-mono leading-tight">
+                    {ribbonSummary.totalBeds}
+                  </span>
+                </div>
+              </div>
+
+              {/* 5. Occupied Beds */}
+              <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    {ar ? "الأسرة المشغولة" : "OCCUPIED BEDS"}
+                  </span>
+                  <div className="flex items-baseline gap-1.5 leading-tight">
+                    <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                      {ribbonSummary.occupiedBeds}
+                    </span>
+                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                      ({ribbonSummary.bedOccupancyRate}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 6. Vacant Beds */}
+              <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
+                <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                  <DoorOpen className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                    {ar ? "الأسرة الشاغرة" : "VACANT BEDS"}
+                  </span>
+                  <span className="text-xl font-black text-teal-600 dark:text-teal-400 font-mono leading-tight">
+                    {ribbonSummary.availableBeds ??
+                      ribbonSummary.totalBeds - ribbonSummary.occupiedBeds}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* 4. Bed Capacity */}
-          <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-              <BedDouble className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                {ar ? "سعة الأسرة" : "BED CAPACITY"}
-              </span>
-              <span className="text-xl font-black text-foreground font-mono leading-tight">
-                {ribbonSummary.totalBeds}
-              </span>
-            </div>
-          </div>
+          {/* Reusable Content Blocks for Multi-View Modes */}
+          {(() => {
+            const donutNode = isWidgetVisible("donut_analytics") ? (
+              <DashboardAnalyticsDonut
+                roomStatusBreakdown={analytics?.roomStatusBreakdown}
+                bedCapacity={analytics?.bedCapacity}
+                isLoading={analyticsLoading}
+              />
+            ) : null;
 
-          {/* 5. Occupied Beds */}
-          <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-              <Users className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                {ar ? "الأسرة المشغولة" : "OCCUPIED BEDS"}
-              </span>
-              <div className="flex items-baseline gap-1.5 leading-tight">
-                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                  {ribbonSummary.occupiedBeds}
-                </span>
-                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
-                  ({ribbonSummary.bedOccupancyRate}%)
-                </span>
-              </div>
-            </div>
-          </div>
+            const deptNode = isWidgetVisible("department_list") ? (
+              <DepartmentBarList
+                departments={analytics?.departmentBreakdown}
+                totalProfiles={totalProfilesCount}
+                isLoading={analyticsLoading}
+              />
+            ) : null;
 
-          {/* 6. Vacant Beds */}
-          <div className="bg-card/90 backdrop-blur-xs border border-border/70 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs hover:border-primary/40 hover:shadow-sm transition-all duration-200">
-            <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
-              <DoorOpen className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                {ar ? "الأسرة الشاغرة" : "VACANT BEDS"}
-              </span>
-              <span className="text-xl font-black text-teal-600 dark:text-teal-400 font-mono leading-tight">
-                {ribbonSummary.availableBeds ?? (ribbonSummary.totalBeds - ribbonSummary.occupiedBeds)}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+            const genderNode = isWidgetVisible("gender_demographics") ? (
+              <GenderDemographicsCard
+                genderDistribution={analytics?.genderDistribution}
+                totalResidents={
+                  stats?.activeAssignments ||
+                  (stats?.totalRooms ? stats.occupiedRooms : 0)
+                }
+                isLoading={analyticsLoading}
+              />
+            ) : null;
 
-      {/* Reusable Content Blocks for Multi-View Modes */}
-      {(() => {
-
-        const donutNode = isWidgetVisible("donut_analytics") ? (
-          <DashboardAnalyticsDonut
-            roomStatusBreakdown={analytics?.roomStatusBreakdown}
-            bedCapacity={analytics?.bedCapacity}
-            isLoading={analyticsLoading}
-          />
-        ) : null;
-
-        const deptNode = isWidgetVisible("department_list") ? (
-          <DepartmentBarList
-            departments={analytics?.departmentBreakdown}
-            totalProfiles={totalProfilesCount}
-            isLoading={analyticsLoading}
-          />
-        ) : null;
-
-        const genderNode = isWidgetVisible("gender_demographics") ? (
-          <GenderDemographicsCard
-            genderDistribution={analytics?.genderDistribution}
-            totalResidents={stats?.activeAssignments || (stats?.totalRooms ? stats.occupiedRooms : 0)}
-            isLoading={analyticsLoading}
-          />
-        ) : null;
-
-        const chartsNode = isWidgetVisible("building_charts") ? (
-          <Tabs value={chartTab} onValueChange={(v) => setChartTab(v as any)} className="space-y-4">
-            <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden">
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
-                <div>
-                  <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-primary" />
-                    {chartTab === "buildings"
-                      ? ar
-                        ? "الإشغال حسب المباني والمنشآت"
-                        : "Building Occupancy Distribution"
-                      : ar
-                      ? "المسار الزمني لمعدل الإشغال"
-                      : "Occupancy Trajectory Trend"}
-                  </CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
-                    {chartTab === "buildings"
-                      ? ar
-                        ? "نسبة استيعاب وإشغال كل مبنى سكني"
-                        : "Capacity utilization per residential building"
-                      : ar
-                      ? "المسار الزمني لمعدل حركة الإشغال اللحظي"
-                      : "Real-time occupancy progression trajectory"}
-                  </CardDescription>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <TabsList className="bg-muted/70 p-1 border border-border/40">
-                    <TabsTrigger value="buildings" className="text-xs font-semibold gap-1.5">
-                      <Building2 className="w-3.5 h-3.5" />
-                      {ar ? "حسب المبنى" : "By Building"}
-                    </TabsTrigger>
-                    <TabsTrigger value="trends" className="text-xs font-semibold gap-1.5">
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      {ar ? "المسار الزمني" : "Trend Flow"}
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <PermissionGate module="housing" action="view">
-                    <Link href={buildNavHref("/housing")}>
-                      <Badge variant="outline" className="text-xs cursor-pointer hover:bg-accent gap-1 py-1">
-                        {ar ? "عرض المباني" : "View All"} <ArrowRight className="w-3 h-3" />
-                      </Badge>
-                    </Link>
-                  </PermissionGate>
-                </div>
-              </CardHeader>
-
-              <CardContent className="h-[290px] pt-2">
-                <TabsContent value="buildings" className="h-full mt-0">
-                  {occupancy && occupancy.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={occupancy} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                        <XAxis
-                          dataKey="buildingName"
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <YAxis
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          tickFormatter={(v) => `${v}%`}
-                        />
-                        <Tooltip
-                          cursor={{ fill: "hsl(var(--muted)/0.5)" }}
-                          content={({ active, payload }) => {
-                            if (active && payload && payload.length) {
-                              const d = payload[0].payload;
-                              return (
-                                <div className="bg-card/95 backdrop-blur-md border border-border shadow-lg rounded-xl p-3 text-xs">
-                                  <p className="font-bold text-foreground text-sm">{d.buildingName}</p>
-                                  <div className="mt-1.5 space-y-1 text-muted-foreground">
-                                    <div>
-                                      {ar ? "نسبة الإشغال:" : "Occupancy:"}{" "}
-                                      <strong className="text-primary font-mono">{d.occupancyRate}%</strong>
-                                    </div>
-                                    <div>
-                                      {ar ? "الغرف المشغولة:" : "Occupied Rooms:"}{" "}
-                                      <strong className="text-foreground">{d.occupiedRooms}</strong> / {d.totalRooms}
-                                    </div>
-                                    <div>
-                                      {ar ? "استيعاب الأسرة:" : "Beds Used:"}{" "}
-                                      <strong className="text-foreground">{d.totalOccupancy}</strong> / {d.totalCapacity}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Bar
-                          dataKey="occupancyRate"
-                          name={ar ? "نسبة الإشغال %" : "Occupancy %"}
-                          fill="hsl(var(--primary))"
-                          radius={[6, 6, 0, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm flex-col gap-2">
-                      <Building2 className="w-10 h-10 opacity-20" />
-                      <p>{ar ? "لا توجد بيانات مبانٍ مسجلة" : "No building records found"}</p>
+            const chartsNode = isWidgetVisible("building_charts") ? (
+              <Tabs
+                value={chartTab}
+                onValueChange={(v) => setChartTab(v as any)}
+                className="space-y-4"
+              >
+                <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden">
+                  <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-3">
+                    <div>
+                      <CardTitle className="text-base font-bold flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-primary" />
+                        {chartTab === "buildings"
+                          ? ar
+                            ? "الإشغال حسب المباني والمنشآت"
+                            : "Building Occupancy Distribution"
+                          : ar
+                            ? "المسار الزمني لمعدل الإشغال"
+                            : "Occupancy Trajectory Trend"}
+                      </CardTitle>
+                      <CardDescription className="text-xs mt-0.5">
+                        {chartTab === "buildings"
+                          ? ar
+                            ? "نسبة استيعاب وإشغال كل مبنى سكني"
+                            : "Capacity utilization per residential building"
+                          : ar
+                            ? "المسار الزمني لمعدل حركة الإشغال اللحظي"
+                            : "Real-time occupancy progression trajectory"}
+                      </CardDescription>
                     </div>
-                  )}
-                </TabsContent>
 
-                <TabsContent value="trends" className="h-full mt-0">
-                  {analytics?.trendPoints && analytics.trendPoints.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={analytics.trendPoints}
-                        margin={{ top: 10, right: 20, left: -10, bottom: 0 }}
-                      >
-                        <defs>
-                          <linearGradient id="occupancyGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
-                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                        <XAxis
-                          dataKey="day"
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <YAxis
-                          stroke="hsl(var(--muted-foreground))"
-                          fontSize={12}
-                          tickLine={false}
-                          axisLine={false}
-                          tickFormatter={(v) => `${v}%`}
-                          domain={[0, 100]}
-                        />
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (active && payload && payload.length) {
-                              const d = payload[0].payload;
-                              return (
-                                <div className="bg-card/95 backdrop-blur-md border border-border shadow-lg rounded-xl p-3 text-xs">
-                                  <p className="font-bold text-foreground text-sm">{d.date} ({d.day})</p>
-                                  <div className="mt-1.5 space-y-1 text-muted-foreground">
-                                    <div>
-                                      {ar ? "معدل الإشغال:" : "Occupancy Rate:"}{" "}
-                                      <strong className="text-indigo-500 font-mono text-sm">{d.occupancy}%</strong>
-                                    </div>
-                                    <div>
-                                      {ar ? "الأسرة المشغولة:" : "Occupied Beds:"}{" "}
-                                      <strong className="text-foreground">{d.occupiedBeds}</strong> / {d.capacity}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="occupancy"
-                          stroke="#6366f1"
-                          strokeWidth={2.5}
-                          fillOpacity={1}
-                          fill="url(#occupancyGradient)"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm flex-col gap-2">
-                      <Activity className="w-10 h-10 opacity-20" />
-                      <p>{ar ? "جاري احتساب مؤشرات المسار الزمني..." : "Calculating trajectory trends..."}</p>
+                    <div className="flex items-center gap-2">
+                      <TabsList className="bg-muted/70 p-1 border border-border/40">
+                        <TabsTrigger
+                          value="buildings"
+                          className="text-xs font-semibold gap-1.5"
+                        >
+                          <Building2 className="w-3.5 h-3.5" />
+                          {ar ? "حسب المبنى" : "By Building"}
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="trends"
+                          className="text-xs font-semibold gap-1.5"
+                        >
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          {ar ? "المسار الزمني" : "Trend Flow"}
+                        </TabsTrigger>
+                      </TabsList>
+
+                      <PermissionGate module="housing" action="view">
+                        <Link href={buildNavHref("/housing")}>
+                          <Badge
+                            variant="outline"
+                            className="text-xs cursor-pointer hover:bg-accent gap-1 py-1"
+                          >
+                            {ar ? "عرض المباني" : "View All"}{" "}
+                            <ArrowRight className="w-3 h-3" />
+                          </Badge>
+                        </Link>
+                      </PermissionGate>
                     </div>
-                  )}
-                </TabsContent>
-              </CardContent>
-            </Card>
-          </Tabs>
-        ) : null;
+                  </CardHeader>
 
-        const matrixNode =
-          isWidgetVisible("capacity_matrix") && occupancy && occupancy.length > 0 ? (
-            <BuildingCapacityMatrix buildings={occupancy as any} buildNavHref={buildNavHref} />
-          ) : null;
+                  <CardContent className="h-[290px] pt-2">
+                    <TabsContent value="buildings" className="h-full mt-0">
+                      {occupancy && occupancy.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={occupancy}
+                            margin={{
+                              top: 10,
+                              right: 20,
+                              left: -10,
+                              bottom: 0,
+                            }}
+                          >
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                              stroke="hsl(var(--border))"
+                            />
+                            <XAxis
+                              dataKey="buildingName"
+                              stroke="hsl(var(--muted-foreground))"
+                              fontSize={12}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis
+                              stroke="hsl(var(--muted-foreground))"
+                              fontSize={12}
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(v) => `${v}%`}
+                            />
+                            <Tooltip
+                              cursor={{ fill: "hsl(var(--muted)/0.5)" }}
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  const d = payload[0].payload;
+                                  return (
+                                    <div className="bg-card/95 backdrop-blur-md border border-border shadow-lg rounded-xl p-3 text-xs">
+                                      <p className="font-bold text-foreground text-sm">
+                                        {d.buildingName}
+                                      </p>
+                                      <div className="mt-1.5 space-y-1 text-muted-foreground">
+                                        <div>
+                                          {ar ? "نسبة الإشغال:" : "Occupancy:"}{" "}
+                                          <strong className="text-primary font-mono">
+                                            {d.occupancyRate}%
+                                          </strong>
+                                        </div>
+                                        <div>
+                                          {ar
+                                            ? "الغرف المشغولة:"
+                                            : "Occupied Rooms:"}{" "}
+                                          <strong className="text-foreground">
+                                            {d.occupiedRooms}
+                                          </strong>{" "}
+                                          / {d.totalRooms}
+                                        </div>
+                                        <div>
+                                          {ar
+                                            ? "استيعاب الأسرة:"
+                                            : "Beds Used:"}{" "}
+                                          <strong className="text-foreground">
+                                            {d.totalOccupancy}
+                                          </strong>{" "}
+                                          / {d.totalCapacity}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Bar
+                              dataKey="occupancyRate"
+                              name={ar ? "نسبة الإشغال %" : "Occupancy %"}
+                              fill="hsl(var(--primary))"
+                              radius={[6, 6, 0, 0]}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground text-sm flex-col gap-2">
+                          <Building2 className="w-10 h-10 opacity-20" />
+                          <p>
+                            {ar
+                              ? "لا توجد بيانات مبانٍ مسجلة"
+                              : "No building records found"}
+                          </p>
+                        </div>
+                      )}
+                    </TabsContent>
 
-        const operationsHubNode = isWidgetVisible("daily_operations") ? (
-          <DailyOperationsHub
-            checkIns={pendingData?.checkIns}
-            checkOuts={pendingData?.checkOuts}
-            maintenanceRequests={pendingData?.maintenanceRequests}
-            expiringContracts={pendingData?.expiringContracts}
-            buildNavHref={buildNavHref}
-          />
-        ) : null;
+                    <TabsContent value="trends" className="h-full mt-0">
+                      {analytics?.trendPoints &&
+                      analytics.trendPoints.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart
+                            data={analytics.trendPoints}
+                            margin={{
+                              top: 10,
+                              right: 20,
+                              left: -10,
+                              bottom: 0,
+                            }}
+                          >
+                            <defs>
+                              <linearGradient
+                                id="occupancyGradient"
+                                x1="0"
+                                y1="0"
+                                x2="0"
+                                y2="1"
+                              >
+                                <stop
+                                  offset="5%"
+                                  stopColor="#6366f1"
+                                  stopOpacity={0.4}
+                                />
+                                <stop
+                                  offset="95%"
+                                  stopColor="#6366f1"
+                                  stopOpacity={0.0}
+                                />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                              stroke="hsl(var(--border))"
+                            />
+                            <XAxis
+                              dataKey="day"
+                              stroke="hsl(var(--muted-foreground))"
+                              fontSize={12}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                            <YAxis
+                              stroke="hsl(var(--muted-foreground))"
+                              fontSize={12}
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(v) => `${v}%`}
+                              domain={[0, 100]}
+                            />
+                            <Tooltip
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  const d = payload[0].payload;
+                                  return (
+                                    <div className="bg-card/95 backdrop-blur-md border border-border shadow-lg rounded-xl p-3 text-xs">
+                                      <p className="font-bold text-foreground text-sm">
+                                        {d.date} ({d.day})
+                                      </p>
+                                      <div className="mt-1.5 space-y-1 text-muted-foreground">
+                                        <div>
+                                          {ar
+                                            ? "معدل الإشغال:"
+                                            : "Occupancy Rate:"}{" "}
+                                          <strong className="text-indigo-500 font-mono text-sm">
+                                            {d.occupancy}%
+                                          </strong>
+                                        </div>
+                                        <div>
+                                          {ar
+                                            ? "الأسرة المشغولة:"
+                                            : "Occupied Beds:"}{" "}
+                                          <strong className="text-foreground">
+                                            {d.occupiedBeds}
+                                          </strong>{" "}
+                                          / {d.capacity}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="occupancy"
+                              stroke="#6366f1"
+                              strokeWidth={2.5}
+                              fillOpacity={1}
+                              fill="url(#occupancyGradient)"
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground text-sm flex-col gap-2">
+                          <Activity className="w-10 h-10 opacity-20" />
+                          <p>
+                            {ar
+                              ? "جاري احتساب مؤشرات المسار الزمني..."
+                              : "Calculating trajectory trends..."}
+                          </p>
+                        </div>
+                      )}
+                    </TabsContent>
+                  </CardContent>
+                </Card>
+              </Tabs>
+            ) : null;
 
-        const housekeepingNode = isWidgetVisible("housekeeping_queue") ? (
-          <HousekeepingPriorityQueue
-            dirtyRooms={pendingData?.dirtyRooms}
-            cleanRate={analytics?.turnoverHealth?.cleanRate}
-            pendingClean={analytics?.turnoverHealth?.pendingClean}
-            readyCount={analytics?.roomStatusBreakdown?.available ?? stats?.availableRooms ?? 0}
-            buildNavHref={buildNavHref}
-          />
-        ) : null;
+            const matrixNode =
+              isWidgetVisible("capacity_matrix") &&
+              occupancy &&
+              occupancy.length > 0 ? (
+                <BuildingCapacityMatrix
+                  buildings={occupancy as any}
+                  buildNavHref={buildNavHref}
+                />
+              ) : null;
 
-        const ticketsHubNode = isWidgetVisible("tickets_dual_hub") ? (
-          <TicketsDualTrackHub
-            propertyId={typeof activePropertyId === "number" ? activePropertyId : 0}
-            buildNavHref={buildNavHref}
-          />
-        ) : null;
+            const operationsHubNode = isWidgetVisible("daily_operations") ? (
+              <DailyOperationsHub
+                checkIns={pendingData?.checkIns}
+                checkOuts={pendingData?.checkOuts}
+                maintenanceRequests={pendingData?.maintenanceRequests}
+                expiringContracts={pendingData?.expiringContracts}
+                buildNavHref={buildNavHref}
+              />
+            ) : null;
 
-        const hasAnyContent = Boolean(
-          donutNode ||
-          deptNode ||
-          genderNode ||
-          chartsNode ||
-          matrixNode ||
-          operationsHubNode ||
-          housekeepingNode ||
-          ticketsHubNode
-        );
+            const housekeepingNode = isWidgetVisible("housekeeping_queue") ? (
+              <HousekeepingPriorityQueue
+                dirtyRooms={pendingData?.dirtyRooms}
+                cleanRate={analytics?.turnoverHealth?.cleanRate}
+                pendingClean={analytics?.turnoverHealth?.pendingClean}
+                readyCount={
+                  analytics?.roomStatusBreakdown?.available ??
+                  stats?.availableRooms ??
+                  0
+                }
+                buildNavHref={buildNavHref}
+              />
+            ) : null;
 
-        if (!hasAnyContent) {
-          return (
-            <Card className="p-12 text-center border-dashed border-2 border-border/80 bg-card/40">
-              <div className="max-w-md mx-auto space-y-4">
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                  <SlidersHorizontal className="w-7 h-7" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold">
-                    {ar ? "تم إخفاء جميع عناصر لوحة التحكم" : "All Dashboard Widgets Are Hidden"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {ar
-                      ? "يمكنك تخصيص وتفعيل العناصر المناسبة لك أو استعادة الضبط الافتراضي في أي وقت."
-                      : "You can customize and enable widgets according to your preferences or restore defaults."}
-                  </p>
-                </div>
-                <Button onClick={() => setCustomizeOpen(true)} className="gap-2 text-xs">
-                  <SlidersHorizontal className="w-4 h-4" />
-                  {ar ? "تخصيص اللوحة الآن" : "Customize Dashboard Now"}
-                </Button>
-              </div>
-            </Card>
-          );
-        }
+            const ticketsHubNode = isWidgetVisible("tickets_dual_hub") ? (
+              <TicketsDualTrackHub
+                propertyId={
+                  typeof activePropertyId === "number" ? activePropertyId : 0
+                }
+                buildNavHref={buildNavHref}
+              />
+            ) : null;
 
-        return (
-          <>
-            {/* Mode 1: Comprehensive Full Overview */}
-            {dashboardViewMode === "comprehensive" && (
-              <div className="space-y-6">
-                {(donutNode || deptNode || genderNode) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {donutNode}
-                    {deptNode}
-                    {genderNode}
+            const hasAnyContent = Boolean(
+              donutNode ||
+              deptNode ||
+              genderNode ||
+              chartsNode ||
+              matrixNode ||
+              operationsHubNode ||
+              housekeepingNode ||
+              ticketsHubNode,
+            );
+
+            if (!hasAnyContent) {
+              return (
+                <Card className="p-12 text-center border-dashed border-2 border-border/80 bg-card/40">
+                  <div className="max-w-md mx-auto space-y-4">
+                    <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                      <SlidersHorizontal className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold">
+                        {ar
+                          ? "تم إخفاء جميع عناصر لوحة التحكم"
+                          : "All Dashboard Widgets Are Hidden"}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {ar
+                          ? "يمكنك تخصيص وتفعيل العناصر المناسبة لك أو استعادة الضبط الافتراضي في أي وقت."
+                          : "You can customize and enable widgets according to your preferences or restore defaults."}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setCustomizeOpen(true)}
+                      className="gap-2 text-xs"
+                    >
+                      <SlidersHorizontal className="w-4 h-4" />
+                      {ar ? "تخصيص اللوحة الآن" : "Customize Dashboard Now"}
+                    </Button>
                   </div>
-                )}
-                {chartsNode}
-                {matrixNode}
-                {ticketsHubNode}
-                {operationsHubNode}
-                {housekeepingNode}
-              </div>
-            )}
+                </Card>
+              );
+            }
 
-            {/* Mode 2: Operations Focus Mode */}
-            {dashboardViewMode === "operations" && (
-              <div className="space-y-6">
-                {ticketsHubNode}
-                {operationsHubNode}
-                {(housekeepingNode || donutNode) && (
-                  <div className="grid gap-5 md:grid-cols-2">
-                    {housekeepingNode}
-                    {donutNode}
-                  </div>
-                )}
-                {deptNode}
-              </div>
-            )}
-
-            {/* Mode 3: Analytics & Capacity Mode */}
-            {dashboardViewMode === "analytics" && (
-              <div className="space-y-6">
-                {chartsNode}
-                {matrixNode}
-                {ticketsHubNode}
-                {(deptNode || donutNode || genderNode) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {deptNode}
-                    {donutNode}
-                    {genderNode}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Mode 4: Compact High-Density View */}
-            {dashboardViewMode === "compact" && (
-              <div className="space-y-5">
-                {ticketsHubNode}
-                {(chartsNode || deptNode) && (
-                  <div className="grid gap-5 lg:grid-cols-2">
+            return (
+              <>
+                {/* Mode 1: Comprehensive Full Overview */}
+                {dashboardViewMode === "comprehensive" && (
+                  <div className="space-y-6">
+                    {(donutNode || deptNode || genderNode) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {donutNode}
+                        {deptNode}
+                        {genderNode}
+                      </div>
+                    )}
                     {chartsNode}
-                    {deptNode}
-                  </div>
-                )}
-                {(operationsHubNode || housekeepingNode) && (
-                  <div className="grid gap-5 lg:grid-cols-2">
+                    {matrixNode}
+                    {ticketsHubNode}
                     {operationsHubNode}
                     {housekeepingNode}
                   </div>
                 )}
-                {donutNode}
-              </div>
-            )}
-          </>
-        );
-      })()}
+
+                {/* Mode 2: Operations Focus Mode */}
+                {dashboardViewMode === "operations" && (
+                  <div className="space-y-6">
+                    {ticketsHubNode}
+                    {operationsHubNode}
+                    {(housekeepingNode || donutNode) && (
+                      <div className="grid gap-5 md:grid-cols-2">
+                        {housekeepingNode}
+                        {donutNode}
+                      </div>
+                    )}
+                    {deptNode}
+                  </div>
+                )}
+
+                {/* Mode 3: Analytics & Capacity Mode */}
+                {dashboardViewMode === "analytics" && (
+                  <div className="space-y-6">
+                    {chartsNode}
+                    {matrixNode}
+                    {ticketsHubNode}
+                    {(deptNode || donutNode || genderNode) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {deptNode}
+                        {donutNode}
+                        {genderNode}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Mode 4: Compact High-Density View */}
+                {dashboardViewMode === "compact" && (
+                  <div className="space-y-5">
+                    {ticketsHubNode}
+                    {(chartsNode || deptNode) && (
+                      <div className="grid gap-5 lg:grid-cols-2">
+                        {chartsNode}
+                        {deptNode}
+                      </div>
+                    )}
+                    {(operationsHubNode || housekeepingNode) && (
+                      <div className="grid gap-5 lg:grid-cols-2">
+                        {operationsHubNode}
+                        {housekeepingNode}
+                      </div>
+                    )}
+                    {donutNode}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </>
       )}
 

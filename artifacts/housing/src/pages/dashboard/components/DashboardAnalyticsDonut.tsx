@@ -1,7 +1,13 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useLanguage } from "@/context/LanguageContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { BedDouble, CheckCircle2, Sparkles, Wrench } from "lucide-react";
 
 interface DonutDataProps {
@@ -64,7 +70,9 @@ export function DashboardAnalyticsDonut({
     },
   ].filter((item) => item.value > 0);
 
-  const fallbackData = [{ name: ar ? "لا توجد غرف" : "No Rooms", value: 1, color: "#94a3b8" }];
+  const fallbackData = [
+    { name: ar ? "لا توجد غرف" : "No Rooms", value: 1, color: "#94a3b8" },
+  ];
   const chartData = data.length > 0 ? data : fallbackData;
 
   return (
@@ -97,7 +105,10 @@ export function DashboardAnalyticsDonut({
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const d = payload[0];
-                    const percent = totalRooms > 0 ? ((Number(d.value) / totalRooms) * 100).toFixed(1) : "0";
+                    const percent =
+                      totalRooms > 0
+                        ? ((Number(d.value) / totalRooms) * 100).toFixed(1)
+                        : "0";
                     return (
                       <div className="bg-card/95 backdrop-blur-md border border-border shadow-lg rounded-xl p-2.5 text-xs">
                         <div className="flex items-center gap-2 font-semibold">
@@ -108,7 +119,9 @@ export function DashboardAnalyticsDonut({
                           <span>{d.name}</span>
                         </div>
                         <div className="mt-1 text-muted-foreground">
-                          <span className="font-bold text-foreground text-sm">{d.value}</span>{" "}
+                          <span className="font-bold text-foreground text-sm">
+                            {d.value}
+                          </span>{" "}
                           {ar ? "غرفة" : "rooms"} ({percent}%)
                         </div>
                       </div>
@@ -154,7 +167,14 @@ export function DashboardAnalyticsDonut({
                 {ar ? "جاهزة" : "Available"}
               </div>
               <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                {available} <span className="text-[10px] font-normal text-muted-foreground/80">({totalRooms > 0 ? Math.round((available / totalRooms) * 100) : 0}%)</span>
+                {available}{" "}
+                <span className="text-[10px] font-normal text-muted-foreground/80">
+                  (
+                  {totalRooms > 0
+                    ? Math.round((available / totalRooms) * 100)
+                    : 0}
+                  %)
+                </span>
               </div>
             </div>
           </div>
@@ -166,7 +186,14 @@ export function DashboardAnalyticsDonut({
                 {ar ? "مشغولة" : "Occupied"}
               </div>
               <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                {occupied} <span className="text-[10px] font-normal text-muted-foreground/80">({totalRooms > 0 ? Math.round((occupied / totalRooms) * 100) : 0}%)</span>
+                {occupied}{" "}
+                <span className="text-[10px] font-normal text-muted-foreground/80">
+                  (
+                  {totalRooms > 0
+                    ? Math.round((occupied / totalRooms) * 100)
+                    : 0}
+                  %)
+                </span>
               </div>
             </div>
           </div>
@@ -178,7 +205,11 @@ export function DashboardAnalyticsDonut({
                 {ar ? "نظافة" : "Dirty"}
               </div>
               <div className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                {dirty} <span className="text-[10px] font-normal text-muted-foreground/80">({totalRooms > 0 ? Math.round((dirty / totalRooms) * 100) : 0}%)</span>
+                {dirty}{" "}
+                <span className="text-[10px] font-normal text-muted-foreground/80">
+                  ({totalRooms > 0 ? Math.round((dirty / totalRooms) * 100) : 0}
+                  %)
+                </span>
               </div>
             </div>
           </div>
@@ -190,7 +221,14 @@ export function DashboardAnalyticsDonut({
                 {ar ? "صيانة" : "Maintenance"}
               </div>
               <div className="text-xs font-bold text-rose-600 dark:text-rose-400">
-                {maintenance} <span className="text-[10px] font-normal text-muted-foreground/80">({totalRooms > 0 ? Math.round((maintenance / totalRooms) * 100) : 0}%)</span>
+                {maintenance}{" "}
+                <span className="text-[10px] font-normal text-muted-foreground/80">
+                  (
+                  {totalRooms > 0
+                    ? Math.round((maintenance / totalRooms) * 100)
+                    : 0}
+                  %)
+                </span>
               </div>
             </div>
           </div>
@@ -201,7 +239,10 @@ export function DashboardAnalyticsDonut({
           <div className="mt-3 pt-2.5 border-t border-border/30 flex items-center justify-between text-xs text-muted-foreground">
             <span>
               {ar ? "استيعاب الأسرة:" : "Bed Capacity:"}{" "}
-              <strong className="text-foreground">{bedCapacity.occupiedBeds}</strong> / {bedCapacity.totalBeds}
+              <strong className="text-foreground">
+                {bedCapacity.occupiedBeds}
+              </strong>{" "}
+              / {bedCapacity.totalBeds}
             </span>
             <span className="font-semibold text-primary font-mono">
               {bedCapacity.utilizationPercent}% {ar ? "استغلال" : "Used"}

@@ -35,16 +35,16 @@ router.get(
 
     // Permission flags — determine what this user is allowed to see
     const canViewAccommodation = can(authUser, "accommodation", "view");
-    const canViewReservations  = can(authUser, "reservations", "view");
-    const canViewMaintenance   = can(authUser, "maintenance", "view");
-    const canViewHostingReqs   = can(authUser, "hosting_requests", "view");
-    const canViewHousekeeping  = can(authUser, "housekeeping", "view");
-    const canViewHousing       = can(authUser, "housing", "view");
-    const canViewProfiles      = can(authUser, "profiles", "view");
-    const canViewEvaluations   = can(authUser, "evaluations", "view");
+    const canViewReservations = can(authUser, "reservations", "view");
+    const canViewMaintenance = can(authUser, "maintenance", "view");
+    const canViewHostingReqs = can(authUser, "hosting_requests", "view");
+    const canViewHousekeeping = can(authUser, "housekeeping", "view");
+    const canViewHousing = can(authUser, "housing", "view");
+    const canViewProfiles = can(authUser, "profiles", "view");
+    const canViewEvaluations = can(authUser, "evaluations", "view");
     const canViewPortalContent = can(authUser, "portal_content", "view");
-    const isSystemAdmin        = authUser?.isSystemAdmin ?? false;
-    const userRoles: string[]  = authUser?.roles ?? [];
+    const isSystemAdmin = authUser?.isSystemAdmin ?? false;
+    const userRoles: string[] = authUser?.roles ?? [];
 
     try {
       await withTenant(pid, async (tenantDb) => {
@@ -72,7 +72,7 @@ router.get(
         }> = [];
 
         const queries: Promise<any>[] = [];
-        const queryLabels: string[]   = [];
+        const queryLabels: string[] = [];
 
         // 1. Overdue check-outs — accommodation.view required
         if (canViewAccommodation) {
@@ -85,7 +85,10 @@ router.get(
                 empLast: profilesTable.lastName,
               })
               .from(assignmentsTable)
-              .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+              .leftJoin(
+                profilesTable,
+                eq(assignmentsTable.profileId, profilesTable.id),
+              )
               .where(
                 and(
                   eq(assignmentsTable.status, "ACTIVE"),
@@ -107,7 +110,10 @@ router.get(
                 empLast: profilesTable.lastName,
               })
               .from(assignmentsTable)
-              .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+              .leftJoin(
+                profilesTable,
+                eq(assignmentsTable.profileId, profilesTable.id),
+              )
               .where(
                 and(
                   eq(assignmentsTable.status, "ACTIVE"),
@@ -147,7 +153,10 @@ router.get(
                 empLast: profilesTable.lastName,
               })
               .from(hostingsTable)
-              .leftJoin(profilesTable, eq(hostingsTable.profileId, profilesTable.id))
+              .leftJoin(
+                profilesTable,
+                eq(hostingsTable.profileId, profilesTable.id),
+              )
               .where(eq(hostingsTable.status, "PENDING")),
           );
           queryLabels.push("pendingHostings");
@@ -163,7 +172,10 @@ router.get(
                 empLast: profilesTable.lastName,
               })
               .from(assignmentsTable)
-              .leftJoin(profilesTable, eq(assignmentsTable.profileId, profilesTable.id))
+              .leftJoin(
+                profilesTable,
+                eq(assignmentsTable.profileId, profilesTable.id),
+              )
               .where(
                 and(
                   eq(assignmentsTable.status, "ACTIVE"),
@@ -177,12 +189,14 @@ router.get(
         // 6. Maintenance issues — maintenance.view required
         if (canViewMaintenance) {
           queries.push(
-            tenantDb.execute(
-              sql`SELECT id, description, status, priority, reported_at FROM maintenance
+            tenantDb
+              .execute(
+                sql`SELECT id, description, status, priority, reported_at FROM maintenance
                   WHERE status IN ('open', 'pending', 'in_progress')
                   ORDER BY CASE WHEN priority IN ('emergency', 'urgent', 'high') THEN 0 ELSE 1 END, reported_at DESC
                   LIMIT 30`,
-            ).catch(() => ({ rows: [] })),
+              )
+              .catch(() => ({ rows: [] })),
           );
           queryLabels.push("openIssues");
         }
@@ -195,23 +209,27 @@ router.get(
           );
           queries.push(
             isSystemAdmin
-              ? tenantDb.execute(
-                  sql`SELECT f.id, f.profile_name, f.current_step_order, s.role_required
+              ? tenantDb
+                  .execute(
+                    sql`SELECT f.id, f.profile_name, f.current_step_order, s.role_required
                       FROM hosting_requests f
                       JOIN hosting_request_approval_steps s
                         ON f.id = s.request_id AND f.current_step_order = s.step_order
                       WHERE f.status = 'in_signing'
                       LIMIT 20`,
-                ).catch(() => ({ rows: [] }))
-              : tenantDb.execute(
-                  sql`SELECT f.id, f.profile_name, f.current_step_order, s.role_required
+                  )
+                  .catch(() => ({ rows: [] }))
+              : tenantDb
+                  .execute(
+                    sql`SELECT f.id, f.profile_name, f.current_step_order, s.role_required
                       FROM hosting_requests f
                       JOIN hosting_request_approval_steps s
                         ON f.id = s.request_id AND f.current_step_order = s.step_order
                       WHERE f.status = 'in_signing'
                         AND s.role_required IN (${rolesListSql})
                       LIMIT 20`,
-                ).catch(() => ({ rows: [] })),
+                  )
+                  .catch(() => ({ rows: [] })),
           );
           queryLabels.push("pendingFamilyVisits");
         }
@@ -219,13 +237,15 @@ router.get(
         // 8. Housekeeping: Dirty rooms needing cleaning — housekeeping.view or housing.view required
         if (canViewHousekeeping || canViewHousing) {
           queries.push(
-            tenantDb.execute(
-              sql`SELECT id, room_number, status, building_id, floor_id,
+            tenantDb
+              .execute(
+                sql`SELECT id, room_number, status, building_id, floor_id,
                          COUNT(*) OVER () AS total_count
                   FROM rooms 
                   WHERE status IN ('dirty', 'occupied_dirty')
                   LIMIT 30`,
-            ).catch(() => ({ rows: [] })),
+              )
+              .catch(() => ({ rows: [] })),
           );
           queryLabels.push("dirtyRooms");
         }
@@ -233,12 +253,14 @@ router.get(
         // 9. Housing: Out of service / Out of order rooms — housing.view required
         if (canViewHousing) {
           queries.push(
-            tenantDb.execute(
-              sql`SELECT id, room_number, status 
+            tenantDb
+              .execute(
+                sql`SELECT id, room_number, status 
                   FROM rooms 
                   WHERE status IN ('out_of_service', 'out_of_order')
                   LIMIT 30`,
-            ).catch(() => ({ rows: [] })),
+              )
+              .catch(() => ({ rows: [] })),
           );
           queryLabels.push("oosRooms");
         }
@@ -246,8 +268,9 @@ router.get(
         // 10. Profiles: Expiring contracts (within 30 days) — profiles.view required
         if (canViewProfiles) {
           queries.push(
-            tenantDb.execute(
-              sql`SELECT id, profile_id, first_name, last_name, contract_end_date 
+            tenantDb
+              .execute(
+                sql`SELECT id, profile_id, first_name, last_name, contract_end_date 
                   FROM profiles 
                   WHERE status = 'ACTIVE' 
                     AND contract_end_date IS NOT NULL 
@@ -256,7 +279,8 @@ router.get(
                     AND contract_end_date >= ${today}
                   ORDER BY contract_end_date ASC
                   LIMIT 20`,
-            ).catch(() => ({ rows: [] })),
+              )
+              .catch(() => ({ rows: [] })),
           );
           queryLabels.push("expiringContracts");
         }
@@ -264,8 +288,9 @@ router.get(
         // 11. Profiles: Active profiles with NO room assignment — profiles.view or accommodation.view required
         if (canViewProfiles || canViewAccommodation) {
           queries.push(
-            tenantDb.execute(
-              sql`SELECT p.id, p.profile_id, p.first_name, p.last_name 
+            tenantDb
+              .execute(
+                sql`SELECT p.id, p.profile_id, p.first_name, p.last_name 
                   FROM profiles p 
                   WHERE p.status = 'ACTIVE' 
                     AND NOT EXISTS (
@@ -273,7 +298,8 @@ router.get(
                       WHERE a.profile_id = p.id AND a.status = 'ACTIVE'
                     )
                   LIMIT 20`,
-            ).catch(() => ({ rows: [] })),
+              )
+              .catch(() => ({ rows: [] })),
           );
           queryLabels.push("unassignedProfiles");
         }
@@ -281,12 +307,14 @@ router.get(
         // 12. Smart Keys: Expired keys that need revocation — housing.view required
         if (canViewHousing || canViewAccommodation) {
           queries.push(
-            tenantDb.execute(
-              sql`SELECT id, room_id, card_number, expires_at 
+            tenantDb
+              .execute(
+                sql`SELECT id, room_id, card_number, expires_at 
                   FROM room_keys 
                   WHERE status = 'active' AND expires_at < NOW()
                   LIMIT 20`,
-            ).catch(() => ({ rows: [] })),
+              )
+              .catch(() => ({ rows: [] })),
           );
           queryLabels.push("expiredKeys");
         }
@@ -294,9 +322,11 @@ router.get(
         // 13. Evaluations: Pending evaluations awaiting review — evaluations.view required
         if (canViewEvaluations || isSystemAdmin) {
           queries.push(
-            tenantDb.execute(
-              sql`SELECT id, COALESCE(title_ar, title_en, 'Evaluation') AS title, status FROM evaluations WHERE status = 'pending' LIMIT 10`,
-            ).catch(() => ({ rows: [] })),
+            tenantDb
+              .execute(
+                sql`SELECT id, COALESCE(title_ar, title_en, 'Evaluation') AS title, status FROM evaluations WHERE status = 'pending' LIMIT 10`,
+              )
+              .catch(() => ({ rows: [] })),
           );
           queryLabels.push("pendingEvaluations");
         }
@@ -304,13 +334,15 @@ router.get(
         // 14. Portal Chat: Unread messages from residents — portal_content.view or admin required
         if (canViewPortalContent || isSystemAdmin) {
           queries.push(
-            tenantDb.execute(
-              sql`SELECT id, sender_id AS profile_id, content AS message, created_at 
+            tenantDb
+              .execute(
+                sql`SELECT id, sender_id AS profile_id, content AS message, created_at 
                   FROM portal_messages 
                   WHERE is_deleted = false
                   ORDER BY created_at DESC 
                   LIMIT 15`,
-            ).catch(() => ({ rows: [] })),
+              )
+              .catch(() => ({ rows: [] })),
           );
           queryLabels.push("unreadPortalChat");
         }
@@ -318,8 +350,9 @@ router.get(
         // 15. HR Departures: Departed profiles with checkouts in last 48h needing room inspection
         if (canViewAccommodation || canViewHousekeeping) {
           queries.push(
-            tenantDb.execute(
-              sql`SELECT a.id, a.check_out_date, a.notes, r.room_number, r.id AS room_id, p.first_name, p.last_name, p.profile_id
+            tenantDb
+              .execute(
+                sql`SELECT a.id, a.check_out_date, a.notes, r.room_number, r.id AS room_id, p.first_name, p.last_name, p.profile_id
                   FROM assignments a
                   JOIN profiles p ON a.profile_id = p.id
                   JOIN rooms r ON a.room_id = r.id
@@ -328,7 +361,8 @@ router.get(
                     AND a.check_out_date >= TO_CHAR(CURRENT_DATE - INTERVAL '2 days', 'YYYY-MM-DD')
                   ORDER BY a.check_out_date DESC
                   LIMIT 15`,
-            ).catch(() => ({ rows: [] })),
+              )
+              .catch(() => ({ rows: [] })),
           );
           queryLabels.push("hrDepartures");
         }
@@ -470,10 +504,14 @@ router.get(
         }
 
         // Maintenance tickets
-        const openIssues: any[] = (byLabel.openIssues as any)?.rows ?? (Array.isArray(byLabel.openIssues) ? byLabel.openIssues : []);
+        const openIssues: any[] =
+          (byLabel.openIssues as any)?.rows ??
+          (Array.isArray(byLabel.openIssues) ? byLabel.openIssues : []);
         if (openIssues.length > 0) {
           const emergencyTickets = openIssues.filter((m: any) =>
-            ["emergency", "urgent", "critical", "high"].includes(String(m.priority || "").toLowerCase())
+            ["emergency", "urgent", "critical", "high"].includes(
+              String(m.priority || "").toLowerCase(),
+            ),
           );
 
           if (emergencyTickets.length > 0) {
@@ -493,8 +531,11 @@ router.get(
             });
           }
 
-          const regularTickets = openIssues.filter((m: any) =>
-            !["emergency", "urgent", "critical", "high"].includes(String(m.priority || "").toLowerCase())
+          const regularTickets = openIssues.filter(
+            (m: any) =>
+              !["emergency", "urgent", "critical", "high"].includes(
+                String(m.priority || "").toLowerCase(),
+              ),
           );
 
           if (regularTickets.length > 0) {
@@ -517,7 +558,9 @@ router.get(
 
         // Housekeeping: Dirty rooms
         const dirtyRows: any[] = (byLabel.dirtyRooms as any)?.rows ?? [];
-        const dirtyTotal = Number(dirtyRows[0]?.total_count ?? dirtyRows.length);
+        const dirtyTotal = Number(
+          dirtyRows[0]?.total_count ?? dirtyRows.length,
+        );
         if (dirtyTotal > 0) {
           notifications.push({
             id: `dirty-rooms-${dirtyTotal}`,
@@ -555,7 +598,8 @@ router.get(
         }
 
         // Profiles: Expiring contracts
-        const expiringRows: any[] = (byLabel.expiringContracts as any)?.rows ?? [];
+        const expiringRows: any[] =
+          (byLabel.expiringContracts as any)?.rows ?? [];
         if (expiringRows.length > 0) {
           notifications.push({
             id: `expiring-contracts-${expiringRows.length}`,
@@ -574,7 +618,8 @@ router.get(
         }
 
         // Profiles: Active with NO room assignment
-        const unassignedRows: any[] = (byLabel.unassignedProfiles as any)?.rows ?? [];
+        const unassignedRows: any[] =
+          (byLabel.unassignedProfiles as any)?.rows ?? [];
         if (unassignedRows.length > 0) {
           notifications.push({
             id: `unassigned-profiles-${unassignedRows.length}`,

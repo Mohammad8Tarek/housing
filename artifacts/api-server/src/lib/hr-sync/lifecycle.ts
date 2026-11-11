@@ -1,7 +1,12 @@
 /**
  * hr-sync/lifecycle.ts — Accommodation/room lifecycle sync for an HR employee record (checkout, vacation, return).
  */
-import { profilesTable, profileVacationsTable, assignmentsTable, roomsTable } from "@workspace/db";
+import {
+  profilesTable,
+  profileVacationsTable,
+  assignmentsTable,
+  roomsTable,
+} from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { logActivity } from "../activity-logger.js";
 import { broadcastToProperty } from "../websocket.js";
@@ -127,7 +132,10 @@ export async function syncEmployeeAccommodationLifecycle({
           action: "checkout",
           entityId: activeAssign.id,
         });
-        broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+        broadcastToProperty(propertyId, {
+          module: "dashboard",
+          action: "sync",
+        });
 
         // Activity log
         await logActivity({
@@ -176,7 +184,8 @@ export async function syncEmployeeAccommodationLifecycle({
             profileId: profile.id,
             startDate: vacationStartDate,
             endDate: vacationEndDate,
-            notes: vacationNotes || "إجازة مسجلة من نظام الموارد البشرية (HR Sync)",
+            notes:
+              vacationNotes || "إجازة مسجلة من نظام الموارد البشرية (HR Sync)",
             status: "ACTIVE",
           });
         }
@@ -232,7 +241,10 @@ export async function syncEmployeeAccommodationLifecycle({
             entityId: activeAssign.id,
             data: { profileId: profile.profileId },
           });
-          broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+          broadcastToProperty(propertyId, {
+            module: "dashboard",
+            action: "sync",
+          });
         }
       }
 
@@ -306,7 +318,10 @@ export async function syncEmployeeAccommodationLifecycle({
           entityId: activeAssign.id,
           data: { profileId: profile.profileId },
         });
-        broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+        broadcastToProperty(propertyId, {
+          module: "dashboard",
+          action: "sync",
+        });
       }
 
       await logActivity({

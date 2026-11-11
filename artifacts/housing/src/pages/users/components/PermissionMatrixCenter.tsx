@@ -1,5 +1,8 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { usePermissionMatrixCenterState, buildPermissionMatrixCenterView } from "./permission-matrix/usePermissionMatrixCenterState";
+import {
+  usePermissionMatrixCenterState,
+  buildPermissionMatrixCenterView,
+} from "./permission-matrix/usePermissionMatrixCenterState";
 import { renderMatrixHeader } from "./permission-matrix/MatrixHeader";
 import { renderRolePresetsBar } from "./permission-matrix/RolePresetsBar";
 import { renderCardsView } from "./permission-matrix/CardsView";
@@ -11,7 +14,6 @@ export function PermissionMatrixCenter(props: PermissionMatrixCenterProps) {
   const s = usePermissionMatrixCenterState(props);
   const { ar, activeUser, viewMode } = s;
 
-
   if (!activeUser) {
     return (
       <div className="p-12 text-center text-muted-foreground">
@@ -20,7 +22,6 @@ export function PermissionMatrixCenter(props: PermissionMatrixCenterProps) {
     );
   }
   const v = buildPermissionMatrixCenterView(s, activeUser);
-  
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -32,14 +33,10 @@ export function PermissionMatrixCenter(props: PermissionMatrixCenterProps) {
         {renderRolePresetsBar(s, v)}
 
         {/* ── View 1: Visual Card Grid View ── */}
-        {viewMode === "cards" && (
-          renderCardsView(s, v)
-        )}
+        {viewMode === "cards" && renderCardsView(s, v)}
 
         {/* ── View 2: Interactive Matrix Spreadsheet Table View ── */}
-        {viewMode === "table" && (
-          renderTableView(s, v)
-        )}
+        {viewMode === "table" && renderTableView(s, v)}
 
         {/* ── Floating / Sticky Save Bar ── */}
         {renderMatrixLegend(s, v)}

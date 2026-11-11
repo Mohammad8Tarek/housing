@@ -1,5 +1,5 @@
-import { Worker, Job } from 'bullmq';
-import { getRedisConnection } from '../connection.js';
+import { Worker, Job } from "bullmq";
+import { getRedisConnection } from "../connection.js";
 
 export function createNotificationWorker(): Worker | null {
   const connection = getRedisConnection();
@@ -8,7 +8,7 @@ export function createNotificationWorker(): Worker | null {
   }
 
   const worker = new Worker(
-    'notificationQueue',
+    "notificationQueue",
     async (job: Job) => {
       console.log(`Processing notification job ${job.id}`);
       return Promise.resolve();
@@ -16,10 +16,10 @@ export function createNotificationWorker(): Worker | null {
     {
       connection,
       concurrency: 5,
-    }
+    },
   );
 
-  worker.on('failed', (job, err) => {
+  worker.on("failed", (job, err) => {
     console.error(`Notification job ${job?.id} failed:`, err);
   });
 

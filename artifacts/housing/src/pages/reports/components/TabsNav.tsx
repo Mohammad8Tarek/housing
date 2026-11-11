@@ -30,7 +30,8 @@ export function TabsNav({
   }, [activeGroupId]);
 
   const tabById = useMemo(() => new Map(TABS.map((t) => [t.id, t])), []);
-  const openGroup = REPORT_GROUPS.find((g) => g.id === openGroupId) ?? REPORT_GROUPS[0];
+  const openGroup =
+    REPORT_GROUPS.find((g) => g.id === openGroupId) ?? REPORT_GROUPS[0];
 
   const selectTab = (id: Tab) => {
     setActiveTab(id);
@@ -75,7 +76,10 @@ export function TabsNav({
                   {g.tabs.length}
                 </span>
                 {containsActive && !open && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#2AA8AB]" aria-hidden />
+                  <span
+                    className="w-1.5 h-1.5 rounded-full bg-[#2AA8AB]"
+                    aria-hidden
+                  />
                 )}
               </span>
               <span

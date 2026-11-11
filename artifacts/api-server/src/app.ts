@@ -148,7 +148,9 @@ app.get("/api/healthz", async (_req, res) => {
   } catch {
     // Railway healthchecks will kill the container if we return 503.
     // If the DB is temporarily unreachable due to internal DNS delays, we want to stay alive.
-    res.status(200).json({ status: "error", message: "Database temporarily unreachable" });
+    res
+      .status(200)
+      .json({ status: "error", message: "Database temporarily unreachable" });
   }
 });
 
@@ -231,10 +233,18 @@ app.use((req, res, next) => {
     }
 
     // Fallback: Check X-Session-Id header or Authorization header
-    const rawSid = (req.headers["x-session-id"] || req.headers["authorization"]?.replace(/^Bearer\s+/i, "")) as string | undefined;
+    const rawSid = (req.headers["x-session-id"] ||
+      req.headers["authorization"]?.replace(/^Bearer\s+/i, "")) as
+      | string
+      | undefined;
     let xSid = typeof rawSid === "string" ? rawSid.trim() : "";
 
-    if (!xSid || xSid === "undefined" || xSid === "null" || xSid === "session_active") {
+    if (
+      !xSid ||
+      xSid === "undefined" ||
+      xSid === "null" ||
+      xSid === "session_active"
+    ) {
       return next();
     }
 
@@ -299,17 +309,28 @@ function collectSyncPropertyIds(req: Request): number[] {
 function detectRouteModule(path: string): WsModule | null {
   if (path.startsWith("/assignments")) return "accommodation";
   if (path.startsWith("/reservations")) return "reservations";
-  if (path.startsWith("/rooms") || path.startsWith("/buildings") || path.startsWith("/floors")) return "housing";
+  if (
+    path.startsWith("/rooms") ||
+    path.startsWith("/buildings") ||
+    path.startsWith("/floors")
+  )
+    return "housing";
   if (path.startsWith("/profiles")) return "profiles";
   if (path.startsWith("/maintenance")) return "maintenance";
   if (path.startsWith("/housekeeping")) return "housekeeping";
-  if (path.startsWith("/hostings") || path.startsWith("/hosting-requests")) return "hosting-requests";
+  if (path.startsWith("/hostings") || path.startsWith("/hosting-requests"))
+    return "hosting-requests";
   if (path.startsWith("/room-inventory")) return "housing";
   if (path.startsWith("/workers")) return "workers";
   if (path.startsWith("/evaluations")) return "evaluations";
   if (path.startsWith("/activities")) return "activities";
   if (path.startsWith("/users")) return "users";
-  if (path.startsWith("/settings") || path.startsWith("/lookup-values") || path.startsWith("/lookup_values")) return "settings";
+  if (
+    path.startsWith("/settings") ||
+    path.startsWith("/lookup-values") ||
+    path.startsWith("/lookup_values")
+  )
+    return "settings";
   if (path.startsWith("/properties")) return "properties";
   return null;
 }
@@ -392,7 +413,11 @@ setupSwagger(app);
 
 // Any write may change report data: drop the cached report lists once it succeeds.
 app.use("/api", (req, res, next) => {
-  if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
+  if (
+    req.method !== "GET" &&
+    req.method !== "HEAD" &&
+    req.method !== "OPTIONS"
+  ) {
     res.on("finish", () => {
       if (res.statusCode < 400) clearReportDatasetCache();
     });

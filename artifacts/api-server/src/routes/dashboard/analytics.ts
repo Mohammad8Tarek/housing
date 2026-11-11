@@ -1,5 +1,12 @@
 import { Router } from "express";
-import { withTenant, assignmentsTable, reservationsTable, roomsTable, profilesTable, maintenanceTable } from "@workspace/db";
+import {
+  withTenant,
+  assignmentsTable,
+  reservationsTable,
+  roomsTable,
+  profilesTable,
+  maintenanceTable,
+} from "@workspace/db";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { validate } from "../../middlewares/validate.js";
 import { DashboardHorizonQuery } from "../../validation/schemas.js";
@@ -18,19 +25,27 @@ router.get(
     const horizon = String(req.query.horizon || "7d").toLowerCase();
 
     if (!propertyId) {
-      res.status(400).json({ success: false, message: "propertyId is required" });
+      res
+        .status(400)
+        .json({ success: false, message: "propertyId is required" });
       return;
     }
 
     try {
       const data = await withTenant(propertyId, async (tenantDb) => {
-        const [rooms, profiles, assignments, maintenance, reservations] = await Promise.all([
-          safeSelect(() => tenantDb.select().from(roomsTable)),
-          safeSelect(() => tenantDb.select().from(profilesTable)),
-          safeSelect(() => tenantDb.select().from(assignmentsTable).where(statusEq(assignmentsTable.status, "active"))),
-          safeSelect(() => tenantDb.select().from(maintenanceTable)),
-          safeSelect(() => tenantDb.select().from(reservationsTable)),
-        ]);
+        const [rooms, profiles, assignments, maintenance, reservations] =
+          await Promise.all([
+            safeSelect(() => tenantDb.select().from(roomsTable)),
+            safeSelect(() => tenantDb.select().from(profilesTable)),
+            safeSelect(() =>
+              tenantDb
+                .select()
+                .from(assignmentsTable)
+                .where(statusEq(assignmentsTable.status, "active")),
+            ),
+            safeSelect(() => tenantDb.select().from(maintenanceTable)),
+            safeSelect(() => tenantDb.select().from(reservationsTable)),
+          ]);
 
         const roomCapacityMap = new Map<number, number>();
         const roomOccupantCount = new Map<number, number>();
@@ -40,7 +55,10 @@ router.get(
 
         for (const a of assignments) {
           if (!a.roomId) continue;
-          roomOccupantCount.set(a.roomId, (roomOccupantCount.get(a.roomId) || 0) + 1);
+          roomOccupantCount.set(
+            a.roomId,
+            (roomOccupantCount.get(a.roomId) || 0) + 1,
+          );
         }
 
         for (const r of rooms) {
@@ -50,7 +68,13 @@ router.get(
           const st = (r.status || "available").toLowerCase();
           if (st === "dirty" || st === "occupied_dirty") {
             dirtyRooms++;
-          } else if (st === "maintenance" || st === "out_of_service" || st === "out_of_order" || st === "ooo" || st === "oos") {
+          } else if (
+            st === "maintenance" ||
+            st === "out_of_service" ||
+            st === "out_of_order" ||
+            st === "ooo" ||
+            st === "oos"
+          ) {
             maintenanceRooms++;
           }
         }
@@ -61,9 +85,18 @@ router.get(
 
         for (const r of rooms) {
           const cap = Number(r.capacity) || 1;
-          const occ = Math.min(cap, Math.max(r.currentOccupancy || 0, roomOccupantCount.get(r.id) || 0));
+          const occ = Math.min(
+            cap,
+            Math.max(r.currentOccupancy || 0, roomOccupantCount.get(r.id) || 0),
+          );
           const st = (r.status || "available").toLowerCase();
-          const isMaint = ["maintenance", "out_of_service", "out_of_order", "ooo", "oos"].includes(st);
+          const isMaint = [
+            "maintenance",
+            "out_of_service",
+            "out_of_order",
+            "ooo",
+            "oos",
+          ].includes(st);
           const isDirty = st === "dirty" || st === "occupied_dirty";
 
           if (isMaint || isDirty) continue;
@@ -89,8 +122,14 @@ router.get(
         }
 
         const availableBeds = Math.max(0, totalBeds - occupiedBeds);
-        const bedUtilization = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 1000) / 10 : 0;
-        const roomOccupancyRate = rooms.length > 0 ? Math.round((occupiedRooms / rooms.length) * 1000) / 10 : 0;
+        const bedUtilization =
+          totalBeds > 0
+            ? Math.round((occupiedBeds / totalBeds) * 1000) / 10
+            : 0;
+        const roomOccupancyRate =
+          rooms.length > 0
+            ? Math.round((occupiedRooms / rooms.length) * 1000) / 10
+            : 0;
 
         // 2. Department Breakdown
         const deptMap = new Map<string, number>();
@@ -103,7 +142,8 @@ router.get(
           .map(([dept, count]) => ({
             name: dept,
             count,
-            percentage: totalProfiles > 0 ? Math.round((count / totalProfiles) * 100) : 0,
+            percentage:
+              totalProfiles > 0 ? Math.round((count / totalProfiles) * 100) : 0,
           }))
           .sort((a, b) => b.count - a.count);
 
@@ -117,31 +157,48 @@ router.get(
         }
 
         // 4. Trend Trajectory (Last 7, 30 or 90 days)
-        const daysCount = horizon === "30d" ? 30 : horizon === "quarter" ? 90 : horizon === "today" ? 1 : 7;
+        const daysCount =
+          horizon === "30d"
+            ? 30
+            : horizon === "quarter"
+              ? 90
+              : horizon === "today"
+                ? 1
+                : 7;
         const trendPoints = [];
         const now = new Date();
         for (let i = daysCount - 1; i >= 0; i--) {
           const d = new Date(now);
           d.setDate(d.getDate() - i);
           const dateStr = d.toISOString().split("T")[0];
-          
+
           // Smooth realistic variation for trend line
           const offset = Math.sin(i * 0.7) * 2.2;
-          const occ = Math.min(100, Math.max(0, Math.round((roomOccupancyRate + offset) * 10) / 10));
+          const occ = Math.min(
+            100,
+            Math.max(0, Math.round((roomOccupancyRate + offset) * 10) / 10),
+          );
           trendPoints.push({
             date: dateStr,
             day: d.toLocaleDateString("en-US", { weekday: "short" }),
             occupancy: occ,
             capacity: totalBeds,
-            occupiedBeds: Math.round(occupiedBeds + (offset * 0.7)),
+            occupiedBeds: Math.round(occupiedBeds + offset * 0.7),
           });
         }
 
         // 5. Turnover & Readiness Health
-        const cleanRate = rooms.length > 0 ? Math.round((readyRooms / rooms.length) * 100) : 100;
-        const openMaintCount = maintenance.filter((m) => String(m.status).toLowerCase() === "open").length;
+        const cleanRate =
+          rooms.length > 0
+            ? Math.round((readyRooms / rooms.length) * 100)
+            : 100;
+        const openMaintCount = maintenance.filter(
+          (m) => String(m.status).toLowerCase() === "open",
+        ).length;
         const urgentMaintCount = maintenance.filter(
-          (m) => String(m.status).toLowerCase() === "open" && String(m.priority).toLowerCase() === "emergency",
+          (m) =>
+            String(m.status).toLowerCase() === "open" &&
+            String(m.priority).toLowerCase() === "emergency",
         ).length;
 
         return {
@@ -177,7 +234,10 @@ router.get(
 
       res.json(data);
     } catch (err: any) {
-      res.status(500).json({ success: false, message: err.message || "Failed to load analytics" });
+      res.status(500).json({
+        success: false,
+        message: err.message || "Failed to load analytics",
+      });
     }
   },
 );

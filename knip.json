@@ -2,53 +2,33 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "workspaces": {
     "artifacts/housing": {
-      "entry": [
-        "src/main.tsx"
-      ],
-      "project": [
-        "src/**/*.{ts,tsx}"
-      ]
+      "entry": ["src/main.tsx"],
+      "project": ["src/**/*.{ts,tsx}"]
     },
     "artifacts/employee-portal": {
-      "entry": [
-        "src/sw.ts"
-      ],
-      "project": [
-        "src/**/*.{ts,tsx}"
-      ]
+      "entry": ["src/sw.ts"],
+      "project": ["src/**/*.{ts,tsx}"]
     },
     "artifacts/api-server": {
-      "entry": [
-        "src/index.ts",
-        "src/run-migration.ts",
-        "src/**/*.test.ts"
-      ],
-      "project": [
-        "src/**/*.ts"
-      ]
+      "entry": ["src/index.ts", "src/run-migration.ts", "src/**/*.test.ts"],
+      "project": ["src/**/*.ts"]
     },
     "lib/*": {
-      "project": [
-        "src/**/*.ts"
-      ]
+      "project": ["src/**/*.ts"]
     },
     "scripts": {
-      "entry": [
-        "*.{mjs,ts,js}"
-      ],
-      "project": [
-        "*.{mjs,ts,js}"
-      ]
+      "entry": ["*.{mjs,ts,js}"],
+      "project": ["*.{mjs,ts,js}"]
     }
   },
-  "ignoreWorkspaces": [
-    "lib/api-spec"
-  ],
+  "ignoreWorkspaces": ["lib/api-spec"],
   "ignore": [
     "interfaces/**",
     "tests/**",
     "scripts/db/**",
-    "scripts/deploy/**", "scripts/audit/**", "scripts/assets/**",
+    "scripts/deploy/**",
+    "scripts/audit/**",
+    "scripts/assets/**",
     "lib/db/src/check_tickets.ts",
     "lib/db/src/close_open_tickets.ts",
     "lib/db/src/fix-dob.ts",

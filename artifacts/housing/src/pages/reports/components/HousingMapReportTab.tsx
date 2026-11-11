@@ -3,7 +3,24 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { getExportFileName } from "@/lib/date-utils";
-import { Building2, Layers, BedDouble, Search, Users, Home, RefreshCw, ChevronDown, ChevronUp, DoorOpen, LayoutGrid, Table as TableIcon, Bed, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  Building2,
+  Layers,
+  BedDouble,
+  Search,
+  Users,
+  Home,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  DoorOpen,
+  LayoutGrid,
+  Table as TableIcon,
+  Bed,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -25,7 +42,10 @@ interface HousingMapReportTabProps {
   activePropertyId?: number | null | string;
   properties?: any[];
   settings?: any;
-  onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
+  onRegisterExport?: (actions: {
+    exportExcel?: () => void;
+    exportPDF?: () => void;
+  }) => void;
 }
 
 export function HousingMapReportTab({
@@ -40,14 +60,19 @@ export function HousingMapReportTab({
       ? Number(activePropertyId)
       : properties[0]?.id || 1;
 
-  const [selectedPropertyId, setSelectedPropertyId] = useState<number>(initialPropId);
+  const [selectedPropertyId, setSelectedPropertyId] =
+    useState<number>(initialPropId);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>("all");
   const [selectedFloorId, setSelectedFloorId] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"map" | "table">("map");
-  const [expandedBuildings, setExpandedBuildings] = useState<Record<number, boolean>>({});
-  const [expandedFloors, setExpandedFloors] = useState<Record<number, boolean>>({});
+  const [expandedBuildings, setExpandedBuildings] = useState<
+    Record<number, boolean>
+  >({});
+  const [expandedFloors, setExpandedFloors] = useState<Record<number, boolean>>(
+    {},
+  );
   const [sortBy, setSortBy] = useState<string>("roomNumber");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
@@ -77,7 +102,11 @@ export function HousingMapReportTab({
     const job = res?.jobTitle || res?.profile?.jobTitle || "-";
     const gender = res?.gender || res?.profile?.gender || "-";
     const nationality = res?.nationality || res?.profile?.nationality || "-";
-    const bedNum = res?.bedNumber ? String(res.bedNumber) : idx !== undefined ? String(idx + 1) : "1";
+    const bedNum = res?.bedNumber
+      ? String(res.bedNumber)
+      : idx !== undefined
+        ? String(idx + 1)
+        : "1";
     return { name, code, dept, job, gender, nationality, bedNum };
   };
 
@@ -85,26 +114,46 @@ export function HousingMapReportTab({
     let diff = 0;
     switch (sortBy) {
       case "roomNumber":
-        diff = String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+        diff = String(a.roomNumber || "").localeCompare(
+          String(b.roomNumber || ""),
+          undefined,
+          { numeric: true },
+        );
         break;
       case "buildingName":
-        diff = String(a.buildingName || "").localeCompare(String(b.buildingName || ""));
+        diff = String(a.buildingName || "").localeCompare(
+          String(b.buildingName || ""),
+        );
         if (diff === 0) {
-          diff = String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+          diff = String(a.roomNumber || "").localeCompare(
+            String(b.roomNumber || ""),
+            undefined,
+            { numeric: true },
+          );
         }
         break;
       case "floor":
         diff = Number(a.floorNumber ?? 0) - Number(b.floorNumber ?? 0);
         if (diff === 0) {
-          diff = String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+          diff = String(a.roomNumber || "").localeCompare(
+            String(b.roomNumber || ""),
+            undefined,
+            { numeric: true },
+          );
         }
         break;
       case "occupancy": {
-        const occA = a.occupiedCount ?? a.occupiedBeds ?? (a.residents?.length || 0);
-        const occB = b.occupiedCount ?? b.occupiedBeds ?? (b.residents?.length || 0);
+        const occA =
+          a.occupiedCount ?? a.occupiedBeds ?? (a.residents?.length || 0);
+        const occB =
+          b.occupiedCount ?? b.occupiedBeds ?? (b.residents?.length || 0);
         diff = occA - occB;
         if (diff === 0) {
-          diff = String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+          diff = String(a.roomNumber || "").localeCompare(
+            String(b.roomNumber || ""),
+            undefined,
+            { numeric: true },
+          );
         }
         break;
       }
@@ -113,7 +162,11 @@ export function HousingMapReportTab({
         const stB = String(b.statusCategory || b.status || "");
         diff = stA.localeCompare(stB);
         if (diff === 0) {
-          diff = String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+          diff = String(a.roomNumber || "").localeCompare(
+            String(b.roomNumber || ""),
+            undefined,
+            { numeric: true },
+          );
         }
         break;
       }
@@ -124,13 +177,21 @@ export function HousingMapReportTab({
         break;
       }
       case "residents": {
-        const firstA = a.residents?.[0] ? getResidentInfo(a.residents[0]).name : "";
-        const firstB = b.residents?.[0] ? getResidentInfo(b.residents[0]).name : "";
+        const firstA = a.residents?.[0]
+          ? getResidentInfo(a.residents[0]).name
+          : "";
+        const firstB = b.residents?.[0]
+          ? getResidentInfo(b.residents[0]).name
+          : "";
         diff = firstA.localeCompare(firstB);
         break;
       }
       default:
-        diff = String(a.roomNumber || "").localeCompare(String(b.roomNumber || ""), undefined, { numeric: true });
+        diff = String(a.roomNumber || "").localeCompare(
+          String(b.roomNumber || ""),
+          undefined,
+          { numeric: true },
+        );
     }
     return sortDir === "desc" ? -diff : diff;
   };
@@ -143,12 +204,7 @@ export function HousingMapReportTab({
   }, [activePropertyId]);
 
   // Live Query
-  const {
-    data,
-    isLoading,
-    isRefetching,
-    refetch,
-  } = useQuery({
+  const { data, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ["/api/dashboard/housing-breakdown", selectedPropertyId],
     queryFn: async () => {
       const res = await fetch(
@@ -179,7 +235,10 @@ export function HousingMapReportTab({
 
   // Expand all buildings by default when loaded
   React.useEffect(() => {
-    if (rawBuildings.length > 0 && Object.keys(expandedBuildings).length === 0) {
+    if (
+      rawBuildings.length > 0 &&
+      Object.keys(expandedBuildings).length === 0
+    ) {
       const bInit: Record<number, boolean> = {};
       const fInit: Record<number, boolean> = {};
       rawBuildings.forEach((b: any) => {
@@ -211,7 +270,9 @@ export function HousingMapReportTab({
         })),
       );
     }
-    const b = rawBuildings.find((x: any) => String(x.id) === selectedBuildingId);
+    const b = rawBuildings.find(
+      (x: any) => String(x.id) === selectedBuildingId,
+    );
     return (b?.floors || []).map((f: any) => ({
       ...f,
       displayName: f.name || `Floor ${f.floorNumber}`,
@@ -224,70 +285,127 @@ export function HousingMapReportTab({
 
     return rawBuildings
       .filter((b: any) => {
-        if (selectedBuildingId !== "all" && String(b.id) !== selectedBuildingId) return false;
+        if (selectedBuildingId !== "all" && String(b.id) !== selectedBuildingId)
+          return false;
         return true;
       })
       .map((b: any) => {
         const filteredFloors = (b.floors || [])
           .filter((f: any) => {
-            if (selectedFloorId !== "all" && String(f.id) !== selectedFloorId) return false;
+            if (selectedFloorId !== "all" && String(f.id) !== selectedFloorId)
+              return false;
             return true;
           })
           .map((f: any) => {
-            const filteredRooms = (f.rooms || []).filter((r: any) => {
-              const occ = r.occupiedCount ?? r.occupiedBeds ?? (r.residents?.length || 0);
-              const cap = r.capacity || 1;
-              const avail = r.availableBeds ?? r.vacantBeds ?? Math.max(0, cap - occ);
-              const stCat = r.statusCategory || (occ === 0 ? "available" : occ >= cap ? "occupied" : "partial");
-              const clnSt = r.cleanlinessStatus || (String(r.status || "").includes("dirty") ? "dirty" : "clean");
+            const filteredRooms = (f.rooms || [])
+              .filter((r: any) => {
+                const occ =
+                  r.occupiedCount ??
+                  r.occupiedBeds ??
+                  (r.residents?.length || 0);
+                const cap = r.capacity || 1;
+                const avail =
+                  r.availableBeds ?? r.vacantBeds ?? Math.max(0, cap - occ);
+                const stCat =
+                  r.statusCategory ||
+                  (occ === 0
+                    ? "available"
+                    : occ >= cap
+                      ? "occupied"
+                      : "partial");
+                const clnSt =
+                  r.cleanlinessStatus ||
+                  (String(r.status || "").includes("dirty")
+                    ? "dirty"
+                    : "clean");
 
-              // Status filter
-              if (statusFilter !== "all") {
-                if ((statusFilter === "room_vacant" || statusFilter === "available" || statusFilter === "vacant") && stCat !== "available") return false;
-                if ((statusFilter === "bed_vacant" || statusFilter === "partial" || statusFilter === "vacant_beds") && stCat !== "partial") return false;
-                if ((statusFilter === "room_and_bed_vacant" || statusFilter === "both") && stCat !== "available" && stCat !== "partial") return false;
-                if (statusFilter === "occupied" && stCat !== "occupied") return false;
-                if (statusFilter === "dirty" && clnSt !== "dirty") return false;
-                if (statusFilter === "maintenance" && stCat !== "maintenance") return false;
-              }
+                // Status filter
+                if (statusFilter !== "all") {
+                  if (
+                    (statusFilter === "room_vacant" ||
+                      statusFilter === "available" ||
+                      statusFilter === "vacant") &&
+                    stCat !== "available"
+                  )
+                    return false;
+                  if (
+                    (statusFilter === "bed_vacant" ||
+                      statusFilter === "partial" ||
+                      statusFilter === "vacant_beds") &&
+                    stCat !== "partial"
+                  )
+                    return false;
+                  if (
+                    (statusFilter === "room_and_bed_vacant" ||
+                      statusFilter === "both") &&
+                    stCat !== "available" &&
+                    stCat !== "partial"
+                  )
+                    return false;
+                  if (statusFilter === "occupied" && stCat !== "occupied")
+                    return false;
+                  if (statusFilter === "dirty" && clnSt !== "dirty")
+                    return false;
+                  if (statusFilter === "maintenance" && stCat !== "maintenance")
+                    return false;
+                }
 
-              // Search query
-              if (q) {
-                const matchRoom = (r.roomNumber || "").toLowerCase().includes(q);
-                const matchType = (r.roomType || "").toLowerCase().includes(q);
-                const matchResident = (r.residents || []).some((res: any) => {
-                  const info = getResidentInfo(res);
-                  return (
-                    info.name.toLowerCase().includes(q) ||
-                    info.dept.toLowerCase().includes(q) ||
-                    info.job.toLowerCase().includes(q) ||
-                    info.code.toLowerCase().includes(q) ||
-                    info.nationality.toLowerCase().includes(q)
-                  );
-                });
-                if (!matchRoom && !matchType && !matchResident) return false;
-              }
+                // Search query
+                if (q) {
+                  const matchRoom = (r.roomNumber || "")
+                    .toLowerCase()
+                    .includes(q);
+                  const matchType = (r.roomType || "")
+                    .toLowerCase()
+                    .includes(q);
+                  const matchResident = (r.residents || []).some((res: any) => {
+                    const info = getResidentInfo(res);
+                    return (
+                      info.name.toLowerCase().includes(q) ||
+                      info.dept.toLowerCase().includes(q) ||
+                      info.job.toLowerCase().includes(q) ||
+                      info.code.toLowerCase().includes(q) ||
+                      info.nationality.toLowerCase().includes(q)
+                    );
+                  });
+                  if (!matchRoom && !matchType && !matchResident) return false;
+                }
 
-              return true;
-            }).map((r: any) => {
-              const occ = r.occupiedCount ?? r.occupiedBeds ?? (r.residents?.length || 0);
-              const cap = r.capacity || 1;
-              const avail = r.availableBeds ?? r.vacantBeds ?? Math.max(0, cap - occ);
-              const stCat = r.statusCategory || (occ === 0 ? "available" : occ >= cap ? "occupied" : "partial");
-              const clnSt = r.cleanlinessStatus || (String(r.status || "").includes("dirty") ? "dirty" : "clean");
+                return true;
+              })
+              .map((r: any) => {
+                const occ =
+                  r.occupiedCount ??
+                  r.occupiedBeds ??
+                  (r.residents?.length || 0);
+                const cap = r.capacity || 1;
+                const avail =
+                  r.availableBeds ?? r.vacantBeds ?? Math.max(0, cap - occ);
+                const stCat =
+                  r.statusCategory ||
+                  (occ === 0
+                    ? "available"
+                    : occ >= cap
+                      ? "occupied"
+                      : "partial");
+                const clnSt =
+                  r.cleanlinessStatus ||
+                  (String(r.status || "").includes("dirty")
+                    ? "dirty"
+                    : "clean");
 
-              return {
-                ...r,
-                occupiedCount: occ,
-                availableBeds: avail,
-                statusCategory: stCat,
-                cleanlinessStatus: clnSt,
-                buildingName: b.name,
-                buildingCode: b.code,
-                floorName: f.name || `Floor ${f.floorNumber}`,
-                floorNumber: f.floorNumber,
-              };
-            });
+                return {
+                  ...r,
+                  occupiedCount: occ,
+                  availableBeds: avail,
+                  statusCategory: stCat,
+                  cleanlinessStatus: clnSt,
+                  buildingName: b.name,
+                  buildingCode: b.code,
+                  floorName: f.name || `Floor ${f.floorNumber}`,
+                  floorNumber: f.floorNumber,
+                };
+              });
 
             // Sort rooms within each floor according to active sort settings
             const sortedRooms = [...filteredRooms].sort(compareRooms);
@@ -298,16 +416,33 @@ export function HousingMapReportTab({
               roomCount: sortedRooms.length,
             };
           })
-          .filter((f: any) => f.rooms.length > 0 || (!q && statusFilter === "all"));
+          .filter(
+            (f: any) => f.rooms.length > 0 || (!q && statusFilter === "all"),
+          );
 
         return {
           ...b,
           floors: filteredFloors,
-          totalFilteredRooms: filteredFloors.reduce((sum: number, f: any) => sum + f.rooms.length, 0),
+          totalFilteredRooms: filteredFloors.reduce(
+            (sum: number, f: any) => sum + f.rooms.length,
+            0,
+          ),
         };
       })
-      .filter((b: any) => b.totalFilteredRooms > 0 || (!q && statusFilter === "all" && selectedBuildingId === "all"));
-  }, [rawBuildings, selectedBuildingId, selectedFloorId, statusFilter, searchQuery, sortBy, sortDir]);
+      .filter(
+        (b: any) =>
+          b.totalFilteredRooms > 0 ||
+          (!q && statusFilter === "all" && selectedBuildingId === "all"),
+      );
+  }, [
+    rawBuildings,
+    selectedBuildingId,
+    selectedFloorId,
+    statusFilter,
+    searchQuery,
+    sortBy,
+    sortDir,
+  ]);
 
   // Flat list of rooms for table view and export (sorted according to user selection)
   const flatRooms = useMemo(() => {
@@ -342,25 +477,42 @@ export function HousingMapReportTab({
             [ar ? "المبنى" : "Building"]: r.buildingName,
             [ar ? "الدور" : "Floor"]: r.floorName,
             [ar ? "رقم الغرفة" : "Room Number"]: r.roomNumber,
-            [ar ? "نوع الغرفة" : "Room Type"]: r.roomType || (ar ? "عادية" : "Standard"),
+            [ar ? "نوع الغرفة" : "Room Type"]:
+              r.roomType || (ar ? "عادية" : "Standard"),
             [ar ? "حالة الإشغال" : "Occupancy Status"]:
               r.statusCategory === "available"
-                ? (ar ? "شاغرة" : "Vacant")
+                ? ar
+                  ? "شاغرة"
+                  : "Vacant"
                 : r.statusCategory === "occupied"
-                ? (ar ? "مشغولة" : "Occupied")
-                : r.statusCategory === "partial"
-                ? (ar ? "إشغال جزئي" : "Partial")
-                : (ar ? "صيانة" : "Out of Service"),
+                  ? ar
+                    ? "مشغولة"
+                    : "Occupied"
+                  : r.statusCategory === "partial"
+                    ? ar
+                      ? "إشغال جزئي"
+                      : "Partial"
+                    : ar
+                      ? "صيانة"
+                      : "Out of Service",
             [ar ? "حالة النظافة" : "Cleanliness"]:
               r.cleanlinessStatus === "clean"
-                ? (ar ? "نظيفة" : "Clean")
+                ? ar
+                  ? "نظيفة"
+                  : "Clean"
                 : r.cleanlinessStatus === "dirty"
-                ? (ar ? "متسخة" : "Dirty")
-                : (ar ? "مفتشة" : "Inspected"),
+                  ? ar
+                    ? "متسخة"
+                    : "Dirty"
+                  : ar
+                    ? "مفتشة"
+                    : "Inspected",
             [ar ? "سعة الأسرة" : "Bed Capacity"]: r.capacity,
             [ar ? "الأسرة المشغولة" : "Occupied Beds"]: r.occupiedCount,
             [ar ? "الأسرة الشاغرة" : "Available Beds"]: r.availableBeds,
-            [ar ? "رقم السرير" : "Bed #"]: ar ? `سرير ${info.bedNum}` : `Bed ${info.bedNum}`,
+            [ar ? "رقم السرير" : "Bed #"]: ar
+              ? `سرير ${info.bedNum}`
+              : `Bed ${info.bedNum}`,
             [ar ? "اسم الموظف / المقيم" : "Resident Name"]: info.name,
             [ar ? "كود الموظف" : "Employee Code"]: info.code,
             [ar ? "القسم" : "Department"]: info.dept,
@@ -374,19 +526,28 @@ export function HousingMapReportTab({
           [ar ? "المبنى" : "Building"]: r.buildingName,
           [ar ? "الدور" : "Floor"]: r.floorName,
           [ar ? "رقم الغرفة" : "Room Number"]: r.roomNumber,
-          [ar ? "نوع الغرفة" : "Room Type"]: r.roomType || (ar ? "عادية" : "Standard"),
+          [ar ? "نوع الغرفة" : "Room Type"]:
+            r.roomType || (ar ? "عادية" : "Standard"),
           [ar ? "حالة الإشغال" : "Occupancy Status"]: ar ? "شاغرة" : "Vacant",
           [ar ? "حالة النظافة" : "Cleanliness"]:
             r.cleanlinessStatus === "clean"
-              ? (ar ? "نظيفة" : "Clean")
+              ? ar
+                ? "نظيفة"
+                : "Clean"
               : r.cleanlinessStatus === "dirty"
-              ? (ar ? "متسخة" : "Dirty")
-              : (ar ? "مفتشة" : "Inspected"),
+                ? ar
+                  ? "متسخة"
+                  : "Dirty"
+                : ar
+                  ? "مفتشة"
+                  : "Inspected",
           [ar ? "سعة الأسرة" : "Bed Capacity"]: r.capacity,
           [ar ? "الأسرة المشغولة" : "Occupied Beds"]: 0,
           [ar ? "الأسرة الشاغرة" : "Available Beds"]: r.capacity,
           [ar ? "رقم السرير" : "Bed #"]: "—",
-          [ar ? "اسم الموظف / المقيم" : "Resident Name"]: ar ? "شاغر (لا يوجد مقيم)" : "Vacant",
+          [ar ? "اسم الموظف / المقيم" : "Resident Name"]: ar
+            ? "شاغر (لا يوجد مقيم)"
+            : "Vacant",
           [ar ? "كود الموظف" : "Employee Code"]: "—",
           [ar ? "القسم" : "Department"]: "—",
           [ar ? "المسمى الوظيفي" : "Job Title"]: "—",
@@ -398,10 +559,19 @@ export function HousingMapReportTab({
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, ar ? "خريطة السكن" : "Housing Map");
+    XLSX.utils.book_append_sheet(
+      workbook,
+      worksheet,
+      ar ? "خريطة السكن" : "Housing Map",
+    );
 
-    const currentPropName = properties.find((p) => p.id === selectedPropertyId)?.name || "Housing";
-    writeSunriseWorkbook(workbook, getExportFileName(`Housing_Map_Report_${currentPropName}`, "xlsx"), { rtl: ar });
+    const currentPropName =
+      properties.find((p) => p.id === selectedPropertyId)?.name || "Housing";
+    writeSunriseWorkbook(
+      workbook,
+      getExportFileName(`Housing_Map_Report_${currentPropName}`, "xlsx"),
+      { rtl: ar },
+    );
   };
 
   // Print Luxury Opera PMS Report Handler
@@ -418,7 +588,11 @@ export function HousingMapReportTab({
     { key: "capacity", header: "Capacity", headerAr: "سعة الأسرة" },
     { key: "occupied", header: "Occupied", headerAr: "الأسرة المشغولة" },
     { key: "available", header: "Available", headerAr: "الأسرة الشاغرة" },
-    { key: "residents", header: "Residents & Beds", headerAr: "المقيمين والنزلاء بالأسرة" },
+    {
+      key: "residents",
+      header: "Residents & Beds",
+      headerAr: "المقيمين والنزلاء بالأسرة",
+    },
   ];
 
   const handlePrint = async (targetMode: "table" | "map" = viewMode) => {
@@ -435,23 +609,39 @@ export function HousingMapReportTab({
                 return `${info.name}${codeStr}${deptStr} - سرير #${info.bedNum}`;
               })
               .join(" | ")
-          : (ar ? "شاغرة بالكامل" : "Fully Vacant");
+          : ar
+            ? "شاغرة بالكامل"
+            : "Fully Vacant";
 
       const statusText =
         r.statusCategory === "available"
-          ? (ar ? "شاغرة" : "Vacant")
+          ? ar
+            ? "شاغرة"
+            : "Vacant"
           : r.statusCategory === "occupied"
-          ? (ar ? "مشغولة" : "Occupied")
-          : r.statusCategory === "partial"
-          ? (ar ? "إشغال جزئي" : "Partial")
-          : (ar ? "صيانة" : "Out of Service");
+            ? ar
+              ? "مشغولة"
+              : "Occupied"
+            : r.statusCategory === "partial"
+              ? ar
+                ? "إشغال جزئي"
+                : "Partial"
+              : ar
+                ? "صيانة"
+                : "Out of Service";
 
       const cleanlinessText =
         r.cleanlinessStatus === "clean"
-          ? (ar ? "نظيفة" : "Clean")
+          ? ar
+            ? "نظيفة"
+            : "Clean"
           : r.cleanlinessStatus === "dirty"
-          ? (ar ? "متسخة" : "Dirty")
-          : (ar ? "مفتشة" : "Inspected");
+            ? ar
+              ? "متسخة"
+              : "Dirty"
+            : ar
+              ? "مفتشة"
+              : "Inspected";
 
       records.push({
         building: r.buildingName,
@@ -481,7 +671,10 @@ export function HousingMapReportTab({
     }
   }, [onRegisterExport, flatRooms, selectedPropertyId, ar, viewMode]);
 
-  const getStatusBadge = (statusCategory: string, cleanlinessStatus?: string) => {
+  const getStatusBadge = (
+    statusCategory: string,
+    cleanlinessStatus?: string,
+  ) => {
     switch (statusCategory) {
       case "available":
         return (
@@ -520,19 +713,28 @@ export function HousingMapReportTab({
     switch (cleanlinessStatus) {
       case "clean":
         return (
-          <Badge variant="outline" className="text-[9px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+          <Badge
+            variant="outline"
+            className="text-[9px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+          >
             {ar ? "نظيفة" : "Clean"}
           </Badge>
         );
       case "dirty":
         return (
-          <Badge variant="outline" className="text-[9px] bg-red-500/10 text-red-600 border-red-500/30">
+          <Badge
+            variant="outline"
+            className="text-[9px] bg-red-500/10 text-red-600 border-red-500/30"
+          >
             {ar ? "متسخة" : "Dirty"}
           </Badge>
         );
       case "inspected":
         return (
-          <Badge variant="outline" className="text-[9px] bg-sky-500/10 text-sky-600 border-sky-500/30">
+          <Badge
+            variant="outline"
+            className="text-[9px] bg-sky-500/10 text-sky-600 border-sky-500/30"
+          >
             {ar ? "مفتشة" : "Inspected"}
           </Badge>
         );
@@ -548,16 +750,24 @@ export function HousingMapReportTab({
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-black text-foreground">
-              {ar ? "تقرير خريطة السكن وتوزيع الغرف والأسرة" : "Housing Map & Room Structure Report"}
+              {ar
+                ? "تقرير خريطة السكن وتوزيع الغرف والأسرة"
+                : "Housing Map & Room Structure Report"}
             </h1>
             <p className="text-xs text-muted-foreground mt-1">
-              {properties.find((p) => p.id === selectedPropertyId)?.name || ""} · {ar ? "تاريخ الإصدار:" : "Generated on:"}{" "}
+              {properties.find((p) => p.id === selectedPropertyId)?.name || ""}{" "}
+              · {ar ? "تاريخ الإصدار:" : "Generated on:"}{" "}
               {new Date().toLocaleString(ar ? "ar-EG" : "en-US")}
             </p>
           </div>
           <div className="text-right font-mono text-xs">
-            <p>{ar ? "إجمالي الغرف:" : "Total Rooms:"} {summary.totalRooms}</p>
-            <p>{ar ? "إجمالي الأسرة:" : "Total Beds:"} {summary.totalBeds} ({summary.occupiedBeds} {ar ? "مشغول" : "occ"})</p>
+            <p>
+              {ar ? "إجمالي الغرف:" : "Total Rooms:"} {summary.totalRooms}
+            </p>
+            <p>
+              {ar ? "إجمالي الأسرة:" : "Total Beds:"} {summary.totalBeds} (
+              {summary.occupiedBeds} {ar ? "مشغول" : "occ"})
+            </p>
           </div>
         </div>
       </div>
@@ -571,8 +781,14 @@ export function HousingMapReportTab({
             </div>
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight flex items-center gap-2">
-                <span>{ar ? "خريطة وتفصيل السكن والمباني" : "Housing Map & Structure Report"}</span>
-                {isRefetching && <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />}
+                <span>
+                  {ar
+                    ? "خريطة وتفصيل السكن والمباني"
+                    : "Housing Map & Structure Report"}
+                </span>
+                {isRefetching && (
+                  <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
+                )}
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {ar
@@ -592,11 +808,17 @@ export function HousingMapReportTab({
               onValueChange={(val) => setSelectedPropertyId(Number(val))}
             >
               <SelectTrigger className="w-[180px] h-9 text-xs font-semibold rounded-xl">
-                <SelectValue placeholder={ar ? "اختر الفرع" : "Select Property"} />
+                <SelectValue
+                  placeholder={ar ? "اختر الفرع" : "Select Property"}
+                />
               </SelectTrigger>
               <SelectContent>
                 {properties.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)} className="text-xs">
+                  <SelectItem
+                    key={p.id}
+                    value={String(p.id)}
+                    className="text-xs"
+                  >
                     {p.name}
                   </SelectItem>
                 ))}
@@ -642,7 +864,12 @@ export function HousingMapReportTab({
             className="h-9 w-9 p-0 rounded-xl"
             title={ar ? "تحديث البيانات" : "Refresh"}
           >
-            <RefreshCw className={cn("w-4 h-4", isRefetching && "animate-spin text-primary")} />
+            <RefreshCw
+              className={cn(
+                "w-4 h-4",
+                isRefetching && "animate-spin text-primary",
+              )}
+            />
           </Button>
         </div>
       </div>
@@ -758,7 +985,11 @@ export function HousingMapReportTab({
             <Search className="w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
-              placeholder={ar ? "ابحث برقم الغرفة، اسم الموظف، القسم..." : "Search room, resident, department..."}
+              placeholder={
+                ar
+                  ? "ابحث برقم الغرفة، اسم الموظف، القسم..."
+                  : "Search room, resident, department..."
+              }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="ps-9 h-9 text-xs rounded-xl"
@@ -768,16 +999,25 @@ export function HousingMapReportTab({
           {/* Filter Dropdowns */}
           <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
             {/* Building Filter */}
-            <Select value={selectedBuildingId} onValueChange={setSelectedBuildingId}>
+            <Select
+              value={selectedBuildingId}
+              onValueChange={setSelectedBuildingId}
+            >
               <SelectTrigger className="w-[150px] h-9 text-xs rounded-xl">
-                <SelectValue placeholder={ar ? "كل المباني" : "All Buildings"} />
+                <SelectValue
+                  placeholder={ar ? "كل المباني" : "All Buildings"}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="text-xs">
                   {ar ? "جميع المباني" : "All Buildings"}
                 </SelectItem>
                 {rawBuildings.map((b: any) => (
-                  <SelectItem key={b.id} value={String(b.id)} className="text-xs">
+                  <SelectItem
+                    key={b.id}
+                    value={String(b.id)}
+                    className="text-xs"
+                  >
                     {b.name}
                   </SelectItem>
                 ))}
@@ -794,7 +1034,11 @@ export function HousingMapReportTab({
                   {ar ? "جميع الأدوار" : "All Floors"}
                 </SelectItem>
                 {availableFloors.map((f: any) => (
-                  <SelectItem key={f.id} value={String(f.id)} className="text-xs">
+                  <SelectItem
+                    key={f.id}
+                    value={String(f.id)}
+                    className="text-xs"
+                  >
                     {f.displayName}
                   </SelectItem>
                 ))}
@@ -807,13 +1051,31 @@ export function HousingMapReportTab({
                 <SelectValue placeholder={ar ? "كل الحالات" : "All Statuses"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all" className="text-xs">{ar ? "جميع الحالات" : "All Statuses"}</SelectItem>
-                <SelectItem value="room_and_bed_vacant" className="text-xs">{ar ? "روم آند بد فيكنت (الكل)" : "Room & Bed Vacant"}</SelectItem>
-                <SelectItem value="room_vacant" className="text-xs">{ar ? "روم فيكنت (غرف فارغة بالكامل)" : "Room Vacant (Only Full Rooms)"}</SelectItem>
-                <SelectItem value="bed_vacant" className="text-xs">{ar ? "بد فيكنت (أسِرّة شاغرة)" : "Bed Vacant (Only Vacant Beds)"}</SelectItem>
-                <SelectItem value="occupied" className="text-xs">{ar ? "مشغولة بالكامل" : "Fully Occupied"}</SelectItem>
-                <SelectItem value="dirty" className="text-xs">{ar ? "تحتاج تنظيف" : "Dirty"}</SelectItem>
-                <SelectItem value="maintenance" className="text-xs">{ar ? "صيانة / خارج الخدمة" : "Maintenance"}</SelectItem>
+                <SelectItem value="all" className="text-xs">
+                  {ar ? "جميع الحالات" : "All Statuses"}
+                </SelectItem>
+                <SelectItem value="room_and_bed_vacant" className="text-xs">
+                  {ar ? "روم آند بد فيكنت (الكل)" : "Room & Bed Vacant"}
+                </SelectItem>
+                <SelectItem value="room_vacant" className="text-xs">
+                  {ar
+                    ? "روم فيكنت (غرف فارغة بالكامل)"
+                    : "Room Vacant (Only Full Rooms)"}
+                </SelectItem>
+                <SelectItem value="bed_vacant" className="text-xs">
+                  {ar
+                    ? "بد فيكنت (أسِرّة شاغرة)"
+                    : "Bed Vacant (Only Vacant Beds)"}
+                </SelectItem>
+                <SelectItem value="occupied" className="text-xs">
+                  {ar ? "مشغولة بالكامل" : "Fully Occupied"}
+                </SelectItem>
+                <SelectItem value="dirty" className="text-xs">
+                  {ar ? "تحتاج تنظيف" : "Dirty"}
+                </SelectItem>
+                <SelectItem value="maintenance" className="text-xs">
+                  {ar ? "صيانة / خارج الخدمة" : "Maintenance"}
+                </SelectItem>
               </SelectContent>
             </Select>
 
@@ -852,9 +1114,19 @@ export function HousingMapReportTab({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setSortDir((prev) => (prev === "asc" ? "desc" : "asc"))}
+                onClick={() =>
+                  setSortDir((prev) => (prev === "asc" ? "desc" : "asc"))
+                }
                 className="h-9 px-2.5 rounded-xl border-border/60 hover:bg-muted font-bold text-xs"
-                title={sortDir === "asc" ? (ar ? "ترتيب تصاعدي (اضغط للتنازلي)" : "Ascending (Click for DESC)") : (ar ? "ترتيب تنازلي (اضغط للتصاعدي)" : "Descending (Click for ASC)")}
+                title={
+                  sortDir === "asc"
+                    ? ar
+                      ? "ترتيب تصاعدي (اضغط للتنازلي)"
+                      : "Ascending (Click for DESC)"
+                    : ar
+                      ? "ترتيب تنازلي (اضغط للتصاعدي)"
+                      : "Descending (Click for ASC)"
+                }
               >
                 {sortDir === "asc" ? (
                   <ArrowUp className="w-3.5 h-3.5 text-primary" />
@@ -862,7 +1134,13 @@ export function HousingMapReportTab({
                   <ArrowDown className="w-3.5 h-3.5 text-primary" />
                 )}
                 <span className="text-[10px] font-mono ms-1">
-                  {sortDir === "asc" ? (ar ? "تصاعدي" : "ASC") : (ar ? "تنازلي" : "DESC")}
+                  {sortDir === "asc"
+                    ? ar
+                      ? "تصاعدي"
+                      : "ASC"
+                    : ar
+                      ? "تنازلي"
+                      : "DESC"}
                 </span>
               </Button>
             </div>
@@ -879,10 +1157,14 @@ export function HousingMapReportTab({
         <Card className="p-12 text-center text-muted-foreground">
           <Building2 className="w-12 h-12 mx-auto mb-3 opacity-20" />
           <p className="font-bold text-base text-foreground">
-            {ar ? "لا توجد غرف تطابق شروط التصفية" : "No rooms match your filter criteria"}
+            {ar
+              ? "لا توجد غرف تطابق شروط التصفية"
+              : "No rooms match your filter criteria"}
           </p>
           <p className="text-xs mt-1">
-            {ar ? "جرب تغيير مصطلح البحث أو اختيار مبنى/دور آخر" : "Try modifying your search query or building selection"}
+            {ar
+              ? "جرب تغيير مصطلح البحث أو اختيار مبنى/دور آخر"
+              : "Try modifying your search query or building selection"}
           </p>
         </Card>
       ) : viewMode === "map" ? (
@@ -907,14 +1189,20 @@ export function HousingMapReportTab({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-base text-foreground">{building.name}</h3>
-                        <Badge variant="outline" className="text-[11px] font-mono">
+                        <h3 className="font-bold text-base text-foreground">
+                          {building.name}
+                        </h3>
+                        <Badge
+                          variant="outline"
+                          className="text-[11px] font-mono"
+                        >
                           {building.code}
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {building.floors?.length || 0} {ar ? "أدوار" : "floors"} ·{" "}
-                        {building.totalFilteredRooms} {ar ? "غرف مطابقة" : "matching rooms"}
+                        {building.floors?.length || 0} {ar ? "أدوار" : "floors"}{" "}
+                        · {building.totalFilteredRooms}{" "}
+                        {ar ? "غرف مطابقة" : "matching rooms"}
                       </p>
                     </div>
                   </div>
@@ -924,7 +1212,9 @@ export function HousingMapReportTab({
                       <span className="text-muted-foreground">
                         {ar ? "إشغال المبنى:" : "Occupancy:"}
                       </span>
-                      <strong className="text-primary font-bold">{building.occupancyRate || 0}%</strong>
+                      <strong className="text-primary font-bold">
+                        {building.occupancyRate || 0}%
+                      </strong>
                     </div>
                     {isBExpanded ? (
                       <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -953,10 +1243,15 @@ export function HousingMapReportTab({
                             <div className="flex items-center gap-2">
                               <Layers className="w-4 h-4 text-indigo-500" />
                               <span className="text-xs font-bold text-foreground">
-                                {floor.name || `${ar ? "الدور" : "Floor"} ${floor.floorNumber}`}
+                                {floor.name ||
+                                  `${ar ? "الدور" : "Floor"} ${floor.floorNumber}`}
                               </span>
-                              <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-mono">
-                                {floor.rooms?.length || 0} {ar ? "غرفة" : "rooms"}
+                              <Badge
+                                variant="secondary"
+                                className="text-[10px] h-4 px-1.5 font-mono"
+                              >
+                                {floor.rooms?.length || 0}{" "}
+                                {ar ? "غرفة" : "rooms"}
                               </Badge>
                             </div>
 
@@ -991,31 +1286,42 @@ export function HousingMapReportTab({
                                             {room.roomNumber}
                                           </span>
                                           <span className="text-[10px] text-muted-foreground">
-                                            {room.roomType || (ar ? "عادية" : "Standard")}
+                                            {room.roomType ||
+                                              (ar ? "عادية" : "Standard")}
                                           </span>
                                         </div>
                                       </div>
                                       <div className="flex flex-col items-end gap-1">
                                         {getStatusBadge(room.statusCategory)}
-                                        {getCleanlinessBadge(room.cleanlinessStatus)}
+                                        {getCleanlinessBadge(
+                                          room.cleanlinessStatus,
+                                        )}
                                       </div>
                                     </div>
 
                                     {/* Bed Capacity Indicator */}
                                     <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground border-t border-border/40 pt-1.5">
-                                      <span>{ar ? "سعة الأسرة:" : "Beds:"}</span>
+                                      <span>
+                                        {ar ? "سعة الأسرة:" : "Beds:"}
+                                      </span>
                                       <span className="font-bold text-foreground">
-                                        {room.occupiedCount} / {room.capacity} {ar ? "مشغول" : "occ"}
+                                        {room.occupiedCount} / {room.capacity}{" "}
+                                        {ar ? "مشغول" : "occ"}
                                       </span>
                                     </div>
 
                                     {/* Bed Slots List */}
                                     <div className="space-y-1.5 pt-0.5">
-                                      {Array.from({ length: room.capacity || 2 }).map((_, slotIdx) => {
+                                      {Array.from({
+                                        length: room.capacity || 2,
+                                      }).map((_, slotIdx) => {
                                         const resident = residents[slotIdx];
 
                                         if (resident) {
-                                          const info = getResidentInfo(resident, slotIdx);
+                                          const info = getResidentInfo(
+                                            resident,
+                                            slotIdx,
+                                          );
                                           return (
                                             <div
                                               key={slotIdx}
@@ -1034,8 +1340,15 @@ export function HousingMapReportTab({
                                                   </span>
                                                 </div>
                                                 <p className="text-[10px] text-muted-foreground truncate">
-                                                  {info.code !== "-" && <span className="font-mono me-1">[{info.code}]</span>}
-                                                  {info.dept} {info.job !== "-" ? `· ${info.job}` : ""}
+                                                  {info.code !== "-" && (
+                                                    <span className="font-mono me-1">
+                                                      [{info.code}]
+                                                    </span>
+                                                  )}
+                                                  {info.dept}{" "}
+                                                  {info.job !== "-"
+                                                    ? `· ${info.job}`
+                                                    : ""}
                                                 </p>
                                               </div>
                                             </div>
@@ -1051,7 +1364,9 @@ export function HousingMapReportTab({
                                               <DoorOpen className="w-3 h-3 opacity-40" />
                                             </div>
                                             <span className="text-[11px] font-medium">
-                                              {ar ? `سرير ${slotIdx + 1}: شاغر` : `Bed ${slotIdx + 1}: Vacant`}
+                                              {ar
+                                                ? `سرير ${slotIdx + 1}: شاغر`
+                                                : `Bed ${slotIdx + 1}: Vacant`}
                                             </span>
                                           </div>
                                         );
@@ -1084,7 +1399,11 @@ export function HousingMapReportTab({
                   >
                     <span>{ar ? "المبنى" : "Building"}</span>
                     {sortBy === "buildingName" ? (
-                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      sortDir === "asc" ? (
+                        <ArrowUp className="w-3 h-3 text-primary inline ms-1" />
+                      ) : (
+                        <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
                     )}
@@ -1095,7 +1414,11 @@ export function HousingMapReportTab({
                   >
                     <span>{ar ? "الدور" : "Floor"}</span>
                     {sortBy === "floor" ? (
-                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      sortDir === "asc" ? (
+                        <ArrowUp className="w-3 h-3 text-primary inline ms-1" />
+                      ) : (
+                        <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
                     )}
@@ -1106,19 +1429,29 @@ export function HousingMapReportTab({
                   >
                     <span>{ar ? "رقم الغرفة" : "Room"}</span>
                     {sortBy === "roomNumber" ? (
-                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      sortDir === "asc" ? (
+                        <ArrowUp className="w-3 h-3 text-primary inline ms-1" />
+                      ) : (
+                        <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
                     )}
                   </th>
-                  <th className="py-3 px-3 text-start">{ar ? "النوع" : "Type"}</th>
+                  <th className="py-3 px-3 text-start">
+                    {ar ? "النوع" : "Type"}
+                  </th>
                   <th
                     onClick={() => toggleSort("status")}
                     className="py-3 px-3 text-center cursor-pointer select-none hover:text-foreground transition-colors group"
                   >
                     <span>{ar ? "الحالة" : "Status"}</span>
                     {sortBy === "status" ? (
-                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      sortDir === "asc" ? (
+                        <ArrowUp className="w-3 h-3 text-primary inline ms-1" />
+                      ) : (
+                        <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
                     )}
@@ -1129,7 +1462,11 @@ export function HousingMapReportTab({
                   >
                     <span>{ar ? "النظافة" : "Clean"}</span>
                     {sortBy === "cleanliness" ? (
-                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      sortDir === "asc" ? (
+                        <ArrowUp className="w-3 h-3 text-primary inline ms-1" />
+                      ) : (
+                        <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
                     )}
@@ -1140,7 +1477,11 @@ export function HousingMapReportTab({
                   >
                     <span>{ar ? "الأسرة" : "Beds"}</span>
                     {sortBy === "occupancy" ? (
-                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      sortDir === "asc" ? (
+                        <ArrowUp className="w-3 h-3 text-primary inline ms-1" />
+                      ) : (
+                        <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
                     )}
@@ -1149,9 +1490,15 @@ export function HousingMapReportTab({
                     onClick={() => toggleSort("residents")}
                     className="py-3 px-3 text-start cursor-pointer select-none hover:text-foreground transition-colors group"
                   >
-                    <span>{ar ? "المقيمين والنزلاء بالأسرة" : "Residents & Beds"}</span>
+                    <span>
+                      {ar ? "المقيمين والنزلاء بالأسرة" : "Residents & Beds"}
+                    </span>
                     {sortBy === "residents" ? (
-                      sortDir === "asc" ? <ArrowUp className="w-3 h-3 text-primary inline ms-1" /> : <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      sortDir === "asc" ? (
+                        <ArrowUp className="w-3 h-3 text-primary inline ms-1" />
+                      ) : (
+                        <ArrowDown className="w-3 h-3 text-primary inline ms-1" />
+                      )
                     ) : (
                       <ArrowUpDown className="w-3 h-3 opacity-30 group-hover:opacity-70 inline ms-1" />
                     )}
@@ -1160,13 +1507,28 @@ export function HousingMapReportTab({
               </thead>
               <tbody>
                 {flatRooms.map((r: any) => (
-                  <tr key={r.id} className="border-b border-border/40 hover:bg-muted/30 transition-colors">
-                    <td className="py-2.5 px-3 font-semibold text-foreground">{r.buildingName}</td>
-                    <td className="py-2.5 px-3 text-muted-foreground">{r.floorName}</td>
-                    <td className="py-2.5 px-3 font-mono font-bold text-foreground">{r.roomNumber}</td>
-                    <td className="py-2.5 px-3 text-muted-foreground">{r.roomType || "-"}</td>
-                    <td className="py-2.5 px-3 text-center">{getStatusBadge(r.statusCategory)}</td>
-                    <td className="py-2.5 px-3 text-center">{getCleanlinessBadge(r.cleanlinessStatus)}</td>
+                  <tr
+                    key={r.id}
+                    className="border-b border-border/40 hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="py-2.5 px-3 font-semibold text-foreground">
+                      {r.buildingName}
+                    </td>
+                    <td className="py-2.5 px-3 text-muted-foreground">
+                      {r.floorName}
+                    </td>
+                    <td className="py-2.5 px-3 font-mono font-bold text-foreground">
+                      {r.roomNumber}
+                    </td>
+                    <td className="py-2.5 px-3 text-muted-foreground">
+                      {r.roomType || "-"}
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
+                      {getStatusBadge(r.statusCategory)}
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
+                      {getCleanlinessBadge(r.cleanlinessStatus)}
+                    </td>
                     <td className="py-2.5 px-3 text-center font-mono font-bold">
                       {r.occupiedCount} / {r.capacity}
                     </td>
@@ -1176,15 +1538,23 @@ export function HousingMapReportTab({
                           {r.residents.map((res: any, idx: number) => {
                             const info = getResidentInfo(res, idx);
                             return (
-                              <div key={idx} className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-bold text-foreground text-xs">{info.name}</span>
+                              <div
+                                key={idx}
+                                className="flex items-center gap-1.5 flex-wrap"
+                              >
+                                <span className="font-bold text-foreground text-xs">
+                                  {info.name}
+                                </span>
                                 {info.code !== "-" && (
                                   <span className="text-[10px] font-mono text-muted-foreground bg-muted/60 px-1 rounded">
                                     [{info.code}]
                                   </span>
                                 )}
                                 {info.dept !== "-" && (
-                                  <Badge variant="outline" className="text-[9px] py-0 px-1 bg-slate-50 dark:bg-slate-900">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[9px] py-0 px-1 bg-slate-50 dark:bg-slate-900"
+                                  >
                                     {info.dept}
                                   </Badge>
                                 )}
@@ -1196,7 +1566,9 @@ export function HousingMapReportTab({
                           })}
                         </div>
                       ) : (
-                        <span className="text-muted-foreground/60 italic">{ar ? "شاغرة (لا يوجد مقيمين)" : "Vacant"}</span>
+                        <span className="text-muted-foreground/60 italic">
+                          {ar ? "شاغرة (لا يوجد مقيمين)" : "Vacant"}
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -1212,7 +1584,9 @@ export function HousingMapReportTab({
         onOpenChange={setIsStudioOpen}
         title="Housing Map & Room Structure Report"
         titleAr="تقرير خريطة السكن وتوزيع الغرف والأسرة"
-        propertyName={properties.find((p: any) => p.id === selectedPropertyId)?.name}
+        propertyName={
+          properties.find((p: any) => p.id === selectedPropertyId)?.name
+        }
         availableColumns={studioColumns}
         allRows={studioRows}
         initialLanguage={ar ? "ar" : "en"}

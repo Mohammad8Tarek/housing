@@ -10,28 +10,50 @@ export function initHousekeepingCron() {
   cron.schedule("0 0 * * *", async () => {
     logger.info("Starting daily housekeeping room status reset...");
     try {
-      const allProperties = await db.select({ id: propertiesTable.id }).from(propertiesTable);
+      const allProperties = await db
+        .select({ id: propertiesTable.id })
+        .from(propertiesTable);
 
       for (const prop of allProperties) {
         try {
           await withTenant(prop.id, async (tenantDb) => {
-            
             await tenantDb
               .update(roomsTable)
               .set({ status: "dirty" })
-              .where(inArray(roomsTable.status, ["available", "clean", "vacant_dirty"]));
-              
+              .where(
+                inArray(roomsTable.status, [
+                  "available",
+                  "clean",
+                  "vacant_dirty",
+                ]),
+              );
+
             await tenantDb
               .update(roomsTable)
               .set({ status: "occupied_dirty" })
-              .where(inArray(roomsTable.status, ["occupied", "occupied_clean", "occupied_dirty"]));
+              .where(
+                inArray(roomsTable.status, [
+                  "occupied",
+                  "occupied_clean",
+                  "occupied_dirty",
+                ]),
+              );
 
-            logger.info({ propertyId: prop.id }, "Reset rooms to dirty for housekeeping");
+            logger.info(
+              { propertyId: prop.id },
+              "Reset rooms to dirty for housekeeping",
+            );
             broadcastToProperty(prop.id, { module: "rooms", action: "sync" });
-            broadcastToProperty(prop.id, { module: "dashboard", action: "sync" });
+            broadcastToProperty(prop.id, {
+              module: "dashboard",
+              action: "sync",
+            });
           });
         } catch (err) {
-          logger.error({ err, propertyId: prop.id }, "Failed to run housekeeping cron for property");
+          logger.error(
+            { err, propertyId: prop.id },
+            "Failed to run housekeeping cron for property",
+          );
         }
       }
       logger.info("Daily housekeeping room status reset complete.");

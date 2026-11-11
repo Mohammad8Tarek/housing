@@ -56,7 +56,9 @@ export async function fetchAllPages<T = any>(
 
   const pages = Math.min(Math.ceil(total / pageSize), MAX_PAGES);
   const rest = await Promise.all(
-    Array.from({ length: pages - 1 }, (_, i) => customFetch<unknown>(url(i + 2))),
+    Array.from({ length: pages - 1 }, (_, i) =>
+      customFetch<unknown>(url(i + 2)),
+    ),
   );
   // Rows inserted while paging can shift an item onto two pages; keep the first copy.
   const seen = new Set<unknown>();

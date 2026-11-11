@@ -15,7 +15,8 @@ export default function HousekeepingPage() {
   const { language } = useLanguage();
   const ar = language === "ar";
 
-  const effectivePropId = activePropertyId === "all" ? properties[0]?.id : activePropertyId;
+  const effectivePropId =
+    activePropertyId === "all" ? properties[0]?.id : activePropertyId;
 
   const { data: bData, isLoading: bLoading } = useListBuildings(
     {
@@ -27,7 +28,7 @@ export default function HousekeepingPage() {
         queryKey: ["/api/buildings", effectivePropId],
         enabled: !!effectivePropId,
       },
-    }
+    },
   );
 
   const { data: fData, isLoading: fLoading } = useListFloors(
@@ -40,7 +41,7 @@ export default function HousekeepingPage() {
         queryKey: ["/api/floors", effectivePropId],
         enabled: !!effectivePropId,
       },
-    }
+    },
   );
 
   const { data: _rDataWrapper, isLoading: rLoading } = useListRooms(
@@ -51,7 +52,7 @@ export default function HousekeepingPage() {
         enabled: !!effectivePropId,
         staleTime: 0,
       },
-    }
+    },
   );
 
   if (!activePropertyId) {
@@ -87,7 +88,9 @@ export default function HousekeepingPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              {ar ? "إدارة نظافة الغرف (الهاوس كيبنج)" : "Housekeeping & Room Cleaning"}
+              {ar
+                ? "إدارة نظافة الغرف (الهاوس كيبنج)"
+                : "Housekeeping & Room Cleaning"}
             </h1>
           </div>
         </div>

@@ -81,12 +81,19 @@ export function TicketsFilterPanel({
               <Building2 className="w-3.5 h-3.5 text-primary" />
               <span>{ar ? "الفندق / السكن" : "Property / Housing"}</span>
             </Label>
-            <Select value={propertyFilter} onValueChange={(v) => setPropertyFilter(v)}>
+            <Select
+              value={propertyFilter}
+              onValueChange={(v) => setPropertyFilter(v)}
+            >
               <SelectTrigger className="h-9 text-xs bg-background">
-                <SelectValue placeholder={ar ? "جميع الفنادق والوحدات" : "All Properties"} />
+                <SelectValue
+                  placeholder={ar ? "جميع الفنادق والوحدات" : "All Properties"}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{ar ? "جميع الفنادق والوحدات" : "All Properties"}</SelectItem>
+                <SelectItem value="all">
+                  {ar ? "جميع الفنادق والوحدات" : "All Properties"}
+                </SelectItem>
                 {properties.map((p) => (
                   <SelectItem key={p.id} value={String(p.id)}>
                     {p.displayName || p.name}
@@ -128,16 +135,29 @@ export function TicketsFilterPanel({
               <CheckCircle className="w-3.5 h-3.5 text-primary" />
               <span>{ar ? "الحالة" : "Status"}</span>
             </Label>
-            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => setStatusFilter(v)}
+            >
               <SelectTrigger className="h-9 text-xs bg-background">
                 <SelectValue placeholder={ar ? "كل الحالات" : "All Statuses"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{ar ? "كل الحالات" : "All Statuses"}</SelectItem>
-                <SelectItem value="open">{ar ? "لم تبدأ / مفتوحة" : "Not Started"}</SelectItem>
-                <SelectItem value="in_progress">{ar ? "قيد التنفيذ" : "In Progress"}</SelectItem>
-                <SelectItem value="resolved">{ar ? "تم الإنجاز" : "Order Completed"}</SelectItem>
-                <SelectItem value="closed">{ar ? "مغلقة" : "Closed"}</SelectItem>
+                <SelectItem value="all">
+                  {ar ? "كل الحالات" : "All Statuses"}
+                </SelectItem>
+                <SelectItem value="open">
+                  {ar ? "لم تبدأ / مفتوحة" : "Not Started"}
+                </SelectItem>
+                <SelectItem value="in_progress">
+                  {ar ? "قيد التنفيذ" : "In Progress"}
+                </SelectItem>
+                <SelectItem value="resolved">
+                  {ar ? "تم الإنجاز" : "Order Completed"}
+                </SelectItem>
+                <SelectItem value="closed">
+                  {ar ? "مغلقة" : "Closed"}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -151,22 +171,33 @@ export function TicketsFilterPanel({
               <Layers className="w-3.5 h-3.5 text-primary" />
               <span>{ar ? "النوع" : "Type"}</span>
             </Label>
-            <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v)}>
+            <Select
+              value={categoryFilter}
+              onValueChange={(v) => setCategoryFilter(v)}
+            >
               <SelectTrigger className="h-9 text-xs bg-background">
                 <SelectValue placeholder={ar ? "كل الأنواع" : "All Types"} />
               </SelectTrigger>
               <SelectContent>
                 {hasBoth && (
-                  <SelectItem value="all">{ar ? "كل الأنواع" : "All Types"}</SelectItem>
+                  <SelectItem value="all">
+                    {ar ? "كل الأنواع" : "All Types"}
+                  </SelectItem>
                 )}
                 {canViewMnt && (
-                  <SelectItem value="maintenance">{ar ? "صيانة فنية" : "Maintenance"}</SelectItem>
+                  <SelectItem value="maintenance">
+                    {ar ? "صيانة فنية" : "Maintenance"}
+                  </SelectItem>
                 )}
                 {canViewHsk && (
-                  <SelectItem value="housekeeping">{ar ? "هاوس كيبنج" : "Housekeeping"}</SelectItem>
+                  <SelectItem value="housekeeping">
+                    {ar ? "هاوس كيبنج" : "Housekeeping"}
+                  </SelectItem>
                 )}
                 {hasBoth && (
-                  <SelectItem value="general">{ar ? "عام" : "General"}</SelectItem>
+                  <SelectItem value="general">
+                    {ar ? "عام" : "General"}
+                  </SelectItem>
                 )}
               </SelectContent>
             </Select>
@@ -178,20 +209,33 @@ export function TicketsFilterPanel({
               <AlertCircle className="w-3.5 h-3.5 text-primary" />
               <span>{ar ? "الأولوية" : "Priority"}</span>
             </Label>
-            <Select value={priorityFilter || "all"} onValueChange={(v) => setPriorityFilter(v === "all" ? "" : v)}>
+            <Select
+              value={priorityFilter || "all"}
+              onValueChange={(v) => setPriorityFilter(v === "all" ? "" : v)}
+            >
               <SelectTrigger className="h-9 text-xs bg-background">
-                <SelectValue placeholder={ar ? "كل الأولويات" : "All Priorities"} />
+                <SelectValue
+                  placeholder={ar ? "كل الأولويات" : "All Priorities"}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{ar ? "كل الأولويات" : "All Priorities"}</SelectItem>
+                <SelectItem value="all">
+                  {ar ? "كل الأولويات" : "All Priorities"}
+                </SelectItem>
                 {PRIORITIES.map((p) => (
                   <SelectItem key={p} value={p}>
                     <div className="flex items-center gap-1.5">
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        p === "URGENT" ? "bg-red-500" :
-                        p === "HIGH" ? "bg-orange-500" :
-                        p === "MEDIUM" ? "bg-yellow-500" : "bg-slate-400"
-                      }`} />
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          p === "URGENT"
+                            ? "bg-red-500"
+                            : p === "HIGH"
+                              ? "bg-orange-500"
+                              : p === "MEDIUM"
+                                ? "bg-yellow-500"
+                                : "bg-slate-400"
+                        }`}
+                      />
                       <span>{ar ? PRIORITY_AR[p] : p}</span>
                     </div>
                   </SelectItem>
@@ -206,14 +250,25 @@ export function TicketsFilterPanel({
               <HardHat className="w-3.5 h-3.5 text-primary" />
               <span>{ar ? "نطاق التعيين" : "Assignment"}</span>
             </Label>
-            <Select value={scopeFilter} onValueChange={(v: "all" | "me" | "unassigned") => setScopeFilter(v)}>
+            <Select
+              value={scopeFilter}
+              onValueChange={(v: "all" | "me" | "unassigned") =>
+                setScopeFilter(v)
+              }
+            >
               <SelectTrigger className="h-9 text-xs bg-background">
                 <SelectValue placeholder={ar ? "كل التذاكر" : "All Tickets"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{ar ? "كل التذاكر" : "All Tickets"}</SelectItem>
-                <SelectItem value="me">{ar ? "تذاكري المسندة إليّ" : "Assigned to Me"}</SelectItem>
-                <SelectItem value="unassigned">{ar ? "تذاكر غير مسندة" : "Unassigned"}</SelectItem>
+                <SelectItem value="all">
+                  {ar ? "كل التذاكر" : "All Tickets"}
+                </SelectItem>
+                <SelectItem value="me">
+                  {ar ? "تذاكري المسندة إليّ" : "Assigned to Me"}
+                </SelectItem>
+                <SelectItem value="unassigned">
+                  {ar ? "تذاكر غير مسندة" : "Unassigned"}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -237,14 +292,23 @@ export function TicketsFilterPanel({
                 </button>
               )}
             </div>
-            <Select value={creatorTypeFilter || "all"} onValueChange={(v) => setCreatorTypeFilter(v === "all" ? "" : v)}>
+            <Select
+              value={creatorTypeFilter || "all"}
+              onValueChange={(v) => setCreatorTypeFilter(v === "all" ? "" : v)}
+            >
               <SelectTrigger className="h-9 text-xs bg-background">
-                <SelectValue placeholder={ar ? "كل جهات البلاغ" : "All Creators"} />
+                <SelectValue
+                  placeholder={ar ? "كل جهات البلاغ" : "All Creators"}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{ar ? "الكل" : "All"}</SelectItem>
-                <SelectItem value="staff">{ar ? "إدارة السكن / المشرف" : "Staff / Supervisor"}</SelectItem>
-                <SelectItem value="resident">{ar ? "النزيل / بوابة المقيمين" : "Resident / Portal"}</SelectItem>
+                <SelectItem value="staff">
+                  {ar ? "إدارة السكن / المشرف" : "Staff / Supervisor"}
+                </SelectItem>
+                <SelectItem value="resident">
+                  {ar ? "النزيل / بوابة المقيمين" : "Resident / Portal"}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>

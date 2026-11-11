@@ -11,10 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { LanguageProvider, useLanguage } from "@/context/LanguageContext";
-import {
-  PropertyProvider,
-  useProperty,
-} from "@/context/PropertyContext";
+import { PropertyProvider, useProperty } from "@/context/PropertyContext";
 import { RESERVED_FIRST_SEGMENTS } from "@/lib/property-slug";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageLoader } from "@/components/ui/loader";
@@ -43,7 +40,9 @@ const Housekeeping = lazy(() => import("@/pages/housekeeping"));
 const Maintenance = lazy(() => import("@/pages/maintenance"));
 const MaintenanceDetails = lazy(() => import("@/pages/maintenance-details"));
 const Reports = lazy(() => import("@/pages/reports"));
-const ReportConfiguration = lazy(() => import("@/pages/reports/ReportConfigurationPage"));
+const ReportConfiguration = lazy(
+  () => import("@/pages/reports/ReportConfigurationPage"),
+);
 const Users = lazy(() => import("@/pages/users"));
 const UserDetail = lazy(() => import("@/pages/users/detail"));
 const ActivityLog = lazy(() => import("@/pages/activity-log"));
@@ -198,16 +197,49 @@ const APP_ROUTES: AppRouteDef[] = [
   { path: "/housing", module: "housing", component: Housing },
   { path: "/profiles/:id", module: "profiles", component: ProfileDetail },
   { path: "/profiles", module: "profiles", component: Profiles },
-  { path: "/accommodation/reservations", module: "reservations", component: Reservations },
-  { path: "/accommodation/in-house", module: "accommodation", component: InHouse },
+  {
+    path: "/accommodation/reservations",
+    module: "reservations",
+    component: Reservations,
+  },
+  {
+    path: "/accommodation/in-house",
+    module: "accommodation",
+    component: InHouse,
+  },
   { path: "/gate-scanner", module: "gate", component: GateScanner },
-  { path: "/accommodation/room-assignment", module: "accommodation", component: RoomAssignment },
-  { path: "/accommodation/guest-hosting", module: "guest_hosting", component: GuestHosting },
-  { path: "/accommodation/history", module: "accommodation", component: History },
+  {
+    path: "/accommodation/room-assignment",
+    module: "accommodation",
+    component: RoomAssignment,
+  },
+  {
+    path: "/accommodation/guest-hosting",
+    module: "guest_hosting",
+    component: GuestHosting,
+  },
+  {
+    path: "/accommodation/history",
+    module: "accommodation",
+    component: History,
+  },
   { path: "/housekeeping", module: "housekeeping", component: Housekeeping },
-  { path: "/maintenance/:id", modules: ["maintenance", "housekeeping"], component: MaintenanceDetails },
-  { path: "/maintenance", modules: ["maintenance", "housekeeping"], component: Maintenance },
-  { path: "/reports/configuration", module: "reports", action: "config", component: ReportConfiguration },
+  {
+    path: "/maintenance/:id",
+    modules: ["maintenance", "housekeeping"],
+    component: MaintenanceDetails,
+  },
+  {
+    path: "/maintenance",
+    modules: ["maintenance", "housekeeping"],
+    component: Maintenance,
+  },
+  {
+    path: "/reports/configuration",
+    module: "reports",
+    action: "config",
+    component: ReportConfiguration,
+  },
   { path: "/reports", module: "reports", component: Reports },
   { path: "/users/:id", module: "users", component: UserDetail },
   { path: "/users", module: "users", component: Users },
@@ -215,10 +247,30 @@ const APP_ROUTES: AppRouteDef[] = [
   { path: "/portal", module: "portal_content", component: Portal },
   { path: "/settings", module: "settings", component: Settings },
   { path: "/activity-log", module: "activity_log", component: ActivityLog },
-  { path: "/hosting-requests/create", module: "hosting_requests", action: "create", component: CreateHostingRequest },
-  { path: "/hosting-requests/:id/edit", module: "hosting_requests", action: "edit", component: EditHostingRequest },
-  { path: "/hosting-requests/:id", module: "hosting_requests", action: "view", component: HostingRequestDetail },
-  { path: "/hosting-requests", module: "hosting_requests", action: "view", component: HostingRequestsList },
+  {
+    path: "/hosting-requests/create",
+    module: "hosting_requests",
+    action: "create",
+    component: CreateHostingRequest,
+  },
+  {
+    path: "/hosting-requests/:id/edit",
+    module: "hosting_requests",
+    action: "edit",
+    component: EditHostingRequest,
+  },
+  {
+    path: "/hosting-requests/:id",
+    module: "hosting_requests",
+    action: "view",
+    component: HostingRequestDetail,
+  },
+  {
+    path: "/hosting-requests",
+    module: "hosting_requests",
+    action: "view",
+    component: HostingRequestsList,
+  },
 ];
 
 /** Redirects unprefixed paths (e.g. /dashboard) to /:currentProperty/dashboard */
@@ -286,7 +338,11 @@ function Router() {
         {/* 3. Property-prefixed application routes (/:property/:route) */}
         {APP_ROUTES.map((r, i) => (
           <Route key={`prop-${r.path}-${i}`} path={`/:property${r.path}`}>
-            <PermissionLayout module={r.module} modules={r.modules} action={r.action}>
+            <PermissionLayout
+              module={r.module}
+              modules={r.modules}
+              action={r.action}
+            >
               <r.component />
             </PermissionLayout>
           </Route>

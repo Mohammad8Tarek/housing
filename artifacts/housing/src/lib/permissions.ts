@@ -386,14 +386,32 @@ export const MODULE_LABELS: Record<Module, { en: string; ar: string }> = {
   settings: { en: "System Settings", ar: "إعدادات النظام والقوائم" },
   activity_log: { en: "Activity Audit Log", ar: "سجل النشاط والرقابة الأمنية" },
   documents: { en: "Document Archive", ar: "أرشيف المستندات والسياسات" },
-  evaluations: { en: "Evaluations & Surveys", ar: "التقييمات واستبيانات الرأي" },
+  evaluations: {
+    en: "Evaluations & Surveys",
+    ar: "التقييمات واستبيانات الرأي",
+  },
   activities: { en: "Portal Activities", ar: "الفعاليات والأنشطة الترفيهية" },
-  smart_locks: { en: "Smart Locks & Encoders", ar: "الأقفال ومشفرات الكروت الذكية" },
+  smart_locks: {
+    en: "Smart Locks & Encoders",
+    ar: "الأقفال ومشفرات الكروت الذكية",
+  },
   whatsapp: { en: "WhatsApp & Broadcasts", ar: "محرك الواتساب والبث الجماعي" },
-  inventory: { en: "Room Amenities & Inventory", ar: "جرد العهد ومحتويات الغرف" },
-  workers: { en: "Technicians & Workers", ar: "الفنيون وعمال الصيانة والنظافة" },
-  hr_sync: { en: "HR Auto-Synchronization", ar: "الربط الآلي مع الموارد البشرية" },
-  portal_notifications: { en: "Portal Push Notifications", ar: "إشعارات وتنبيهات البوابة" },
+  inventory: {
+    en: "Room Amenities & Inventory",
+    ar: "جرد العهد ومحتويات الغرف",
+  },
+  workers: {
+    en: "Technicians & Workers",
+    ar: "الفنيون وعمال الصيانة والنظافة",
+  },
+  hr_sync: {
+    en: "HR Auto-Synchronization",
+    ar: "الربط الآلي مع الموارد البشرية",
+  },
+  portal_notifications: {
+    en: "Portal Push Notifications",
+    ar: "إشعارات وتنبيهات البوابة",
+  },
   gate: { en: "Gate & Security Scanner", ar: "بوابة السكن والتحقق الأمني" },
 };
 
@@ -510,12 +528,27 @@ export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
   checkout: { en: "Check-out & Release Bed", ar: "تسجيل مغادرة وإخلاء السرير" },
   approve: { en: "Approve / Sign Request", ar: "اعتماد وتوقيع الطلب" },
   transfer: { en: "Transfer Room / Bed", ar: "نقل الغرفة / السرير" },
-  reset_password: { en: "Reset Portal Password", ar: "إعادة تعيين كلمة مرور البوابة" },
-  manage_permissions: { en: "Manage Permission Matrix", ar: "إدارة وتخصيص مصفوفة الصلاحيات" },
-  view_sensitive: { en: "View Sensitive Data", ar: "كشف البيانات الحساسة (الرقم القومي/الراتب)" },
-  audit: { en: "Field Room Discrepancy Audit", ar: "تدقيق ومطابقة الغرف الميداني" },
+  reset_password: {
+    en: "Reset Portal Password",
+    ar: "إعادة تعيين كلمة مرور البوابة",
+  },
+  manage_permissions: {
+    en: "Manage Permission Matrix",
+    ar: "إدارة وتخصيص مصفوفة الصلاحيات",
+  },
+  view_sensitive: {
+    en: "View Sensitive Data",
+    ar: "كشف البيانات الحساسة (الرقم القومي/الراتب)",
+  },
+  audit: {
+    en: "Field Room Discrepancy Audit",
+    ar: "تدقيق ومطابقة الغرف الميداني",
+  },
   publish: { en: "Publish to Portal", ar: "نشر في بوابة المقيمين" },
-  unlock: { en: "Emergency Remote Door Unlock", ar: "فتح طارئ لباب الغرفة عن بُعد" },
+  unlock: {
+    en: "Emergency Remote Door Unlock",
+    ar: "فتح طارئ لباب الغرفة عن بُعد",
+  },
   override_single_occupancy: {
     en: "Single Occupant / Entire Room Booking",
     ar: "تسكين غرفة كاملة / نزيل بمفرده",
@@ -571,7 +604,14 @@ export const PERMISSION_GROUPS: Array<{
       en: "Dashboard, housing setup, rooms, housekeeping, maintenance, inventory, and technicians.",
       ar: "لوحة المتابعة والسكن والغرف والنظافة والصيانة وجرد العهد والفنيين.",
     },
-    modules: ["dashboard", "housing", "housekeeping", "maintenance", "inventory", "workers"],
+    modules: [
+      "dashboard",
+      "housing",
+      "housekeeping",
+      "maintenance",
+      "inventory",
+      "workers",
+    ],
   },
   {
     id: "accommodation_flow",

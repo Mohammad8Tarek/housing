@@ -33,7 +33,9 @@ export function TargetPropertySelect({
         onValueChange={onChange}
       >
         <SelectTrigger className="h-8 w-48 text-xs font-semibold">
-          <SelectValue placeholder={ar ? "اختر الفندق..." : "Select Hotel..."} />
+          <SelectValue
+            placeholder={ar ? "اختر الفندق..." : "Select Hotel..."}
+          />
         </SelectTrigger>
         <SelectContent position="popper" sideOffset={4}>
           {allProperties.map((p) => (
@@ -42,7 +44,10 @@ export function TargetPropertySelect({
                 <Building2 className="w-3.5 h-3.5 text-primary" />
                 <span>{p.name}</span>
                 {p.id === activePropertyId && (
-                  <Badge variant="secondary" className="text-[9px] py-0 px-1 ml-1 rtl:mr-1">
+                  <Badge
+                    variant="secondary"
+                    className="text-[9px] py-0 px-1 ml-1 rtl:mr-1"
+                  >
                     {ar ? "الحالي" : "Current"}
                   </Badge>
                 )}

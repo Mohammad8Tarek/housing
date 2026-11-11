@@ -33,22 +33,37 @@ export function computeManagerFlash({
   // Operational metrics calculated for flash report
   const metrics = (() => {
     const totalRooms = rooms.length;
-    const totalBeds = rooms.reduce((sum: number, r: any) => sum + (r.capacity || 1), 0);
-    const occupiedBeds = rooms.reduce((sum: number, r: any) => sum + (r.currentOccupancy || 0), 0);
+    const totalBeds = rooms.reduce(
+      (sum: number, r: any) => sum + (r.capacity || 1),
+      0,
+    );
+    const occupiedBeds = rooms.reduce(
+      (sum: number, r: any) => sum + (r.currentOccupancy || 0),
+      0,
+    );
     const vacantBeds = Math.max(0, totalBeds - occupiedBeds);
-    const occupancyRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+    const occupancyRate =
+      totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
 
     // Room status categories
-    const vacantClean = rooms.filter((r: any) => r.status === "available").length;
+    const vacantClean = rooms.filter(
+      (r: any) => r.status === "available",
+    ).length;
     const vacantDirty = rooms.filter((r: any) => r.status === "dirty").length;
-    const occupiedClean = rooms.filter((r: any) => r.status === "occupied").length;
-    const occupiedDirty = rooms.filter((r: any) => r.status === "occupied_dirty").length;
-    const occupiedVacation = rooms.filter((r: any) => r.status === "occupied_vacation").length;
+    const occupiedClean = rooms.filter(
+      (r: any) => r.status === "occupied",
+    ).length;
+    const occupiedDirty = rooms.filter(
+      (r: any) => r.status === "occupied_dirty",
+    ).length;
+    const occupiedVacation = rooms.filter(
+      (r: any) => r.status === "occupied_vacation",
+    ).length;
     const outOfOrder = rooms.filter((r: any) =>
-      ["out_of_order", "ooo", "maintenance"].includes(r.status?.toLowerCase())
+      ["out_of_order", "ooo", "maintenance"].includes(r.status?.toLowerCase()),
     ).length;
     const outOfService = rooms.filter((r: any) =>
-      ["out_of_service", "oos"].includes(r.status?.toLowerCase())
+      ["out_of_service", "oos"].includes(r.status?.toLowerCase()),
     ).length;
 
     // Daily Movements (Based on reportDate)
@@ -71,15 +86,17 @@ export function computeManagerFlash({
 
     const departuresCheckedOut = assignments.filter((a: any) => {
       const d = a.checkOutDate ? String(a.checkOutDate).slice(0, 10) : "";
-      return d === reportDate && (a.status === "CHECKED_OUT" || a.status === "LEFT");
+      return (
+        d === reportDate && (a.status === "CHECKED_OUT" || a.status === "LEFT")
+      );
     }).length;
 
     const inHouseActive = assignments.filter(
-      (a: any) => a.status === "ACTIVE" || a.status === "VACATION"
+      (a: any) => a.status === "ACTIVE" || a.status === "VACATION",
     ).length;
 
     const vacationResidents = assignments.filter(
-      (a: any) => a.status === "VACATION"
+      (a: any) => a.status === "VACATION",
     ).length;
 
     const roomTransfers = assignments.filter((a: any) => {
@@ -88,7 +105,7 @@ export function computeManagerFlash({
     }).length;
 
     const openTickets = maintenance.filter(
-      (t: any) => t.status === "OPEN" || t.status === "IN_PROGRESS"
+      (t: any) => t.status === "OPEN" || t.status === "IN_PROGRESS",
     ).length;
 
     return {
@@ -120,14 +137,25 @@ export function computeManagerFlash({
   const buildingBreakdown = buildings.map((b: any) => {
     const bRooms = rooms.filter((r: any) => r.buildingId === b.id);
     const totalRooms = bRooms.length;
-    const totalBeds = bRooms.reduce((acc: number, r: any) => acc + (r.capacity || 1), 0);
-    const occupiedBeds = bRooms.reduce((acc: number, r: any) => acc + (r.currentOccupancy || 0), 0);
+    const totalBeds = bRooms.reduce(
+      (acc: number, r: any) => acc + (r.capacity || 1),
+      0,
+    );
+    const occupiedBeds = bRooms.reduce(
+      (acc: number, r: any) => acc + (r.currentOccupancy || 0),
+      0,
+    );
     const vacantBeds = Math.max(0, totalBeds - occupiedBeds);
-    const dirtyCount = bRooms.filter((r: any) => r.status === "dirty" || r.status === "occupied_dirty").length;
-    const oooCount = bRooms.filter((r: any) =>
-      ["out_of_order", "out_of_service", "maintenance", "ooo", "oos"].includes(r.status?.toLowerCase())
+    const dirtyCount = bRooms.filter(
+      (r: any) => r.status === "dirty" || r.status === "occupied_dirty",
     ).length;
-    const occPercent = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+    const oooCount = bRooms.filter((r: any) =>
+      ["out_of_order", "out_of_service", "maintenance", "ooo", "oos"].includes(
+        r.status?.toLowerCase(),
+      ),
+    ).length;
+    const occPercent =
+      totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
 
     return {
       id: b.id,
@@ -148,7 +176,9 @@ export function computeManagerFlash({
   const departmentBreakdown = (() => {
     const deptCounts: Record<string, number> = {};
     profiles.forEach((p: any) => {
-      const dept = ar ? getProfileDisplayDepartment(p, true) : (p.department?.trim() || "Unassigned");
+      const dept = ar
+        ? getProfileDisplayDepartment(p, true)
+        : p.department?.trim() || "Unassigned";
       deptCounts[dept] = (deptCounts[dept] || 0) + 1;
     });
 
@@ -168,7 +198,9 @@ export function computeManagerFlash({
     const natCounts: Record<string, number> = {};
     profiles.forEach((p: any) => {
       const rawNat = p.nationality?.trim();
-      const nat = ar ? (formatNationality(rawNat, true, false) || "غير مسجل") : (rawNat || "Other");
+      const nat = ar
+        ? formatNationality(rawNat, true, false) || "غير مسجل"
+        : rawNat || "Other";
       natCounts[nat] = (natCounts[nat] || 0) + 1;
     });
 
@@ -183,7 +215,12 @@ export function computeManagerFlash({
       .slice(0, 5);
   })();
 
-  return { metrics, buildingBreakdown, departmentBreakdown, nationalityBreakdown };
+  return {
+    metrics,
+    buildingBreakdown,
+    departmentBreakdown,
+    nationalityBreakdown,
+  };
 }
 
 export type ManagerFlash = ReturnType<typeof computeManagerFlash>;

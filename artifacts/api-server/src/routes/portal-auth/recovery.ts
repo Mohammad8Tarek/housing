@@ -15,7 +15,13 @@ import bcrypt from "bcryptjs";
 import { logActivity } from "../../lib/activity-logger.js";
 import { ensureProfilePortalAccount } from "../../lib/portal-accounts.js";
 import { portalLoginRateLimit } from "../../middlewares/rate-limit.js";
-import { ChangePasswordSchema, toAsciiDigits, normalizeDateOnly, ForgotPasswordVerifySchema, ForgotPasswordResetSchema } from "./shared.js";
+import {
+  ChangePasswordSchema,
+  toAsciiDigits,
+  normalizeDateOnly,
+  ForgotPasswordVerifySchema,
+  ForgotPasswordResetSchema,
+} from "./shared.js";
 
 const router: Router = Router();
 
@@ -107,12 +113,10 @@ router.post(
       }
 
       if (account?.resetLockedUntil && account.resetLockedUntil > new Date()) {
-        res
-          .status(429)
-          .json({
-            success: false,
-            message: "لقد تجاوزت الحد المسموح للمحاولات، يرجى المحاولة لاحقاً",
-          });
+        res.status(429).json({
+          success: false,
+          message: "لقد تجاوزت الحد المسموح للمحاولات، يرجى المحاولة لاحقاً",
+        });
         return;
       }
 
@@ -154,8 +158,8 @@ router.post(
         : "";
       const isRoomMatch = Boolean(
         cleanDbRoom &&
-          (cleanDbRoom === cleanInputRoom ||
-            cleanDbRoom.replace(/^0+/, "") === cleanInputRoom.replace(/^0+/, "")),
+        (cleanDbRoom === cleanInputRoom ||
+          cleanDbRoom.replace(/^0+/, "") === cleanInputRoom.replace(/^0+/, "")),
       );
 
       if (!isNationalIdMatch || !isDobMatch || !isRoomMatch) {
@@ -233,12 +237,10 @@ router.post(
     try {
       const parsed = ForgotPasswordResetSchema.safeParse(req.body);
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            message: parsed.error.errors[0]?.message || "Missing fields",
-          });
+        res.status(400).json({
+          success: false,
+          message: parsed.error.errors[0]?.message || "Missing fields",
+        });
         return;
       }
       const { token, newPassword, confirmPassword } = parsed.data;
@@ -249,12 +251,10 @@ router.post(
         confirmPassword,
       });
       if (!pwdParsed.success) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            message: pwdParsed.error.errors[0]?.message || "Invalid password",
-          });
+        res.status(400).json({
+          success: false,
+          message: pwdParsed.error.errors[0]?.message || "Invalid password",
+        });
         return;
       }
 
@@ -297,12 +297,10 @@ router.post(
       }
 
       if (!validToken || !account || !targetPropertyId) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            message: "رابط استعادة كلمة المرور غير صالح أو منتهي الصلاحية",
-          });
+        res.status(400).json({
+          success: false,
+          message: "رابط استعادة كلمة المرور غير صالح أو منتهي الصلاحية",
+        });
         return;
       }
 

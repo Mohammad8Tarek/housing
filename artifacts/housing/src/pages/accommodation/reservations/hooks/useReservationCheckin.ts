@@ -1,7 +1,10 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useCheckinReservation } from "@workspace/api-client-react";
-import { recommendBestRooms, checkPolicyCompliance } from "@/lib/room-recommender";
+import {
+  recommendBestRooms,
+  checkPolicyCompliance,
+} from "@/lib/room-recommender";
 import { type PolicyViolationItem } from "@/components/PolicyExceptionApprovalModal";
 import { type ProfileResult } from "../../shared/profile-search";
 import type { CheckinDialogState, Setter } from "../types";
@@ -23,10 +26,22 @@ interface UseReservationCheckinArgs {
 
 /** Check-in flow for an UPCOMING reservation: room picker dialog, policy check, mutation. */
 export function useReservationCheckin({
-  ar, activePropertyId, rooms, allAssignments, profilesList, settings, invalidate,
-  setSelectedProfile, setLastAssignment, setKeyPromptOpen, setSelectedRows,
+  ar,
+  activePropertyId,
+  rooms,
+  allAssignments,
+  profilesList,
+  settings,
+  invalidate,
+  setSelectedProfile,
+  setLastAssignment,
+  setKeyPromptOpen,
+  setSelectedRows,
 }: UseReservationCheckinArgs) {
-  const [checkinDialog, setCheckinDialog] = useState<CheckinDialogState>({ open: false, id: null });
+  const [checkinDialog, setCheckinDialog] = useState<CheckinDialogState>({
+    open: false,
+    id: null,
+  });
   const [checkinRoomId, setCheckinRoomId] = useState("");
   const [checkinRoomSearch, setCheckinRoomSearch] = useState("");
   const [resPolicyModal, setResPolicyModal] = useState<{
@@ -38,8 +53,16 @@ export function useReservationCheckin({
   const checkinRooms = rooms.filter((r: any) => isRoomBookable(r));
 
   const checkinRecommendations = useMemo(() => {
-    if (!checkinDialog.open || !checkinDialog.reservation || rooms.length === 0) {
-      return { bestRoom: null, scoredRooms: [], recommendedMap: {} as Record<number, any> };
+    if (
+      !checkinDialog.open ||
+      !checkinDialog.reservation ||
+      rooms.length === 0
+    ) {
+      return {
+        bestRoom: null,
+        scoredRooms: [],
+        recommendedMap: {} as Record<number, any>,
+      };
     }
     const res = checkinDialog.reservation;
     return recommendBestRooms({
@@ -54,10 +77,21 @@ export function useReservationCheckin({
       profiles: profilesList,
       policySettings: settings || {},
     });
-  }, [checkinDialog.open, checkinDialog.reservation, checkinRooms, allAssignments, profilesList, settings]);
+  }, [
+    checkinDialog.open,
+    checkinDialog.reservation,
+    checkinRooms,
+    allAssignments,
+    profilesList,
+    settings,
+  ]);
 
   const filteredCheckinRooms = useMemo(() => {
-    const list = checkinRooms.filter((r: any) => !checkinRoomSearch.trim() || r.roomNumber?.toLowerCase().includes(checkinRoomSearch.toLowerCase()));
+    const list = checkinRooms.filter(
+      (r: any) =>
+        !checkinRoomSearch.trim() ||
+        r.roomNumber?.toLowerCase().includes(checkinRoomSearch.toLowerCase()),
+    );
     return list.sort((a: any, b: any) => {
       const scoreA = checkinRecommendations.recommendedMap[a.id]?.score ?? 0;
       const scoreB = checkinRecommendations.recommendedMap[b.id]?.score ?? 0;
@@ -95,7 +129,10 @@ export function useReservationCheckin({
         setKeyPromptOpen(true);
       },
       onError: (e: any) => {
-        const msg = e?.data?.error || e?.message || (ar ? "خطأ في التسكين" : "Check-in error");
+        const msg =
+          e?.data?.error ||
+          e?.message ||
+          (ar ? "خطأ في التسكين" : "Check-in error");
         toast.error(msg);
       },
     },
@@ -108,7 +145,10 @@ export function useReservationCheckin({
   ) => {
     setSelectedProfile({
       id: res.profileId || 0,
-      propertyId: typeof activePropertyId === "number" ? activePropertyId : (res.propertyId || 0),
+      propertyId:
+        typeof activePropertyId === "number"
+          ? activePropertyId
+          : res.propertyId || 0,
       propertyName: null,
       profileId: res.profileCode || `RES-${res.id}`,
       firstName: res.firstName,
@@ -225,12 +265,18 @@ export function useReservationCheckin({
   };
 
   return {
-    checkinDialog, setCheckinDialog,
-    checkinRoomId, setCheckinRoomId,
-    checkinRoomSearch, setCheckinRoomSearch,
-    resPolicyModal, setResPolicyModal,
-    checkinRecommendations, filteredCheckinRooms,
+    checkinDialog,
+    setCheckinDialog,
+    checkinRoomId,
+    setCheckinRoomId,
+    checkinRoomSearch,
+    setCheckinRoomSearch,
+    resPolicyModal,
+    setResPolicyModal,
+    checkinRecommendations,
+    filteredCheckinRooms,
     checkinMutation,
-    handleStartCheckin, handleCheckin,
+    handleStartCheckin,
+    handleCheckin,
   };
 }

@@ -13,78 +13,93 @@ import { roomsTable } from "./rooms";
 import { profilesTable } from "./profiles";
 import { assignmentsTable } from "./assignments";
 
-export const roomLocksTable = pgTable("room_locks", {
-  id: serial("id").primaryKey(),
-  propertyId: integer("property_id").notNull(),
-  roomId: integer("room_id")
-    .notNull()
-    .references(() => roomsTable.id, { onDelete: "cascade" }),
-  lockNumber: text("lock_number").notNull(),
-  protocol: text("protocol").notNull().default("mifare"),
-  status: text("status").notNull().default("active"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-}, (table) => [
-  index("idx_room_locks_room_id").on(table.roomId),
-  index("idx_room_locks_property_id").on(table.propertyId),
-  index("idx_room_locks_status").on(table.status),
-]);
+export const roomLocksTable = pgTable(
+  "room_locks",
+  {
+    id: serial("id").primaryKey(),
+    propertyId: integer("property_id").notNull(),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => roomsTable.id, { onDelete: "cascade" }),
+    lockNumber: text("lock_number").notNull(),
+    protocol: text("protocol").notNull().default("mifare"),
+    status: text("status").notNull().default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_room_locks_room_id").on(table.roomId),
+    index("idx_room_locks_property_id").on(table.propertyId),
+    index("idx_room_locks_status").on(table.status),
+  ],
+);
 
-export const roomKeysTable = pgTable("room_keys", {
-  id: serial("id").primaryKey(),
-  propertyId: integer("property_id").notNull(),
-  assignmentId: integer("assignment_id").references(() => assignmentsTable.id, {
-    onDelete: "set null",
-  }),
-  roomId: integer("room_id")
-    .notNull()
-    .references(() => roomsTable.id, { onDelete: "cascade" }),
-  lockId: integer("lock_id").references(() => roomLocksTable.id, {
-    onDelete: "set null",
-  }),
-  profileId: integer("profile_id").references(() => profilesTable.id, {
-    onDelete: "set null",
-  }),
-  cardNumber: text("card_number"),
-  cardType: text("card_type").notNull().default("guest"),
-  issuedBy: integer("issued_by"),
-  issuedAt: timestamp("issued_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }),
-  revokedAt: timestamp("revoked_at", { withTimezone: true }),
-  revokedBy: integer("revoked_by"),
-  status: text("status").notNull().default("active"),
-  notes: text("notes"),
-}, (table) => [
-  index("idx_room_keys_room_id").on(table.roomId),
-  index("idx_room_keys_profile_id").on(table.profileId),
-  index("idx_room_keys_assignment_id").on(table.assignmentId),
-  index("idx_room_keys_status").on(table.status),
-  index("idx_room_keys_property_id").on(table.propertyId),
-]);
+export const roomKeysTable = pgTable(
+  "room_keys",
+  {
+    id: serial("id").primaryKey(),
+    propertyId: integer("property_id").notNull(),
+    assignmentId: integer("assignment_id").references(
+      () => assignmentsTable.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+    roomId: integer("room_id")
+      .notNull()
+      .references(() => roomsTable.id, { onDelete: "cascade" }),
+    lockId: integer("lock_id").references(() => roomLocksTable.id, {
+      onDelete: "set null",
+    }),
+    profileId: integer("profile_id").references(() => profilesTable.id, {
+      onDelete: "set null",
+    }),
+    cardNumber: text("card_number"),
+    cardType: text("card_type").notNull().default("guest"),
+    issuedBy: integer("issued_by"),
+    issuedAt: timestamp("issued_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    revokedBy: integer("revoked_by"),
+    status: text("status").notNull().default("active"),
+    notes: text("notes"),
+  },
+  (table) => [
+    index("idx_room_keys_room_id").on(table.roomId),
+    index("idx_room_keys_profile_id").on(table.profileId),
+    index("idx_room_keys_assignment_id").on(table.assignmentId),
+    index("idx_room_keys_status").on(table.status),
+    index("idx_room_keys_property_id").on(table.propertyId),
+  ],
+);
 
-export const keyAuditLogTable = pgTable("key_audit_log", {
-  id: serial("id").primaryKey(),
-  propertyId: integer("property_id").notNull(),
-  keyId: integer("key_id").references(() => roomKeysTable.id, {
-    onDelete: "set null",
-  }),
-  action: text("action").notNull(),
-  performedBy: integer("performed_by"),
-  cardNumber: text("card_number"),
-  roomNumber: text("room_number"),
-  details: jsonb("details"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-}, (table) => [
-  index("idx_key_audit_log_property_id").on(table.propertyId),
-  index("idx_key_audit_log_key_id").on(table.keyId),
-  index("idx_key_audit_log_action").on(table.action),
-  index("idx_key_audit_log_created_at").on(table.createdAt),
-]);
+export const keyAuditLogTable = pgTable(
+  "key_audit_log",
+  {
+    id: serial("id").primaryKey(),
+    propertyId: integer("property_id").notNull(),
+    keyId: integer("key_id").references(() => roomKeysTable.id, {
+      onDelete: "set null",
+    }),
+    action: text("action").notNull(),
+    performedBy: integer("performed_by"),
+    cardNumber: text("card_number"),
+    roomNumber: text("room_number"),
+    details: jsonb("details"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_key_audit_log_property_id").on(table.propertyId),
+    index("idx_key_audit_log_key_id").on(table.keyId),
+    index("idx_key_audit_log_action").on(table.action),
+    index("idx_key_audit_log_created_at").on(table.createdAt),
+  ],
+);
 
 export const insertRoomLockSchema = createInsertSchema(roomLocksTable).omit({
   id: true,

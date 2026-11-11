@@ -59,14 +59,19 @@ export function useCheckDuplicates({
       try {
         const params = new URLSearchParams();
         if (debouncedProfileId) params.append("profileId", debouncedProfileId);
-        if (debouncedNationalId) params.append("nationalId", debouncedNationalId);
+        if (debouncedNationalId)
+          params.append("nationalId", debouncedNationalId);
         if (debouncedPhone) params.append("phone", debouncedPhone);
         if (excludeId) params.append("excludeId", String(excludeId));
-        if (propertyId && propertyId !== "all") params.append("propertyId", String(propertyId));
+        if (propertyId && propertyId !== "all")
+          params.append("propertyId", String(propertyId));
 
-        const res = await fetch(`/api/profiles/check-duplicate?${params.toString()}`, {
-          signal: controller.signal,
-        });
+        const res = await fetch(
+          `/api/profiles/check-duplicate?${params.toString()}`,
+          {
+            signal: controller.signal,
+          },
+        );
 
         if (res.ok && isMounted) {
           const data = await res.json();
@@ -89,7 +94,14 @@ export function useCheckDuplicates({
       isMounted = false;
       controller.abort();
     };
-  }, [debouncedProfileId, debouncedNationalId, debouncedPhone, excludeId, enabled, propertyId]);
+  }, [
+    debouncedProfileId,
+    debouncedNationalId,
+    debouncedPhone,
+    excludeId,
+    enabled,
+    propertyId,
+  ]);
 
   // Clean matched results so if user cleared a field it doesn't stay flagged
   const activeDuplicates: DuplicateResults = {};
@@ -104,7 +116,9 @@ export function useCheckDuplicates({
   }
 
   const hasDuplicates = Boolean(
-    activeDuplicates.profileId || activeDuplicates.nationalId || activeDuplicates.phone
+    activeDuplicates.profileId ||
+    activeDuplicates.nationalId ||
+    activeDuplicates.phone,
   );
 
   return {

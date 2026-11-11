@@ -16,14 +16,33 @@ import { toast } from "sonner";
 import type { PoliciesSectionState } from "./usePoliciesSectionState";
 
 export function renderAddLevelDialog(s: PoliciesSectionState) {
-  const { ar, isAddLevelOpen, setIsAddLevelOpen, newLevelKey, setNewLevelKey, newLevelNameEn, setNewLevelNameEn, newLevelNameAr, setNewLevelNameAr, newLevelCapacities, setNewLevelCapacities, newLevelAllowEntire, setNewLevelAllowEntire, newLevelDescription, setNewLevelDescription, handleAddLevel } = s;
+  const {
+    ar,
+    isAddLevelOpen,
+    setIsAddLevelOpen,
+    newLevelKey,
+    setNewLevelKey,
+    newLevelNameEn,
+    setNewLevelNameEn,
+    newLevelNameAr,
+    setNewLevelNameAr,
+    newLevelCapacities,
+    setNewLevelCapacities,
+    newLevelAllowEntire,
+    setNewLevelAllowEntire,
+    newLevelDescription,
+    setNewLevelDescription,
+    handleAddLevel,
+  } = s;
   return (
-<Dialog open={isAddLevelOpen} onOpenChange={setIsAddLevelOpen}>
+    <Dialog open={isAddLevelOpen} onOpenChange={setIsAddLevelOpen}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-bold text-primary">
             <Plus className="w-5 h-5 text-primary" />
-            {ar ? "إضافة مستوى وظيفي جديد للسياسات" : "Add New Job Level Policy"}
+            {ar
+              ? "إضافة مستوى وظيفي جديد للسياسات"
+              : "Add New Job Level Policy"}
           </DialogTitle>
           <DialogDescription className="text-xs">
             {ar
@@ -35,7 +54,9 @@ export function renderAddLevelDialog(s: PoliciesSectionState) {
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label className="text-xs font-semibold">{ar ? "كود / رقم المستوى" : "Level Key / Code"}</Label>
+              <Label className="text-xs font-semibold">
+                {ar ? "كود / رقم المستوى" : "Level Key / Code"}
+              </Label>
               <Input
                 value={newLevelKey}
                 onChange={(e) => setNewLevelKey(e.target.value)}
@@ -44,18 +65,24 @@ export function renderAddLevelDialog(s: PoliciesSectionState) {
               />
             </div>
             <div className="col-span-2">
-              <Label className="text-xs font-semibold">{ar ? "الاسم بالعربية" : "Arabic Label"}</Label>
+              <Label className="text-xs font-semibold">
+                {ar ? "الاسم بالعربية" : "Arabic Label"}
+              </Label>
               <Input
                 value={newLevelNameAr}
                 onChange={(e) => setNewLevelNameAr(e.target.value)}
-                placeholder={ar ? "مثال: المستوى 5 / مشرفين" : "e.g. Supervisors"}
+                placeholder={
+                  ar ? "مثال: المستوى 5 / مشرفين" : "e.g. Supervisors"
+                }
                 className="mt-1 text-xs"
               />
             </div>
           </div>
 
           <div>
-            <Label className="text-xs font-semibold">{ar ? "الاسم بالإنجليزية" : "English Name"}</Label>
+            <Label className="text-xs font-semibold">
+              {ar ? "الاسم بالإنجليزية" : "English Name"}
+            </Label>
             <Input
               value={newLevelNameEn}
               onChange={(e) => setNewLevelNameEn(e.target.value)}
@@ -65,11 +92,15 @@ export function renderAddLevelDialog(s: PoliciesSectionState) {
           </div>
 
           <div>
-            <Label className="text-xs font-semibold">{ar ? "الوصف أو الملاحظات" : "Description / Notes"}</Label>
+            <Label className="text-xs font-semibold">
+              {ar ? "الوصف أو الملاحظات" : "Description / Notes"}
+            </Label>
             <Input
               value={newLevelDescription}
               onChange={(e) => setNewLevelDescription(e.target.value)}
-              placeholder={ar ? "مثال: متاح سكن ثنائي أو ثلاثي" : "e.g. 2 or 3 bed rooms"}
+              placeholder={
+                ar ? "مثال: متاح سكن ثنائي أو ثلاثي" : "e.g. 2 or 3 bed rooms"
+              }
               className="mt-1 text-xs"
             />
           </div>
@@ -78,10 +109,13 @@ export function renderAddLevelDialog(s: PoliciesSectionState) {
           <div className="space-y-2 p-3 rounded-lg border bg-muted/20">
             <div className="flex items-center justify-between text-xs">
               <Label className="font-semibold text-foreground">
-                {ar ? "سعات الأسرة المسموحة بالغرفة:" : "Allowed Bed Capacities:"}
+                {ar
+                  ? "سعات الأسرة المسموحة بالغرفة:"
+                  : "Allowed Bed Capacities:"}
               </Label>
               <span className="font-bold text-primary">
-                {[...newLevelCapacities].sort((a, b) => a - b).join(" ، ")} {ar ? "سرير" : "beds"}
+                {[...newLevelCapacities].sort((a, b) => a - b).join(" ، ")}{" "}
+                {ar ? "سرير" : "beds"}
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground">
@@ -99,12 +133,20 @@ export function renderAddLevelDialog(s: PoliciesSectionState) {
                     onClick={() => {
                       if (isSelected) {
                         if (newLevelCapacities.length <= 1) {
-                          toast.error(ar ? "يجب اختيار سعة واحدة على الأقل" : "Select at least one capacity");
+                          toast.error(
+                            ar
+                              ? "يجب اختيار سعة واحدة على الأقل"
+                              : "Select at least one capacity",
+                          );
                           return;
                         }
-                        setNewLevelCapacities(newLevelCapacities.filter((c) => c !== bed));
+                        setNewLevelCapacities(
+                          newLevelCapacities.filter((c) => c !== bed),
+                        );
                       } else {
-                        setNewLevelCapacities([...newLevelCapacities, bed].sort((a, b) => a - b));
+                        setNewLevelCapacities(
+                          [...newLevelCapacities, bed].sort((a, b) => a - b),
+                        );
                       }
                     }}
                     className={`text-xs font-bold py-1.5 px-2 rounded-lg border transition-all flex items-center justify-center gap-1 ${
@@ -124,7 +166,9 @@ export function renderAddLevelDialog(s: PoliciesSectionState) {
           <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
             <div className="space-y-0.5 pe-4">
               <Label className="text-xs font-bold block">
-                {ar ? "السماح بحجز غرفة كاملة (فردي)" : "Allow Full Room Booking (Single)"}
+                {ar
+                  ? "السماح بحجز غرفة كاملة (فردي)"
+                  : "Allow Full Room Booking (Single)"}
               </Label>
               <span className="text-[11px] text-muted-foreground block">
                 {ar

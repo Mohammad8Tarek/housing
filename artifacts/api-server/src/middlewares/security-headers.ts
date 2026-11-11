@@ -1,5 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
-import { decodeSecureToken, verifyRequestSignature } from "../lib/security-signer.js";
+import {
+  decodeSecureToken,
+  verifyRequestSignature,
+} from "../lib/security-signer.js";
 
 /**
  * Enterprise Security Middleware:

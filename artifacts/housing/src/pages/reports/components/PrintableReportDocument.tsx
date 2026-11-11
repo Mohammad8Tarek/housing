@@ -134,11 +134,14 @@ export const PrintableReportDocument = forwardRef<
 
   const textAlignFor = (col: ReportColumnConfig): "left" | "center" | "right" =>
     col.align ||
-    (col.type === "index" || col.type === "number" || col.type === "date" || col.type === "status"
+    (col.type === "index" ||
+    col.type === "number" ||
+    col.type === "date" ||
+    col.type === "status"
       ? "center"
       : isAr
-      ? "right"
-      : "left");
+        ? "right"
+        : "left");
 
   const logoSrc = systemLogoUrl || SR_LOGO_TEAL;
   // Brand rule: logo width 1/7–1/2 of layout, min 35 mm with destination line.
@@ -161,10 +164,13 @@ export const PrintableReportDocument = forwardRef<
     },
     {
       title:
-        signatures?.approvedByTitle || (isAr ? "اعتماد الإدارة" : "Approved By"),
+        signatures?.approvedByTitle ||
+        (isAr ? "اعتماد الإدارة" : "Approved By"),
       name:
         signatures?.approvedByName ||
-        (isAr ? "مدير الموارد البشرية / المدير العام" : "HR Director / General Manager"),
+        (isAr
+          ? "مدير الموارد البشرية / المدير العام"
+          : "HR Director / General Manager"),
       line: isAr ? "التوقيع والخاتم" : "Signature & Stamp",
     },
   ];
@@ -229,9 +235,15 @@ export const PrintableReportDocument = forwardRef<
       {/* ── First-page masthead: teal top bar → logo · title · meta ── */}
       <div
         className="sunrise-report-first-page-header"
-        style={{ marginBottom: "8px", pageBreakAfter: "avoid", breakAfter: "avoid" }}
+        style={{
+          marginBottom: "8px",
+          pageBreakAfter: "avoid",
+          breakAfter: "avoid",
+        }}
       >
-        <div style={{ height: "5px", background: SR.teal, marginBottom: "8px" }} />
+        <div
+          style={{ height: "5px", background: SR.teal, marginBottom: "8px" }}
+        />
 
         <div
           style={{
@@ -246,18 +258,35 @@ export const PrintableReportDocument = forwardRef<
           }}
         >
           {/* Brand logo (official file, untouched) */}
-          <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: "10px" }}>
+          <div
+            style={{
+              flex: "0 0 auto",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
             <img
               src={logoSrc}
               alt="SUNRISE Resorts & Cruises"
-              style={{ width: logoWidth, height: "auto", objectFit: "contain", display: "block" }}
+              style={{
+                width: logoWidth,
+                height: "auto",
+                objectFit: "contain",
+                display: "block",
+              }}
             />
           </div>
 
           {/* Title block */}
           <div
             dir={isAr ? "rtl" : "ltr"}
-            style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "0 6px" }}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              textAlign: "center",
+              padding: "0 6px",
+            }}
           >
             {propertyName && (
               <div
@@ -272,7 +301,10 @@ export const PrintableReportDocument = forwardRef<
               >
                 {propertyName}
                 {propertyCode && (
-                  <span style={{ color: SR.muted, fontWeight: 400 }}> · {propertyCode}</span>
+                  <span style={{ color: SR.muted, fontWeight: 400 }}>
+                    {" "}
+                    · {propertyCode}
+                  </span>
                 )}
               </div>
             )}
@@ -301,7 +333,14 @@ export const PrintableReportDocument = forwardRef<
           </div>
 
           {/* Meta + property logo */}
-          <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: "10px" }}>
+          <div
+            style={{
+              flex: "0 0 auto",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
             <div
               dir={isAr ? "rtl" : "ltr"}
               style={{
@@ -329,7 +368,11 @@ export const PrintableReportDocument = forwardRef<
               <img
                 src={propertyLogoUrl}
                 alt="Property Logo"
-                style={{ maxHeight: "34px", maxWidth: "90px", objectFit: "contain" }}
+                style={{
+                  maxHeight: "34px",
+                  maxWidth: "90px",
+                  objectFit: "contain",
+                }}
               />
             )}
           </div>
@@ -446,7 +489,9 @@ export const PrintableReportDocument = forwardRef<
                   fontWeight: 700,
                   letterSpacing: "0.2px",
                   borderInlineEnd:
-                    idx < columns.length - 1 ? "1px solid rgba(255,255,255,0.25)" : "none",
+                    idx < columns.length - 1
+                      ? "1px solid rgba(255,255,255,0.25)"
+                      : "none",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -463,7 +508,11 @@ export const PrintableReportDocument = forwardRef<
             <tr>
               <td
                 colSpan={columns.length}
-                style={{ textAlign: "center", padding: "24px", color: SR.muted }}
+                style={{
+                  textAlign: "center",
+                  padding: "24px",
+                  color: SR.muted,
+                }}
               >
                 {isAr
                   ? "لا توجد سجلات مطابقة لمعايير البحث المحددة"
@@ -483,7 +532,9 @@ export const PrintableReportDocument = forwardRef<
               >
                 {columns.map((col, cIdx) => {
                   const val =
-                    col.type === "index" ? rIdx + 1 : row[col.key] ?? row[col.header] ?? "—";
+                    col.type === "index"
+                      ? rIdx + 1
+                      : (row[col.key] ?? row[col.header] ?? "—");
                   const cellBase: React.CSSProperties = {
                     padding: fontSizes.padding,
                     textAlign: textAlignFor(col),
@@ -518,14 +569,20 @@ export const PrintableReportDocument = forwardRef<
                   if (val !== null && val !== undefined && val !== "") {
                     if (val instanceof Date) {
                       displayVal = formatDate(val);
-                    } else if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}(T|\b)/.test(val.trim())) {
+                    } else if (
+                      typeof val === "string" &&
+                      /^\d{4}-\d{2}-\d{2}(T|\b)/.test(val.trim())
+                    ) {
                       displayVal = formatDate(val.trim().slice(0, 10));
                     } else {
                       displayVal = String(val);
                     }
                   }
 
-                  const numeric = col.type === "number" || col.type === "date" || col.type === "index";
+                  const numeric =
+                    col.type === "number" ||
+                    col.type === "date" ||
+                    col.type === "index";
                   return (
                     <td
                       key={col.key || cIdx}
@@ -533,7 +590,9 @@ export const PrintableReportDocument = forwardRef<
                         ...cellBase,
                         fontWeight: col.type === "index" ? 700 : 400,
                         color: col.type === "index" ? SR.tealDark : SR.ink,
-                        fontVariantNumeric: numeric ? "tabular-nums" : undefined,
+                        fontVariantNumeric: numeric
+                          ? "tabular-nums"
+                          : undefined,
                         wordBreak: "break-word",
                       }}
                     >
@@ -548,7 +607,10 @@ export const PrintableReportDocument = forwardRef<
 
         <tfoot style={{ display: "table-footer-group" }}>
           <tr>
-            <td colSpan={columns.length} style={{ padding: "8px 0 0", border: "none" }}>
+            <td
+              colSpan={columns.length}
+              style={{ padding: "8px 0 0", border: "none" }}
+            >
               <div
                 style={{
                   display: "flex",
@@ -575,7 +637,8 @@ export const PrintableReportDocument = forwardRef<
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {displayTitle} · {isAr ? `${rows.length} سجل` : `${rows.length} records`}
+                  {displayTitle} ·{" "}
+                  {isAr ? `${rows.length} سجل` : `${rows.length} records`}
                 </span>
               </div>
             </td>
@@ -597,12 +660,30 @@ export const PrintableReportDocument = forwardRef<
         >
           {signatureTiers.map((tier, i) => (
             <div key={i} style={{ textAlign: "start" }}>
-              <div style={{ ...metaLabel, fontSize: "6.5pt" }}>{tier.title}</div>
-              <div style={{ fontSize: "7.5pt", color: SR.ink, minHeight: "12px", marginTop: "1px" }}>
+              <div style={{ ...metaLabel, fontSize: "6.5pt" }}>
+                {tier.title}
+              </div>
+              <div
+                style={{
+                  fontSize: "7.5pt",
+                  color: SR.ink,
+                  minHeight: "12px",
+                  marginTop: "1px",
+                }}
+              >
                 {tier.name}
               </div>
-              <div style={{ borderBottom: `1px solid ${SR.ink}`, marginTop: "22px" }} />
-              <div style={{ fontSize: "6.3pt", color: SR.muted, marginTop: "2px" }}>{tier.line}</div>
+              <div
+                style={{
+                  borderBottom: `1px solid ${SR.ink}`,
+                  marginTop: "22px",
+                }}
+              />
+              <div
+                style={{ fontSize: "6.3pt", color: SR.muted, marginTop: "2px" }}
+              >
+                {tier.line}
+              </div>
             </div>
           ))}
         </div>

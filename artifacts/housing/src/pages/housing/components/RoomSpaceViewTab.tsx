@@ -1,7 +1,15 @@
 import { useState, useMemo } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLocation } from "wouter";
-import { Building2, Search, Palmtree, UserPlus, Wrench, Eye, CalendarDays } from "lucide-react";
+import {
+  Building2,
+  Search,
+  Palmtree,
+  UserPlus,
+  Wrench,
+  Eye,
+  CalendarDays,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -79,7 +87,10 @@ export function RoomSpaceViewTab({
   // Filtered rooms
   const filteredRooms = useMemo(() => {
     return rooms.filter((r) => {
-      if (selectedBuildingId !== "all" && String(r.buildingId) !== selectedBuildingId) {
+      if (
+        selectedBuildingId !== "all" &&
+        String(r.buildingId) !== selectedBuildingId
+      ) {
         return false;
       }
       if (selectedFloorId !== "all" && String(r.floorId) !== selectedFloorId) {
@@ -90,16 +101,35 @@ export function RoomSpaceViewTab({
         const occ = occupants.length;
         const cap = r.capacity || 1;
         const vacantBeds = Math.max(0, cap - occ);
-        const isMaint = ["out_of_service", "out_of_order", "maintenance", "ooo", "oos"].includes(statusNorm(r.status));
-        const isDirty = statusNorm(r.status) === "dirty" || statusNorm(r.status) === "occupied_dirty";
+        const isMaint = [
+          "out_of_service",
+          "out_of_order",
+          "maintenance",
+          "ooo",
+          "oos",
+        ].includes(statusNorm(r.status));
+        const isDirty =
+          statusNorm(r.status) === "dirty" ||
+          statusNorm(r.status) === "occupied_dirty";
 
-        if (statusFilter === "room_vacant" || statusFilter === "available" || statusFilter === "vacant") {
+        if (
+          statusFilter === "room_vacant" ||
+          statusFilter === "available" ||
+          statusFilter === "vacant"
+        ) {
           // Fully vacant clean only! If 1 or more beds are occupied, DO NOT SHOW!
           if (occ > 0 || isMaint || isDirty) return false;
-        } else if (statusFilter === "bed_vacant" || statusFilter === "vacant_beds" || statusFilter === "partially") {
+        } else if (
+          statusFilter === "bed_vacant" ||
+          statusFilter === "vacant_beds" ||
+          statusFilter === "partially"
+        ) {
           // Rooms with vacant beds available (partially occupied)
           if (occ === 0 || vacantBeds <= 0 || isMaint) return false;
-        } else if (statusFilter === "room_and_bed_vacant" || statusFilter === "both") {
+        } else if (
+          statusFilter === "room_and_bed_vacant" ||
+          statusFilter === "both"
+        ) {
           // Room & bed vacant: any available beds regardless of empty or partial
           if (vacantBeds <= 0 || isMaint || isDirty) return false;
         } else if (statusFilter === "occupied") {
@@ -109,8 +139,13 @@ export function RoomSpaceViewTab({
         } else if (statusFilter === "occupied_dirty") {
           if (statusNorm(r.status) !== "occupied_dirty") return false;
         } else if (statusFilter === "occupied_vacation") {
-          const hasVacation = occupants.some((a) => a.profileStatus === "VACATION" || profileMap.get(a.profileId)?.status === "VACATION");
-          if (statusNorm(r.status) !== "occupied_vacation" && !hasVacation) return false;
+          const hasVacation = occupants.some(
+            (a) =>
+              a.profileStatus === "VACATION" ||
+              profileMap.get(a.profileId)?.status === "VACATION",
+          );
+          if (statusNorm(r.status) !== "occupied_vacation" && !hasVacation)
+            return false;
         } else {
           if (statusNorm(r.status) !== statusNorm(statusFilter)) return false;
         }
@@ -135,7 +170,15 @@ export function RoomSpaceViewTab({
       }
       return true;
     });
-  }, [rooms, selectedBuildingId, selectedFloorId, statusFilter, search, assignmentsByRoom, profileMap]);
+  }, [
+    rooms,
+    selectedBuildingId,
+    selectedFloorId,
+    statusFilter,
+    search,
+    assignmentsByRoom,
+    profileMap,
+  ]);
 
   // Paginate filtered rooms
   const paginatedRooms = useMemo(() => {
@@ -145,15 +188,25 @@ export function RoomSpaceViewTab({
 
   // Group paginated rooms by Building -> Floor
   const groupedRooms = useMemo(() => {
-    const map = new Map<string, { buildingName: string; floorNum: string; rooms: any[] }>();
+    const map = new Map<
+      string,
+      { buildingName: string; floorNum: string; rooms: any[] }
+    >();
 
     for (const r of paginatedRooms) {
-      const bName = buildingMap[r.buildingId] || (ar ? `مبنى ${r.buildingId}` : `Building ${r.buildingId}`);
-      const fNum = floorMap[r.floorId] || (ar ? `دور ${r.floorId}` : `Floor ${r.floorId}`);
+      const bName =
+        buildingMap[r.buildingId] ||
+        (ar ? `مبنى ${r.buildingId}` : `Building ${r.buildingId}`);
+      const fNum =
+        floorMap[r.floorId] || (ar ? `دور ${r.floorId}` : `Floor ${r.floorId}`);
       const key = `${r.buildingId}_${r.floorId}`;
 
       if (!map.has(key)) {
-        map.set(key, { buildingName: bName, floorNum: String(fNum), rooms: [] });
+        map.set(key, {
+          buildingName: bName,
+          floorNum: String(fNum),
+          rooms: [],
+        });
       }
       map.get(key)!.rooms.push(r);
     }
@@ -171,14 +224,26 @@ export function RoomSpaceViewTab({
     return Array.from(map.values());
   }, [paginatedRooms, buildingMap, floorMap, ar]);
 
-  const handleQuickAssign = (roomId: number, bedNum: number, e: React.MouseEvent) => {
+  const handleQuickAssign = (
+    roomId: number,
+    bedNum: number,
+    e: React.MouseEvent,
+  ) => {
     e.stopPropagation();
-    setLocation(`/accommodation/reservations?roomId=${roomId}&bed=${bedNum}&bookingType=direct`);
+    setLocation(
+      `/accommodation/reservations?roomId=${roomId}&bed=${bedNum}&bookingType=direct`,
+    );
   };
 
-  const handleQuickReserve = (roomId: number, bedNum: number, e: React.MouseEvent) => {
+  const handleQuickReserve = (
+    roomId: number,
+    bedNum: number,
+    e: React.MouseEvent,
+  ) => {
     e.stopPropagation();
-    setLocation(`/accommodation/reservations?roomId=${roomId}&bed=${bedNum}&bookingType=upcoming&personMode=new`);
+    setLocation(
+      `/accommodation/reservations?roomId=${roomId}&bed=${bedNum}&bookingType=upcoming&personMode=new`,
+    );
   };
 
   return (
@@ -190,7 +255,11 @@ export function RoomSpaceViewTab({
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder={ar ? "ابحث برقم الغرفة، اسم النزيل، كود الموظف، أو القسم..." : "Search room, occupant, code..."}
+              placeholder={
+                ar
+                  ? "ابحث برقم الغرفة، اسم النزيل، كود الموظف، أو القسم..."
+                  : "Search room, occupant, code..."
+              }
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -211,7 +280,9 @@ export function RoomSpaceViewTab({
               }}
               className="h-9 px-3 py-1 text-xs font-semibold rounded-lg border bg-background text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="all">{ar ? "جميع المباني" : "All Buildings"}</option>
+              <option value="all">
+                {ar ? "جميع المباني" : "All Buildings"}
+              </option>
               {buildings.map((b) => (
                 <option key={b.id} value={String(b.id)}>
                   {b.name}
@@ -229,7 +300,11 @@ export function RoomSpaceViewTab({
             >
               <option value="all">{ar ? "جميع الأدوار" : "All Floors"}</option>
               {floors
-                .filter((f) => selectedBuildingId === "all" || String(f.buildingId) === selectedBuildingId)
+                .filter(
+                  (f) =>
+                    selectedBuildingId === "all" ||
+                    String(f.buildingId) === selectedBuildingId,
+                )
                 .map((f) => (
                   <option key={f.id} value={String(f.id)}>
                     {ar ? `دور ${f.floorNumber}` : `Floor ${f.floorNumber}`}
@@ -273,22 +348,54 @@ export function RoomSpaceViewTab({
               count = rooms.filter((r) => {
                 const occ = (assignmentsByRoom[r.id] || []).length;
                 const cap = r.capacity || 1;
-                const isMaint = ["out_of_service", "out_of_order", "maintenance", "ooo", "oos"].includes(statusNorm(r.status));
-                const isDirty = statusNorm(r.status) === "dirty" || statusNorm(r.status) === "occupied_dirty";
+                const isMaint = [
+                  "out_of_service",
+                  "out_of_order",
+                  "maintenance",
+                  "ooo",
+                  "oos",
+                ].includes(statusNorm(r.status));
+                const isDirty =
+                  statusNorm(r.status) === "dirty" ||
+                  statusNorm(r.status) === "occupied_dirty";
                 return cap - occ > 0 && !isMaint && !isDirty;
               }).length;
             } else if (optValue === "room_vacant" || optValue === "available") {
               count = rooms.filter((r) => {
                 const occ = (assignmentsByRoom[r.id] || []).length;
-                const isMaint = ["out_of_service", "out_of_order", "maintenance", "ooo", "oos"].includes(statusNorm(r.status));
-                const isDirty = statusNorm(r.status) === "dirty" || statusNorm(r.status) === "occupied_dirty";
-                return occ === 0 && !isMaint && !isDirty && (statusNorm(r.status) === "available" || statusNorm(r.status) === "vacant" || statusNorm(r.status) === "room_vacant");
+                const isMaint = [
+                  "out_of_service",
+                  "out_of_order",
+                  "maintenance",
+                  "ooo",
+                  "oos",
+                ].includes(statusNorm(r.status));
+                const isDirty =
+                  statusNorm(r.status) === "dirty" ||
+                  statusNorm(r.status) === "occupied_dirty";
+                return (
+                  occ === 0 &&
+                  !isMaint &&
+                  !isDirty &&
+                  (statusNorm(r.status) === "available" ||
+                    statusNorm(r.status) === "vacant" ||
+                    statusNorm(r.status) === "room_vacant")
+                );
               }).length;
-            } else if (optValue === "bed_vacant" || optValue === "vacant_beds") {
+            } else if (
+              optValue === "bed_vacant" ||
+              optValue === "vacant_beds"
+            ) {
               count = rooms.filter((r) => {
                 const occ = (assignmentsByRoom[r.id] || []).length;
                 const cap = r.capacity || 1;
-                const isMaint = ["out_of_service", "out_of_order", "maintenance", "ooo", "oos"].includes(statusNorm(r.status));
+                const isMaint = [
+                  "out_of_service",
+                  "out_of_order",
+                  "maintenance",
+                  "ooo",
+                  "oos",
+                ].includes(statusNorm(r.status));
                 return occ > 0 && occ < cap && !isMaint;
               }).length;
             } else if (opt.value === "occupied") {
@@ -298,7 +405,9 @@ export function RoomSpaceViewTab({
                 return occ >= cap || statusNorm(r.status) === "occupied";
               }).length;
             } else {
-              count = rooms.filter((r) => statusNorm(r.status) === opt.value).length;
+              count = rooms.filter(
+                (r) => statusNorm(r.status) === opt.value,
+              ).length;
             }
 
             const isSel = statusFilter === opt.value;
@@ -344,10 +453,14 @@ export function RoomSpaceViewTab({
         <div className="p-12 text-center border-2 border-dashed rounded-2xl bg-muted/10">
           <Building2 className="w-12 h-12 mx-auto mb-3 opacity-25 text-muted-foreground" />
           <h3 className="font-bold text-base text-foreground">
-            {ar ? "لا توجد غرف تطابق معايير الفلترة" : "No rooms match your filter"}
+            {ar
+              ? "لا توجد غرف تطابق معايير الفلترة"
+              : "No rooms match your filter"}
           </h3>
           <p className="text-xs text-muted-foreground mt-1">
-            {ar ? "جرب تغيير فلاتر البحث أو الحالة أو المبنى" : "Try changing your search or filters"}
+            {ar
+              ? "جرب تغيير فلاتر البحث أو الحالة أو المبنى"
+              : "Try changing your search or filters"}
           </p>
         </div>
       ) : (
@@ -378,12 +491,21 @@ export function RoomSpaceViewTab({
                 const occCount = occupants.length;
                 const isFull = occCount >= capacity;
                 const freeCount = Math.max(0, capacity - occCount);
-                const isOutOfService = ["out_of_service", "out_of_order", "maintenance", "ooo", "oos"].includes(statusNorm(room.status));
-                const isDirty = statusNorm(room.status) === "dirty" || statusNorm(room.status) === "occupied_dirty";
+                const isOutOfService = [
+                  "out_of_service",
+                  "out_of_order",
+                  "maintenance",
+                  "ooo",
+                  "oos",
+                ].includes(statusNorm(room.status));
+                const isDirty =
+                  statusNorm(room.status) === "dirty" ||
+                  statusNorm(room.status) === "occupied_dirty";
 
                 // Create array of bed slots 1..capacity with proper 1-to-1 allocation
                 const unassignedOccupants = occupants.filter(
-                  (a) => !a.bedNumber || a.bedNumber > capacity || a.bedNumber <= 0
+                  (a) =>
+                    !a.bedNumber || a.bedNumber > capacity || a.bedNumber <= 0,
                 );
                 let unassignedIdx = 0;
 
@@ -410,32 +532,54 @@ export function RoomSpaceViewTab({
                           <span className="text-lg font-black tracking-tight text-foreground font-mono">
                             {room.roomNumber}
                           </span>
-                          <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
-                            occCount > 0 && occCount < capacity && !isOutOfService
-                              ? roomStatusBadge("bed_vacant")
-                              : occCount === 0 && (statusNorm(room.status) === "available" || statusNorm(room.status) === "vacant" || statusNorm(room.status) === "room_vacant")
-                              ? roomStatusBadge("room_vacant")
-                              : roomStatusBadge(room.status)
-                          }`}>
-                            {occCount > 0 && occCount < capacity && !isOutOfService
-                              ? (ar ? "بد فيكنت (أسِرّة شاغرة)" : "Bed Vacant (Partial)")
-                              : occCount === 0 && (statusNorm(room.status) === "available" || statusNorm(room.status) === "vacant" || statusNorm(room.status) === "room_vacant")
-                              ? (ar ? "روم فيكنت (فارغة)" : "Room Vacant (Clean)")
-                              : getRoomStatusLabel(room.status, ar)}
+                          <span
+                            className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
+                              occCount > 0 &&
+                              occCount < capacity &&
+                              !isOutOfService
+                                ? roomStatusBadge("bed_vacant")
+                                : occCount === 0 &&
+                                    (statusNorm(room.status) === "available" ||
+                                      statusNorm(room.status) === "vacant" ||
+                                      statusNorm(room.status) === "room_vacant")
+                                  ? roomStatusBadge("room_vacant")
+                                  : roomStatusBadge(room.status)
+                            }`}
+                          >
+                            {occCount > 0 &&
+                            occCount < capacity &&
+                            !isOutOfService
+                              ? ar
+                                ? "بد فيكنت (أسِرّة شاغرة)"
+                                : "Bed Vacant (Partial)"
+                              : occCount === 0 &&
+                                  (statusNorm(room.status) === "available" ||
+                                    statusNorm(room.status) === "vacant" ||
+                                    statusNorm(room.status) === "room_vacant")
+                                ? ar
+                                  ? "روم فيكنت (فارغة)"
+                                  : "Room Vacant (Clean)"
+                                : getRoomStatusLabel(room.status, ar)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground font-medium">
-                          <span>{room.roomType || (ar ? "غرفة قياسية" : "Standard")}</span>
+                          <span>
+                            {room.roomType || (ar ? "غرفة قياسية" : "Standard")}
+                          </span>
                           {room.gender && (
                             <>
                               <span>•</span>
                               <span className="capitalize">
                                 {(() => {
                                   const g = String(room.gender).toLowerCase();
-                                  if (g === "male" || g === "m") return ar ? "رجال" : "Male";
-                                  if (g === "female" || g === "f") return ar ? "سيدات" : "Female";
-                                  if (g === "mixed" || g === "any") return ar ? "مشترك" : "Mixed";
-                                  if (g === "family") return ar ? "عائلي" : "Family";
+                                  if (g === "male" || g === "m")
+                                    return ar ? "رجال" : "Male";
+                                  if (g === "female" || g === "f")
+                                    return ar ? "سيدات" : "Female";
+                                  if (g === "mixed" || g === "any")
+                                    return ar ? "مشترك" : "Mixed";
+                                  if (g === "family")
+                                    return ar ? "عائلي" : "Family";
                                   return room.gender;
                                 })()}
                               </span>
@@ -445,13 +589,15 @@ export function RoomSpaceViewTab({
                       </div>
 
                       <div className="text-end">
-                        <span className={`text-xs font-extrabold px-2 py-1 rounded-lg ${
-                          isFull
-                            ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
-                            : freeCount === capacity
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                            : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
-                        }`}>
+                        <span
+                          className={`text-xs font-extrabold px-2 py-1 rounded-lg ${
+                            isFull
+                              ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
+                              : freeCount === capacity
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                          }`}
+                        >
                           {occCount}/{capacity} {ar ? "سرير" : "Beds"}
                         </span>
                       </div>
@@ -465,17 +611,24 @@ export function RoomSpaceViewTab({
 
                       {bedSlots.map(({ bedNum, occ, profile }) => {
                         const isVacation =
-                          profile?.status === "VACATION" || occ?.profileStatus === "VACATION";
+                          profile?.status === "VACATION" ||
+                          occ?.profileStatus === "VACATION";
 
                         if (occ) {
                           // Occupied Bed Space
                           const displayName = profile
                             ? getProfileDisplayName(profile, ar)
-                            : (occ.profileName || (ar ? `موظف #${occ.profileId}` : `Employee #${occ.profileId}`));
+                            : occ.profileName ||
+                              (ar
+                                ? `موظف #${occ.profileId}`
+                                : `Employee #${occ.profileId}`);
                           const displaySubtitle = profile
                             ? `${profile.profileId || profile.employeeId || ""} ${profile.jobTitle ? `• ${profile.jobTitle}` : ""}`.trim()
-                            : (occ.jobTitle || occ.department || (ar ? "مقيم حالي" : "Current Occupant"));
-                          const leaveDate = profile?.vacationEndDate || occ?.vacationEndDate;
+                            : occ.jobTitle ||
+                              occ.department ||
+                              (ar ? "مقيم حالي" : "Current Occupant");
+                          const leaveDate =
+                            profile?.vacationEndDate || occ?.vacationEndDate;
 
                           return (
                             <div
@@ -486,12 +639,18 @@ export function RoomSpaceViewTab({
                                   : "bg-blue-500/5 border-blue-500/20 text-foreground"
                               }`}
                             >
-                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0 ${
-                                isVacation
-                                  ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
-                                  : "bg-blue-500/20 text-blue-700 dark:text-blue-300"
-                              }`}>
-                                {isVacation ? <Palmtree className="w-4 h-4" /> : bedNum}
+                              <div
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                                  isVacation
+                                    ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                                    : "bg-blue-500/20 text-blue-700 dark:text-blue-300"
+                                }`}
+                              >
+                                {isVacation ? (
+                                  <Palmtree className="w-4 h-4" />
+                                ) : (
+                                  bedNum
+                                )}
                               </div>
 
                               <div className="flex-1 min-w-0">
@@ -503,7 +662,9 @@ export function RoomSpaceViewTab({
                                 </p>
                                 {isVacation && leaveDate && (
                                   <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-300 mt-0.5">
-                                    {ar ? `إجازة حتى ${formatDate(leaveDate)}` : `Leave till ${formatDate(leaveDate)}`}
+                                    {ar
+                                      ? `إجازة حتى ${formatDate(leaveDate)}`
+                                      : `Leave till ${formatDate(leaveDate)}`}
                                   </p>
                                 )}
                               </div>
@@ -522,21 +683,29 @@ export function RoomSpaceViewTab({
                             }`}
                           >
                             <div className="flex items-center gap-2 min-w-0">
-                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0 ${
-                                isOutOfService
-                                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                                  : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                              }`}>
+                              <div
+                                className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                                  isOutOfService
+                                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                                    : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                }`}
+                              >
                                 {bedNum}
                               </div>
-                              <span className={`font-semibold truncate ${
-                                isOutOfService
-                                  ? "text-amber-800 dark:text-amber-300"
-                                  : "text-emerald-800 dark:text-emerald-300"
-                              }`}>
+                              <span
+                                className={`font-semibold truncate ${
+                                  isOutOfService
+                                    ? "text-amber-800 dark:text-amber-300"
+                                    : "text-emerald-800 dark:text-emerald-300"
+                                }`}
+                              >
                                 {isOutOfService
-                                  ? (ar ? `سرير ${bedNum} (خارج الخدمة)` : `Bed ${bedNum} (OOS)`)
-                                  : (ar ? `سرير ${bedNum} متاح` : `Bed ${bedNum} Free`)}
+                                  ? ar
+                                    ? `سرير ${bedNum} (خارج الخدمة)`
+                                    : `Bed ${bedNum} (OOS)`
+                                  : ar
+                                    ? `سرير ${bedNum} متاح`
+                                    : `Bed ${bedNum} Free`}
                               </span>
                             </div>
 
@@ -551,23 +720,37 @@ export function RoomSpaceViewTab({
                                 </Badge>
                               ) : (
                                 <>
-                                  <PermissionGate module="accommodation" action="create">
+                                  <PermissionGate
+                                    module="accommodation"
+                                    action="create"
+                                  >
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={(e) => handleQuickReserve(room.id, bedNum, e)}
+                                      onClick={(e) =>
+                                        handleQuickReserve(room.id, bedNum, e)
+                                      }
                                       className="h-7 px-2 text-[11px] font-bold border-blue-400 text-blue-700 dark:text-blue-300 hover:bg-blue-600 hover:text-white transition-colors"
-                                      title={ar ? "إنشاء حجز لملف جديد" : "Create reservation for new profile"}
+                                      title={
+                                        ar
+                                          ? "إنشاء حجز لملف جديد"
+                                          : "Create reservation for new profile"
+                                      }
                                     >
                                       <CalendarDays className="w-3 h-3 mr-1 rtl:ml-1 rtl:mr-0" />
                                       {ar ? "حجز" : "Reserve"}
                                     </Button>
                                   </PermissionGate>
-                                  <PermissionGate module="accommodation" action="create">
+                                  <PermissionGate
+                                    module="accommodation"
+                                    action="create"
+                                  >
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={(e) => handleQuickAssign(room.id, bedNum, e)}
+                                      onClick={(e) =>
+                                        handleQuickAssign(room.id, bedNum, e)
+                                      }
                                       className="h-7 px-2 text-[11px] font-bold border-emerald-400 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white transition-colors"
                                     >
                                       + {ar ? "تسكين" : "Assign"}
@@ -587,12 +770,20 @@ export function RoomSpaceViewTab({
                         {isOutOfService ? (
                           <span className="text-amber-700 dark:text-amber-400 font-semibold flex items-center gap-1">
                             <Wrench className="w-3 h-3" />
-                            {ar ? "الغرفة تحت الصيانة / خارج الخدمة" : "Under Service / OOS"}
+                            {ar
+                              ? "الغرفة تحت الصيانة / خارج الخدمة"
+                              : "Under Service / OOS"}
                           </span>
                         ) : freeCount > 0 ? (
-                          ar ? `متبقي ${freeCount} أماكن` : `${freeCount} spots left`
+                          ar ? (
+                            `متبقي ${freeCount} أماكن`
+                          ) : (
+                            `${freeCount} spots left`
+                          )
+                        ) : ar ? (
+                          "مكتملة السعة"
                         ) : (
-                          ar ? "مكتملة السعة" : "Fully Occupied"
+                          "Fully Occupied"
                         )}
                       </span>
                       <div className="flex items-center gap-2">
@@ -601,11 +792,16 @@ export function RoomSpaceViewTab({
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              const firstVacant = bedSlots.find((b) => !b.occ)?.bedNum || 1;
+                              const firstVacant =
+                                bedSlots.find((b) => !b.occ)?.bedNum || 1;
                               handleQuickReserve(room.id, firstVacant, e);
                             }}
                             className="text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1"
-                            title={ar ? "إنشاء حجز لملف جديد" : "Create reservation for new profile"}
+                            title={
+                              ar
+                                ? "إنشاء حجز لملف جديد"
+                                : "Create reservation for new profile"
+                            }
                           >
                             <CalendarDays className="w-3.5 h-3.5" />
                             {ar ? "حجز" : "Reserve"}

@@ -21,12 +21,16 @@ export function RecommendationBanner({
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-extrabold text-sm text-foreground">
-              {ar ? "أفضل غرفة مقترحة تلقائياً للموظف:" : "Best Recommended Room for Employee:"}
+              {ar
+                ? "أفضل غرفة مقترحة تلقائياً للموظف:"
+                : "Best Recommended Room for Employee:"}
             </span>
             <span className="px-2 py-0.5 rounded-full text-xs font-black bg-amber-500 text-white shadow-sm">
               {ar
-                ? (recommendation.recommendedMap[recommendation.bestRoom.id]?.badgeLabelAr || "موصى بها")
-                : (recommendation.recommendedMap[recommendation.bestRoom.id]?.badgeLabelEn || "Recommended")}
+                ? recommendation.recommendedMap[recommendation.bestRoom.id]
+                    ?.badgeLabelAr || "موصى بها"
+                : recommendation.recommendedMap[recommendation.bestRoom.id]
+                    ?.badgeLabelEn || "Recommended"}
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
@@ -34,12 +38,14 @@ export function RecommendationBanner({
               ? `غرفة رقم ${recommendation.bestRoom.roomNumber} (${recommendation.bestRoom.roomType || "قياسية"} - سعة ${recommendation.bestRoom.capacity} سرير)`
               : `Room ${recommendation.bestRoom.roomNumber} (${recommendation.bestRoom.roomType || "Standard"} - Capacity ${recommendation.bestRoom.capacity} beds)`}
             {ar
-              ? (recommendation.recommendedMap[recommendation.bestRoom.id]?.matchReasonAr
+              ? recommendation.recommendedMap[recommendation.bestRoom.id]
+                  ?.matchReasonAr
                 ? ` • ${recommendation.recommendedMap[recommendation.bestRoom.id].matchReasonAr}`
-                : "")
-              : (recommendation.recommendedMap[recommendation.bestRoom.id]?.matchReasonEn
+                : ""
+              : recommendation.recommendedMap[recommendation.bestRoom.id]
+                    ?.matchReasonEn
                 ? ` • ${recommendation.recommendedMap[recommendation.bestRoom.id].matchReasonEn}`
-                : "")}
+                : ""}
           </p>
         </div>
       </div>

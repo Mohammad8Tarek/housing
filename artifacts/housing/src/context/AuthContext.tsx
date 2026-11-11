@@ -11,7 +11,13 @@
  * 7. Logout reason stored → login page shows "Session expired" message
  */
 
-import React, { createContext, useCallback, useContext, useEffect, useRef } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+} from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import type { User } from "@workspace/api-client-react";
@@ -41,7 +47,10 @@ export interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-export function storeToken(token?: string | null, persistent: boolean = true): void {
+export function storeToken(
+  token?: string | null,
+  persistent: boolean = true,
+): void {
   const val = token || "session_active";
   try {
     sessionStorage.setItem("auth_token", val);
@@ -68,35 +77,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const hadUserRef = useRef(false);
 
   // ─── Logout ───────────────────────────────────────────────────────────
-  const logout = useCallback((reason: LogoutReason = "manual") => {
-    if (isLoggingOut.current) return;
-    isLoggingOut.current = true;
-    hadUserRef.current = false;
+  const logout = useCallback(
+    (reason: LogoutReason = "manual") => {
+      if (isLoggingOut.current) return;
+      isLoggingOut.current = true;
+      hadUserRef.current = false;
 
-    clearToken();
+      clearToken();
 
-    // Store reason so login page can display appropriate message
-    if (reason !== "manual") {
-      try {
-        sessionStorage.setItem("auth_logout_reason", reason);
-      } catch {}
-    }
+      // Store reason so login page can display appropriate message
+      if (reason !== "manual") {
+        try {
+          sessionStorage.setItem("auth_logout_reason", reason);
+        } catch {}
+      }
 
-    queryClient.removeQueries({ queryKey: getGetMeQueryKey() });
+      queryClient.removeQueries({ queryKey: getGetMeQueryKey() });
 
-    // Notify backend (fire-and-forget — don't await)
-    fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include",
-      keepalive: true,
-    }).catch(() => {
-      /* ignore */
-    });
+      // Notify backend (fire-and-forget — don't await)
+      fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        keepalive: true,
+      }).catch(() => {
+        /* ignore */
+      });
 
-    if (window.location.pathname !== "/login") {
-      window.location.href = "/login";
-    }
-  }, [queryClient]);
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    },
+    [queryClient],
+  );
 
   // ─── Inactivity timer ─────────────────────────────────────────────────
   const resetTimer = useCallback(() => {

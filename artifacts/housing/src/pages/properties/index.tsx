@@ -25,8 +25,35 @@ import { renderPropertyDetailsDialog } from "./components/PropertyDetailsDialog"
 
 export default function Properties() {
   const s = usePropertiesState();
-  const { queryClient, ar, isOpen, editingId, activeTab, setActiveTab, deleteDialog, setDeleteDialog, importWizardOpen, setImportWizardOpen, selectedPropForImport, properties, isLoading, invalidate, deleteMutation, closeDialog, openCreate, onSubmit, isPending, PROP_COLS, propVisible, propToggle, propShowAll, propHideAll, selectedRows, setSelectedRows, exportPropExcel } = s;
-
+  const {
+    queryClient,
+    ar,
+    isOpen,
+    editingId,
+    activeTab,
+    setActiveTab,
+    deleteDialog,
+    setDeleteDialog,
+    importWizardOpen,
+    setImportWizardOpen,
+    selectedPropForImport,
+    properties,
+    isLoading,
+    invalidate,
+    deleteMutation,
+    closeDialog,
+    openCreate,
+    onSubmit,
+    isPending,
+    PROP_COLS,
+    propVisible,
+    propToggle,
+    propShowAll,
+    propHideAll,
+    selectedRows,
+    setSelectedRows,
+    exportPropExcel,
+  } = s;
 
   return (
     <div className="space-y-6">

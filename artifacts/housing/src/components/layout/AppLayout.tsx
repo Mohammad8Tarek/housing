@@ -121,7 +121,9 @@ function NotificationIcon({ type }: { type: string }) {
   if (type === "NO_CHECKOUT_DATE")
     return <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />;
   if (type === "EMERGENCY_MAINTENANCE")
-    return <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse flex-shrink-0" />;
+    return (
+      <AlertTriangle className="w-4 h-4 text-rose-600 animate-pulse flex-shrink-0" />
+    );
   if (type === "OPEN_MAINTENANCE")
     return <Wrench className="w-4 h-4 text-orange-500 flex-shrink-0" />;
   if (type === "HOSTING_REQUEST_PENDING")
@@ -184,8 +186,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   });
 
-
-  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const numericPropertyId =
+    typeof activePropertyId === "number" ? activePropertyId : undefined;
   const { data: sysSettings } = useGetSettings(
     { propertyId: numericPropertyId },
     { query: { enabled: !!numericPropertyId, staleTime: 300000 } as any },
@@ -223,14 +225,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   });
 
   const allNotifications = notifData?.notifications ?? [];
-  
+
   // Sound alert on new high priority notifications
   const prevHighCountRef = useRef<number>(0);
   useEffect(() => {
     const highUnseen = allNotifications.filter(
       (n) => n.priority === "high" && !seenIds.has(n.id),
     ).length;
-    if (highUnseen > prevHighCountRef.current && prevHighCountRef.current !== 0) {
+    if (
+      highUnseen > prevHighCountRef.current &&
+      prevHighCountRef.current !== 0
+    ) {
       playNotificationSound();
     }
     prevHighCountRef.current = highUnseen;
@@ -294,13 +299,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const newSlug =
       id === "all"
         ? "all"
-        : (target?.name
-            ? target.name
-                .trim()
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, "_")
-                .replace(/^_+|_+$/g, "")
-            : String(id));
+        : target?.name
+          ? target.name
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "_")
+              .replace(/^_+|_+$/g, "")
+          : String(id);
 
     // Extract current sub-path without old property slug
     const currentPath = window.location.pathname;
@@ -383,10 +388,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     },
     {
       href: "/maintenance",
-      label: !canView("maintenance") && canView("housekeeping")
-        ? (ar ? "طلبات النظافة" : "Housekeeping Orders")
-        : (ar ? "التذاكر" : "Tickets"),
-      icon: !canView("maintenance") && canView("housekeeping") ? Sparkles : Wrench,
+      label:
+        !canView("maintenance") && canView("housekeeping")
+          ? ar
+            ? "طلبات النظافة"
+            : "Housekeeping Orders"
+          : ar
+            ? "التذاكر"
+            : "Tickets",
+      icon:
+        !canView("maintenance") && canView("housekeeping") ? Sparkles : Wrench,
       permissionModules: ["maintenance", "housekeeping"] as Module[],
     },
     {
@@ -448,7 +459,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const visibleNavItems = navItems.filter((n) => {
-    if (n.superAdminOnly && !isSuperAdmin && !(n.permissionModule && canView(n.permissionModule))) return false;
+    if (
+      n.superAdminOnly &&
+      !isSuperAdmin &&
+      !(n.permissionModule && canView(n.permissionModule))
+    )
+      return false;
     if (n.permissionModules && n.permissionModules.length > 0) {
       if (!n.permissionModules.some((m) => canView(m))) return false;
     } else if (n.permissionModule && !canView(n.permissionModule)) {
@@ -489,7 +505,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="px-6 py-5 flex flex-col items-center gap-3 border-b border-white/5 relative overflow-hidden">
         {/* Subtle decorative glow */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/4" />
-        
+
         {systemLogo ? (
           <img
             src={systemLogo}
@@ -515,8 +531,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </p>
         {visibleNavItems.map((item, idx) => {
           if (item.subItems) {
-            const groupKey = item.subItems[0]?.href.split("/")[1] || String(idx);
-            const isGroupActive = item.subItems.some((s) => isActive(s.href, true));
+            const groupKey =
+              item.subItems[0]?.href.split("/")[1] || String(idx);
+            const isGroupActive = item.subItems.some((s) =>
+              isActive(s.href, true),
+            );
             const open = openGroups[groupKey] ?? isGroupActive;
             return (
               <div key={idx} className="mb-1">
@@ -533,10 +552,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                   }`}
                 >
-                  <div className={`p-1.5 rounded-lg transition-colors ${isGroupActive ? 'bg-[#2AA8AB]/20 text-[#2AA8AB]' : 'text-sidebar-foreground/70'}`}>
+                  <div
+                    className={`p-1.5 rounded-lg transition-colors ${isGroupActive ? "bg-[#2AA8AB]/20 text-[#2AA8AB]" : "text-sidebar-foreground/70"}`}
+                  >
                     <item.icon className="h-4 w-4 flex-shrink-0" />
                   </div>
-                  <span className="flex-1 text-start font-medium">{item.label}</span>
+                  <span className="flex-1 text-start font-medium">
+                    {item.label}
+                  </span>
                   {open ? (
                     <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-50" />
                   ) : (
@@ -545,8 +568,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     />
                   )}
                 </button>
-                <div 
-                  className={`overflow-hidden transition-all duration-300 ease-in-out ${open ? 'max-h-96 opacity-100 mt-1.5' : 'max-h-0 opacity-0'}`}
+                <div
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${open ? "max-h-96 opacity-100 mt-1.5" : "max-h-0 opacity-0"}`}
                 >
                   <div
                     className={`${ar ? "mr-6 pr-3 border-r-2" : "ml-6 pl-3 border-l-2"} border-border/40 flex flex-col gap-1`}
@@ -591,10 +614,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:scale-[1.01]"
                 }`}
               >
-                <div className={`p-1.5 rounded-lg transition-colors ${active ? 'bg-white/20 text-white' : 'text-sidebar-foreground/70'}`}>
-                  <item.icon
-                    className={`h-4 w-4 flex-shrink-0`}
-                  />
+                <div
+                  className={`p-1.5 rounded-lg transition-colors ${active ? "bg-white/20 text-white" : "text-sidebar-foreground/70"}`}
+                >
+                  <item.icon className={`h-4 w-4 flex-shrink-0`} />
                 </div>
                 <span className="font-medium">{item.label}</span>
                 {active && (
@@ -625,7 +648,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2 sm:gap-3">
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="md:hidden min-h-[44px] min-w-[44px] p-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="md:hidden min-h-[44px] min-w-[44px] p-2"
+                  >
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
@@ -709,7 +736,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               <p className="font-bold text-xs truncate text-violet-700 dark:text-violet-300">
                                 {ar ? "جميع الفروع" : "All Properties"}
                               </p>
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/30">
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] px-1 py-0 bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/30"
+                              >
                                 👑 {ar ? "سوبر أدمن" : "Super Admin"}
                               </Badge>
                             </div>
@@ -828,9 +858,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <div className="flex items-center gap-1 px-2.5 pb-2 pt-1 overflow-x-auto border-b border-border/40">
                     {[
                       { id: "all", label: ar ? "الكل" : "All" },
-                      { id: "accommodation", label: ar ? "تسكين وحجوزات" : "Housing" },
-                      { id: "maintenance", label: ar ? "صيانة" : "Maintenance" },
-                      { id: "housekeeping", label: ar ? "نظافة" : "Housekeeping" },
+                      {
+                        id: "accommodation",
+                        label: ar ? "تسكين وحجوزات" : "Housing",
+                      },
+                      {
+                        id: "maintenance",
+                        label: ar ? "صيانة" : "Maintenance",
+                      },
+                      {
+                        id: "housekeeping",
+                        label: ar ? "نظافة" : "Housekeeping",
+                      },
                       { id: "profiles", label: ar ? "موظفين" : "Profiles" },
                     ].map((cat) => (
                       <button
@@ -853,7 +892,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <div className="py-6 text-center">
                       <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
                       <p className="text-sm text-sidebar-foreground/70">
-                        {ar ? "لا توجد إشعارات حالياً" : "No notifications right now"}
+                        {ar
+                          ? "لا توجد إشعارات حالياً"
+                          : "No notifications right now"}
                       </p>
                     </div>
                   ) : (
@@ -871,7 +912,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                               ? "/accommodation/guest-hosting"
                               : n.type === "HOSTING_REQUEST_PENDING"
                                 ? `/hosting-requests/${n.entityId}`
-                                : n.type === "OPEN_MAINTENANCE" || n.type === "EMERGENCY_MAINTENANCE"
+                                : n.type === "OPEN_MAINTENANCE" ||
+                                    n.type === "EMERGENCY_MAINTENANCE"
                                   ? "/maintenance"
                                   : n.type === "DIRTY_ROOMS"
                                     ? "/housekeeping"
@@ -883,7 +925,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                           ? "/accommodation/in-house"
                                           : n.type === "EXPIRED_KEYS"
                                             ? "/housing"
-                                            : n.type === "UNREAD_PORTAL_CHAT" || n.type === "PENDING_EVALUATION"
+                                            : n.type === "UNREAD_PORTAL_CHAT" ||
+                                                n.type === "PENDING_EVALUATION"
                                               ? "/portal"
                                               : "/dashboard");
                       return (
@@ -982,15 +1025,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setTheme("light")} className="gap-2">
+                  <DropdownMenuItem
+                    onClick={() => setTheme("light")}
+                    className="gap-2"
+                  >
                     <Sun className="h-4 w-4 text-amber-500" />
                     <span>{ar ? "فاتح" : "Light"}</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme("dark")} className="gap-2">
+                  <DropdownMenuItem
+                    onClick={() => setTheme("dark")}
+                    className="gap-2"
+                  >
                     <Moon className="h-4 w-4 text-indigo-400" />
                     <span>{ar ? "داكن" : "Dark"}</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme("system")} className="gap-2">
+                  <DropdownMenuItem
+                    onClick={() => setTheme("system")}
+                    className="gap-2"
+                  >
                     <Laptop className="h-4 w-4 text-muted-foreground" />
                     <span>{ar ? "تلقائي (النظام)" : "System"}</span>
                   </DropdownMenuItem>
@@ -1024,14 +1076,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       <div className="flex items-center gap-1.5">
                         <p className="font-semibold">{user?.username}</p>
                         {isSuperAdmin && (
-                          <Badge variant="outline" className="text-[9px] px-1 py-0 bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30">
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1 py-0 bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                          >
                             👑 {ar ? "سوبر أدمن" : "Super Admin"}
                           </Badge>
                         )}
                       </div>
                       <p className="text-xs text-sidebar-foreground/70 capitalize mt-0.5">
                         {isSuperAdmin
-                          ? (ar ? "صلاحيات سيادية شاملة" : "Enterprise Root Access")
+                          ? ar
+                            ? "صلاحيات سيادية شاملة"
+                            : "Enterprise Root Access"
                           : user?.roles?.[0]?.replace(/_/g, " ")}
                       </p>
                     </div>
@@ -1044,7 +1101,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         className="cursor-pointer font-medium text-violet-700 dark:text-violet-300 gap-2"
                       >
                         <Building2 className="w-4 h-4 text-violet-600" />
-                        <span>{ar ? "إدارة الفنادق والسكيمات" : "Properties & Schemas"}</span>
+                        <span>
+                          {ar
+                            ? "إدارة الفنادق والسكيمات"
+                            : "Properties & Schemas"}
+                        </span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                     </>
@@ -1090,7 +1151,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <footer className="py-3 border-t bg-card/30 backdrop-blur-sm mt-auto">
               <div className="container mx-auto flex flex-col items-center justify-center text-center px-4">
                 <p className="text-xs md:text-sm font-semibold text-[#d4b060] flex items-center justify-center">
-                  Copyright &copy; {new Date().getFullYear()} SUNRISE Resorts &amp; Cruises
+                  Copyright &copy; {new Date().getFullYear()} SUNRISE Resorts
+                  &amp; Cruises
                 </p>
               </div>
             </footer>

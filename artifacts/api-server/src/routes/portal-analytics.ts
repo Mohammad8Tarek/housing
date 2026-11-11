@@ -151,110 +151,119 @@ router.get("/", requireAuth, async (req, res, next): Promise<any> => {
 });
 
 // GET /trends - اتجاهات البوابة
-router.get("/trends", requireAuth, validate({ query: AnalyticsDaysQuery }), async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    const days = parseInt(req.query.days as string) || 30;
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
+router.get(
+  "/trends",
+  requireAuth,
+  validate({ query: AnalyticsDaysQuery }),
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      const days = parseInt(req.query.days as string) || 30;
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
 
-    const trends = await withTableFallback(
-      async () =>
-        withTenant(propertyId, async (tenantDb) => {
-          const fromDate = new Date();
-          fromDate.setDate(fromDate.getDate() - days);
+      const trends = await withTableFallback(
+        async () =>
+          withTenant(propertyId, async (tenantDb) => {
+            const fromDate = new Date();
+            fromDate.setDate(fromDate.getDate() - days);
 
-          const recentEvaluations = await tenantDb
-            .select()
-            .from(evaluationsTable)
-            .where(gte(evaluationsTable.submittedAt, fromDate));
+            const recentEvaluations = await tenantDb
+              .select()
+              .from(evaluationsTable)
+              .where(gte(evaluationsTable.submittedAt, fromDate));
 
-          const recentActivities = await tenantDb
-            .select()
-            .from(activitiesTable)
-            .where(gte(activitiesTable.createdAt, fromDate));
+            const recentActivities = await tenantDb
+              .select()
+              .from(activitiesTable)
+              .where(gte(activitiesTable.createdAt, fromDate));
 
-          const groupByDate = (items: any[], dateField: string) => {
-            const grouped: any = {};
-            items.forEach((item) => {
-              const date = new Date(item[dateField])
-                .toISOString()
-                .split("T")[0];
-              grouped[date] = (grouped[date] || 0) + 1;
-            });
-            return Object.entries(grouped)
-              .map(([date, count]) => ({ date, count }))
-              .sort((a: any, b: any) => a.date.localeCompare(b.date));
-          };
+            const groupByDate = (items: any[], dateField: string) => {
+              const grouped: any = {};
+              items.forEach((item) => {
+                const date = new Date(item[dateField])
+                  .toISOString()
+                  .split("T")[0];
+                grouped[date] = (grouped[date] || 0) + 1;
+              });
+              return Object.entries(grouped)
+                .map(([date, count]) => ({ date, count }))
+                .sort((a: any, b: any) => a.date.localeCompare(b.date));
+            };
 
-          return {
-            evaluations: groupByDate(recentEvaluations, "submittedAt"),
-            activities: groupByDate(recentActivities, "createdAt"),
-          };
-        }),
-      { evaluations: [], activities: [] },
-    );
+            return {
+              evaluations: groupByDate(recentEvaluations, "submittedAt"),
+              activities: groupByDate(recentActivities, "createdAt"),
+            };
+          }),
+        { evaluations: [], activities: [] },
+      );
 
-    res.json(trends);
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json(trends);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // GET /content-performance - أداء المحتوى
-router.get("/content-performance", requireAuth, async (req, res, next): Promise<any> => {
-  try {
-    const propertyId = getTenantId(req);
-    if (!propertyId)
-      return res
-        .status(400)
-        .json({ success: false, message: "propertyId required" });
+router.get(
+  "/content-performance",
+  requireAuth,
+  async (req, res, next): Promise<any> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
 
-    const performance = await withTableFallback(
-      async () =>
-        withTenant(propertyId, async (tenantDb) => {
-          const evaluations = await tenantDb.select().from(evaluationsTable);
-          const activities = await tenantDb.select().from(activitiesTable);
+      const performance = await withTableFallback(
+        async () =>
+          withTenant(propertyId, async (tenantDb) => {
+            const evaluations = await tenantDb.select().from(evaluationsTable);
+            const activities = await tenantDb.select().from(activitiesTable);
 
-          const topEvaluations = evaluations
-            .filter((e) => e.profileRating)
-            .sort((a: any, b: any) => b.profileRating - a.profileRating)
-            .slice(0, 5)
-            .map((e) => ({
-              id: e.id,
-              title: e.titleAr || e.titleEn,
-              rating: e.profileRating,
-              category: e.category,
-            }));
+            const topEvaluations = evaluations
+              .filter((e) => e.profileRating)
+              .sort((a: any, b: any) => b.profileRating - a.profileRating)
+              .slice(0, 5)
+              .map((e) => ({
+                id: e.id,
+                title: e.titleAr || e.titleEn,
+                rating: e.profileRating,
+                category: e.category,
+              }));
 
-          const recentActivities = activities
-            .sort(
-              (a: any, b: any) =>
-                new Date(b.startDate).getTime() -
-                new Date(a.startDate).getTime(),
-            )
-            .slice(0, 5)
-            .map((a) => ({
-              id: a.id,
-              title: a.titleAr || a.titleEn,
-              date: a.startDate,
-              category: a.category,
-            }));
+            const recentActivities = activities
+              .sort(
+                (a: any, b: any) =>
+                  new Date(b.startDate).getTime() -
+                  new Date(a.startDate).getTime(),
+              )
+              .slice(0, 5)
+              .map((a) => ({
+                id: a.id,
+                title: a.titleAr || a.titleEn,
+                date: a.startDate,
+                category: a.category,
+              }));
 
-          return {
-            topRatedEvaluations: topEvaluations,
-            recentActivities,
-          };
-        }),
-      { topRatedEvaluations: [], recentActivities: [] },
-    );
+            return {
+              topRatedEvaluations: topEvaluations,
+              recentActivities,
+            };
+          }),
+        { topRatedEvaluations: [], recentActivities: [] },
+      );
 
-    res.json(performance);
-  } catch (err) {
-    next(err);
-  }
-});
+      res.json(performance);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 export default router;

@@ -1,7 +1,19 @@
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Clock, User, CheckCircle2, Play, RotateCcw, Check, Eye, Trash, MoreVertical, AlertCircle } from "lucide-react";
+import {
+  FileText,
+  Clock,
+  User,
+  CheckCircle2,
+  Play,
+  RotateCcw,
+  Check,
+  Eye,
+  Trash,
+  MoreVertical,
+  AlertCircle,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +26,11 @@ interface TicketsKanbanBoardProps {
   tickets: any[];
   ar: boolean;
   onSelectTicket: (id: number) => void;
-  onQuickStatusChange: (id: number, newStatus: string, propertyId?: number) => void;
+  onQuickStatusChange: (
+    id: number,
+    newStatus: string,
+    propertyId?: number,
+  ) => void;
   onDeleteTicket?: (id: number, propertyId?: number) => void;
   roomMap: Record<number, string>;
   roomOccupantMap: Record<number, string>;
@@ -27,7 +43,11 @@ interface TicketsKanbanBoardProps {
   priorityAr: Record<string, string>;
   statusAr: Record<string, string>;
   formatDuration: (startedAt: any, resolvedAt: any, reportedAt: any) => string;
-  getDurationColor: (startedAt: any, resolvedAt: any, reportedAt: any) => string;
+  getDurationColor: (
+    startedAt: any,
+    resolvedAt: any,
+    reportedAt: any,
+  ) => string;
 }
 
 interface ColumnConfig {
@@ -50,7 +70,8 @@ const COLUMNS: ColumnConfig[] = [
     titleEn: "Open",
     color: "bg-blue-500",
     borderColor: "border-t-blue-500",
-    badgeColor: "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+    badgeColor:
+      "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200 dark:border-blue-800",
     nextStatus: "in_progress",
     nextLabelAr: "بدء التنفيذ",
     nextLabelEn: "Start Work",
@@ -62,7 +83,8 @@ const COLUMNS: ColumnConfig[] = [
     titleEn: "In Progress",
     color: "bg-amber-500",
     borderColor: "border-t-amber-500",
-    badgeColor: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+    badgeColor:
+      "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200 dark:border-amber-800",
     nextStatus: "resolved",
     nextLabelAr: "تم الإنجاز",
     nextLabelEn: "Mark Done",
@@ -74,7 +96,8 @@ const COLUMNS: ColumnConfig[] = [
     titleEn: "Resolved",
     color: "bg-emerald-500",
     borderColor: "border-t-emerald-500",
-    badgeColor: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+    badgeColor:
+      "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
     nextStatus: "closed",
     nextLabelAr: "إغلاق الطلب",
     nextLabelEn: "Close Ticket",
@@ -86,7 +109,8 @@ const COLUMNS: ColumnConfig[] = [
     titleEn: "Closed",
     color: "bg-slate-400",
     borderColor: "border-t-slate-400",
-    badgeColor: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+    badgeColor:
+      "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700",
     nextStatus: "open",
     nextLabelAr: "إعادة فتح",
     nextLabelEn: "Reopen",
@@ -136,22 +160,26 @@ export function TicketsKanbanBoard({
       case "URGENT":
         return {
           dot: "bg-red-500 animate-pulse",
-          badge: "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300 border-red-200 dark:border-red-800",
+          badge:
+            "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300 border-red-200 dark:border-red-800",
         };
       case "HIGH":
         return {
           dot: "bg-orange-500",
-          badge: "bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300 border-orange-200 dark:border-orange-800",
+          badge:
+            "bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300 border-orange-200 dark:border-orange-800",
         };
       case "MEDIUM":
         return {
           dot: "bg-yellow-500",
-          badge: "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/50 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800",
+          badge:
+            "bg-yellow-50 text-yellow-700 dark:bg-yellow-950/50 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800",
         };
       default:
         return {
           dot: "bg-slate-400",
-          badge: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+          badge:
+            "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700",
         };
     }
   };
@@ -186,7 +214,10 @@ export function TicketsKanbanBoard({
                   {ar ? col.titleAr : col.titleEn}
                 </h3>
               </div>
-              <Badge variant="outline" className={`text-xs font-bold px-2 py-0.5 rounded-full ${col.badgeColor}`}>
+              <Badge
+                variant="outline"
+                className={`text-xs font-bold px-2 py-0.5 rounded-full ${col.badgeColor}`}
+              >
                 {colTickets.length}
               </Badge>
             </div>
@@ -196,20 +227,34 @@ export function TicketsKanbanBoard({
               {colTickets.map((ticket) => {
                 const pStyle = priorityBadgeStyle(ticket.priority);
                 const problemName = ar
-                  ? (problemTypesMap[ticket.problemType]?.labelAr || ticket.problemType)
-                  : (problemTypesMap[ticket.problemType]?.labelEn || ticket.problemType);
+                  ? problemTypesMap[ticket.problemType]?.labelAr ||
+                    ticket.problemType
+                  : problemTypesMap[ticket.problemType]?.labelEn ||
+                    ticket.problemType;
 
-                const roomNum = ticket.roomNumber || roomMap[ticket.roomId] || ticket.roomId;
+                const roomNum =
+                  ticket.roomNumber || roomMap[ticket.roomId] || ticket.roomId;
                 const cleanReportedBy = ticket.reportedBy
-                  ? ticket.reportedBy.replace(/\s*-\s*\[مسح QR.*?\]/g, "").replace(/\s*-\s*\[QR.*?\]/g, "").trim()
+                  ? ticket.reportedBy
+                      .replace(/\s*-\s*\[مسح QR.*?\]/g, "")
+                      .replace(/\s*-\s*\[QR.*?\]/g, "")
+                      .trim()
                   : "";
-                const isSystemAdmin = /^(admin|super_admin|supervisor|مشرف|مدير)/i.test(cleanReportedBy);
+                const isSystemAdmin =
+                  /^(admin|super_admin|supervisor|مشرف|مدير)/i.test(
+                    cleanReportedBy,
+                  );
                 const occupant = isSystemAdmin
-                  ? (ar ? "إدارة السكن" : "Admin Staff")
-                  : cleanReportedBy || ticket.residentName || roomOccupantMap[ticket.roomId];
+                  ? ar
+                    ? "إدارة السكن"
+                    : "Admin Staff"
+                  : cleanReportedBy ||
+                    ticket.residentName ||
+                    roomOccupantMap[ticket.roomId];
                 const propName =
                   ticket.propertyName ||
-                  properties.find((p: any) => p.id === ticket.propertyId)?.displayName ||
+                  properties.find((p: any) => p.id === ticket.propertyId)
+                    ?.displayName ||
                   properties.find((p: any) => p.id === ticket.propertyId)?.name;
 
                 return (
@@ -228,18 +273,27 @@ export function TicketsKanbanBoard({
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${categoryBadgeStyle(ticket.category)}`}
                         >
-                          {categoryIcons[ticket.category] || <FileText className="w-3 h-3" />}
-                          <span>{ar ? (categoryAr[ticket.category] ?? ticket.category) : ticket.category}</span>
+                          {categoryIcons[ticket.category] || (
+                            <FileText className="w-3 h-3" />
+                          )}
+                          <span>
+                            {ar
+                              ? (categoryAr[ticket.category] ?? ticket.category)
+                              : ticket.category}
+                          </span>
                         </span>
 
                         {/* Priority */}
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${pStyle.badge}`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${pStyle.dot}`} />
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${pStyle.dot}`}
+                          />
                           <span>
                             {ar
-                              ? (priorityAr[ticket.priority?.toUpperCase()] ?? ticket.priority)
+                              ? (priorityAr[ticket.priority?.toUpperCase()] ??
+                                ticket.priority)
                               : ticket.priority}
                           </span>
                         </span>
@@ -252,7 +306,10 @@ export function TicketsKanbanBoard({
                         {problemName}
                       </h4>
                       <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                        <Badge variant="secondary" className="text-[11px] font-medium py-0 px-1.5 bg-muted">
+                        <Badge
+                          variant="secondary"
+                          className="text-[11px] font-medium py-0 px-1.5 bg-muted"
+                        >
                           {ar ? "الغرفة" : "Room"} {roomNum}
                         </Badge>
                         {propName && (
@@ -267,7 +324,9 @@ export function TicketsKanbanBoard({
                     {occupant && (
                       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/40 p-1.5 rounded-lg">
                         <User className="w-3 h-3 text-primary shrink-0" />
-                        <span className="truncate font-medium text-foreground">{occupant}</span>
+                        <span className="truncate font-medium text-foreground">
+                          {occupant}
+                        </span>
                       </div>
                     )}
 
@@ -282,8 +341,14 @@ export function TicketsKanbanBoard({
                     <div className="pt-2 border-t flex items-center justify-between text-[11px] text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        <span className={`font-bold ${getDurationColor(ticket.startedAt, ticket.resolvedAt, ticket.reportedAt)}`}>
-                          {formatDuration(ticket.startedAt, ticket.resolvedAt, ticket.reportedAt)}
+                        <span
+                          className={`font-bold ${getDurationColor(ticket.startedAt, ticket.resolvedAt, ticket.reportedAt)}`}
+                        >
+                          {formatDuration(
+                            ticket.startedAt,
+                            ticket.resolvedAt,
+                            ticket.reportedAt,
+                          )}
                         </span>
                       </div>
 
@@ -297,7 +362,11 @@ export function TicketsKanbanBoard({
                           size="sm"
                           className="h-6 px-2 text-[10px] gap-1 font-semibold text-primary hover:bg-primary/10 transition-colors"
                           onClick={() => onSelectTicket(ticket.id)}
-                          title={ar ? "عرض التفاصيل ومتابعة سير العمل" : "View Details & Workflow"}
+                          title={
+                            ar
+                              ? "عرض التفاصيل ومتابعة سير العمل"
+                              : "View Details & Workflow"
+                          }
                         >
                           <Eye className="w-3 h-3" />
                           <span>{ar ? "سير العمل" : "Workflow"}</span>
@@ -305,20 +374,30 @@ export function TicketsKanbanBoard({
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground"
+                            >
                               <MoreVertical className="w-3.5 h-3.5" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="text-xs">
-                            <DropdownMenuItem onClick={() => onSelectTicket(ticket.id)}>
+                            <DropdownMenuItem
+                              onClick={() => onSelectTicket(ticket.id)}
+                            >
                               <Eye className="w-3.5 h-3.5 mr-2" />
-                              {ar ? "عرض التفاصيل الكاملة" : "View Full Details"}
+                              {ar
+                                ? "عرض التفاصيل الكاملة"
+                                : "View Full Details"}
                             </DropdownMenuItem>
                             {canDelete && onDeleteTicket && (
                               <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => onDeleteTicket(ticket.id, ticket.propertyId)}
+                                  onClick={() =>
+                                    onDeleteTicket(ticket.id, ticket.propertyId)
+                                  }
                                   className="text-red-600 focus:text-red-600"
                                 >
                                   <Trash className="w-3.5 h-3.5 mr-2" />
@@ -338,7 +417,9 @@ export function TicketsKanbanBoard({
                 <div className="h-44 border-2 border-dashed rounded-xl flex flex-col items-center justify-center text-center p-4 text-muted-foreground/60 space-y-1.5">
                   <AlertCircle className="w-6 h-6 stroke-[1.5]" />
                   <span className="text-xs font-medium">
-                    {ar ? `لا توجد تذاكر ${col.titleAr}` : `No ${col.titleEn} tickets`}
+                    {ar
+                      ? `لا توجد تذاكر ${col.titleAr}`
+                      : `No ${col.titleEn} tickets`}
                   </span>
                 </div>
               )}

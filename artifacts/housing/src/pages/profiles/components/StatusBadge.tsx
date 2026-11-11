@@ -17,27 +17,33 @@ export function StatusBadge({ status }: { status: string }) {
   > = {
     ACTIVE: {
       label: ar ? "مقيم بالسكن" : "In-House",
-      className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800",
+      className:
+        "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800",
     },
     LEFT: {
       label: ar ? "مغادر" : "Check-out",
-      className: "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+      className:
+        "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
     },
     VACATION: {
       label: ar ? "في إجازة" : "Vacation",
-      className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800",
+      className:
+        "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800",
     },
     UNASSIGNED: {
       label: ar ? "غير مسكّن" : "Unassigned",
-      className: "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800",
+      className:
+        "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800",
     },
     SUSPENDED: {
       label: ar ? "موقوف" : "Suspended",
-      className: "bg-red-50 text-red-700 border-red-300 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800",
+      className:
+        "bg-red-50 text-red-700 border-red-300 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800",
     },
     TRANSFERRED: {
       label: ar ? "منقول لفندق آخر" : "Transferred",
-      className: "bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800",
+      className:
+        "bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800",
     },
   };
 
@@ -47,7 +53,10 @@ export function StatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <Badge variant="outline" className={`font-semibold text-xs px-2.5 py-0.5 border ${cfg.className}`}>
+    <Badge
+      variant="outline"
+      className={`font-semibold text-xs px-2.5 py-0.5 border ${cfg.className}`}
+    >
       {cfg.label}
     </Badge>
   );

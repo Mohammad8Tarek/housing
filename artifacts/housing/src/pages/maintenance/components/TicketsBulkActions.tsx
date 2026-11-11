@@ -38,7 +38,7 @@ export function TicketsBulkActions({
       onClear={onClear}
       onExportExcel={onExportExcel}
       extraActions={
-        (canEditAny || canDeleteAny) ? (
+        canEditAny || canDeleteAny ? (
           <div className="flex items-center gap-2">
             {canEditAny && (
               <Select

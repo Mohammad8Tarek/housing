@@ -1,6 +1,12 @@
 import type { Room } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
-import { BedDouble, Info, CheckCircle2, AlertTriangle, Lock } from "lucide-react";
+import {
+  BedDouble,
+  Info,
+  CheckCircle2,
+  AlertTriangle,
+  Lock,
+} from "lucide-react";
 import type { OccupantInfo } from "../types";
 
 /** ── قسم اختيار السرير: هتسكن في أنهي سرير؟ ── */
@@ -29,19 +35,30 @@ export function BedSelector({
         <label className="text-sm font-bold flex items-center gap-2 text-foreground">
           <BedDouble className="w-4 h-4 text-primary" />
           <span>
-            {ar ? "هتسكن في أنهي سرير؟ (اختر رقم السرير)" : "Where will the employee sleep? (Select Bed)"}
+            {ar
+              ? "هتسكن في أنهي سرير؟ (اختر رقم السرير)"
+              : "Where will the employee sleep? (Select Bed)"}
           </span>
           <span className="text-red-500 font-bold">*</span>
         </label>
         {isEntireRoom ? (
-          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/50 dark:text-purple-300 text-xs">
-            {ar ? "تم قفل كل أسِرّة الغرفة (Full Lock)" : "All Beds Locked (Full Lock)"}
+          <Badge
+            variant="outline"
+            className="bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/50 dark:text-purple-300 text-xs"
+          >
+            {ar
+              ? "تم قفل كل أسِرّة الغرفة (Full Lock)"
+              : "All Beds Locked (Full Lock)"}
           </Badge>
         ) : (
           <span className="text-xs text-muted-foreground">
             {selectedRoom.capacity === 1
-              ? (ar ? "غرفة بسرير فردي واحد" : "Single Bed Room")
-              : (ar ? `الغرفة سعة ${selectedRoom.capacity} أسِرّة` : `Capacity: ${selectedRoom.capacity} beds`)}
+              ? ar
+                ? "غرفة بسرير فردي واحد"
+                : "Single Bed Room"
+              : ar
+                ? `الغرفة سعة ${selectedRoom.capacity} أسِرّة`
+                : `Capacity: ${selectedRoom.capacity} beds`}
           </span>
         )}
       </div>
@@ -67,12 +84,20 @@ export function BedSelector({
                 {isBed1 ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-white" />
-                    <span>{ar ? `سرير ${bed} (السرير الرئيسي)` : `Bed ${bed} (Primary)`}</span>
+                    <span>
+                      {ar
+                        ? `سرير ${bed} (السرير الرئيسي)`
+                        : `Bed ${bed} (Primary)`}
+                    </span>
                   </>
                 ) : (
                   <>
                     <Lock className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-                    <span>{ar ? `سرير ${bed} (مقفل Full Lock)` : `Bed ${bed} (Locked)`}</span>
+                    <span>
+                      {ar
+                        ? `سرير ${bed} (مقفل Full Lock)`
+                        : `Bed ${bed} (Locked)`}
+                    </span>
                   </>
                 )}
               </div>
@@ -99,8 +124,8 @@ export function BedSelector({
                 isTaken
                   ? "bg-destructive/10 border-destructive/30 text-destructive cursor-not-allowed opacity-75 select-none"
                   : isSelected
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm ring-2 ring-primary/20"
-                  : "bg-background hover:bg-muted/60 border-border cursor-pointer text-foreground hover:border-primary/50"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm ring-2 ring-primary/20"
+                    : "bg-background hover:bg-muted/60 border-border cursor-pointer text-foreground hover:border-primary/50"
               }`}
             >
               {isTaken ? (
@@ -114,7 +139,9 @@ export function BedSelector({
                   ({occInfo?.residentName || (ar ? "مشغول" : "Occupied")})
                 </span>
               ) : (
-                <span className={`text-[10px] font-normal ${isSelected ? "text-primary-foreground/90" : "text-emerald-600 dark:text-emerald-400"}`}>
+                <span
+                  className={`text-[10px] font-normal ${isSelected ? "text-primary-foreground/90" : "text-emerald-600 dark:text-emerald-400"}`}
+                >
                   ({ar ? "متاح" : "Free"})
                 </span>
               )}

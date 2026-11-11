@@ -26,7 +26,10 @@ export function formatDate(dateStr: string, isRtl: boolean) {
   });
 }
 
-export function formatLastSeen(dateStr: string | undefined, isRtl: boolean): string {
+export function formatLastSeen(
+  dateStr: string | undefined,
+  isRtl: boolean,
+): string {
   if (!dateStr) return isRtl ? "غير متصل" : "offline";
   try {
     const date = new Date(dateStr);
@@ -39,7 +42,9 @@ export function formatLastSeen(dateStr: string | undefined, isRtl: boolean): str
       return isRtl ? "آخر ظهور الآن" : "last seen just now";
     }
     if (diffMins < 60) {
-      return isRtl ? `آخر ظهور منذ ${diffMins} د` : `last seen ${diffMins}m ago`;
+      return isRtl
+        ? `آخر ظهور منذ ${diffMins} د`
+        : `last seen ${diffMins}m ago`;
     }
 
     const isToday =
@@ -54,7 +59,9 @@ export function formatLastSeen(dateStr: string | undefined, isRtl: boolean): str
     });
 
     if (isToday) {
-      return isRtl ? `آخر ظهور اليوم في ${timeStr}` : `last seen today at ${timeStr}`;
+      return isRtl
+        ? `آخر ظهور اليوم في ${timeStr}`
+        : `last seen today at ${timeStr}`;
     }
 
     const yesterday = new Date(now);
@@ -65,14 +72,18 @@ export function formatLastSeen(dateStr: string | undefined, isRtl: boolean): str
       date.getFullYear() === yesterday.getFullYear();
 
     if (isYesterday) {
-      return isRtl ? `آخر ظهور أمس في ${timeStr}` : `last seen yesterday at ${timeStr}`;
+      return isRtl
+        ? `آخر ظهور أمس في ${timeStr}`
+        : `last seen yesterday at ${timeStr}`;
     }
 
     const dateFormatted = date.toLocaleDateString(isRtl ? "ar-EG" : "en-US", {
       month: "numeric",
       day: "numeric",
     });
-    return isRtl ? `آخر ظهور ${dateFormatted} في ${timeStr}` : `last seen ${dateFormatted} at ${timeStr}`;
+    return isRtl
+      ? `آخر ظهور ${dateFormatted} في ${timeStr}`
+      : `last seen ${dateFormatted} at ${timeStr}`;
   } catch {
     return isRtl ? "غير متصل" : "offline";
   }
@@ -90,12 +101,14 @@ let _notifAudioCtx: AudioContext | null = null;
 export function playNotificationSound() {
   try {
     if (!_notifAudioCtx) {
-      _notifAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      _notifAudioCtx = new (
+        window.AudioContext || (window as any).webkitAudioContext
+      )();
     }
     const ctx = _notifAudioCtx;
     // Play a pleasant two-tone chime
     const now = ctx.currentTime;
-    
+
     // First tone
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
@@ -107,7 +120,7 @@ export function playNotificationSound() {
     gain1.connect(ctx.destination);
     osc1.start(now);
     osc1.stop(now + 0.3);
-    
+
     // Second tone (slightly delayed)
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
@@ -141,7 +154,11 @@ export async function ensureNotificationChannel() {
   } catch {}
 }
 
-export async function showNotification(title: string, body: string, icon?: string) {
+export async function showNotification(
+  title: string,
+  body: string,
+  icon?: string,
+) {
   // Always play sound and vibrate (works on mobile)
   playNotificationSound();
   if ("vibrate" in navigator) {
@@ -192,14 +209,16 @@ export async function showNotification(title: string, body: string, icon?: strin
 export function getNotificationMessagePreview(
   content: string,
   contentType?: string,
-  isRtl: boolean = true
+  isRtl: boolean = true,
 ): string {
   if (!content) return isRtl ? "رسالة جديدة" : "New message";
   if (
     contentType === "image" ||
     content.startsWith("data:image/") ||
-    (content.startsWith("http") && /\.(jpeg|jpg|gif|png|webp)/i.test(content)) ||
-    (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(content) && content.length > 50) ||
+    (content.startsWith("http") &&
+      /\.(jpeg|jpg|gif|png|webp)/i.test(content)) ||
+    (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(content) &&
+      content.length > 50) ||
     content === "📷 صورة" ||
     content === "📷 Photo"
   ) {
@@ -223,10 +242,13 @@ export function getNotificationMessagePreview(
 }
 
 export function renderLastMessagePreview(
-  lastMsg: { content: string; contentType?: string; senderId?: number } | null | undefined,
+  lastMsg:
+    | { content: string; contentType?: string; senderId?: number }
+    | null
+    | undefined,
   isRtl: boolean,
   isDark: boolean,
-  hasUnread: boolean
+  hasUnread: boolean,
 ) {
   if (!lastMsg || !lastMsg.content) {
     return (
@@ -243,8 +265,10 @@ export function renderLastMessagePreview(
   if (
     contentType === "image" ||
     content.startsWith("data:image/") ||
-    (content.startsWith("http") && /\.(jpeg|jpg|gif|png|webp)/i.test(content)) ||
-    (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(content) && content.length > 50) ||
+    (content.startsWith("http") &&
+      /\.(jpeg|jpg|gif|png|webp)/i.test(content)) ||
+    (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(content) &&
+      content.length > 50) ||
     content === "📷 صورة" ||
     content === "📷 Photo"
   ) {
@@ -252,7 +276,9 @@ export function renderLastMessagePreview(
       <span className="inline-flex items-center gap-1.5 truncate">
         <Camera
           className="w-3.5 h-3.5 flex-shrink-0"
-          style={{ color: hasUnread ? "#25d366" : isDark ? "#8696a0" : "#667781" }}
+          style={{
+            color: hasUnread ? "#25d366" : isDark ? "#8696a0" : "#667781",
+          }}
         />
         <span>{isRtl ? "صورة" : "Photo"}</span>
       </span>
@@ -282,7 +308,9 @@ export function renderLastMessagePreview(
           className="w-3.5 h-3.5 flex-shrink-0"
           style={{ color: hasUnread ? "#25d366" : "#3b82f6" }}
         />
-        <span className="truncate">{fileName || (isRtl ? "مستند" : "Document")}</span>
+        <span className="truncate">
+          {fileName || (isRtl ? "مستند" : "Document")}
+        </span>
       </span>
     );
   }

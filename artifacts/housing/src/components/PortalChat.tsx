@@ -8,7 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Trash2, Send, Search, Users, User, ShieldAlert } from "lucide-react";
+import {
+  MessageSquare,
+  Trash2,
+  Send,
+  Search,
+  Users,
+  User,
+  ShieldAlert,
+} from "lucide-react";
 
 export default function PortalChat() {
   const { activePropertyId } = useProperty();
@@ -31,7 +39,9 @@ export default function PortalChat() {
   };
   type PortalChatSender = { firstName?: string; lastName?: string };
 
-  const [selectedConv, setSelectedConv] = useState<number | string | null>(null);
+  const [selectedConv, setSelectedConv] = useState<number | string | null>(
+    null,
+  );
   const [messages, setMessages] = useState<PortalChatMessage[]>([]);
   const [senders, setSenders] = useState<Record<string, PortalChatSender>>({});
   const [replyText, setReplyText] = useState("");
@@ -52,9 +62,10 @@ export default function PortalChat() {
   });
 
   const conversations = (convData ?? []) as PortalChatConversation[];
-  const filteredConversations = conversations.filter(c => 
-    c.subject?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    c.id.toString().includes(searchQuery)
+  const filteredConversations = conversations.filter(
+    (c) =>
+      c.subject?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.id.toString().includes(searchQuery),
   );
 
   const deleteMessage = useMutation({
@@ -74,10 +85,10 @@ export default function PortalChat() {
     mutationFn: async (content: string) => {
       const r = await fetch(
         `/api/portal-chat/admin/conversations/${selectedConv}/messages?propertyId=${activePropertyId}`,
-        { 
+        {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content })
+          body: JSON.stringify({ content }),
         },
       );
       return await r.json();
@@ -123,7 +134,9 @@ export default function PortalChat() {
             {ar ? "محادثات البوابة" : "Portal Chats"}
           </CardTitle>
           <div className="relative mt-3">
-            <Search className={`absolute ${ar ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground`} />
+            <Search
+              className={`absolute ${ar ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground`}
+            />
             <Input
               placeholder={ar ? "بحث..." : "Search..."}
               value={searchQuery}
@@ -148,22 +161,41 @@ export default function PortalChat() {
                   key={c.id}
                   onClick={() => viewMessages(c.id)}
                   className={`p-3 rounded-xl cursor-pointer transition-colors flex items-start gap-3 ${
-                    selectedConv === c.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted"
+                    selectedConv === c.id
+                      ? "bg-primary/10 border border-primary/20"
+                      : "hover:bg-muted"
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${c.isGroup ? 'bg-indigo-100 text-indigo-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                    {c.isGroup ? <Users className="w-5 h-5" /> : <User className="w-5 h-5" />}
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${c.isGroup ? "bg-indigo-100 text-indigo-600" : "bg-emerald-100 text-emerald-600"}`}
+                  >
+                    {c.isGroup ? (
+                      <Users className="w-5 h-5" />
+                    ) : (
+                      <User className="w-5 h-5" />
+                    )}
                   </div>
                   <div className="flex-1 overflow-hidden">
                     <div className="flex justify-between items-center mb-1">
                       <h4 className="font-semibold text-sm truncate">
                         {c.subject || (ar ? "بدون موضوع" : "No subject")}
                       </h4>
-                      <span className="text-[10px] text-muted-foreground">#{c.id}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        #{c.id}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
-                        {c.isGroup ? (ar ? "مجموعة" : "Group") : (ar ? "خاص" : "Direct")}
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] px-1 py-0 h-4"
+                      >
+                        {c.isGroup
+                          ? ar
+                            ? "مجموعة"
+                            : "Group"
+                          : ar
+                            ? "خاص"
+                            : "Direct"}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
                         {c.messageCount || 0} {ar ? "رسائل" : "msgs"}
@@ -185,7 +217,8 @@ export default function PortalChat() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-md">
-                    {conversations.find(c => c.id === selectedConv)?.subject || (ar ? "بدون موضوع" : "No subject")}
+                    {conversations.find((c) => c.id === selectedConv)
+                      ?.subject || (ar ? "بدون موضوع" : "No subject")}
                   </CardTitle>
                   <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                     <ShieldAlert className="w-3 h-3 text-amber-500" />
@@ -205,25 +238,36 @@ export default function PortalChat() {
                   messages.map((msg) => {
                     const isAdmin = msg.senderId === 0;
                     const sender = senders[msg.senderId ?? ""];
-                    const senderName = isAdmin 
-                      ? (ar ? "الإدارة" : "Management")
-                      : (sender ? `${sender.firstName} ${sender.lastName}` : `Profile #${msg.senderId}`);
+                    const senderName = isAdmin
+                      ? ar
+                        ? "الإدارة"
+                        : "Management"
+                      : sender
+                        ? `${sender.firstName} ${sender.lastName}`
+                        : `Profile #${msg.senderId}`;
 
                     return (
                       <div
                         key={msg.id}
-                        className={`flex flex-col ${isAdmin ? (ar ? "items-start" : "items-end") : (ar ? "items-end" : "items-start")}`}
+                        className={`flex flex-col ${isAdmin ? (ar ? "items-start" : "items-end") : ar ? "items-end" : "items-start"}`}
                       >
                         <div className="flex items-baseline gap-2 mb-1 px-1">
-                          <span className={`text-xs font-semibold ${isAdmin ? 'text-blue-600' : 'text-slate-600 dark:text-slate-300'}`}>
+                          <span
+                            className={`text-xs font-semibold ${isAdmin ? "text-blue-600" : "text-slate-600 dark:text-slate-300"}`}
+                          >
                             {senderName}
                           </span>
                           <span className="text-[10px] text-muted-foreground">
-                            {new Date(msg.createdAt ?? "").toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(msg.createdAt ?? "").toLocaleTimeString(
+                              [],
+                              { hour: "2-digit", minute: "2-digit" },
+                            )}
                           </span>
                         </div>
-                        
-                        <div className={`relative group flex ${isAdmin ? (ar ? 'flex-row-reverse' : 'flex-row-reverse') : (ar ? 'flex-row' : 'flex-row')} items-start gap-2 max-w-[85%]`}>
+
+                        <div
+                          className={`relative group flex ${isAdmin ? (ar ? "flex-row-reverse" : "flex-row-reverse") : ar ? "flex-row" : "flex-row"} items-start gap-2 max-w-[85%]`}
+                        >
                           {/* Delete button */}
                           <Button
                             variant="ghost"
@@ -235,11 +279,16 @@ export default function PortalChat() {
                             <Trash2 className="w-3 h-3 text-destructive" />
                           </Button>
 
-                          <div 
+                          <div
                             className={`p-3 rounded-2xl text-sm whitespace-pre-wrap break-words shadow-sm
-                              ${isAdmin 
-                                ? (ar ? 'bg-blue-600 text-white rounded-tl-sm' : 'bg-blue-600 text-white rounded-tr-sm') 
-                                : (ar ? 'bg-white dark:bg-slate-800 border rounded-tr-sm' : 'bg-white dark:bg-slate-800 border rounded-tl-sm')
+                              ${
+                                isAdmin
+                                  ? ar
+                                    ? "bg-blue-600 text-white rounded-tl-sm"
+                                    : "bg-blue-600 text-white rounded-tr-sm"
+                                  : ar
+                                    ? "bg-white dark:bg-slate-800 border rounded-tr-sm"
+                                    : "bg-white dark:bg-slate-800 border rounded-tl-sm"
                               }`}
                           >
                             {msg.content}
@@ -255,7 +304,7 @@ export default function PortalChat() {
 
             {/* Admin Reply Input */}
             <div className="p-4 bg-background border-t shrink-0">
-              <form 
+              <form
                 className="flex gap-2 max-w-3xl mx-auto"
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -265,16 +314,22 @@ export default function PortalChat() {
                 <Input
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
-                  placeholder={ar ? "أرسل رسالة كإدارة..." : "Send message as Management..."}
+                  placeholder={
+                    ar
+                      ? "أرسل رسالة كإدارة..."
+                      : "Send message as Management..."
+                  }
                   className="flex-1 bg-muted/50 border-transparent focus-visible:bg-background"
                   disabled={sendMessage.isPending}
                 />
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={!replyText.trim() || sendMessage.isPending}
                   className="shrink-0 rounded-full w-10 h-10 p-0 flex items-center justify-center bg-blue-600 hover:bg-blue-700"
                 >
-                  <Send className={`w-4 h-4 ${ar ? "rotate-180" : ""} text-white`} />
+                  <Send
+                    className={`w-4 h-4 ${ar ? "rotate-180" : ""} text-white`}
+                  />
                 </Button>
               </form>
             </div>

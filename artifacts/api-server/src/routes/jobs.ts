@@ -31,8 +31,8 @@ router.post(
     // @ts-ignore
     const propertyId = req.query.propertyId
       ? Number(req.query.propertyId)
-      // @ts-ignore
-      : req.session?.propertyId;
+      : // @ts-ignore
+        req.session?.propertyId;
 
     if (!exportQueue) {
       return res.status(503).json({
@@ -80,8 +80,11 @@ router.get(
     }
 
     const sessionUser = req.session as any;
-    const isOwner = job.data?.userId ? job.data.userId === sessionUser?.userId : true;
-    const isSuperAdmin = sessionUser?.isSystemAdmin || sessionUser?.userRole === "super_admin";
+    const isOwner = job.data?.userId
+      ? job.data.userId === sessionUser?.userId
+      : true;
+    const isSuperAdmin =
+      sessionUser?.isSystemAdmin || sessionUser?.userRole === "super_admin";
 
     if (!isOwner && !isSuperAdmin) {
       return res.status(403).json({
@@ -141,8 +144,11 @@ router.get(
     }
 
     const sessionUser = req.session as any;
-    const isOwner = job.data?.userId ? job.data.userId === sessionUser?.userId : true;
-    const isSuperAdmin = sessionUser?.isSystemAdmin || sessionUser?.userRole === "super_admin";
+    const isOwner = job.data?.userId
+      ? job.data.userId === sessionUser?.userId
+      : true;
+    const isSuperAdmin =
+      sessionUser?.isSystemAdmin || sessionUser?.userRole === "super_admin";
 
     if (!isOwner && !isSuperAdmin) {
       return res.status(403).json({
@@ -169,10 +175,7 @@ router.get(
     }
 
     res.setHeader("Content-Type", mimeType);
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${fileName}"`,
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
     return;

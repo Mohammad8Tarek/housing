@@ -1,5 +1,12 @@
 import { Router } from "express";
-import { withTenant, assignmentsTable, roomsTable, maintenanceTable, activityLogsTable, buildingsTable } from "@workspace/db";
+import {
+  withTenant,
+  assignmentsTable,
+  roomsTable,
+  maintenanceTable,
+  activityLogsTable,
+  buildingsTable,
+} from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { validate } from "../../middlewares/validate.js";
@@ -16,7 +23,9 @@ router.get(
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
-      res.status(400).json({ success: false, message: "propertyId is required" });
+      res
+        .status(400)
+        .json({ success: false, message: "propertyId is required" });
       return;
     }
 
@@ -44,15 +53,18 @@ router.get(
             })
             .from(maintenanceTable)
             .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
-            .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
-            .orderBy(desc(maintenanceTable.reportedAt))
+            .leftJoin(
+              buildingsTable,
+              eq(roomsTable.buildingId, buildingsTable.id),
+            )
+            .orderBy(desc(maintenanceTable.reportedAt)),
         );
 
         const mntTickets = allTickets.filter(
-          (t) => (t.category || "maintenance").toLowerCase() !== "housekeeping"
+          (t) => (t.category || "maintenance").toLowerCase() !== "housekeeping",
         );
         const hskTickets = allTickets.filter(
-          (t) => (t.category || "").toLowerCase() === "housekeeping"
+          (t) => (t.category || "").toLowerCase() === "housekeeping",
         );
 
         function calcTrackStats(tickets: typeof allTickets) {
@@ -71,9 +83,16 @@ router.get(
 
             if (st === "open") open++;
             else if (st === "in_progress" || st === "pending") approved++;
-            else if (st === "resolved" || st === "closed" || st === "completed") done++;
+            else if (st === "resolved" || st === "closed" || st === "completed")
+              done++;
 
-            if (pr === "urgent" && st !== "closed" && st !== "resolved" && st !== "completed") urgent++;
+            if (
+              pr === "urgent" &&
+              st !== "closed" &&
+              st !== "resolved" &&
+              st !== "completed"
+            )
+              urgent++;
 
             if (typeof t.rating === "number" && t.rating > 0) {
               sumRating += t.rating;
@@ -82,9 +101,14 @@ router.get(
             }
           }
 
-          const completionRate = total > 0 ? Math.round((done / total) * 100) : 0;
-          const avgRating = ratedCount > 0 ? Math.round((sumRating / ratedCount) * 10) / 10 : 0;
-          const satisfactionRate = ratedCount > 0 ? Math.round((satisfiedCount / ratedCount) * 100) : 0;
+          const completionRate =
+            total > 0 ? Math.round((done / total) * 100) : 0;
+          const avgRating =
+            ratedCount > 0 ? Math.round((sumRating / ratedCount) * 10) / 10 : 0;
+          const satisfactionRate =
+            ratedCount > 0
+              ? Math.round((satisfiedCount / ratedCount) * 100)
+              : 0;
 
           return {
             total,
@@ -112,7 +136,10 @@ router.get(
       res.json({ success: true, data });
     } catch (err: any) {
       console.error("[DashboardTicketsOverview] Error:", err);
-      res.status(500).json({ success: false, message: err.message || "Failed to load tickets overview" });
+      res.status(500).json({
+        success: false,
+        message: err.message || "Failed to load tickets overview",
+      });
     }
   },
 );

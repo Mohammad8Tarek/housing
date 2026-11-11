@@ -29,23 +29,54 @@ export const MAINTENANCE_PROBLEM_TYPES = [
 
 export const HOUSEKEEPING_ORDER_TYPES = [
   { key: "room_cleaning", labelEn: "Room Cleaning", labelAr: "تنظيف الغرفة" },
-  { key: "bed_sheets", labelEn: "Bed Linen Change", labelAr: "تغيير المفارش والأسرة" },
-  { key: "towels", labelEn: "Towels & Amenities", labelAr: "توفر مناشف ومستلزمات" },
-  { key: "deep_cleaning", labelEn: "Deep Cleaning", labelAr: "تنظيف شامل وعميق" },
+  {
+    key: "bed_sheets",
+    labelEn: "Bed Linen Change",
+    labelAr: "تغيير المفارش والأسرة",
+  },
+  {
+    key: "towels",
+    labelEn: "Towels & Amenities",
+    labelAr: "توفر مناشف ومستلزمات",
+  },
+  {
+    key: "deep_cleaning",
+    labelEn: "Deep Cleaning",
+    labelAr: "تنظيف شامل وعميق",
+  },
   { key: "waste_removal", labelEn: "Trash Removal", labelAr: "تفريغ المهملات" },
-  { key: "sanitization", labelEn: "Sanitization & Disinfection", labelAr: "تعقيم وتطهير" },
-  { key: "turnover", labelEn: "Turnover Preparation", labelAr: "تجهيز لنزيل جديد" },
-  { key: "other", labelEn: "Special / Other Request", labelAr: "طلب نظافة آخر" },
+  {
+    key: "sanitization",
+    labelEn: "Sanitization & Disinfection",
+    labelAr: "تعقيم وتطهير",
+  },
+  {
+    key: "turnover",
+    labelEn: "Turnover Preparation",
+    labelAr: "تجهيز لنزيل جديد",
+  },
+  {
+    key: "other",
+    labelEn: "Special / Other Request",
+    labelAr: "طلب نظافة آخر",
+  },
 ];
 
 export const GENERAL_PROBLEM_TYPES = [
-  { key: "general_inquiry", labelEn: "General Inquiry", labelAr: "استفسار عام" },
+  {
+    key: "general_inquiry",
+    labelEn: "General Inquiry",
+    labelAr: "استفسار عام",
+  },
   { key: "inspection", labelEn: "Room Inspection", labelAr: "فحص ومعاينة" },
   { key: "pest_control", labelEn: "Pest Control", labelAr: "مكافحة حشرات" },
   { key: "other", labelEn: "Other", labelAr: "أخرى" },
 ];
 
-export const PROBLEM_TYPES_MAP: Record<string, { labelEn: string; labelAr: string }> = {
+export const PROBLEM_TYPES_MAP: Record<
+  string,
+  { labelEn: string; labelAr: string }
+> = {
   Plumbing: { labelEn: "Plumbing", labelAr: "سباكة" },
   Electrical: { labelEn: "Electrical", labelAr: "كهرباء" },
   HVAC: { labelEn: "HVAC & AC", labelAr: "تكييف وتبريد" },
@@ -59,7 +90,10 @@ export const PROBLEM_TYPES_MAP: Record<string, { labelEn: string; labelAr: strin
   towels: { labelEn: "Towels & Amenities", labelAr: "مناشف ومستلزمات" },
   deep_cleaning: { labelEn: "Deep Cleaning", labelAr: "تنظيف شامل وعميق" },
   waste_removal: { labelEn: "Trash Removal", labelAr: "تفريغ المهملات" },
-  sanitization: { labelEn: "Sanitization & Disinfection", labelAr: "تعقيم وتطهير" },
+  sanitization: {
+    labelEn: "Sanitization & Disinfection",
+    labelAr: "تعقيم وتطهير",
+  },
   turnover: { labelEn: "Turnover Preparation", labelAr: "تجهيز لنزيل جديد" },
   general_inquiry: { labelEn: "General Inquiry", labelAr: "استفسار عام" },
   inspection: { labelEn: "Room Inspection", labelAr: "فحص ومعاينة" },
@@ -106,17 +140,68 @@ export const statusColor = (s: string) => {
 };
 export const TICKET_COLS = [
   { key: "id", label: "ID", labelAr: "رقم", defaultVisible: true },
-  { key: "building_floor", label: "BUILDING & FLOOR", labelAr: "المبنى والدور", defaultVisible: true },
+  {
+    key: "building_floor",
+    label: "BUILDING & FLOOR",
+    labelAr: "المبنى والدور",
+    defaultVisible: true,
+  },
   { key: "room", label: "ROOM", labelAr: "رقم الغرفة", defaultVisible: true },
-  { key: "requester", label: "REQUESTER / RESIDENT", labelAr: "مقدم الطلب / المقيم", defaultVisible: true },
-  { key: "property", label: "PROPERTY / HOUSING", labelAr: "الفندق / السكن", defaultVisible: false },
-  { key: "problem", label: "PROBLEM", labelAr: "المشكلة والوصف", defaultVisible: true },
-  { key: "department", label: "DEPARTMENT", labelAr: "القسم والخدمة", defaultVisible: false },
+  {
+    key: "requester",
+    label: "REQUESTER / RESIDENT",
+    labelAr: "مقدم الطلب / المقيم",
+    defaultVisible: true,
+  },
+  {
+    key: "property",
+    label: "PROPERTY / HOUSING",
+    labelAr: "الفندق / السكن",
+    defaultVisible: false,
+  },
+  {
+    key: "problem",
+    label: "PROBLEM",
+    labelAr: "المشكلة والوصف",
+    defaultVisible: true,
+  },
+  {
+    key: "department",
+    label: "DEPARTMENT",
+    labelAr: "القسم والخدمة",
+    defaultVisible: false,
+  },
   { key: "status", label: "STATUS", labelAr: "الحالة", defaultVisible: true },
-  { key: "priority", label: "PRIORITY", labelAr: "الأولوية", defaultVisible: true },
-  { key: "assigned_to", label: "ASSIGNED TO", labelAr: "المسند إليه / الفني", defaultVisible: true },
-  { key: "at", label: "REPORTED AT", labelAr: "تاريخ البدء", defaultVisible: false },
-  { key: "duration", label: "DURATION", labelAr: "المدة", defaultVisible: false },
+  {
+    key: "priority",
+    label: "PRIORITY",
+    labelAr: "الأولوية",
+    defaultVisible: true,
+  },
+  {
+    key: "assigned_to",
+    label: "ASSIGNED TO",
+    labelAr: "المسند إليه / الفني",
+    defaultVisible: true,
+  },
+  {
+    key: "at",
+    label: "REPORTED AT",
+    labelAr: "تاريخ البدء",
+    defaultVisible: false,
+  },
+  {
+    key: "duration",
+    label: "DURATION",
+    labelAr: "المدة",
+    defaultVisible: false,
+  },
   { key: "rating", label: "RATING", labelAr: "التقييم", defaultVisible: false },
-  { key: "actions", label: "ACTIONS", labelAr: "إجراءات", defaultVisible: true, fixed: true },
+  {
+    key: "actions",
+    label: "ACTIONS",
+    labelAr: "إجراءات",
+    defaultVisible: true,
+    fixed: true,
+  },
 ];

@@ -9,7 +9,8 @@ export type WsAuthTokenPayload = {
 };
 
 function getSecret(): string {
-  const secret = process.env["WS_TOKEN_SECRET"] || process.env["SESSION_SECRET"];
+  const secret =
+    process.env["WS_TOKEN_SECRET"] || process.env["SESSION_SECRET"];
   if (!secret) throw new Error("WS token secret is not configured");
   return secret;
 }

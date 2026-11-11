@@ -3,10 +3,17 @@ import { workersTable, maintenanceTable, withTenant } from "@workspace/db";
 import { eq, ne, and, or, ilike, sql, desc } from "drizzle-orm";
 import { logActivity } from "../lib/activity-logger.js";
 import { broadcastToProperty } from "../lib/websocket.js";
-import { requireAnyPermission, hasPermission } from "../middlewares/permissions.js";
+import {
+  requireAnyPermission,
+  hasPermission,
+} from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams } from "../validation/common.js";
-import { CreateWorkerBody, ListWorkersQuery, UpdateWorkerBody } from "../validation/schemas.js";
+import {
+  CreateWorkerBody,
+  ListWorkersQuery,
+  UpdateWorkerBody,
+} from "../validation/schemas.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 
 const router: Router = Router();
@@ -19,14 +26,16 @@ router.get(
   requireAnyPermission(
     ["workers", "view"],
     ["maintenance", "view"],
-    ["housekeeping", "view"]
+    ["housekeeping", "view"],
   ),
   validate({ query: ListWorkersQuery }),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
       if (!propertyId) {
-        res.status(400).json({ success: false, message: "Property ID is required" });
+        res
+          .status(400)
+          .json({ success: false, message: "Property ID is required" });
         return;
       }
 
@@ -36,13 +45,19 @@ router.get(
         user?.roles?.includes("super_admin") ||
         user?.roles?.includes("system_admin");
 
-      const userHasMaintenance = isSysAdmin || hasPermission(user, "maintenance", "view");
-      const userHasHousekeeping = isSysAdmin || hasPermission(user, "housekeeping", "view");
+      const userHasMaintenance =
+        isSysAdmin || hasPermission(user, "maintenance", "view");
+      const userHasHousekeeping =
+        isSysAdmin || hasPermission(user, "housekeeping", "view");
 
       const search = req.query.search ? String(req.query.search).trim() : "";
-      const specialty = req.query.specialty ? String(req.query.specialty).trim() : "all";
+      const specialty = req.query.specialty
+        ? String(req.query.specialty).trim()
+        : "all";
       const status = req.query.status ? String(req.query.status).trim() : "all";
-      const workerType = req.query.workerType ? String(req.query.workerType).trim() : "all";
+      const workerType = req.query.workerType
+        ? String(req.query.workerType).trim()
+        : "all";
       const departmentQuery = req.query.department
         ? String(req.query.department).trim().toLowerCase()
         : req.query.category
@@ -65,8 +80,13 @@ router.get(
 
       let page = 1;
       let limit = 50;
-      if (req.query.page) page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
-      if (req.query.limit) limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
+      if (req.query.page)
+        page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+      if (req.query.limit)
+        limit = Math.min(
+          500,
+          Math.max(1, parseInt(req.query.limit as string, 10) || 50),
+        );
       const offset = (page - 1) * limit;
 
       const result = await withTenant(propertyId, async (tenantDb) => {
@@ -96,12 +116,13 @@ router.get(
               ilike(workersTable.name, `%${search}%`),
               ilike(workersTable.phone, `%${search}%`),
               ilike(workersTable.nationalId, `%${search}%`),
-              ilike(workersTable.companyName, `%${search}%`)
-            )
+              ilike(workersTable.companyName, `%${search}%`),
+            ),
           );
         }
 
-        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+        const whereClause =
+          conditions.length > 0 ? and(...conditions) : undefined;
 
         // Total count
         const [countRow] = await tenantDb
@@ -148,7 +169,7 @@ router.get(
 
       res.json({
         success: true,
-        data: result.rows.map(w => ({
+        data: result.rows.map((w) => ({
           ...w,
           activeTasksCount: Number(w.activeTasksCount || 0),
           totalTasksCount: Number(w.totalTasksCount || 0),
@@ -162,9 +183,12 @@ router.get(
       });
     } catch (err: any) {
       console.error("[Workers Route] Error listing workers:", err);
-      res.status(500).json({ success: false, message: err.message || "Failed to list workers" });
+      res.status(500).json({
+        success: false,
+        message: err.message || "Failed to list workers",
+      });
     }
-  }
+  },
 );
 
 // ==========================================
@@ -176,14 +200,16 @@ router.post(
     ["workers", "create"],
     ["maintenance", "create"],
     ["housekeeping", "create"],
-    ["maintenance", "edit"]
+    ["maintenance", "edit"],
   ),
   validate({ body: CreateWorkerBody }),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const propertyId = getTenantId(req);
       if (!propertyId) {
-        res.status(400).json({ success: false, message: "Property ID is required" });
+        res
+          .status(400)
+          .json({ success: false, message: "Property ID is required" });
         return;
       }
 
@@ -201,7 +227,9 @@ router.post(
       } = req.body;
 
       if (!name || !String(name).trim()) {
-        res.status(400).json({ success: false, message: "Worker name is required" });
+        res
+          .status(400)
+          .json({ success: false, message: "Worker name is required" });
         return;
       }
 
@@ -249,9 +277,12 @@ router.post(
       res.status(201).json({ success: true, data: created });
     } catch (err: any) {
       console.error("[Workers Route] Error creating worker:", err);
-      res.status(500).json({ success: false, message: err.message || "Failed to create worker" });
+      res.status(500).json({
+        success: false,
+        message: err.message || "Failed to create worker",
+      });
     }
-  }
+  },
 );
 
 // ==========================================
@@ -262,7 +293,7 @@ router.get(
   requireAnyPermission(
     ["workers", "view"],
     ["maintenance", "view"],
-    ["housekeeping", "view"]
+    ["housekeeping", "view"],
   ),
   validate({ params: IdParams }),
   async (req: Request, res: Response): Promise<void> => {
@@ -270,7 +301,10 @@ router.get(
       const propertyId = getTenantId(req);
       const workerId = parseInt(String(req.params.id), 10);
       if (!propertyId || isNaN(workerId)) {
-        res.status(400).json({ success: false, message: "Valid property ID and worker ID are required" });
+        res.status(400).json({
+          success: false,
+          message: "Valid property ID and worker ID are required",
+        });
         return;
       }
 
@@ -291,11 +325,23 @@ router.get(
 
         if (!isSysAdmin) {
           const userHasMaintenance = hasPermission(user, "maintenance", "view");
-          const userHasHousekeeping = hasPermission(user, "housekeeping", "view");
-          if (userHasHousekeeping && !userHasMaintenance && worker.specialty !== "housekeeping") {
+          const userHasHousekeeping = hasPermission(
+            user,
+            "housekeeping",
+            "view",
+          );
+          if (
+            userHasHousekeeping &&
+            !userHasMaintenance &&
+            worker.specialty !== "housekeeping"
+          ) {
             return null;
           }
-          if (userHasMaintenance && !userHasHousekeeping && worker.specialty === "housekeeping") {
+          if (
+            userHasMaintenance &&
+            !userHasHousekeeping &&
+            worker.specialty === "housekeeping"
+          ) {
             return null;
           }
         }
@@ -318,9 +364,12 @@ router.get(
       res.json({ success: true, data: result });
     } catch (err: any) {
       console.error("[Workers Route] Error getting worker:", err);
-      res.status(500).json({ success: false, message: err.message || "Failed to get worker" });
+      res.status(500).json({
+        success: false,
+        message: err.message || "Failed to get worker",
+      });
     }
-  }
+  },
 );
 
 // ==========================================
@@ -331,7 +380,7 @@ router.put(
   requireAnyPermission(
     ["workers", "edit"],
     ["maintenance", "edit"],
-    ["housekeeping", "edit"]
+    ["housekeeping", "edit"],
   ),
   validate({ params: IdParams, body: UpdateWorkerBody }),
   async (req: Request, res: Response): Promise<void> => {
@@ -339,7 +388,10 @@ router.put(
       const propertyId = getTenantId(req);
       const workerId = parseInt(String(req.params.id), 10);
       if (!propertyId || isNaN(workerId)) {
-        res.status(400).json({ success: false, message: "Valid property ID and worker ID are required" });
+        res.status(400).json({
+          success: false,
+          message: "Valid property ID and worker ID are required",
+        });
         return;
       }
 
@@ -359,14 +411,17 @@ router.put(
 
       if (name !== undefined) updateData.name = String(name).trim();
       if (phone !== undefined) updateData.phone = String(phone).trim();
-      if (nationalId !== undefined) updateData.nationalId = String(nationalId).trim();
+      if (nationalId !== undefined)
+        updateData.nationalId = String(nationalId).trim();
       if (specialty !== undefined) updateData.specialty = specialty;
       if (status !== undefined) updateData.status = status;
       if (workerType !== undefined) updateData.workerType = workerType;
-      if (companyName !== undefined) updateData.companyName = String(companyName).trim();
+      if (companyName !== undefined)
+        updateData.companyName = String(companyName).trim();
       if (dailyRate !== undefined) updateData.dailyRate = Number(dailyRate);
       if (notes !== undefined) updateData.notes = String(notes).trim();
-      if (profileId !== undefined) updateData.profileId = profileId ? Number(profileId) : null;
+      if (profileId !== undefined)
+        updateData.profileId = profileId ? Number(profileId) : null;
       updateData.updatedAt = new Date();
 
       const updated = await withTenant(propertyId, async (tenantDb) => {
@@ -408,9 +463,12 @@ router.put(
       res.json({ success: true, data: updated });
     } catch (err: any) {
       console.error("[Workers Route] Error updating worker:", err);
-      res.status(500).json({ success: false, message: err.message || "Failed to update worker" });
+      res.status(500).json({
+        success: false,
+        message: err.message || "Failed to update worker",
+      });
     }
-  }
+  },
 );
 
 // ==========================================
@@ -421,7 +479,7 @@ router.delete(
   requireAnyPermission(
     ["workers", "delete"],
     ["maintenance", "delete"],
-    ["housekeeping", "delete"]
+    ["housekeeping", "delete"],
   ),
   validate({ params: IdParams }),
   async (req: Request, res: Response): Promise<void> => {
@@ -429,7 +487,10 @@ router.delete(
       const propertyId = getTenantId(req);
       const workerId = parseInt(String(req.params.id), 10);
       if (!propertyId || isNaN(workerId)) {
-        res.status(400).json({ success: false, message: "Valid property ID and worker ID are required" });
+        res.status(400).json({
+          success: false,
+          message: "Valid property ID and worker ID are required",
+        });
         return;
       }
 
@@ -441,12 +502,14 @@ router.delete(
           .where(
             and(
               eq(maintenanceTable.workerId, workerId),
-              sql`${maintenanceTable.status} NOT IN ('completed', 'cancelled')`
-            )
+              sql`${maintenanceTable.status} NOT IN ('completed', 'cancelled')`,
+            ),
           );
 
         if (activeTasks && Number(activeTasks.count) > 0) {
-          throw new Error(`Cannot delete worker with ${activeTasks.count} active tasks`);
+          throw new Error(
+            `Cannot delete worker with ${activeTasks.count} active tasks`,
+          );
         }
 
         const [row] = await tenantDb
@@ -486,9 +549,12 @@ router.delete(
       res.json({ success: true, message: "Worker deleted successfully" });
     } catch (err: any) {
       console.error("[Workers Route] Error deleting worker:", err);
-      res.status(400).json({ success: false, message: err.message || "Failed to delete worker" });
+      res.status(400).json({
+        success: false,
+        message: err.message || "Failed to delete worker",
+      });
     }
-  }
+  },
 );
 
 export default router;

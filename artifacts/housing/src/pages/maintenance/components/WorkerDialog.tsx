@@ -64,14 +64,49 @@ interface WorkerDialogProps {
 }
 
 export const WORKER_SPECIALTIES = [
-  { key: "general", labelAr: "صيانة عامة", labelEn: "General Maintenance", icon: Wrench },
-  { key: "plumbing", labelAr: "سباكة وصحي", labelEn: "Plumbing", icon: Droplet },
-  { key: "electrical", labelAr: "كهرباء وتمديدات", labelEn: "Electrical", icon: Zap },
+  {
+    key: "general",
+    labelAr: "صيانة عامة",
+    labelEn: "General Maintenance",
+    icon: Wrench,
+  },
+  {
+    key: "plumbing",
+    labelAr: "سباكة وصحي",
+    labelEn: "Plumbing",
+    icon: Droplet,
+  },
+  {
+    key: "electrical",
+    labelAr: "كهرباء وتمديدات",
+    labelEn: "Electrical",
+    icon: Zap,
+  },
   { key: "hvac", labelAr: "تكييف وتبريد", labelEn: "HVAC & AC", icon: Wind },
-  { key: "carpentry", labelAr: "نجارة وأثاث", labelEn: "Carpentry & Furniture", icon: Hammer },
-  { key: "painting", labelAr: "نقاشة ودهانات", labelEn: "Painting & Decor", icon: Paintbrush },
-  { key: "housekeeping", labelAr: "هاوس كيبنج ونظافة", labelEn: "Housekeeping", icon: Sparkles },
-  { key: "appliances", labelAr: "أجهزة كهربائية", labelEn: "Home Appliances", icon: Tv },
+  {
+    key: "carpentry",
+    labelAr: "نجارة وأثاث",
+    labelEn: "Carpentry & Furniture",
+    icon: Hammer,
+  },
+  {
+    key: "painting",
+    labelAr: "نقاشة ودهانات",
+    labelEn: "Painting & Decor",
+    icon: Paintbrush,
+  },
+  {
+    key: "housekeeping",
+    labelAr: "هاوس كيبنج ونظافة",
+    labelEn: "Housekeeping",
+    icon: Sparkles,
+  },
+  {
+    key: "appliances",
+    labelAr: "أجهزة كهربائية",
+    labelEn: "Home Appliances",
+    icon: Tv,
+  },
 ];
 export function WorkerDialog({
   open,
@@ -86,7 +121,11 @@ export function WorkerDialog({
 
   const [loading, setLoading] = useState(false);
   const { can, isSuperAdmin, isAdmin } = usePermission();
-  const canMnt = isSuperAdmin || isAdmin || can("maintenance", "create") || can("workers", "create");
+  const canMnt =
+    isSuperAdmin ||
+    isAdmin ||
+    can("maintenance", "create") ||
+    can("workers", "create");
   const canHsk = isSuperAdmin || isAdmin || can("housekeeping", "create");
 
   const defaultSpecialty = canHsk && !canMnt ? "housekeeping" : "general";
@@ -149,7 +188,9 @@ export function WorkerDialog({
     }
 
     if (!propertyId) {
-      toast.error(ar ? "يرجى اختيار الفندق أولاً" : "Please select a property first");
+      toast.error(
+        ar ? "يرجى اختيار الفندق أولاً" : "Please select a property first",
+      );
       return;
     }
 
@@ -173,7 +214,9 @@ export function WorkerDialog({
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || (ar ? "فشل حفظ بيانات الفني" : "Failed to save worker"));
+        throw new Error(
+          data.error || (ar ? "فشل حفظ بيانات الفني" : "Failed to save worker"),
+        );
       }
 
       toast.success(
@@ -183,14 +226,17 @@ export function WorkerDialog({
             : "Worker updated successfully"
           : ar
             ? "تمت إضافة الفني بنجاح"
-            : "Worker added successfully"
+            : "Worker added successfully",
       );
 
       await queryClient.invalidateQueries({ queryKey: ["/api/workers"] });
       onOpenChange(false);
       onSuccess?.();
     } catch (err: any) {
-      toast.error(err.message || (ar ? "حدث خطأ غير متوقع" : "An unexpected error occurred"));
+      toast.error(
+        err.message ||
+          (ar ? "حدث خطأ غير متوقع" : "An unexpected error occurred"),
+      );
     } finally {
       setLoading(false);
     }
@@ -239,7 +285,9 @@ export function WorkerDialog({
               <Input
                 required
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 placeholder={ar ? "مثال: أحمد مصطفى" : "e.g. Ahmed Mostafa"}
                 className="h-9 text-sm"
               />
@@ -253,7 +301,9 @@ export function WorkerDialog({
               <Input
                 type="tel"
                 value={formData.phone || ""}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 placeholder="01xxxxxxxxx"
                 className="h-9 text-sm text-left font-mono"
                 dir="ltr"
@@ -269,23 +319,29 @@ export function WorkerDialog({
               </Label>
               <Select
                 value={formData.specialty}
-                onValueChange={(val) => setFormData({ ...formData, specialty: val })}
+                onValueChange={(val) =>
+                  setFormData({ ...formData, specialty: val })
+                }
               >
                 <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder={ar ? "اختر التخصص" : "Select specialty"} />
+                  <SelectValue
+                    placeholder={ar ? "اختر التخصص" : "Select specialty"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {allowedSpecialties.map((spec: (typeof WORKER_SPECIALTIES)[number]) => {
-                    const Icon = spec.icon;
-                    return (
-                      <SelectItem key={spec.key} value={spec.key}>
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-primary shrink-0" />
-                          <span>{ar ? spec.labelAr : spec.labelEn}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
+                  {allowedSpecialties.map(
+                    (spec: (typeof WORKER_SPECIALTIES)[number]) => {
+                      const Icon = spec.icon;
+                      return (
+                        <SelectItem key={spec.key} value={spec.key}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4 text-primary shrink-0" />
+                            <span>{ar ? spec.labelAr : spec.labelEn}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    },
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -296,7 +352,9 @@ export function WorkerDialog({
               </Label>
               <Select
                 value={formData.workerType}
-                onValueChange={(val: any) => setFormData({ ...formData, workerType: val })}
+                onValueChange={(val: any) =>
+                  setFormData({ ...formData, workerType: val })
+                }
               >
                 <SelectTrigger className="h-9 text-sm">
                   <SelectValue />
@@ -317,11 +375,15 @@ export function WorkerDialog({
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>{ar ? "الرقم القومي / الهوية" : "National ID / Iqama"}</span>
+                <span>
+                  {ar ? "الرقم القومي / الهوية" : "National ID / Iqama"}
+                </span>
               </Label>
               <Input
                 value={formData.nationalId || ""}
-                onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, nationalId: e.target.value })
+                }
                 placeholder={ar ? "الرقم القومي" : "National ID"}
                 className="h-9 text-sm font-mono"
               />
@@ -337,8 +399,12 @@ export function WorkerDialog({
                 </Label>
                 <Input
                   value={formData.companyName || ""}
-                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                  placeholder={ar ? "اسم الشركة أو الورشة" : "Contractor / Workshop name"}
+                  onChange={(e) =>
+                    setFormData({ ...formData, companyName: e.target.value })
+                  }
+                  placeholder={
+                    ar ? "اسم الشركة أو الورشة" : "Contractor / Workshop name"
+                  }
                   className="h-9 text-sm"
                 />
               </div>
@@ -346,14 +412,18 @@ export function WorkerDialog({
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold flex items-center gap-1.5">
                   <DollarSign className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span>{ar ? "اليومية / التكلفة (ج.م)" : "Daily Rate (EGP)"}</span>
+                  <span>
+                    {ar ? "اليومية / التكلفة (ج.م)" : "Daily Rate (EGP)"}
+                  </span>
                 </Label>
                 <Input
                   type="number"
                   step="0.01"
                   min="0"
                   value={formData.dailyRate ?? ""}
-                  onChange={(e) => setFormData({ ...formData, dailyRate: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dailyRate: e.target.value })
+                  }
                   placeholder="0.00"
                   className="h-9 text-sm font-mono"
                 />
@@ -368,8 +438,14 @@ export function WorkerDialog({
             <Textarea
               rows={2}
               value={formData.notes || ""}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder={ar ? "أوقات التواجد، أرقام إضافية، نطاق العمل..." : "Working hours, special equipment, notes..."}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              placeholder={
+                ar
+                  ? "أوقات التواجد، أرقام إضافية، نطاق العمل..."
+                  : "Working hours, special equipment, notes..."
+              }
               className="text-xs resize-none"
             />
           </div>

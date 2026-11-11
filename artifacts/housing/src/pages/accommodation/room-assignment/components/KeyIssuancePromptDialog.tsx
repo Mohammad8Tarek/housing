@@ -43,10 +43,7 @@ export function KeyIssuancePromptDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -100,17 +97,10 @@ export function KeyIssuancePromptDialog({
               <Printer className="w-3.5 h-3.5" />
               {ar ? "طباعة خطاب السكن" : "Print Housing Letter"}
             </Button>
-            <Button
-              variant="outline"
-              disabled={keyIssuing}
-              onClick={onClose}
-            >
+            <Button variant="outline" disabled={keyIssuing} onClick={onClose}>
               {ar ? "تخطي" : "Skip"}
             </Button>
-            <Button
-              disabled={keyIssuing}
-              onClick={onClose}
-            >
+            <Button disabled={keyIssuing} onClick={onClose}>
               {ar ? "متابعة" : "Continue"}
             </Button>
           </div>

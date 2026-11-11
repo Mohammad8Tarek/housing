@@ -6,10 +6,21 @@
 import { escapeHtml } from "@/lib/html-escape";
 import { loadImgDataUrl } from "./export";
 import type { LuxuryReportOptions, ReportKpiCard } from "./report-types";
-import { REPORT_OPERA_CODES, REPORT_TAB_CONFIG, REPORT_TAB_TITLES, formatStatusBadgeHtml, translateReportHeader } from "./report-i18n";
+import {
+  REPORT_OPERA_CODES,
+  REPORT_TAB_CONFIG,
+  REPORT_TAB_TITLES,
+  formatStatusBadgeHtml,
+  translateReportHeader,
+} from "./report-i18n";
 import { generateAutoKpis } from "./report-kpis";
 import { buildReportDocumentHtml } from "./report-document";
-import { computeReportColumnWidths, getOperaColumnAlign, getOperaColumnStyle, isMultiItemOrTextColumn } from "./report-columns";
+import {
+  computeReportColumnWidths,
+  getOperaColumnAlign,
+  getOperaColumnStyle,
+  isMultiItemOrTextColumn,
+} from "./report-columns";
 
 export * from "./report-types";
 export * from "./report-i18n";
@@ -19,7 +30,9 @@ export * from "./report-columns";
 // ----------------------------------------------------------------------------
 // 4. Main Engine Function: printLuxuryReport (Opera PMS Edition)
 // ----------------------------------------------------------------------------
-export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void> {
+export async function printLuxuryReport(
+  opts: LuxuryReportOptions,
+): Promise<void> {
   const {
     activeTab,
     properties = [],
@@ -106,8 +119,18 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // Resolve showKpis & showSignatures with smart defaults from REPORT_TAB_CONFIG
   const tabConfig = activeTab ? REPORT_TAB_CONFIG[activeTab] : undefined;
-  const initialShowKpis = opts.showKpis !== undefined ? opts.showKpis : (tabConfig ? tabConfig.showKpis : false);
-  const initialShowSigs = opts.showSignatures !== undefined ? opts.showSignatures : (tabConfig ? tabConfig.showSignatures : false);
+  const initialShowKpis =
+    opts.showKpis !== undefined
+      ? opts.showKpis
+      : tabConfig
+        ? tabConfig.showKpis
+        : false;
+  const initialShowSigs =
+    opts.showSignatures !== undefined
+      ? opts.showSignatures
+      : tabConfig
+        ? tabConfig.showSignatures
+        : false;
 
   // 1. Resolve target property id robustly (supporting number or numeric string)
   const rawPropId = propId ?? activePropertyId;
@@ -118,10 +141,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // 2. Resolve Property object from passed array
   let propObj = Array.isArray(properties)
-    ? properties.find((p: any) =>
-        (targetPropId && Number(p.id) === targetPropId) ||
-        (rawPropId && String(p.id) === String(rawPropId)) ||
-        (rawPropId && p.code && String(p.code).toLowerCase() === String(rawPropId).toLowerCase())
+    ? properties.find(
+        (p: any) =>
+          (targetPropId && Number(p.id) === targetPropId) ||
+          (rawPropId && String(p.id) === String(rawPropId)) ||
+          (rawPropId &&
+            p.code &&
+            String(p.code).toLowerCase() === String(rawPropId).toLowerCase()),
       )
     : undefined;
 
@@ -132,11 +158,16 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       if (pRes.ok) {
         const pList = await pRes.json();
         if (Array.isArray(pList) && pList.length > 0) {
-          const match = pList.find((p: any) =>
-            (targetPropId && Number(p.id) === targetPropId) ||
-            (rawPropId && String(p.id) === String(rawPropId)) ||
-            (rawPropId && p.code && String(p.code).toLowerCase() === String(rawPropId).toLowerCase())
-          ) || pList[0];
+          const match =
+            pList.find(
+              (p: any) =>
+                (targetPropId && Number(p.id) === targetPropId) ||
+                (rawPropId && String(p.id) === String(rawPropId)) ||
+                (rawPropId &&
+                  p.code &&
+                  String(p.code).toLowerCase() ===
+                    String(rawPropId).toLowerCase()),
+            ) || pList[0];
           if (match) {
             propObj = { ...match, ...propObj };
             if (!targetPropId && match.id) {
@@ -146,7 +177,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         }
       }
     } catch (e) {
-      console.warn("Failed to fetch /api/properties fallback in luxury report:", e);
+      console.warn(
+        "Failed to fetch /api/properties fallback in luxury report:",
+        e,
+      );
     }
   }
 
@@ -159,10 +193,13 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   }
 
   // Resolve Property Display Name
-  const propName = (isArabic ? (opts.subtitleAr || opts.subtitle) : (opts.subtitle || opts.subtitleAr))
-    || propObj?.displayName
-    || propObj?.name
-    || "";
+  const propName =
+    (isArabic
+      ? opts.subtitleAr || opts.subtitle
+      : opts.subtitle || opts.subtitleAr) ||
+    propObj?.displayName ||
+    propObj?.name ||
+    "";
 
   // 3. Resolve System Logo (Corporate Brand)
   let resolvedSysLogoUrl = settings?.systemLogo;
@@ -175,20 +212,29 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         resolvedSysLogoUrl = sData?.systemLogo;
       }
     } catch (e) {
-      console.warn("Failed to fetch /api/settings fallback in luxury report:", e);
+      console.warn(
+        "Failed to fetch /api/settings fallback in luxury report:",
+        e,
+      );
     }
   }
 
   // 4. Convert both property and system logos to base64 DataURLs if available
-  const sysLogo = resolvedSysLogoUrl ? await loadImgDataUrl(resolvedSysLogoUrl) : null;
+  const sysLogo = resolvedSysLogoUrl
+    ? await loadImgDataUrl(resolvedSysLogoUrl)
+    : null;
   const propLogo = propObj?.logo ? await loadImgDataUrl(propObj.logo) : null;
 
   // Resolve Title & Opera Code
   const defaultTabInfo = activeTab ? REPORT_TAB_TITLES[activeTab] : undefined;
   const reportTitle = isArabic
-    ? (opts.titleAr || opts.title || defaultTabInfo?.ar || "تقرير إدارة السكن")
-    : (opts.title || defaultTabInfo?.en || "Staff Housing Operations Report");
-  const operaCode = REPORT_OPERA_CODES[activeTab || ""] || (activeTab ? activeTab.replace(/[^a-z0-9_]/gi, "").toLowerCase() : "gibyroom");
+    ? opts.titleAr || opts.title || defaultTabInfo?.ar || "تقرير إدارة السكن"
+    : opts.title || defaultTabInfo?.en || "Staff Housing Operations Report";
+  const operaCode =
+    REPORT_OPERA_CODES[activeTab || ""] ||
+    (activeTab
+      ? activeTab.replace(/[^a-z0-9_]/gi, "").toLowerCase()
+      : "gibyroom");
 
   // Opera standard date & time (e.g. 24-09-2026, 14:39) — strict DD-MM-YYYY format per Rule 7
   const now = new Date();
@@ -196,8 +242,20 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const operaDateStr = `${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()}`;
   const operaTimeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const issueDateFormatted = isArabic
-    ? now.toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })
-    : now.toLocaleString("en-GB", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    ? now.toLocaleDateString("ar-EG", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : now.toLocaleString("en-GB", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
 
   // Normalize Table Headers & Rows
   let rawHeaders: string[] = [];
@@ -209,7 +267,9 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       tableRows = (rows as any[][]).slice(opts.headers ? 0 : 1);
     } else {
       rawHeaders = opts.headers || Object.keys(rows[0]);
-      tableRows = (rows as Record<string, any>[]).map((r) => rawHeaders.map((h) => r[h]));
+      tableRows = (rows as Record<string, any>[]).map((r) =>
+        rawHeaders.map((h) => r[h]),
+      );
     }
   }
 
@@ -218,9 +278,11 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const colCount = headers.length + 1; // including '#' sequence column
 
   // Determine Orientation: Automatically enforce Landscape if >= 7 columns (including # seq) or explicitly requested/configured
-  const autoOrientation = tabConfig?.orientation || (colCount >= 7 ? "landscape" : "portrait");
+  const autoOrientation =
+    tabConfig?.orientation || (colCount >= 7 ? "landscape" : "portrait");
   const orientation = opts.orientation || autoOrientation;
-  const isSinglePage = singlePage ?? (tableRows.length === 0 && Boolean(customSectionsHtml));
+  const isSinglePage =
+    singlePage ?? (tableRows.length === 0 && Boolean(customSectionsHtml));
 
   // Check if dataset is a small single-page batch (e.g. <= 14 rows) where generous executive row spacing is desirable
   const isShortSingleDataset = tableRows.length <= 14 && tableRows.length > 0;
@@ -303,7 +365,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       printFontSizePt = Math.min(9.8, printFontSizePt + 0.8);
     } else {
       cellPadding = orientation === "landscape" ? "4.0px 5.5px" : "4.8px 6.5px";
-      printPadding = orientation === "landscape" ? "3.5px 5.0px" : "4.2px 5.8px";
+      printPadding =
+        orientation === "landscape" ? "3.5px 5.0px" : "4.2px 5.8px";
       baseFontSizePt = Math.min(9.8, baseFontSizePt + 0.4);
       printFontSizePt = Math.min(9.4, printFontSizePt + 0.4);
     }
@@ -317,7 +380,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   printFontSizePt += 1.0;
 
   // Helper: Strictly determine if a column is a legitimate quantifiable metric that can be summed
-  const isQuantifiableHeader = (headerName: string, rawHeaderName: string): boolean => {
+  const isQuantifiableHeader = (
+    headerName: string,
+    rawHeaderName: string,
+  ): boolean => {
     const combined = `${headerName || ""} ${rawHeaderName || ""}`.toLowerCase();
 
     // STRICT BLACKLIST: Identifiers, codes, phones, national IDs, room numbers, bed numbers, floors, rates, percentages
@@ -427,10 +493,14 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     let countValid = 0;
     for (const row of tableRows) {
       const val = row[colIdx];
-      if (val === null || val === undefined || val === "" || val === "—") continue;
+      if (val === null || val === undefined || val === "" || val === "—")
+        continue;
       const cleanVal = String(val).replace(/,/g, "").trim();
       const num = Number(cleanVal);
-      if (typeof val === "number" || (!isNaN(num) && !cleanVal.includes("-") && !cleanVal.includes("/"))) {
+      if (
+        typeof val === "number" ||
+        (!isNaN(num) && !cleanVal.includes("-") && !cleanVal.includes("/"))
+      ) {
         sum += num;
         countValid++;
       } else {
@@ -447,14 +517,17 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const kpiCards: ReportKpiCard[] =
     initialShowKpis && opts.kpiCards && opts.kpiCards.length > 0
       ? opts.kpiCards
-      : (initialShowKpis ? generateAutoKpis(activeTab, rows as Record<string, any>[], isArabic) : []);
+      : initialShowKpis
+        ? generateAutoKpis(activeTab, rows as Record<string, any>[], isArabic)
+        : [];
 
   // Generate KPI Cards HTML
-  const kpisHtml = initialShowKpis && kpiCards.length > 0
-    ? `<div class="kpi-grid" id="kpiGrid" style="grid-template-columns: repeat(${Math.min(kpiCards.length, 6)}, 1fr);">
+  const kpisHtml =
+    initialShowKpis && kpiCards.length > 0
+      ? `<div class="kpi-grid" id="kpiGrid" style="grid-template-columns: repeat(${Math.min(kpiCards.length, 6)}, 1fr);">
         ${kpiCards
           .map((kpi) => {
-            const label = isArabic ? (kpi.labelAr || kpi.label) : kpi.label;
+            const label = isArabic ? kpi.labelAr || kpi.label : kpi.label;
             const colorClass = kpi.color || "gold";
             return `
               <div class="kpi-card ${colorClass}">
@@ -466,10 +539,15 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           })
           .join("")}
       </div>`
-    : "";
+      : "";
 
   // Determine exact proportional column widths guaranteeing 100.0% sum (Content-Aware Auto-Fit)
-  const { seqWidthPct, colWidthsPct } = computeReportColumnWidths(headers, rawHeaders, orientation, tableRows);
+  const { seqWidthPct, colWidthsPct } = computeReportColumnWidths(
+    headers,
+    rawHeaders,
+    orientation,
+    tableRows,
+  );
 
   // Generate Opera Table Header HTML with strict colgroup summing to 100.0%
   const theadHtml = `
@@ -497,16 +575,37 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // Signatures Configuration
   const sig1 = isArabic
-    ? (signatures?.role1Ar || signatures?.role1 || (activeTab === "housekeeping_sheet" ? "عامل التجهيز الميداني" : "إعداد / منسق السكن"))
-    : (signatures?.role1 || (activeTab === "housekeeping_sheet" ? "Room Attendant" : "Prepared by / Housing Officer"));
+    ? signatures?.role1Ar ||
+      signatures?.role1 ||
+      (activeTab === "housekeeping_sheet"
+        ? "عامل التجهيز الميداني"
+        : "إعداد / منسق السكن")
+    : signatures?.role1 ||
+      (activeTab === "housekeeping_sheet"
+        ? "Room Attendant"
+        : "Prepared by / Housing Officer");
 
   const sig2 = isArabic
-    ? (signatures?.role2Ar || signatures?.role2 || (activeTab === "housekeeping_sheet" ? "مشرف الإشراف الداخلي" : "مراجعة / مدير السكن"))
-    : (signatures?.role2 || (activeTab === "housekeeping_sheet" ? "Housekeeping Supervisor" : "Reviewed by / Housing Manager"));
+    ? signatures?.role2Ar ||
+      signatures?.role2 ||
+      (activeTab === "housekeeping_sheet"
+        ? "مشرف الإشراف الداخلي"
+        : "مراجعة / مدير السكن")
+    : signatures?.role2 ||
+      (activeTab === "housekeeping_sheet"
+        ? "Housekeeping Supervisor"
+        : "Reviewed by / Housing Manager");
 
   const sig3 = isArabic
-    ? (signatures?.role3Ar || signatures?.role3 || (activeTab === "housekeeping_sheet" ? "مدير الإشراف الداخلي المعتمد" : "اعتماد / مدير الموارد البشرية والمدير العام"))
-    : (signatures?.role3 || (activeTab === "housekeeping_sheet" ? "Executive Housekeeper" : "Approved by / HR Director"));
+    ? signatures?.role3Ar ||
+      signatures?.role3 ||
+      (activeTab === "housekeeping_sheet"
+        ? "مدير الإشراف الداخلي المعتمد"
+        : "اعتماد / مدير الموارد البشرية والمدير العام")
+    : signatures?.role3 ||
+      (activeTab === "housekeeping_sheet"
+        ? "Executive Housekeeper"
+        : "Approved by / HR Director");
 
   // ── Greedy Fill-to-Capacity Page Allocation ──
   // ── Dynamic Available Page Height Calculation ──
@@ -523,10 +622,15 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const safetyBufferMm = 2.0; // rendering subpixel tolerance
 
   // Net usable height inside sheet container
-  const usableHeightMm = pageHeightMm - topMarginMm - bottomMarginMm - footerHeightMm - safetyBufferMm;
+  const usableHeightMm =
+    pageHeightMm -
+    topMarginMm -
+    bottomMarginMm -
+    footerHeightMm -
+    safetyBufferMm;
 
   // Header, Components, and Table Header Heights in mm:
-  const p1HeaderHeightMm = (dateFrom || dateTo) ? 21.0 : 18.5; // Branded Letterhead Header on Page 1
+  const p1HeaderHeightMm = dateFrom || dateTo ? 21.0 : 18.5; // Branded Letterhead Header on Page 1
   const subsequentHeaderHeightMm = 7.5; // Compact Sub-Header on Page 2+
   const theadHeightMm = 6.5; // Repeated table header row
   const kpisHeightMm = hasKpis ? 22.0 : 0.0; // KPI Cards Grid
@@ -536,10 +640,17 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   const totalsRowHeightMm = hasAnyColTotal ? 5.5 : 0.0; // Final totals row
 
   // Function to calculate available table height dynamically for ANY page
-  const getAvailableTableHeightMm = (pageNum: number, isFinal: boolean): number => {
+  const getAvailableTableHeightMm = (
+    pageNum: number,
+    isFinal: boolean,
+  ): number => {
     const isFirst = pageNum === 1;
-    const headerH = isFirst ? (p1HeaderHeightMm + kpisHeightMm + customSectionHeightMm) : subsequentHeaderHeaderHeight(isFirst);
-    const bottomH = isFinal ? (sigsHeightMm + totalsRowHeightMm + customBottomSectionHeightMm) : 0;
+    const headerH = isFirst
+      ? p1HeaderHeightMm + kpisHeightMm + customSectionHeightMm
+      : subsequentHeaderHeaderHeight(isFirst);
+    const bottomH = isFinal
+      ? sigsHeightMm + totalsRowHeightMm + customBottomSectionHeightMm
+      : 0;
     return Math.max(25.0, usableHeightMm - headerH - theadHeightMm - bottomH);
   };
 
@@ -550,7 +661,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
   // ── Dynamic Row Height Calculation ──
   const printableWidthMm = isLandscape ? 285.0 : 198.0;
   // In Cairo / Arial fonts at 8pt, average character width is ~1.15mm
-  const avgCharWidthMm = (baseFontSizePt * 0.3528) * (isArabic ? 0.42 : 0.38);
+  const avgCharWidthMm = baseFontSizePt * 0.3528 * (isArabic ? 0.42 : 0.38);
   const colCharsCapacity = colWidthsPct.map((pct) => {
     const colWidthMm = printableWidthMm * (pct / 100);
     return Math.max(4, Math.floor((colWidthMm - 2.0) / avgCharWidthMm));
@@ -558,10 +669,20 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // Base row height in mm corresponding to CSS line-height + padding + border:
   const baseRowHeightMm = isShortSingleDataset
-    ? (isLandscape ? 5.6 : 6.0)
+    ? isLandscape
+      ? 5.6
+      : 6.0
     : isLandscape
-      ? (colCount >= 14 ? 4.4 : colCount >= 10 ? 4.7 : 4.9)
-      : (colCount >= 14 ? 4.7 : colCount >= 10 ? 4.9 : 5.1);
+      ? colCount >= 14
+        ? 4.4
+        : colCount >= 10
+          ? 4.7
+          : 4.9
+      : colCount >= 14
+        ? 4.7
+        : colCount >= 10
+          ? 4.9
+          : 5.1;
 
   const extraLineHeightMm = 2.4;
 
@@ -661,7 +782,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
     pageRows: any[][],
     pageIdx: number,
     totalPagesCount: number,
-    startSeq: number
+    startSeq: number,
   ): string {
     const isFirstPage = pageIdx === 0;
     const isLastPage = pageIdx === totalPagesCount - 1;
@@ -674,9 +795,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         <div class="opera-header">
           <!-- Left: System Logo (SUNRISE) - strictly left in all languages -->
           <div class="opera-header-left">
-            ${sysLogo
-              ? `<img src="${escapeHtml(sysLogo.dataUrl)}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
-              : `<div class="opera-fallback-brand">
+            ${
+              sysLogo
+                ? `<img src="${escapeHtml(sysLogo.dataUrl)}" alt="شعار النظام" class="opera-logo opera-syslogo" />`
+                : `<div class="opera-fallback-brand">
                   <span style="font-weight: 900; font-size: 9.5pt; letter-spacing: 0.5px; color: #0F2A44;">SUNRISE</span>
                  </div>`
             }
@@ -686,20 +808,27 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           <div class="opera-header-center">
             ${propName ? `<div class="opera-hotel-name">${escapeHtml(propName)}</div>` : ""}
             <div class="opera-report-title">${escapeHtml(reportTitle)}</div>
-            ${dateFrom || dateTo ? `
+            ${
+              dateFrom || dateTo
+                ? `
             <div class="opera-report-submeta">
               ${dateFrom ? `${isArabic ? "من" : "From"}: ${dateFrom} ` : ""}
               ${dateTo ? `${isArabic ? "إلى" : "To"}: ${dateTo}` : ""}
-            </div>` : ""}
+            </div>`
+                : ""
+            }
           </div>
 
           <!-- Right: Property Logo & Opera Date/Time - strictly right in all languages -->
           <div class="opera-header-right">
-            ${propLogo
-              ? `<img src="${escapeHtml(propLogo.dataUrl)}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
-              : propName ? `<div class="opera-fallback-brand right-brand">
+            ${
+              propLogo
+                ? `<img src="${escapeHtml(propLogo.dataUrl)}" alt="شعار الفرع" class="opera-logo opera-proplogo" />`
+                : propName
+                  ? `<div class="opera-fallback-brand right-brand">
                   <span style="font-weight: 800; font-size: 8.5pt; color: #0F2A44;">${escapeHtml(propName)}</span>
-                 </div>` : ""
+                 </div>`
+                  : ""
             }
             <div class="opera-meta-datetime">
               <span class="opera-meta-date">${operaDateStr}</span>
@@ -741,8 +870,17 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
                   const align = getOperaColumnAlign(raw, isArabic);
                   const colStyle = getOperaColumnStyle(raw, isArabic);
                   const formatted = formatStatusBadgeHtml(cell, isArabic);
-                  const isNum = typeof cell === "number" || (!isNaN(Number(cell)) && cell !== "" && cell !== null && !String(cell).includes("-") && !String(cell).includes("/"));
-                  const displayVal = (isNum && typeof cell === "number") ? cell.toLocaleString() : formatted;
+                  const isNum =
+                    typeof cell === "number" ||
+                    (!isNaN(Number(cell)) &&
+                      cell !== "" &&
+                      cell !== null &&
+                      !String(cell).includes("-") &&
+                      !String(cell).includes("/"));
+                  const displayVal =
+                    isNum && typeof cell === "number"
+                      ? cell.toLocaleString()
+                      : formatted;
                   return `<td style="width: ${colWidthsPct[colIdx]}%; text-align: ${align}; ${colStyle}">${displayVal}</td>`;
                 })
                 .join("")}
@@ -763,18 +901,28 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           <td style="font-weight: bold;" ${!hasAnyColTotal ? `colspan="${headers.length}"` : ""}>
             ${isArabic ? `إجمالي السجلات: ${tableRows.length} سجل` : `Total Records: ${tableRows.length}`}
           </td>
-          ${hasAnyColTotal ? colTotals.map((tot, i) => {
-            if (i === 0) return "";
-            if (tot === null) return `<td></td>`;
-            const align = getOperaColumnAlign(rawHeaders[i] || "", isArabic);
-            return `<td style="text-align: ${align}; font-weight: bold;">${tot.toLocaleString()}</td>`;
-          }).join("") : ""}
+          ${
+            hasAnyColTotal
+              ? colTotals
+                  .map((tot, i) => {
+                    if (i === 0) return "";
+                    if (tot === null) return `<td></td>`;
+                    const align = getOperaColumnAlign(
+                      rawHeaders[i] || "",
+                      isArabic,
+                    );
+                    return `<td style="text-align: ${align}; font-weight: bold;">${tot.toLocaleString()}</td>`;
+                  })
+                  .join("")
+              : ""
+          }
         </tr>
       `;
     }
 
     // Signatures Block (Rendered in tfoot)
-    const sigsHtml = initialShowSigs ? `
+    const sigsHtml = initialShowSigs
+      ? `
       <div class="sig-section" id="sigSection" style="margin-top: 8px; padding-top: 6px; page-break-inside: avoid; break-inside: avoid;">
         <div class="sig-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
           <div class="sig-card" style="text-align: center; border: 1px dashed #cbd5e1; border-radius: 4px; padding: 6px 8px; background: #fdfdfd;">
@@ -794,7 +942,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
           </div>
         </div>
       </div>
-    ` : "";
+    `
+      : "";
 
     // Footer Layout pinned in tfoot
     const pageFooterHtml = `
@@ -806,7 +955,7 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
             <span class="opera-meta-sep">·</span>
             <span>${dateFrom || dateTo ? `${dateFrom || "All"} — ${dateTo || "All"}` : operaDateStr}</span>
             <span class="opera-meta-sep">·</span>
-            <span>${search ? `"${escapeHtml(search)}"` : (isArabic ? "الحالة: الكل" : "Status: All")}</span>
+            <span>${search ? `"${escapeHtml(search)}"` : isArabic ? "الحالة: الكل" : "Status: All"}</span>
           </span>
         </div>
         <div class="opera-footer-right" style="direction: ${dir}; font-weight: 600;">
@@ -899,11 +1048,36 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
 
   // Pre-generate HTML for all discrete pages
   const allPagesHtml = pageChunks
-    .map((chunk, idx) => renderSinglePageHtml(chunk, idx, totalPages, pageStartIndexes[idx]))
+    .map((chunk, idx) =>
+      renderSinglePageHtml(chunk, idx, totalPages, pageStartIndexes[idx]),
+    )
     .join("\n");
 
   // Complete Opera PMS HTML Document
-  const html = buildReportDocumentHtml({ allPagesHtml, autoPrint, baseFontSizePt, cellPadding, customSectionsHtml, dir, initialShowKpis, initialShowSigs, isArabic, kpiCards, lang, operaCode, orientation, printFontSizePt, printPadding, propName, reportTitle, seqWidthPct, tableLetterSpacing, tableLineHeight, tableRows, totalPages });
+  const html = buildReportDocumentHtml({
+    allPagesHtml,
+    autoPrint,
+    baseFontSizePt,
+    cellPadding,
+    customSectionsHtml,
+    dir,
+    initialShowKpis,
+    initialShowSigs,
+    isArabic,
+    kpiCards,
+    lang,
+    operaCode,
+    orientation,
+    printFontSizePt,
+    printPadding,
+    propName,
+    reportTitle,
+    seqWidthPct,
+    tableLetterSpacing,
+    tableLineHeight,
+    tableRows,
+    totalPages,
+  });
 
   // 1. If popup window opened successfully synchronously, write the full report into it
   if (printWindow && !printWindow.closed) {
@@ -913,14 +1087,19 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
       printWindow.document.close();
       return;
     } catch (err) {
-      console.warn("Writing to popup window failed, using iframe fallback", err);
+      console.warn(
+        "Writing to popup window failed, using iframe fallback",
+        err,
+      );
     }
   }
 
   // 2. Bulletproof Fallback: If popup was blocked or prevented, use invisible iframe on current document
   if (typeof document !== "undefined") {
     try {
-      let printFrame = document.getElementById("__sunrise_luxury_print_frame") as HTMLIFrameElement | null;
+      let printFrame = document.getElementById(
+        "__sunrise_luxury_print_frame",
+      ) as HTMLIFrameElement | null;
       if (!printFrame) {
         printFrame = document.createElement("iframe");
         printFrame.id = "__sunrise_luxury_print_frame";
@@ -936,7 +1115,8 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         document.body.appendChild(printFrame);
       }
 
-      const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+      const frameDoc =
+        printFrame.contentWindow?.document || printFrame.contentDocument;
       if (frameDoc) {
         frameDoc.open();
         frameDoc.write(html);
@@ -956,7 +1136,10 @@ export async function printLuxuryReport(opts: LuxuryReportOptions): Promise<void
         return;
       }
     } catch (iframeErr) {
-      console.warn("Iframe print injection failed, falling back to download", iframeErr);
+      console.warn(
+        "Iframe print injection failed, falling back to download",
+        iframeErr,
+      );
     }
   }
 

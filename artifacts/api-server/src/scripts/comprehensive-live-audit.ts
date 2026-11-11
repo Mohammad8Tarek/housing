@@ -1,6 +1,26 @@
-import { db, withTenant, propertiesTable, roomsTable, assignmentsTable, profilesTable, reservationsTable, hostingsTable, maintenanceTable, profileVacationsTable, portalConversationsTable, portalMessagesTable, buildingsTable, floorsTable } from "@workspace/db";
+import {
+  db,
+  withTenant,
+  propertiesTable,
+  roomsTable,
+  assignmentsTable,
+  profilesTable,
+  reservationsTable,
+  hostingsTable,
+  maintenanceTable,
+  profileVacationsTable,
+  portalConversationsTable,
+  portalMessagesTable,
+  buildingsTable,
+  floorsTable,
+} from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { findAssignmentAcrossAllProperties, findRoomAcrossAllProperties, findReservationAcrossAllProperties, findHostingAcrossAllProperties } from "../lib/cross-property-service.js";
+import {
+  findAssignmentAcrossAllProperties,
+  findRoomAcrossAllProperties,
+  findReservationAcrossAllProperties,
+  findHostingAcrossAllProperties,
+} from "../lib/cross-property-service.js";
 import { resolveProfileTenant } from "../routes/profiles/shared.js";
 
 interface AuditResult {
@@ -12,36 +32,66 @@ interface AuditResult {
 
 const results: AuditResult[] = [];
 
-function record(suite: string, name: string, passed: boolean, details?: string) {
+function record(
+  suite: string,
+  name: string,
+  passed: boolean,
+  details?: string,
+) {
   results.push({ suite, name, passed, details });
   const icon = passed ? "✅" : "❌";
   console.log(`${icon} [${suite}] ${name}${details ? ` -> ${details}` : ""}`);
 }
 
 async function runAudit() {
-  console.log("===============================================================");
+  console.log(
+    "===============================================================",
+  );
   console.log("   SUNRISE HOUSING SYSTEM - COMPREHENSIVE LIVE AUDIT SUITE");
-  console.log("===============================================================\n");
+  console.log(
+    "===============================================================\n",
+  );
 
   try {
     // -----------------------------------------------------------------
     // 1. Database & Schemas Connectivity
     // -----------------------------------------------------------------
     const properties = await db
-      .select({ id: propertiesTable.id, name: propertiesTable.name, schemaName: propertiesTable.schemaName })
+      .select({
+        id: propertiesTable.id,
+        name: propertiesTable.name,
+        schemaName: propertiesTable.schemaName,
+      })
       .from(propertiesTable);
 
-    record("Database", "Properties Fetch", properties.length > 0, `Found ${properties.length} properties: ${properties.map((p) => p.schemaName).join(", ")}`);
+    record(
+      "Database",
+      "Properties Fetch",
+      properties.length > 0,
+      `Found ${properties.length} properties: ${properties.map((p) => p.schemaName).join(", ")}`,
+    );
 
     for (const prop of properties) {
       try {
         const roomCount = await withTenant(prop.id, async (tenantDb) => {
-          const res = await tenantDb.select({ count: sql<number>`count(*)` }).from(roomsTable);
+          const res = await tenantDb
+            .select({ count: sql<number>`count(*)` })
+            .from(roomsTable);
           return Number(res[0]?.count ?? 0);
         });
-        record("Multi-Tenant Schemas", `Schema ${prop.schemaName} Query`, true, `Rooms count: ${roomCount}`);
+        record(
+          "Multi-Tenant Schemas",
+          `Schema ${prop.schemaName} Query`,
+          true,
+          `Rooms count: ${roomCount}`,
+        );
       } catch (err: any) {
-        record("Multi-Tenant Schemas", `Schema ${prop.schemaName} Query`, false, err?.message);
+        record(
+          "Multi-Tenant Schemas",
+          `Schema ${prop.schemaName} Query`,
+          false,
+          err?.message,
+        );
       }
     }
 
@@ -78,10 +128,18 @@ async function runAudit() {
         .returning();
     });
 
-    record("Cross-Property", "Create Audit Profile in Tenant 1", !!testProfile, `Profile ID: ${testProfile.id}`);
+    record(
+      "Cross-Property",
+      "Create Audit Profile in Tenant 1",
+      !!testProfile,
+      `Profile ID: ${testProfile.id}`,
+    );
 
     // Try to resolve this profile from tenant 2 context
-    const resolvedProfile = await resolveProfileTenant(testProfile.id, testProp2.id);
+    const resolvedProfile = await resolveProfileTenant(
+      testProfile.id,
+      testProp2.id,
+    );
     record(
       "Cross-Property",
       "Resolve Profile From Different Tenant Context",
@@ -90,9 +148,15 @@ async function runAudit() {
     );
 
     // Fetch building and floor for testProp1
-    const [existingBld] = await withTenant(testProp1.id, (t) => t.select().from(buildingsTable).limit(1));
+    const [existingBld] = await withTenant(testProp1.id, (t) =>
+      t.select().from(buildingsTable).limit(1),
+    );
     const [existingFlr] = await withTenant(testProp1.id, (t) =>
-      t.select().from(floorsTable).where(eq(floorsTable.buildingId, existingBld.id)).limit(1)
+      t
+        .select()
+        .from(floorsTable)
+        .where(eq(floorsTable.buildingId, existingBld.id))
+        .limit(1),
     );
 
     // Create an audit room in property 1
@@ -112,7 +176,12 @@ async function runAudit() {
         .returning();
     });
 
-    record("Cross-Property", "Create Audit Room in Tenant 1", !!testRoom, `Room ID: ${testRoom.id}, No: ${testRoomNum}`);
+    record(
+      "Cross-Property",
+      "Create Audit Room in Tenant 1",
+      !!testRoom,
+      `Room ID: ${testRoom.id}, No: ${testRoomNum}`,
+    );
 
     const resolvedRoom = await findRoomAcrossAllProperties(testRoom.id);
     record(
@@ -123,24 +192,37 @@ async function runAudit() {
     );
 
     // Create an audit assignment in property 1
-    const [testAssignment] = await withTenant(testProp1.id, async (tenantDb) => {
-      // update room occupancy
-      await tenantDb.update(roomsTable).set({ currentOccupancy: 1, status: "occupied" }).where(eq(roomsTable.id, testRoom.id));
-      return tenantDb
-        .insert(assignmentsTable)
-        .values({
-          profileId: testProfile.id,
-          roomId: testRoom.id,
-          bedNumber: 1,
-          status: "ACTIVE",
-          checkInDate: new Date().toISOString().split("T")[0],
-        })
-        .returning();
-    });
+    const [testAssignment] = await withTenant(
+      testProp1.id,
+      async (tenantDb) => {
+        // update room occupancy
+        await tenantDb
+          .update(roomsTable)
+          .set({ currentOccupancy: 1, status: "occupied" })
+          .where(eq(roomsTable.id, testRoom.id));
+        return tenantDb
+          .insert(assignmentsTable)
+          .values({
+            profileId: testProfile.id,
+            roomId: testRoom.id,
+            bedNumber: 1,
+            status: "ACTIVE",
+            checkInDate: new Date().toISOString().split("T")[0],
+          })
+          .returning();
+      },
+    );
 
-    record("Cross-Property", "Create Audit Assignment", !!testAssignment, `Assignment ID: ${testAssignment.id}`);
+    record(
+      "Cross-Property",
+      "Create Audit Assignment",
+      !!testAssignment,
+      `Assignment ID: ${testAssignment.id}`,
+    );
 
-    const resolvedAssignment = await findAssignmentAcrossAllProperties(testAssignment.id);
+    const resolvedAssignment = await findAssignmentAcrossAllProperties(
+      testAssignment.id,
+    );
     record(
       "Cross-Property",
       "Find Assignment Across Schemas",
@@ -159,12 +241,19 @@ async function runAudit() {
           jobTitle: "Supervisor",
           status: "UPCOMING",
           checkInDate: new Date().toISOString().split("T")[0],
-          checkOutDate: new Date(Date.now() + 86400000 * 3).toISOString().split("T")[0],
+          checkOutDate: new Date(Date.now() + 86400000 * 3)
+            .toISOString()
+            .split("T")[0],
         })
         .returning();
     });
 
-    record("Cross-Property", "Create Audit Reservation", !!testRes, `Reservation ID: ${testRes.id}`);
+    record(
+      "Cross-Property",
+      "Create Audit Reservation",
+      !!testRes,
+      `Reservation ID: ${testRes.id}`,
+    );
 
     const resolvedRes = await findReservationAcrossAllProperties(testRes.id);
     record(
@@ -183,14 +272,21 @@ async function runAudit() {
           hostingType: "SAME_ROOM",
           guestsCount: 1,
           expectedFrom: new Date().toISOString().split("T")[0],
-          expectedTo: new Date(Date.now() + 86400000 * 2).toISOString().split("T")[0],
+          expectedTo: new Date(Date.now() + 86400000 * 2)
+            .toISOString()
+            .split("T")[0],
           status: "PENDING",
           createdBy: "audit_runner",
         })
         .returning();
     });
 
-    record("Cross-Property", "Create Audit Guest Hosting", !!testHost, `Hosting ID: ${testHost.id}`);
+    record(
+      "Cross-Property",
+      "Create Audit Guest Hosting",
+      !!testHost,
+      `Hosting ID: ${testHost.id}`,
+    );
 
     const resolvedHost = await findHostingAcrossAllProperties(testHost.id);
     record(
@@ -207,32 +303,65 @@ async function runAudit() {
 
     // Vacation registration test
     await withTenant(testProp1.id, async (tenantDb) => {
-      await tenantDb.update(profilesTable).set({ status: "VACATION" }).where(eq(profilesTable.id, testProfile.id));
-      await tenantDb.update(roomsTable).set({ status: "occupied_vacation" }).where(eq(roomsTable.id, testRoom.id));
+      await tenantDb
+        .update(profilesTable)
+        .set({ status: "VACATION" })
+        .where(eq(profilesTable.id, testProfile.id));
+      await tenantDb
+        .update(roomsTable)
+        .set({ status: "occupied_vacation" })
+        .where(eq(roomsTable.id, testRoom.id));
       await tenantDb.insert(profileVacationsTable).values({
         profileId: testProfile.id,
         startDate: new Date().toISOString().split("T")[0],
-        endDate: new Date(Date.now() + 86400000 * 5).toISOString().split("T")[0],
+        endDate: new Date(Date.now() + 86400000 * 5)
+          .toISOString()
+          .split("T")[0],
         status: "ACTIVE",
       });
     });
 
     const [vacRoom] = await withTenant(testProp1.id, async (tenantDb) => {
-      return tenantDb.select().from(roomsTable).where(eq(roomsTable.id, testRoom.id));
+      return tenantDb
+        .select()
+        .from(roomsTable)
+        .where(eq(roomsTable.id, testRoom.id));
     });
-    record("Accommodation Lifecycle", "Vacation Sets Room to occupied_vacation", vacRoom?.status === "occupied_vacation", `Status: ${vacRoom?.status}`);
+    record(
+      "Accommodation Lifecycle",
+      "Vacation Sets Room to occupied_vacation",
+      vacRoom?.status === "occupied_vacation",
+      `Status: ${vacRoom?.status}`,
+    );
 
     // Return from vacation test
     await withTenant(testProp1.id, async (tenantDb) => {
-      await tenantDb.update(profilesTable).set({ status: "ACTIVE" }).where(eq(profilesTable.id, testProfile.id));
-      await tenantDb.update(roomsTable).set({ status: "occupied" }).where(eq(roomsTable.id, testRoom.id));
-      await tenantDb.update(profileVacationsTable).set({ status: "COMPLETED" }).where(eq(profileVacationsTable.profileId, testProfile.id));
+      await tenantDb
+        .update(profilesTable)
+        .set({ status: "ACTIVE" })
+        .where(eq(profilesTable.id, testProfile.id));
+      await tenantDb
+        .update(roomsTable)
+        .set({ status: "occupied" })
+        .where(eq(roomsTable.id, testRoom.id));
+      await tenantDb
+        .update(profileVacationsTable)
+        .set({ status: "COMPLETED" })
+        .where(eq(profileVacationsTable.profileId, testProfile.id));
     });
 
     const [retRoom] = await withTenant(testProp1.id, async (tenantDb) => {
-      return tenantDb.select().from(roomsTable).where(eq(roomsTable.id, testRoom.id));
+      return tenantDb
+        .select()
+        .from(roomsTable)
+        .where(eq(roomsTable.id, testRoom.id));
     });
-    record("Accommodation Lifecycle", "Return from Vacation Restores Room to occupied", retRoom?.status === "occupied", `Status: ${retRoom?.status}`);
+    record(
+      "Accommodation Lifecycle",
+      "Return from Vacation Restores Room to occupied",
+      retRoom?.status === "occupied",
+      `Status: ${retRoom?.status}`,
+    );
 
     // Room Transfer test
     const testRoomNum2 = `AUDIT-${Math.floor(Math.random() * 9000 + 1000)}`;
@@ -254,16 +383,34 @@ async function runAudit() {
     // Perform room move
     await withTenant(testProp1.id, async (tenantDb) => {
       // 1. Release old room bed and decrement occupancy, mark dirty
-      await tenantDb.update(roomsTable).set({ currentOccupancy: 0, status: "dirty" }).where(eq(roomsTable.id, testRoom.id));
+      await tenantDb
+        .update(roomsTable)
+        .set({ currentOccupancy: 0, status: "dirty" })
+        .where(eq(roomsTable.id, testRoom.id));
       // 2. Transfer assignment to new room
-      await tenantDb.update(assignmentsTable).set({ roomId: testRoom2.id, bedNumber: 2 }).where(eq(assignmentsTable.id, testAssignment.id));
+      await tenantDb
+        .update(assignmentsTable)
+        .set({ roomId: testRoom2.id, bedNumber: 2 })
+        .where(eq(assignmentsTable.id, testAssignment.id));
       // 3. Increment new room occupancy
-      await tenantDb.update(roomsTable).set({ currentOccupancy: 1, status: "occupied" }).where(eq(roomsTable.id, testRoom2.id));
+      await tenantDb
+        .update(roomsTable)
+        .set({ currentOccupancy: 1, status: "occupied" })
+        .where(eq(roomsTable.id, testRoom2.id));
     });
 
-    const [afterTransferOldRoom] = await withTenant(testProp1.id, (t) => t.select().from(roomsTable).where(eq(roomsTable.id, testRoom.id)));
-    const [afterTransferNewRoom] = await withTenant(testProp1.id, (t) => t.select().from(roomsTable).where(eq(roomsTable.id, testRoom2.id)));
-    const [afterTransferAssign] = await withTenant(testProp1.id, (t) => t.select().from(assignmentsTable).where(eq(assignmentsTable.id, testAssignment.id)));
+    const [afterTransferOldRoom] = await withTenant(testProp1.id, (t) =>
+      t.select().from(roomsTable).where(eq(roomsTable.id, testRoom.id)),
+    );
+    const [afterTransferNewRoom] = await withTenant(testProp1.id, (t) =>
+      t.select().from(roomsTable).where(eq(roomsTable.id, testRoom2.id)),
+    );
+    const [afterTransferAssign] = await withTenant(testProp1.id, (t) =>
+      t
+        .select()
+        .from(assignmentsTable)
+        .where(eq(assignmentsTable.id, testAssignment.id)),
+    );
 
     record(
       "Accommodation Lifecycle",
@@ -277,26 +424,53 @@ async function runAudit() {
 
     // Checkout test
     await withTenant(testProp1.id, async (tenantDb) => {
-      await tenantDb.update(assignmentsTable).set({ status: "COMPLETED", checkOutDate: new Date().toISOString().split("T")[0] }).where(eq(assignmentsTable.id, testAssignment.id));
-      await tenantDb.update(roomsTable).set({ currentOccupancy: 0, status: "dirty" }).where(eq(roomsTable.id, testRoom2.id));
+      await tenantDb
+        .update(assignmentsTable)
+        .set({
+          status: "COMPLETED",
+          checkOutDate: new Date().toISOString().split("T")[0],
+        })
+        .where(eq(assignmentsTable.id, testAssignment.id));
+      await tenantDb
+        .update(roomsTable)
+        .set({ currentOccupancy: 0, status: "dirty" })
+        .where(eq(roomsTable.id, testRoom2.id));
     });
 
-    const [checkedOutAssign] = await withTenant(testProp1.id, (t) => t.select().from(assignmentsTable).where(eq(assignmentsTable.id, testAssignment.id)));
-    const [checkedOutRoom] = await withTenant(testProp1.id, (t) => t.select().from(roomsTable).where(eq(roomsTable.id, testRoom2.id)));
+    const [checkedOutAssign] = await withTenant(testProp1.id, (t) =>
+      t
+        .select()
+        .from(assignmentsTable)
+        .where(eq(assignmentsTable.id, testAssignment.id)),
+    );
+    const [checkedOutRoom] = await withTenant(testProp1.id, (t) =>
+      t.select().from(roomsTable).where(eq(roomsTable.id, testRoom2.id)),
+    );
 
     record(
       "Accommodation Lifecycle",
       "Checkout Completes Assignment & Marks Room Dirty",
-      checkedOutAssign.status === "COMPLETED" && checkedOutRoom.status === "dirty",
+      checkedOutAssign.status === "COMPLETED" &&
+        checkedOutRoom.status === "dirty",
       `Assignment Status: ${checkedOutAssign.status}, Room Status: ${checkedOutRoom.status}`,
     );
 
     // Housekeeping clean action test
     await withTenant(testProp1.id, async (tenantDb) => {
-      await tenantDb.update(roomsTable).set({ status: "available" }).where(eq(roomsTable.id, testRoom2.id));
+      await tenantDb
+        .update(roomsTable)
+        .set({ status: "available" })
+        .where(eq(roomsTable.id, testRoom2.id));
     });
-    const [cleanedRoom] = await withTenant(testProp1.id, (t) => t.select().from(roomsTable).where(eq(roomsTable.id, testRoom2.id)));
-    record("Housekeeping", "Room Cleaning Restores Available Status", cleanedRoom.status === "available", `Status: ${cleanedRoom.status}`);
+    const [cleanedRoom] = await withTenant(testProp1.id, (t) =>
+      t.select().from(roomsTable).where(eq(roomsTable.id, testRoom2.id)),
+    );
+    record(
+      "Housekeeping",
+      "Room Cleaning Restores Available Status",
+      cleanedRoom.status === "available",
+      `Status: ${cleanedRoom.status}`,
+    );
 
     // -----------------------------------------------------------------
     // 4. Maintenance Ticket Workflow
@@ -316,7 +490,12 @@ async function runAudit() {
         .returning();
     });
 
-    record("Maintenance", "Create Maintenance Ticket", !!testTicket, `Ticket ID: ${testTicket.id}`);
+    record(
+      "Maintenance",
+      "Create Maintenance Ticket",
+      !!testTicket,
+      `Ticket ID: ${testTicket.id}`,
+    );
 
     await withTenant(testProp1.id, async (tenantDb) => {
       await tenantDb
@@ -325,8 +504,18 @@ async function runAudit() {
         .where(eq(maintenanceTable.id, testTicket.id));
     });
 
-    const [updatedTicket] = await withTenant(testProp1.id, (t) => t.select().from(maintenanceTable).where(eq(maintenanceTable.id, testTicket.id)));
-    record("Maintenance", "Update Ticket Status to in_progress", updatedTicket.status === "in_progress", `Status: ${updatedTicket.status}`);
+    const [updatedTicket] = await withTenant(testProp1.id, (t) =>
+      t
+        .select()
+        .from(maintenanceTable)
+        .where(eq(maintenanceTable.id, testTicket.id)),
+    );
+    record(
+      "Maintenance",
+      "Update Ticket Status to in_progress",
+      updatedTicket.status === "in_progress",
+      `Status: ${updatedTicket.status}`,
+    );
 
     // -----------------------------------------------------------------
     // 5. Resident Portal Connectivity
@@ -350,22 +539,30 @@ async function runAudit() {
       })
       .returning();
 
-    record("Resident Portal", "Send Message from Resident Portal", !!portalMsg, `Chat ID: ${portalMsg.id}, Conv ID: ${conv.id}`);
+    record(
+      "Resident Portal",
+      "Send Message from Resident Portal",
+      !!portalMsg,
+      `Chat ID: ${portalMsg.id}, Conv ID: ${conv.id}`,
+    );
 
     // -----------------------------------------------------------------
     // 6. Reports & Aggregations Verification
     // -----------------------------------------------------------------
     console.log("\n--- Testing Reports & Aggregations Engine ---");
-    const totalCapacityReport = await withTenant(testProp1.id, async (tenantDb) => {
-      const res = await tenantDb
-        .select({
-          totalRooms: sql<number>`count(*)`,
-          totalCapacity: sql<number>`coalesce(sum(${roomsTable.capacity}), 0)`,
-          currentOccupancy: sql<number>`coalesce(sum(${roomsTable.currentOccupancy}), 0)`,
-        })
-        .from(roomsTable);
-      return res[0];
-    });
+    const totalCapacityReport = await withTenant(
+      testProp1.id,
+      async (tenantDb) => {
+        const res = await tenantDb
+          .select({
+            totalRooms: sql<number>`count(*)`,
+            totalCapacity: sql<number>`coalesce(sum(${roomsTable.capacity}), 0)`,
+            currentOccupancy: sql<number>`coalesce(sum(${roomsTable.currentOccupancy}), 0)`,
+          })
+          .from(roomsTable);
+        return res[0];
+      },
+    );
 
     record(
       "Reports Engine",
@@ -378,27 +575,52 @@ async function runAudit() {
     // 7. Cleanup Audit Artifacts
     // -----------------------------------------------------------------
     console.log("\n--- Cleaning Up Audit Test Entities ---");
-    await db.delete(portalMessagesTable).where(eq(portalMessagesTable.id, portalMsg.id));
-    await db.delete(portalConversationsTable).where(eq(portalConversationsTable.id, conv.id));
+    await db
+      .delete(portalMessagesTable)
+      .where(eq(portalMessagesTable.id, portalMsg.id));
+    await db
+      .delete(portalConversationsTable)
+      .where(eq(portalConversationsTable.id, conv.id));
     await withTenant(testProp1.id, async (tenantDb) => {
-      await tenantDb.delete(maintenanceTable).where(eq(maintenanceTable.id, testTicket.id));
-      await tenantDb.delete(hostingsTable).where(eq(hostingsTable.id, testHost.id));
-      await tenantDb.delete(reservationsTable).where(eq(reservationsTable.id, testRes.id));
-      await tenantDb.delete(profileVacationsTable).where(eq(profileVacationsTable.profileId, testProfile.id));
-      await tenantDb.delete(assignmentsTable).where(eq(assignmentsTable.id, testAssignment.id));
+      await tenantDb
+        .delete(maintenanceTable)
+        .where(eq(maintenanceTable.id, testTicket.id));
+      await tenantDb
+        .delete(hostingsTable)
+        .where(eq(hostingsTable.id, testHost.id));
+      await tenantDb
+        .delete(reservationsTable)
+        .where(eq(reservationsTable.id, testRes.id));
+      await tenantDb
+        .delete(profileVacationsTable)
+        .where(eq(profileVacationsTable.profileId, testProfile.id));
+      await tenantDb
+        .delete(assignmentsTable)
+        .where(eq(assignmentsTable.id, testAssignment.id));
       await tenantDb.delete(roomsTable).where(eq(roomsTable.id, testRoom.id));
       await tenantDb.delete(roomsTable).where(eq(roomsTable.id, testRoom2.id));
-      await tenantDb.delete(profilesTable).where(eq(profilesTable.id, testProfile.id));
+      await tenantDb
+        .delete(profilesTable)
+        .where(eq(profilesTable.id, testProfile.id));
     });
 
-    record("Cleanup", "Remove Audit Test Records", true, "All temporary audit rows cleaned successfully");
+    record(
+      "Cleanup",
+      "Remove Audit Test Records",
+      true,
+      "All temporary audit rows cleaned successfully",
+    );
 
     // -----------------------------------------------------------------
     // Summary
     // -----------------------------------------------------------------
-    console.log("\n===============================================================");
+    console.log(
+      "\n===============================================================",
+    );
     console.log("                     AUDIT SUMMARY");
-    console.log("===============================================================");
+    console.log(
+      "===============================================================",
+    );
     const total = results.length;
     const passed = results.filter((r) => r.passed).length;
     const failed = total - passed;

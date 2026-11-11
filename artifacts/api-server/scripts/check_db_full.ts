@@ -5,15 +5,21 @@ async function run() {
   console.log("Checking for ANY remaining 'employee' references in the DB...");
 
   // 1. Tables
-  const tables = await client.query(`SELECT table_name, table_schema FROM information_schema.tables WHERE table_name LIKE '%employee%'`);
+  const tables = await client.query(
+    `SELECT table_name, table_schema FROM information_schema.tables WHERE table_name LIKE '%employee%'`,
+  );
   console.log("TABLES:", tables.rows);
 
   // 2. Columns
-  const cols = await client.query(`SELECT table_name, column_name, table_schema FROM information_schema.columns WHERE column_name LIKE '%employee%'`);
+  const cols = await client.query(
+    `SELECT table_name, column_name, table_schema FROM information_schema.columns WHERE column_name LIKE '%employee%'`,
+  );
   console.log("COLUMNS:", cols.rows);
 
   // 3. Indexes
-  const idxs = await client.query(`SELECT indexname, schemaname FROM pg_indexes WHERE indexname LIKE '%employee%'`);
+  const idxs = await client.query(
+    `SELECT indexname, schemaname FROM pg_indexes WHERE indexname LIKE '%employee%'`,
+  );
   console.log("INDEXES:", idxs.rows);
 
   // 4. Constraints
@@ -26,7 +32,9 @@ async function run() {
   console.log("CONSTRAINTS:", cons.rows);
 
   // 5. Sequences
-  const seqs = await client.query(`SELECT sequence_name, sequence_schema FROM information_schema.sequences WHERE sequence_name LIKE '%employee%'`);
+  const seqs = await client.query(
+    `SELECT sequence_name, sequence_schema FROM information_schema.sequences WHERE sequence_name LIKE '%employee%'`,
+  );
   console.log("SEQUENCES:", seqs.rows);
 
   client.release();

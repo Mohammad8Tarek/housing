@@ -21,13 +21,18 @@ import {
   type Action,
 } from "@/lib/permissions";
 import { usePermission } from "@/hooks/use-permission";
-import { PermissionMatrixCenterProps, SYSTEM_ROLE_PRESETS } from "./PermissionMatrixCenter.constants";
+import {
+  PermissionMatrixCenterProps,
+  SYSTEM_ROLE_PRESETS,
+} from "./PermissionMatrixCenter.constants";
 
 /** super_admin / system_admin (by role or flag) always have every permission. */
 function isSuperAdminUser(userObj: any): boolean {
   if (!userObj) return false;
   if (userObj.isSystemAdmin) return true;
-  return (userObj.roles || []).some((r: string) => ["super_admin", "system_admin"].includes(String(r).toLowerCase()));
+  return (userObj.roles || []).some((r: string) =>
+    ["super_admin", "system_admin"].includes(String(r).toLowerCase()),
+  );
 }
 
 export function usePermissionMatrixCenterState({
@@ -39,7 +44,11 @@ export function usePermissionMatrixCenterState({
   const { language } = useLanguage();
   const ar = language === "ar";
   const queryClient = useQueryClient();
-  const { isSuperAdmin: actorIsSuperAdmin, perms: actorPerms, can: actorCan } = usePermission();
+  const {
+    isSuperAdmin: actorIsSuperAdmin,
+    perms: actorPerms,
+    can: actorCan,
+  } = usePermission();
 
   const actorCanGrant = (mod: Module, act: Action) => {
     if (actorIsSuperAdmin || actorPerms.has("*")) return true;
@@ -74,14 +83,17 @@ export function usePermissionMatrixCenterState({
   const getInitialPerms = (userObj: any): Set<string> => {
     if (!userObj) return new Set();
     // Super/system admins always have full access (server and client ignore stored lists).
-    if (isSuperAdminUser(userObj)) return new Set(ROLE_DEFAULT_PERMISSIONS["super_admin"] || []);
+    if (isSuperAdminUser(userObj))
+      return new Set(ROLE_DEFAULT_PERMISSIONS["super_admin"] || []);
     const explicit = (userObj.permissions as string[] | undefined) ?? [];
     if (explicit.length > 0) {
       if (explicit.length === 1 && explicit[0] === "none") return new Set();
       const normalized = explicit.map((p) => {
         let s = String(p).trim().toLowerCase();
-        if (s.startsWith("employees.")) s = s.replace("employees.", "profiles.");
-        if (s.startsWith("employees:")) s = s.replace("employees:", "profiles:");
+        if (s.startsWith("employees."))
+          s = s.replace("employees.", "profiles.");
+        if (s.startsWith("employees:"))
+          s = s.replace("employees:", "profiles:");
         return s;
       });
       return new Set(normalized);
@@ -89,7 +101,9 @@ export function usePermissionMatrixCenterState({
     return new Set();
   };
 
-  const [perms, setPermsRaw] = useState<Set<string>>(() => getInitialPerms(activeUser));
+  const [perms, setPermsRaw] = useState<Set<string>>(() =>
+    getInitialPerms(activeUser),
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [hasChanges, setHasChangesRaw] = useState(false);
@@ -98,11 +112,14 @@ export function usePermissionMatrixCenterState({
   const setPerms: typeof setPermsRaw = (value) => {
     if (!targetIsSuper) setPermsRaw(value);
   };
-  const setHasChanges = (value: boolean) => setHasChangesRaw(targetIsSuper ? false : value);
+  const setHasChanges = (value: boolean) =>
+    setHasChangesRaw(targetIsSuper ? false : value);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [userPickerOpen, setUserPickerOpen] = useState(false);
   const [userSearchText, setUserSearchText] = useState("");
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [collapsedGroups, setCollapsedGroups] = useState<
+    Record<string, boolean>
+  >({});
 
   // When active user changes, reload permissions
   useEffect(() => {
@@ -138,7 +155,9 @@ export function usePermissionMatrixCenterState({
     const q = query.trim().toLowerCase();
     const en = (ACTION_LABELS[action]?.en || action).toLowerCase();
     const arLabel = (ACTION_LABELS[action]?.ar || "").toLowerCase();
-    return en.includes(q) || arLabel.includes(q) || action.toLowerCase().includes(q);
+    return (
+      en.includes(q) || arLabel.includes(q) || action.toLowerCase().includes(q)
+    );
   };
 
   // Toggle single action with dependency logic:
@@ -165,7 +184,11 @@ export function usePermissionMatrixCenterState({
         }
       } else {
         next.add(key);
-        if (a !== "view" && (MODULE_ACTIONS[m] ?? []).includes("view") && actorCanGrant(m, "view")) {
+        if (
+          a !== "view" &&
+          (MODULE_ACTIONS[m] ?? []).includes("view") &&
+          actorCanGrant(m, "view")
+        ) {
           next.add(permKey(m, "view"));
         }
       }
@@ -222,8 +245,8 @@ export function usePermissionMatrixCenterState({
           ? `تم تفعيل كافة صلاحيات ${group.label.ar} المتاحة لك`
           : `Selected all permissions you possess in ${group.label.en}`
         : ar
-        ? `تم مسح صلاحيات ${group.label.ar}`
-        : `Cleared all permissions in ${group.label.en}`,
+          ? `تم مسح صلاحيات ${group.label.ar}`
+          : `Cleared all permissions in ${group.label.en}`,
     );
   };
 
@@ -257,7 +280,11 @@ export function usePermissionMatrixCenterState({
         candidateModules.forEach((m) => {
           if (actorCanGrant(m, action)) {
             next.add(permKey(m, action));
-            if (action !== "view" && (MODULE_ACTIONS[m] ?? []).includes("view") && actorCanGrant(m, "view")) {
+            if (
+              action !== "view" &&
+              (MODULE_ACTIONS[m] ?? []).includes("view") &&
+              actorCanGrant(m, "view")
+            ) {
               next.add(permKey(m, "view"));
             }
           }
@@ -273,8 +300,8 @@ export function usePermissionMatrixCenterState({
           ? `تم تعطيل عملية (${action}) عبر الموديولات الظاهرة`
           : `Disabled ${action} across visible modules`
         : ar
-        ? `تم تفعيل عملية (${action}) عبر الموديولات المتاحة لك`
-        : `Enabled ${action} across accessible visible modules`,
+          ? `تم تفعيل عملية (${action}) عبر الموديولات المتاحة لك`
+          : `Enabled ${action} across accessible visible modules`,
     );
   };
 
@@ -323,20 +350,31 @@ export function usePermissionMatrixCenterState({
   const applyReadOnlyAll = () => {
     const readOnly = new Set<string>();
     MODULES.forEach((m) => {
-      if ((MODULE_ACTIONS[m] ?? []).includes("view") && actorCanGrant(m, "view")) {
+      if (
+        (MODULE_ACTIONS[m] ?? []).includes("view") &&
+        actorCanGrant(m, "view")
+      ) {
         readOnly.add(permKey(m, "view"));
       }
     });
     setPerms(readOnly);
     setHasChanges(true);
-    toast.info(ar ? "تم تطبيق صلاحيات العرض فقط لكافة الأقسام المتاحة لك" : "Applied Read-Only to accessible modules");
+    toast.info(
+      ar
+        ? "تم تطبيق صلاحيات العرض فقط لكافة الأقسام المتاحة لك"
+        : "Applied Read-Only to accessible modules",
+    );
   };
 
   const resetToStored = () => {
     if (activeUser) {
       setPermsRaw(getInitialPerms(activeUser));
       setHasChangesRaw(false);
-      toast.info(ar ? "تمت استعادة الصلاحيات الأصلية المحفوظة" : "Reset to stored permissions");
+      toast.info(
+        ar
+          ? "تمت استعادة الصلاحيات الأصلية المحفوظة"
+          : "Reset to stored permissions",
+      );
     }
   };
 
@@ -619,13 +657,17 @@ export function usePermissionMatrixCenterState({
   };
 }
 
-export type PermissionMatrixCenterState = ReturnType<typeof usePermissionMatrixCenterState>;
+export type PermissionMatrixCenterState = ReturnType<
+  typeof usePermissionMatrixCenterState
+>;
 
 // Values derived after PermissionMatrixCenter's loading/empty early returns (moved verbatim); the
 // narrowed inputs (activeUser) are passed in non-null.
-export function buildPermissionMatrixCenterView(s: PermissionMatrixCenterState, activeUser: NonNullable<PermissionMatrixCenterState["activeUser"]>) {
-  const {  } = s;
-
+export function buildPermissionMatrixCenterView(
+  s: PermissionMatrixCenterState,
+  activeUser: NonNullable<PermissionMatrixCenterState["activeUser"]>,
+) {
+  const {} = s;
 
   const isSuper = (activeUser.roles || []).some(
     (r: string) => r.toLowerCase() === "super_admin",
@@ -636,4 +678,6 @@ export function buildPermissionMatrixCenterView(s: PermissionMatrixCenterState, 
   };
 }
 
-export type PermissionMatrixCenterView = ReturnType<typeof buildPermissionMatrixCenterView>;
+export type PermissionMatrixCenterView = ReturnType<
+  typeof buildPermissionMatrixCenterView
+>;

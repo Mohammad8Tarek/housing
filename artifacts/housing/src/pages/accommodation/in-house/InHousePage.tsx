@@ -33,20 +33,41 @@ import {
 import { usePermission } from "@/hooks/use-permission";
 
 import { CHECKOUT_REASONS, IH_COLS } from "./utils/constants";
-import { exportSelectedExcel, exportSelectedPdf } from "./utils/export-selected";
+import {
+  exportSelectedExcel,
+  exportSelectedPdf,
+} from "./utils/export-selected";
 import { printHousingLetterFor } from "./utils/housing-letter";
 import { useTransferTarget } from "./hooks/useTransferTarget";
 import { InHouseToolbar } from "./components/InHouseToolbar";
 import { InHouseTable } from "./components/InHouseTable";
 import type { RowActions } from "./components/InHouseTableRow";
-import { WhatsAppDialog, type WhatsAppDialogState } from "./components/WhatsAppDialog";
-import { ExtendStayDialog, type ExtendDialogState } from "./components/ExtendStayDialog";
-import { CheckoutDialog, type CheckoutDialogState } from "./components/CheckoutDialog";
+import {
+  WhatsAppDialog,
+  type WhatsAppDialogState,
+} from "./components/WhatsAppDialog";
+import {
+  ExtendStayDialog,
+  type ExtendDialogState,
+} from "./components/ExtendStayDialog";
+import {
+  CheckoutDialog,
+  type CheckoutDialogState,
+} from "./components/CheckoutDialog";
 import { BulkExtendDialog } from "./components/BulkExtendDialog";
 import { BulkCheckoutDialog } from "./components/BulkCheckoutDialog";
-import { VacationDialog, type VacationDialogState } from "./components/VacationDialog";
-import { TransferDialog, type TransferDialogState } from "./components/TransferDialog";
-import { ReissueKeyDialog, type ReissueDialogState } from "./components/ReissueKeyDialog";
+import {
+  VacationDialog,
+  type VacationDialogState,
+} from "./components/VacationDialog";
+import {
+  TransferDialog,
+  type TransferDialogState,
+} from "./components/TransferDialog";
+import {
+  ReissueKeyDialog,
+  type ReissueDialogState,
+} from "./components/ReissueKeyDialog";
 import {
   PrintAfterTransferDialog,
   type PrintAfterTransferState,
@@ -82,10 +103,16 @@ export default function InHouse() {
   const [bulkCheckoutLoading, setBulkCheckoutLoading] = useState(false);
   const [bulkCheckoutNotes, setBulkCheckoutNotes] = useState("");
   const [bulkCheckoutReason, setBulkCheckoutReason] = useState("");
-  const [checkoutDialog, setCheckoutDialog] = useState<CheckoutDialogState>({ open: false, id: null });
-  const [vacationDialog, setVacationDialog] = useState<VacationDialogState>({ open: false, emp: null });
+  const [checkoutDialog, setCheckoutDialog] = useState<CheckoutDialogState>({
+    open: false,
+    id: null,
+  });
+  const [vacationDialog, setVacationDialog] = useState<VacationDialogState>({
+    open: false,
+    emp: null,
+  });
   const [vacationStartDate, setVacationStartDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [vacationEndDate, setVacationEndDate] = useState("");
   const [vacationNotes, setVacationNotes] = useState("");
@@ -99,7 +126,10 @@ export default function InHouse() {
     return diff >= 0 ? diff : null;
   };
 
-  const [transferDialog, setTransferDialog] = useState<TransferDialogState>({ open: false, id: null });
+  const [transferDialog, setTransferDialog] = useState<TransferDialogState>({
+    open: false,
+    id: null,
+  });
   const [checkoutDate, setCheckoutDate] = useState(
     new Date().toISOString().split("T")[0],
   );
@@ -110,7 +140,8 @@ export default function InHouse() {
   const [transferReason, setTransferReason] = useState("");
   const [roomSearch, setRoomSearch] = useState("");
   const [transferPropertyId, setTransferPropertyId] = useState<string>("");
-  const [transferArchiveSource, setTransferArchiveSource] = useState<boolean>(true);
+  const [transferArchiveSource, setTransferArchiveSource] =
+    useState<boolean>(true);
   const [profileEmpId, setProfileEmpId] = useState<number | null>(null);
   const [transferPolicyModal, setTransferPolicyModal] = useState<{
     open: boolean;
@@ -118,10 +149,16 @@ export default function InHouse() {
   }>({ open: false, violations: [] });
 
   // Re-issue key state
-  const [reissueDialog, setReissueDialog] = useState<ReissueDialogState>({ open: false, assignment: null, emp: null, room: null });
+  const [reissueDialog, setReissueDialog] = useState<ReissueDialogState>({
+    open: false,
+    assignment: null,
+    emp: null,
+    room: null,
+  });
   const [reissueNotes, setReissueNotes] = useState("");
   const [reissueIssuing, setReissueIssuing] = useState(false);
-  const [printAfterTransfer, setPrintAfterTransfer] = useState<PrintAfterTransferState>(null);
+  const [printAfterTransfer, setPrintAfterTransfer] =
+    useState<PrintAfterTransferState>(null);
 
   // Extend stay state
   const [extendDialog, setExtendDialog] = useState<ExtendDialogState>({
@@ -149,13 +186,17 @@ export default function InHouse() {
 
   // Gate Pass modal state
   const [gatePassOpen, setGatePassOpen] = useState(false);
-  const [selectedGatePassProfileId, setSelectedGatePassProfileId] = useState<number | null>(null);
+  const [selectedGatePassProfileId, setSelectedGatePassProfileId] = useState<
+    number | null
+  >(null);
   const [whatsAppPhone, setWhatsAppPhone] = useState("");
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
 
   // Broadcast WhatsApp state
   const [broadcastOpen, setBroadcastOpen] = useState(false);
-  const [broadcastTargetMode, setBroadcastTargetMode] = useState<"all" | "selected">("all");
+  const [broadcastTargetMode, setBroadcastTargetMode] = useState<
+    "all" | "selected"
+  >("all");
 
   const handleOpenWhatsAppDialog = (a: any, empData: any) => {
     const p = empData || {
@@ -176,41 +217,71 @@ export default function InHouse() {
 
   const handleSendWhatsApp = async () => {
     if (!whatsAppPhone.trim()) {
-      toast.error(ar ? "يرجى إدخال رقم هاتف الواتساب للموظف" : "Please enter a valid WhatsApp phone number");
+      toast.error(
+        ar
+          ? "يرجى إدخال رقم هاتف الواتساب للموظف"
+          : "Please enter a valid WhatsApp phone number",
+      );
       return;
     }
     setIsSendingWhatsApp(true);
     try {
-      const res = await fetch(`/api/assignments/${whatsAppDialog.assignmentId}/send-whatsapp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          propertyId: activePropertyId,
-          phone: whatsAppPhone.trim(),
-        }),
-      });
+      const res = await fetch(
+        `/api/assignments/${whatsAppDialog.assignmentId}/send-whatsapp`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            propertyId: activePropertyId,
+            phone: whatsAppPhone.trim(),
+          }),
+        },
+      );
       const data = await res.json();
       if (!res.ok || data.error) {
-        throw new Error(data.error || (ar ? "فشل إرسال رسالة الواتساب" : "Failed to send WhatsApp message"));
+        throw new Error(
+          data.error ||
+            (ar
+              ? "فشل إرسال رسالة الواتساب"
+              : "Failed to send WhatsApp message"),
+        );
       }
-      toast.success(data.message || (ar ? "تم إرسال رسالة التسكين عبر الواتساب بنجاح!" : "WhatsApp welcome message sent successfully!"));
+      toast.success(
+        data.message ||
+          (ar
+            ? "تم إرسال رسالة التسكين عبر الواتساب بنجاح!"
+            : "WhatsApp welcome message sent successfully!"),
+      );
       setWhatsAppDialog((prev) => ({ ...prev, open: false }));
       queryClient.invalidateQueries({
-        queryKey: getListInHouseAssignmentsQueryKey({ propertyId: activePropertyId as any }),
+        queryKey: getListInHouseAssignmentsQueryKey({
+          propertyId: activePropertyId as any,
+        }),
       });
     } catch (err: any) {
-      toast.error(err.message || (ar ? "فشل إرسال رسالة الواتساب" : "Failed to send WhatsApp message"));
+      toast.error(
+        err.message ||
+          (ar ? "فشل إرسال رسالة الواتساب" : "Failed to send WhatsApp message"),
+      );
     } finally {
       setIsSendingWhatsApp(false);
     }
   };
 
-  const numericPropertyId = typeof activePropertyId === "number" ? activePropertyId : undefined;
+  const numericPropertyId =
+    typeof activePropertyId === "number" ? activePropertyId : undefined;
   const { data: _pData } = useListProperties();
-  const allProperties: any[] = Array.isArray(_pData) ? _pData : (((_pData as any)?.data as any[]) || []);
+  const allProperties: any[] = Array.isArray(_pData)
+    ? _pData
+    : ((_pData as any)?.data as any[]) || [];
   const { data: settings } = useGetSettings(
     { propertyId: numericPropertyId },
-    { query: { queryKey: ["getSettings", numericPropertyId], enabled: !!numericPropertyId } as any },
+    {
+      query: {
+        queryKey: ["getSettings", numericPropertyId],
+        enabled: !!numericPropertyId,
+      } as any,
+    },
   );
   const activeProp = allProperties.find((p: any) => p.id === activePropertyId);
 
@@ -235,46 +306,74 @@ export default function InHouse() {
   );
   const assignments: any[] = Array.isArray(assignmentsRes)
     ? assignmentsRes
-    : (((assignmentsRes as any)?.data as any[]) || []);
+    : ((assignmentsRes as any)?.data as any[]) || [];
   const total = Array.isArray(assignmentsRes)
     ? assignmentsRes.length
-    : (((assignmentsRes as any)?.pagination?.total as number) ?? assignments.length);
+    : (((assignmentsRes as any)?.pagination?.total as number) ??
+      assignments.length);
 
   const selectedProfileIds = useMemo(() => {
-    return Array.from(selectedRows).map((id) => {
-      const a = (assignments || []).find((x: any) => x.id === id);
-      return a?.profileId ? Number(a.profileId) : null;
-    }).filter((id): id is number => id !== null);
+    return Array.from(selectedRows)
+      .map((id) => {
+        const a = (assignments || []).find((x: any) => x.id === id);
+        return a?.profileId ? Number(a.profileId) : null;
+      })
+      .filter((id): id is number => id !== null);
   }, [selectedRows, assignments]);
 
   const { data: _eDataWrapper } = useListProfiles(
     { propertyId: numericPropertyId ?? undefined, limit: 1000 } as any,
-    { query: { queryKey: ["listProfiles", numericPropertyId], enabled: !!numericPropertyId } as any },
+    {
+      query: {
+        queryKey: ["listProfiles", numericPropertyId],
+        enabled: !!numericPropertyId,
+      } as any,
+    },
   );
   const profiles: any[] = Array.isArray(_eDataWrapper)
     ? _eDataWrapper
-    : (((_eDataWrapper as any)?.profiles as any[]) || ((_eDataWrapper as any)?.data as any[]) || []);
+    : ((_eDataWrapper as any)?.profiles as any[]) ||
+      ((_eDataWrapper as any)?.data as any[]) ||
+      [];
   const { data: _rData } = useListRooms(
     { propertyId: numericPropertyId, limit: 1000 } as any,
-    { query: { queryKey: ["listRooms", numericPropertyId], enabled: !!numericPropertyId, staleTime: 60000 } as any },
+    {
+      query: {
+        queryKey: ["listRooms", numericPropertyId],
+        enabled: !!numericPropertyId,
+        staleTime: 60000,
+      } as any,
+    },
   );
   const rooms: any[] = Array.isArray(_rData)
     ? _rData
-    : (((_rData as any)?.data as any[]) || []);
+    : ((_rData as any)?.data as any[]) || [];
   const { data: _bData } = useListBuildings(
     { propertyId: numericPropertyId } as any,
-    { query: { queryKey: ["listBuildings", numericPropertyId], enabled: !!numericPropertyId, staleTime: 300000 } as any },
+    {
+      query: {
+        queryKey: ["listBuildings", numericPropertyId],
+        enabled: !!numericPropertyId,
+        staleTime: 300000,
+      } as any,
+    },
   );
   const buildings: any[] = Array.isArray(_bData)
     ? _bData
-    : (((_bData as any)?.data as any[]) || []);
+    : ((_bData as any)?.data as any[]) || [];
   const { data: _fData } = useListFloors(
     { propertyId: numericPropertyId } as any,
-    { query: { queryKey: ["listFloors", numericPropertyId], enabled: !!numericPropertyId, staleTime: 300000 } as any },
+    {
+      query: {
+        queryKey: ["listFloors", numericPropertyId],
+        enabled: !!numericPropertyId,
+        staleTime: 300000,
+      } as any,
+    },
   );
   const floors: any[] = Array.isArray(_fData)
     ? _fData
-    : (((_fData as any)?.data as any[]) || []);
+    : ((_fData as any)?.data as any[]) || [];
 
   // Transfer target property data (rooms, beds, recommendations)
   const {
@@ -304,7 +403,9 @@ export default function InHouse() {
 
   const invalidate = () => {
     queryClient.invalidateQueries({
-      queryKey: getListInHouseAssignmentsQueryKey({ propertyId: activePropertyId as any }),
+      queryKey: getListInHouseAssignmentsQueryKey({
+        propertyId: activePropertyId as any,
+      }),
     });
     queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
     queryClient.invalidateQueries({ queryKey: ["/api/keys"] });
@@ -313,11 +414,19 @@ export default function InHouse() {
   const handleConfirmVacation = async () => {
     if (!vacationDialog.emp) return;
     if (!vacationStartDate || !vacationEndDate) {
-      toast.error(ar ? "يرجى تحديد تاريخ البدء وتاريخ الانتهاء" : "Please select start and end dates");
+      toast.error(
+        ar
+          ? "يرجى تحديد تاريخ البدء وتاريخ الانتهاء"
+          : "Please select start and end dates",
+      );
       return;
     }
     if (new Date(vacationEndDate) < new Date(vacationStartDate)) {
-      toast.error(ar ? "تاريخ العودة يجب أن يكون بعد تاريخ البدء" : "Return date must be after start date");
+      toast.error(
+        ar
+          ? "تاريخ العودة يجب أن يكون بعد تاريخ البدء"
+          : "Return date must be after start date",
+      );
       return;
     }
 
@@ -353,12 +462,14 @@ export default function InHouse() {
       toast.success(
         ar
           ? `تم تسجيل إجازة ${vacationDialog.emp.firstName} بنجاح (من ${vacationStartDate} إلى ${vacationEndDate})`
-          : `Vacation recorded for ${vacationDialog.emp.firstName}`
+          : `Vacation recorded for ${vacationDialog.emp.firstName}`,
       );
       setVacationDialog({ open: false, emp: null });
       invalidate();
     } catch (err: any) {
-      toast.error(err.message || (ar ? "فشل تسجيل الإجازة" : "Failed to record vacation"));
+      toast.error(
+        err.message || (ar ? "فشل تسجيل الإجازة" : "Failed to record vacation"),
+      );
     } finally {
       setVacationSubmitting(false);
     }
@@ -391,11 +502,13 @@ export default function InHouse() {
       toast.success(
         ar
           ? `تم تسجيل عودة ${emp.firstName} من الإجازة بنجاح (مقيم بالسكن)`
-          : `${emp.firstName} returned from vacation`
+          : `${emp.firstName} returned from vacation`,
       );
       invalidate();
     } catch {
-      toast.error(ar ? "فشل تسجيل العودة من الإجازة" : "Failed to record return");
+      toast.error(
+        ar ? "فشل تسجيل العودة من الإجازة" : "Failed to record return",
+      );
     }
   };
 
@@ -446,14 +559,17 @@ export default function InHouse() {
 
     setExtendLoading(true);
     try {
-      const res = await fetch(`/api/assignments/${extendDialog.assignment.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          expectedCheckOutDate: extendNewDate,
-          notes: extendNotes,
-        }),
-      });
+      const res = await fetch(
+        `/api/assignments/${extendDialog.assignment.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            expectedCheckOutDate: extendNewDate,
+            notes: extendNotes,
+          }),
+        },
+      );
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -543,7 +659,13 @@ export default function InHouse() {
       onError: async (e: any) => {
         let msg = e?.message;
         try {
-          const body = e?.data || (await e?.response?.clone?.()?.json?.().catch(() => null)) || {};
+          const body =
+            e?.data ||
+            (await e?.response
+              ?.clone?.()
+              ?.json?.()
+              .catch(() => null)) ||
+            {};
           if (body?.error) msg = body.error;
         } catch {}
         toast.error(msg || (ar ? "فشل تسجيل الخروج" : "Failed to check out"));
@@ -559,7 +681,10 @@ export default function InHouse() {
         const targetRoom = targetRooms.find(
           (r: any) => r.id === parseInt(transferRoomId),
         );
-        const isCross = Boolean(transferPropertyId && String(transferPropertyId) !== String(activePropertyId));
+        const isCross = Boolean(
+          transferPropertyId &&
+          String(transferPropertyId) !== String(activePropertyId),
+        );
         if (isCross) {
           queryClient.invalidateQueries({ queryKey: ["/api/assignments"] });
           queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
@@ -567,8 +692,12 @@ export default function InHouse() {
         }
         toast.success(
           isCross
-            ? (ar ? "تم نقل الموظف بنجاح إلى الفندق والغرفة الجديدة" : "Resident successfully transferred to the new hotel & room")
-            : (ar ? "تم نقل الغرفة بنجاح" : "Room Move successful")
+            ? ar
+              ? "تم نقل الموظف بنجاح إلى الفندق والغرفة الجديدة"
+              : "Resident successfully transferred to the new hotel & room"
+            : ar
+              ? "تم نقل الغرفة بنجاح"
+              : "Room Move successful",
         );
         setPrintAfterTransfer({
           assignment: data,
@@ -589,7 +718,13 @@ export default function InHouse() {
       onError: async (err: any) => {
         let description = err.message;
         try {
-          const body = err?.data || (await err?.response?.clone?.()?.json?.().catch(() => null)) || {};
+          const body =
+            err?.data ||
+            (await err?.response
+              ?.clone?.()
+              ?.json?.()
+              .catch(() => null)) ||
+            {};
           if (body?.code === "BED_TAKEN") {
             description = ar
               ? `هذا السرير مشغول بالفعل في الغرفة الجديدة. اختر سريرًا آخر.`
@@ -609,7 +744,9 @@ export default function InHouse() {
 
   const empMap = Object.fromEntries(profiles.map((e: any) => [e.id, e]));
   const roomMap = Object.fromEntries(rooms.map((r: any) => [r.id, r]));
-  const buildingMap = Object.fromEntries(buildings.map((b: any) => [b.id, b.name]));
+  const buildingMap = Object.fromEntries(
+    buildings.map((b: any) => [b.id, b.name]),
+  );
   const floorMap = Object.fromEntries(
     floors.map((f: any) => [f.id, { name: f.name, number: f.floorNumber }]),
   );
@@ -645,10 +782,16 @@ export default function InHouse() {
   const handleCheckout = () => {
     if (!checkoutDialog.id) return;
     if (!checkoutReason) {
-      toast.error(ar ? "يرجى اختيار سبب المغادرة (إلزامي)" : "Checkout reason is mandatory");
+      toast.error(
+        ar
+          ? "يرجى اختيار سبب المغادرة (إلزامي)"
+          : "Checkout reason is mandatory",
+      );
       return;
     }
-    const propId = checkoutDialog.propertyId || (activePropertyId !== "all" ? Number(activePropertyId) : undefined);
+    const propId =
+      checkoutDialog.propertyId ||
+      (activePropertyId !== "all" ? Number(activePropertyId) : undefined);
     checkoutMutation.mutate({
       id: checkoutDialog.id,
       data: {
@@ -677,7 +820,11 @@ export default function InHouse() {
   const handleBulkCheckout = async () => {
     if (selectedRows.size === 0) return;
     if (!bulkCheckoutReason) {
-      toast.error(ar ? "يرجى اختيار سبب المغادرة الجماعية (إلزامي)" : "Bulk checkout reason is mandatory");
+      toast.error(
+        ar
+          ? "يرجى اختيار سبب المغادرة الجماعية (إلزامي)"
+          : "Bulk checkout reason is mandatory",
+      );
       return;
     }
     setBulkCheckoutLoading(true);
@@ -686,7 +833,9 @@ export default function InHouse() {
     for (const id of ids) {
       try {
         const item = (assignments || []).find((x: any) => x.id === id);
-        const itemPropId = item?.propertyId || (activePropertyId !== "all" ? Number(activePropertyId) : undefined);
+        const itemPropId =
+          item?.propertyId ||
+          (activePropertyId !== "all" ? Number(activePropertyId) : undefined);
         await checkoutMutation.mutateAsync({
           id,
           data: {
@@ -723,7 +872,10 @@ export default function InHouse() {
       settings,
     });
 
-  const handleTransfer = (policyException?: { approvedBy: string; reason: string }) => {
+  const handleTransfer = (policyException?: {
+    approvedBy: string;
+    reason: string;
+  }) => {
     if (!transferDialog.id || !transferRoomId) {
       toast.error(ar ? "الرجاء اختيار غرفة" : "Please select a room");
       return;
@@ -732,7 +884,10 @@ export default function InHouse() {
       toast.error(ar ? "الرجاء اختيار سرير" : "Please select a bed");
       return;
     }
-    if (selectedTransferBed && targetOccupiedBeds.has(Number(selectedTransferBed))) {
+    if (
+      selectedTransferBed &&
+      targetOccupiedBeds.has(Number(selectedTransferBed))
+    ) {
       toast.error(
         ar
           ? "السرير المحدد مشغول بالفعل، يرجى اختيار سرير شاغر"
@@ -768,9 +923,17 @@ export default function InHouse() {
       }
     }
 
-    const targetPropId = transferPropertyId ? parseInt(transferPropertyId) : undefined;
-    const effectiveSourcePropId = transferDialog.sourcePropertyId || (activePropertyId !== "all" ? Number(activePropertyId) : undefined);
-    const isCross = Boolean(targetPropId && effectiveSourcePropId && targetPropId !== effectiveSourcePropId);
+    const targetPropId = transferPropertyId
+      ? parseInt(transferPropertyId)
+      : undefined;
+    const effectiveSourcePropId =
+      transferDialog.sourcePropertyId ||
+      (activePropertyId !== "all" ? Number(activePropertyId) : undefined);
+    const isCross = Boolean(
+      targetPropId &&
+      effectiveSourcePropId &&
+      targetPropId !== effectiveSourcePropId,
+    );
     transferMutation.mutate({
       id: transferDialog.id,
       data: {
@@ -828,16 +991,20 @@ export default function InHouse() {
     },
     onWhatsApp: handleOpenWhatsAppDialog,
     onCheckout: (a, emp) => {
-      setCheckoutDate(
-        new Date().toISOString().split("T")[0],
-      );
+      setCheckoutDate(new Date().toISOString().split("T")[0]);
       setCheckoutNotes("");
       setCheckoutReason("");
       setCheckoutDialog({
         open: true,
         id: a.id,
-        emp: emp || { id: a.profileId, firstName: a.profileFirstName, lastName: a.profileLastName },
-        propertyId: a.propertyId || (activePropertyId !== "all" ? Number(activePropertyId) : undefined),
+        emp: emp || {
+          id: a.profileId,
+          firstName: a.profileFirstName,
+          lastName: a.profileLastName,
+        },
+        propertyId:
+          a.propertyId ||
+          (activePropertyId !== "all" ? Number(activePropertyId) : undefined),
       });
     },
     onTransfer: (a, emp) => {
@@ -845,14 +1012,20 @@ export default function InHouse() {
       setSelectedTransferBed("");
       setTransferReason("");
       setRoomSearch("");
-      const effectiveItemPropId = a.propertyId || (activePropertyId !== "all" ? Number(activePropertyId) : undefined);
+      const effectiveItemPropId =
+        a.propertyId ||
+        (activePropertyId !== "all" ? Number(activePropertyId) : undefined);
       setTransferPropertyId(
         String(effectiveItemPropId || activePropertyId || ""),
       );
       setTransferDialog({
         open: true,
         id: a.id,
-        emp: emp || { id: a.profileId, firstName: a.profileFirstName, lastName: a.profileLastName },
+        emp: emp || {
+          id: a.profileId,
+          firstName: a.profileFirstName,
+          lastName: a.profileLastName,
+        },
         sourcePropertyId: effectiveItemPropId,
       });
     },

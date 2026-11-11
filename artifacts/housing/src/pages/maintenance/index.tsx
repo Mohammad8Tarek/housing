@@ -37,7 +37,11 @@ import {
   PRIORITY_AR,
   TICKET_COLS,
 } from "./utils/ticket-constants";
-import { formatDuration, getDurationColor, STATUS_AR } from "./utils/ticket-duration";
+import {
+  formatDuration,
+  getDurationColor,
+  STATUS_AR,
+} from "./utils/ticket-duration";
 import {
   exportTicketsExcel,
   exportSelectedTicketsExcel as exportSelectedTicketsExcelUtil,
@@ -54,8 +58,12 @@ export default function Tickets() {
   const canViewHskExplicit = can("maintenance", "view_housekeeping");
   const hasExplicitFilter = canViewMntExplicit || canViewHskExplicit;
 
-  const canViewMnt = isSuperAdmin || (hasExplicitFilter ? canViewMntExplicit : can("maintenance", "view"));
-  const canViewHsk = isSuperAdmin || (hasExplicitFilter ? canViewHskExplicit : can("housekeeping", "view"));
+  const canViewMnt =
+    isSuperAdmin ||
+    (hasExplicitFilter ? canViewMntExplicit : can("maintenance", "view"));
+  const canViewHsk =
+    isSuperAdmin ||
+    (hasExplicitFilter ? canViewHskExplicit : can("housekeeping", "view"));
 
   const canEditMnt =
     isSuperAdmin ||
@@ -67,7 +75,8 @@ export default function Tickets() {
     can("maintenance", "create") ||
     can("maintenance", "view") ||
     can("maintenance", "view_maintenance");
-  const canDeleteMnt = isSuperAdmin || can("maintenance", "delete") || can("maintenance", "edit");
+  const canDeleteMnt =
+    isSuperAdmin || can("maintenance", "delete") || can("maintenance", "edit");
   const canAssignMnt =
     isSuperAdmin ||
     can("maintenance", "assign" as any) ||
@@ -84,7 +93,10 @@ export default function Tickets() {
     can("housekeeping", "create") ||
     can("housekeeping", "view") ||
     can("maintenance", "view_housekeeping");
-  const canDeleteHsk = isSuperAdmin || can("housekeeping", "delete") || can("housekeeping", "edit");
+  const canDeleteHsk =
+    isSuperAdmin ||
+    can("housekeeping", "delete") ||
+    can("housekeeping", "edit");
   const canAssignHsk =
     isSuperAdmin ||
     can("housekeeping", "assign" as any) ||
@@ -97,15 +109,39 @@ export default function Tickets() {
   const isOnlyHousekeeping = !hasMaintenance && hasHousekeeping;
   const isOnlyMaintenance = hasMaintenance && !hasHousekeeping;
   const hasBoth = isSuperAdmin || (hasMaintenance && hasHousekeeping);
-  const hasManagerialScope = isSuperAdmin || canAssignMnt || canAssignHsk || canEditMnt || canEditHsk;
+  const hasManagerialScope =
+    isSuperAdmin || canAssignMnt || canAssignHsk || canEditMnt || canEditHsk;
 
-  const [scopeFilter, setScopeFilter] = useState<"all" | "me" | "unassigned">("all");
+  const [scopeFilter, setScopeFilter] = useState<"all" | "me" | "unassigned">(
+    "all",
+  );
 
-  const canCreateAny = isSuperAdmin || (isOnlyHousekeeping ? canCreateHsk : isOnlyMaintenance ? canCreateMnt : (canCreateMnt || canCreateHsk));
-  const canEditAny = isSuperAdmin || (isOnlyHousekeeping ? canEditHsk : isOnlyMaintenance ? canEditMnt : (canEditMnt || canEditHsk));
-  const canDeleteAny = isSuperAdmin || (isOnlyHousekeeping ? canDeleteHsk : isOnlyMaintenance ? canDeleteMnt : (canDeleteMnt || canDeleteHsk));
+  const canCreateAny =
+    isSuperAdmin ||
+    (isOnlyHousekeeping
+      ? canCreateHsk
+      : isOnlyMaintenance
+        ? canCreateMnt
+        : canCreateMnt || canCreateHsk);
+  const canEditAny =
+    isSuperAdmin ||
+    (isOnlyHousekeeping
+      ? canEditHsk
+      : isOnlyMaintenance
+        ? canEditMnt
+        : canEditMnt || canEditHsk);
+  const canDeleteAny =
+    isSuperAdmin ||
+    (isOnlyHousekeeping
+      ? canDeleteHsk
+      : isOnlyMaintenance
+        ? canDeleteMnt
+        : canDeleteMnt || canDeleteHsk);
 
-  const defaultCreateCategory = isOnlyHousekeeping || (!canCreateMnt && canCreateHsk) ? "housekeeping" : "maintenance";
+  const defaultCreateCategory =
+    isOnlyHousekeeping || (!canCreateMnt && canCreateHsk)
+      ? "housekeeping"
+      : "maintenance";
 
   const allowedCreateCategories = isSuperAdmin
     ? CATEGORIES
@@ -127,7 +163,10 @@ export default function Tickets() {
   // View Mode: List vs Kanban
   const [viewMode, setViewMode] = useState<"list" | "kanban">(() => {
     try {
-      return (localStorage.getItem("tickets_view_mode") as "list" | "kanban") || "list";
+      return (
+        (localStorage.getItem("tickets_view_mode") as "list" | "kanban") ||
+        "list"
+      );
     } catch {
       return "list";
     }
@@ -142,7 +181,11 @@ export default function Tickets() {
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>(() =>
-    isOnlyHousekeeping ? "housekeeping" : isOnlyMaintenance ? "maintenance" : "all"
+    isOnlyHousekeeping
+      ? "housekeeping"
+      : isOnlyMaintenance
+        ? "maintenance"
+        : "all",
   );
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -154,12 +197,23 @@ export default function Tickets() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, categoryFilter, statusFilter, priorityFilter, fromDate, toDate]);
+  }, [
+    debouncedSearch,
+    categoryFilter,
+    statusFilter,
+    priorityFilter,
+    fromDate,
+    toDate,
+  ]);
 
   const [photoDialog, setPhotoDialog] = useState<string | null>(null);
-  const [filterBarFilters, setFilterBarFilters] = useState<Record<string, any>>({});
+  const [filterBarFilters, setFilterBarFilters] = useState<Record<string, any>>(
+    {},
+  );
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
-  const [selectedTicketIds, setSelectedTicketIds] = useState<Set<number>>(new Set());
+  const [selectedTicketIds, setSelectedTicketIds] = useState<Set<number>>(
+    new Set(),
+  );
   const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
   const [subTickets, setSubTickets] = useState<any[]>([]);
   const [loadingSubTickets, setLoadingSubTickets] = useState(false);
@@ -181,11 +235,21 @@ export default function Tickets() {
   useEffect(() => {
     setPage(1);
     setCurrentPage(1);
-  }, [debouncedSearch, statusFilter, priorityFilter, categoryFilter, scopeFilter, propertyFilter, fromDate, toDate]);
+  }, [
+    debouncedSearch,
+    statusFilter,
+    priorityFilter,
+    categoryFilter,
+    scopeFilter,
+    propertyFilter,
+    fromDate,
+    toDate,
+  ]);
 
   // Form state
   const [formPropertyId, setFormPropertyId] = useState<string>(() => {
-    if (activePropertyId && activePropertyId !== "all") return String(activePropertyId);
+    if (activePropertyId && activePropertyId !== "all")
+      return String(activePropertyId);
     if (properties && properties.length > 0) return String(properties[0].id);
     return "";
   });
@@ -193,7 +257,8 @@ export default function Tickets() {
   const [form, setForm] = useState<TicketForm>({
     roomId: "",
     category: defaultCreateCategory,
-    problemType: defaultCreateCategory === "housekeeping" ? "room_cleaning" : "Plumbing",
+    problemType:
+      defaultCreateCategory === "housekeeping" ? "room_cleaning" : "Plumbing",
     description: "",
     priority: "MEDIUM",
     notes: "",
@@ -206,7 +271,7 @@ export default function Tickets() {
       ? parseInt(propertyFilter, 10)
       : activePropertyId === "all" || propertyFilter === "all"
         ? "all"
-        : activePropertyId ?? "all";
+        : (activePropertyId ?? "all");
 
   const targetPropertyId =
     activePropertyId && activePropertyId !== "all"
@@ -239,19 +304,39 @@ export default function Tickets() {
 
   // Pre-load profiles for employee mapping and current user match
   const { data: _eDataWrapper } = useListProfiles(
-    { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined, limit: 1000 } as any,
-    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } as any },
+    {
+      propertyId:
+        activePropertyId && activePropertyId !== "all"
+          ? activePropertyId
+          : undefined,
+      limit: 1000,
+    } as any,
+    {
+      query: {
+        enabled: !!activePropertyId && activePropertyId !== "all",
+      } as any,
+    },
   );
-  const profiles: any[] = Array.isArray(_eDataWrapper) ? _eDataWrapper : ((_eDataWrapper as any)?.profiles || (_eDataWrapper as any)?.data || []);
+  const profiles: any[] = Array.isArray(_eDataWrapper)
+    ? _eDataWrapper
+    : (_eDataWrapper as any)?.profiles || (_eDataWrapper as any)?.data || [];
 
   const currentUserProfile = useMemo(() => {
     if (!user || !profiles || profiles.length === 0) return null;
-    const uname = String(user.username || "").toLowerCase().trim();
-    const uemail = String((user as any)?.email || "").toLowerCase().trim();
+    const uname = String(user.username || "")
+      .toLowerCase()
+      .trim();
+    const uemail = String((user as any)?.email || "")
+      .toLowerCase()
+      .trim();
     return profiles.find((p: any) => {
-      if (p.profileId && String(p.profileId).toLowerCase().trim() === uname) return true;
-      if (uemail && p.email && String(p.email).toLowerCase().trim() === uemail) return true;
-      const fullName = `${p.firstName || ""} ${p.lastName || ""}`.toLowerCase().trim();
+      if (p.profileId && String(p.profileId).toLowerCase().trim() === uname)
+        return true;
+      if (uemail && p.email && String(p.email).toLowerCase().trim() === uemail)
+        return true;
+      const fullName = `${p.firstName || ""} ${p.lastName || ""}`
+        .toLowerCase()
+        .trim();
       if (fullName && fullName === uname) return true;
       return false;
     });
@@ -259,15 +344,14 @@ export default function Tickets() {
 
   const effectiveAssignedTo =
     scopeFilter === "me"
-      ? (currentUserProfile?.id ? String(currentUserProfile.id) : "me")
+      ? currentUserProfile?.id
+        ? String(currentUserProfile.id)
+        : "me"
       : scopeFilter === "unassigned"
         ? "unassigned"
         : undefined;
 
-  const {
-    data: allTicketsWrapper,
-    isLoading,
-  } = useListMaintenance(
+  const { data: allTicketsWrapper, isLoading } = useListMaintenance(
     {
       propertyId: effectivePropertyId,
       page: currentPage,
@@ -304,11 +388,18 @@ export default function Tickets() {
       },
     },
   );
-  const allTickets = Array.isArray(allTicketsWrapper) ? allTicketsWrapper : (((allTicketsWrapper as any)?.data as any[]) || []);
-  const paginationData = (allTicketsWrapper as any)?.pagination || { total: allTickets?.length || 0, page: currentPage, limit: pageSize };
+  const allTickets = Array.isArray(allTicketsWrapper)
+    ? allTicketsWrapper
+    : ((allTicketsWrapper as any)?.data as any[]) || [];
+  const paginationData = (allTicketsWrapper as any)?.pagination || {
+    total: allTickets?.length || 0,
+    page: currentPage,
+    limit: pageSize,
+  };
 
   const myTicketsCount = useMemo(() => {
-    if (!currentUserProfile || !allTickets || !Array.isArray(allTickets)) return 0;
+    if (!currentUserProfile || !allTickets || !Array.isArray(allTickets))
+      return 0;
     return allTickets.filter(
       (t: any) =>
         t.assignedTo === currentUserProfile.id &&
@@ -318,22 +409,47 @@ export default function Tickets() {
   }, [allTickets, currentUserProfile]);
 
   const { data: _roomsWrapper } = useListRooms(
-    { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined, limit: 1000 } as any,
-    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } as any },
+    {
+      propertyId:
+        activePropertyId && activePropertyId !== "all"
+          ? activePropertyId
+          : undefined,
+      limit: 1000,
+    } as any,
+    {
+      query: {
+        enabled: !!activePropertyId && activePropertyId !== "all",
+      } as any,
+    },
   );
-  const rooms: any[] = Array.isArray(_roomsWrapper) ? _roomsWrapper : (((_roomsWrapper as any)?.data as any[]) || []);
+  const rooms: any[] = Array.isArray(_roomsWrapper)
+    ? _roomsWrapper
+    : ((_roomsWrapper as any)?.data as any[]) || [];
 
   // Rooms specifically for modal's selected property
-  const selectedModalPropId = parseInt(formPropertyId, 10) || (activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
+  const selectedModalPropId =
+    parseInt(formPropertyId, 10) ||
+    (activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
   const { data: _modalRoomsWrapper } = useListRooms(
     { propertyId: selectedModalPropId, limit: 1000 } as any,
     { query: { enabled: !!selectedModalPropId } as any },
   );
-  const modalRooms: any[] = Array.isArray(_modalRoomsWrapper) ? _modalRoomsWrapper : (((_modalRoomsWrapper as any)?.data as any[]) || []);
+  const modalRooms: any[] = Array.isArray(_modalRoomsWrapper)
+    ? _modalRoomsWrapper
+    : ((_modalRoomsWrapper as any)?.data as any[]) || [];
 
   const { data: assignments } = useListAssignments(
-    { propertyId: activePropertyId && activePropertyId !== "all" ? activePropertyId : undefined } as any,
-    { query: { enabled: !!activePropertyId && activePropertyId !== "all" } as any },
+    {
+      propertyId:
+        activePropertyId && activePropertyId !== "all"
+          ? activePropertyId
+          : undefined,
+    } as any,
+    {
+      query: {
+        enabled: !!activePropertyId && activePropertyId !== "all",
+      } as any,
+    },
   );
 
   // Build room -> occupant name(s) map from active assignments + profiles
@@ -363,11 +479,13 @@ export default function Tickets() {
     queryClient.invalidateQueries({
       predicate: (q) => {
         const k = q.queryKey;
-        return Array.isArray(k) && (
-          k[0] === "/api/maintenance" ||
-          k[0] === "/api/rooms" ||
-          k[0] === "rooms" ||
-          (typeof k[0] === "string" && (k[0].includes("maintenance") || k[0].includes("rooms")))
+        return (
+          Array.isArray(k) &&
+          (k[0] === "/api/maintenance" ||
+            k[0] === "/api/rooms" ||
+            k[0] === "rooms" ||
+            (typeof k[0] === "string" &&
+              (k[0].includes("maintenance") || k[0].includes("rooms"))))
         );
       },
     });
@@ -382,7 +500,11 @@ export default function Tickets() {
         : `/api/maintenance?parentId=${parentId}`;
       const res = await fetch(url);
       const data = await res.json();
-      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      const list = Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data)
+          ? data
+          : [];
       setSubTickets(list);
     } catch {
       setSubTickets([]);
@@ -402,7 +524,9 @@ export default function Tickets() {
         setCurrentPage(1);
         setPage(1);
         invalidate();
-        toast.success(ar ? "تم إنشاء الطلب بنجاح" : "Ticket created successfully");
+        toast.success(
+          ar ? "تم إنشاء الطلب بنجاح" : "Ticket created successfully",
+        );
         setIsOpen(false);
         resetForm();
       },
@@ -446,8 +570,13 @@ export default function Tickets() {
                 return {
                   ...item,
                   ...variables.data,
-                  ...(variables.data?.status === "resolved" ? { resolvedAt: new Date().toISOString() } : {}),
-                  ...(variables.data?.status === "in_progress" && !item.startedAt ? { startedAt: new Date().toISOString() } : {}),
+                  ...(variables.data?.status === "resolved"
+                    ? { resolvedAt: new Date().toISOString() }
+                    : {}),
+                  ...(variables.data?.status === "in_progress" &&
+                  !item.startedAt
+                    ? { startedAt: new Date().toISOString() }
+                    : {}),
                 };
               }
               return item;
@@ -463,7 +592,7 @@ export default function Tickets() {
               };
             }
             return old;
-          }
+          },
         );
 
         return { previousData };
@@ -479,7 +608,9 @@ export default function Tickets() {
         });
       },
       onSuccess: () => {
-        toast.success(ar ? "تم تحديث الطلب بنجاح" : "Ticket updated successfully");
+        toast.success(
+          ar ? "تم تحديث الطلب بنجاح" : "Ticket updated successfully",
+        );
       },
       onSettled: () => {
         invalidate();
@@ -501,7 +632,8 @@ export default function Tickets() {
     setForm({
       roomId: "",
       category: defaultCreateCategory,
-      problemType: defaultCreateCategory === "housekeeping" ? "room_cleaning" : "Plumbing",
+      problemType:
+        defaultCreateCategory === "housekeeping" ? "room_cleaning" : "Plumbing",
       description: "",
       priority: "MEDIUM",
       notes: "",
@@ -518,17 +650,23 @@ export default function Tickets() {
   const onSubmit = () => {
     const targetPropId =
       parseInt(formPropertyId, 10) ||
-      (activePropertyId && activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
+      (activePropertyId && activePropertyId !== "all"
+        ? activePropertyId
+        : properties[0]?.id);
 
     if (!targetPropId) {
       toast.error(
-        ar ? "يرجى اختيار الـ Resident أولاً" : "Please select a Resident first",
+        ar
+          ? "يرجى اختيار الـ Resident أولاً"
+          : "Please select a Resident first",
       );
       return;
     }
     if (!form.roomId || !form.description.trim()) {
       toast.error(
-        ar ? "يرجى تحديد الغرفة وكتابة وصف للطلب" : "Please select a room and provide a description",
+        ar
+          ? "يرجى تحديد الغرفة وكتابة وصف للطلب"
+          : "Please select a room and provide a description",
       );
       return;
     }
@@ -537,7 +675,9 @@ export default function Tickets() {
         propertyId: targetPropId,
         roomId: parseInt(form.roomId),
         category: form.category,
-        problemType: form.problemType || (form.category === "housekeeping" ? "room_cleaning" : "Plumbing"),
+        problemType:
+          form.problemType ||
+          (form.category === "housekeeping" ? "room_cleaning" : "Plumbing"),
         description: form.description.trim(),
         priority: form.priority,
         photoUrl: formPhotoUrl || undefined,
@@ -548,7 +688,8 @@ export default function Tickets() {
 
   const COLS = TICKET_COLS;
 
-  const { visible, toggle, showAll, hideAll, isVisible } = useColumnVisibility(COLS);
+  const { visible, toggle, showAll, hideAll, isVisible } =
+    useColumnVisibility(COLS);
 
   const isColVisible = (key: string) => {
     if (key === "property") {
@@ -566,8 +707,16 @@ export default function Tickets() {
   const filtered = useMemo(() => {
     if (!Array.isArray(allTickets)) return [];
     return [...allTickets].sort((a, b) => {
-      const dateA = a.reportedAt ? new Date(a.reportedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
-      const dateB = b.reportedAt ? new Date(b.reportedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      const dateA = a.reportedAt
+        ? new Date(a.reportedAt).getTime()
+        : a.createdAt
+          ? new Date(a.createdAt).getTime()
+          : 0;
+      const dateB = b.reportedAt
+        ? new Date(b.reportedAt).getTime()
+        : b.createdAt
+          ? new Date(b.createdAt).getTime()
+          : 0;
       if (dateB !== dateA) return dateB - dateA;
       return (Number(b.id) || 0) - (Number(a.id) || 0);
     });
@@ -576,21 +725,41 @@ export default function Tickets() {
 
   // Counts
   const totalCount = paginationData.total || 0;
-  const openCount = allTickets?.filter((t: any) => t.status === "open").length || 0;
-  const inProgressCount = allTickets?.filter((t: any) => t.status === "in_progress").length || 0;
-  const resolvedCount = allTickets?.filter((t: any) => t.status === "resolved").length || 0;
-  const closedCount = allTickets?.filter((t: any) => t.status === "closed").length || 0;
+  const openCount =
+    allTickets?.filter((t: any) => t.status === "open").length || 0;
+  const inProgressCount =
+    allTickets?.filter((t: any) => t.status === "in_progress").length || 0;
+  const resolvedCount =
+    allTickets?.filter((t: any) => t.status === "resolved").length || 0;
+  const closedCount =
+    allTickets?.filter((t: any) => t.status === "closed").length || 0;
 
-  const maintenanceCount = useMemo(() => allTickets?.filter((t: any) => t.category === "maintenance").length || 0, [allTickets]);
-  const housekeepingCount = useMemo(() => allTickets?.filter((t: any) => t.category === "housekeeping").length || 0, [allTickets]);
-  const generalCount = useMemo(() => allTickets?.filter((t: any) => t.category === "general").length || 0, [allTickets]);
+  const maintenanceCount = useMemo(
+    () =>
+      allTickets?.filter((t: any) => t.category === "maintenance").length || 0,
+    [allTickets],
+  );
+  const housekeepingCount = useMemo(
+    () =>
+      allTickets?.filter((t: any) => t.category === "housekeeping").length || 0,
+    [allTickets],
+  );
+  const generalCount = useMemo(
+    () => allTickets?.filter((t: any) => t.category === "general").length || 0,
+    [allTickets],
+  );
 
   const exportExcel = () => {
     exportTicketsExcel(filtered, { ar, properties, roomMap, roomOccupantMap });
   };
 
   const exportSelectedTicketsExcel = () => {
-    exportSelectedTicketsExcelUtil(allTickets, selectedTicketIds, { ar, properties, roomMap, roomOccupantMap });
+    exportSelectedTicketsExcelUtil(allTickets, selectedTicketIds, {
+      ar,
+      properties,
+      roomMap,
+      roomOccupantMap,
+    });
   };
 
   const handleBulkStatusChange = async (newStatus: string) => {
@@ -601,18 +770,20 @@ export default function Tickets() {
       await Promise.all(
         ids.map((id) => {
           const t = allTickets.find((item: any) => item.id === id);
-          const pId = t?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+          const pId =
+            t?.propertyId ||
+            (activePropertyId !== "all" ? activePropertyId : undefined);
           return updateMutation.mutateAsync({
             id,
             data: { status: newStatus, propertyId: pId } as any,
             params: pId ? { propertyId: pId } : undefined,
           } as any);
-        })
+        }),
       );
       toast.success(
         ar
           ? `تم تحديث حالة ${ids.length} تذكرة بنجاح`
-          : `Updated status for ${ids.length} ticket(s)`
+          : `Updated status for ${ids.length} ticket(s)`,
       );
       setSelectedTicketIds(new Set());
     } catch {
@@ -629,17 +800,19 @@ export default function Tickets() {
       await Promise.all(
         ids.map((id) => {
           const t = allTickets.find((item: any) => item.id === id);
-          const pId = t?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+          const pId =
+            t?.propertyId ||
+            (activePropertyId !== "all" ? activePropertyId : undefined);
           return deleteMutation.mutateAsync({
             id,
             params: pId ? { propertyId: pId } : undefined,
           } as any);
-        })
+        }),
       );
       toast.success(
         ar
           ? `تم حذف ${ids.length} تذكرة بنجاح`
-          : `Deleted ${ids.length} ticket(s)`
+          : `Deleted ${ids.length} ticket(s)`,
       );
       setSelectedTicketIds(new Set());
     } catch {
@@ -649,18 +822,29 @@ export default function Tickets() {
 
   const hasActiveFilters = Boolean(
     searchTerm ||
-    (categoryFilter !== (isOnlyHousekeeping ? "housekeeping" : isOnlyMaintenance ? "maintenance" : "all")) ||
+    categoryFilter !==
+      (isOnlyHousekeeping
+        ? "housekeeping"
+        : isOnlyMaintenance
+          ? "maintenance"
+          : "all") ||
     statusFilter !== "all" ||
     priorityFilter ||
     scopeFilter !== "all" ||
     (propertyFilter && propertyFilter !== "all") ||
     fromDate ||
-    toDate
+    toDate,
   );
 
   const clearAllFilters = () => {
     setSearchTerm("");
-    setCategoryFilter(isOnlyHousekeeping ? "housekeeping" : isOnlyMaintenance ? "maintenance" : "all");
+    setCategoryFilter(
+      isOnlyHousekeeping
+        ? "housekeeping"
+        : isOnlyMaintenance
+          ? "maintenance"
+          : "all",
+    );
     setStatusFilter("all");
     setPriorityFilter("");
     setScopeFilter("all");
@@ -778,7 +962,10 @@ export default function Tickets() {
             onSelectTicket={handleSelectTicket}
             onQuickStatusChange={(id, newStatus, propertyId) => {
               const targetTicket = allTickets?.find((t: any) => t.id === id);
-              const pId = propertyId || targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+              const pId =
+                propertyId ||
+                targetTicket?.propertyId ||
+                (activePropertyId !== "all" ? activePropertyId : undefined);
               updateMutation.mutate({
                 id,
                 data: { status: newStatus, propertyId: pId } as any,
@@ -869,8 +1056,12 @@ export default function Tickets() {
         }}
         onConfirm={() => {
           if (deleteId) {
-            const targetTicket = allTickets?.find((t: any) => t.id === deleteId);
-            const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+            const targetTicket = allTickets?.find(
+              (t: any) => t.id === deleteId,
+            );
+            const pId =
+              targetTicket?.propertyId ||
+              (activePropertyId !== "all" ? activePropertyId : undefined);
             deleteMutation.mutate({
               id: deleteId,
               params: pId ? { propertyId: pId } : undefined,
@@ -882,22 +1073,35 @@ export default function Tickets() {
       {/* Ticket Detail Modal */}
       {(() => {
         if (selectedTicketId === null) return null;
-        const selectedTicket = allTickets?.find((t: any) => t.id === selectedTicketId);
+        const selectedTicket = allTickets?.find(
+          (t: any) => t.id === selectedTicketId,
+        );
         if (!selectedTicket) return null;
-        const canEditSelectedTicket = isSuperAdmin || isAdmin || (selectedTicket?.category === "housekeeping" ? canEditHsk : canEditMnt);
+        const canEditSelectedTicket =
+          isSuperAdmin ||
+          isAdmin ||
+          (selectedTicket?.category === "housekeeping"
+            ? canEditHsk
+            : canEditMnt);
         return (
           <TicketDetailModal
             open={true}
             onClose={() => setSelectedTicketId(null)}
             ticket={selectedTicket}
-            occupantName={selectedTicket ? roomOccupantMap[selectedTicket.roomId] : undefined}
+            occupantName={
+              selectedTicket
+                ? roomOccupantMap[selectedTicket.roomId]
+                : undefined
+            }
             profiles={empOptions}
             workers={propertyWorkers}
             ar={ar}
             canEdit={canEditSelectedTicket}
             onStatusChange={(id, data) => {
               const targetTicket = allTickets?.find((t: any) => t.id === id);
-              const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+              const pId =
+                targetTicket?.propertyId ||
+                (activePropertyId !== "all" ? activePropertyId : undefined);
               updateMutation.mutate({
                 id,
                 data: {
@@ -908,7 +1112,9 @@ export default function Tickets() {
             }}
             onAssignChange={(id, empId) => {
               const targetTicket = allTickets?.find((t: any) => t.id === id);
-              const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+              const pId =
+                targetTicket?.propertyId ||
+                (activePropertyId !== "all" ? activePropertyId : undefined);
               updateMutation.mutate({
                 id,
                 data: {
@@ -919,7 +1125,9 @@ export default function Tickets() {
             }}
             onWorkerAssignChange={(id, workerId) => {
               const targetTicket = allTickets?.find((t: any) => t.id === id);
-              const pId = targetTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : undefined);
+              const pId =
+                targetTicket?.propertyId ||
+                (activePropertyId !== "all" ? activePropertyId : undefined);
               updateMutation.mutate({
                 id,
                 data: {
@@ -933,8 +1141,14 @@ export default function Tickets() {
             onCreateSubTicket={
               canEditSelectedTicket
                 ? (parentId, data) => {
-                    const parentTicket = allTickets?.find((t: any) => t.id === parentId);
-                    const pId = parentTicket?.propertyId || (activePropertyId !== "all" ? activePropertyId : properties[0]?.id);
+                    const parentTicket = allTickets?.find(
+                      (t: any) => t.id === parentId,
+                    );
+                    const pId =
+                      parentTicket?.propertyId ||
+                      (activePropertyId !== "all"
+                        ? activePropertyId
+                        : properties[0]?.id);
                     createMutation.mutate({
                       data: {
                         propertyId: pId,
