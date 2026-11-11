@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   buildReportMaps,
   computeManagerFlash,
+  computeOccupancyForecast,
   computeReportAnalytics,
   filterAnalyticsScope,
   buildReportRows,
@@ -11,7 +12,7 @@ import {
 } from "@workspace/report-rows";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { validate } from "../../middlewares/validate.js";
-import { ManagerFlashQuery, ReportAnalyticsQuery, ReportFilterOptionsQuery, ReportRowsParams, ReportRowsQuery, SERVER_REPORTS } from "../../validation/schemas.js";
+import { ManagerFlashQuery, OccupancyForecastQuery, ReportAnalyticsQuery, ReportFilterOptionsQuery, ReportRowsParams, ReportRowsQuery, SERVER_REPORTS } from "../../validation/schemas.js";
 import { loadReportDatasets, type ReportDatasetKey } from "../../lib/report-datasets.js";
 
 const router: Router = Router();
@@ -21,6 +22,8 @@ const router: Router = Router();
 const BASE = ["buildings", "floors", "rooms"] as const;
 const REPORT_SOURCES: Record<(typeof SERVER_REPORTS)[number], readonly ReportDatasetKey[]> = {
   manager_flash: [...BASE, "maintenance"],
+  occupancy_forecast: [...BASE, "assignments", "reservations"],
+  housing_map: [...BASE, "assignments", "profiles"],
   arrivals_manifest: [...BASE, "reservations"],
   departures_manifest: [...BASE, "assignments", "profiles"],
   housekeeping_sheet: [...BASE, "assignments", "maintenance", "profiles"],
@@ -205,6 +208,34 @@ router.get(
           reservations: d.reservations,
           maintenance: d.maintenance,
           profiles: d.profiles,
+        }),
+      );
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ─── GET /api/reports/occupancy-forecast ─────────────────────────────────────
+// Day-by-day projection for the next 7/14/30 days in the user's time zone,
+// so the Occupancy Forecast tab needs no stay or reservation lists.
+router.get(
+  "/occupancy-forecast",
+  requirePermission("reports", "view"),
+  validate({ query: OccupancyForecastQuery }),
+  async (req, res, next) => {
+    try {
+      const q = req.query as Record<string, string | undefined>;
+      const d = await loadReportDatasets(req, Number(q.propertyId), ["rooms", "assignments", "reservations"]);
+      res.json(
+        computeOccupancyForecast({
+          ar: q.lang !== "en",
+          rooms: d.rooms,
+          assignments: d.assignments,
+          reservations: d.reservations,
+          horizonDays: Number(q.horizon),
+          buildingId: q.buildingId || "all",
+          timeZone: validTimeZone(q.tz),
         }),
       );
     } catch (err) {

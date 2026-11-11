@@ -13,7 +13,7 @@ import { useReportDataProcessor } from "./hooks/useReportDataProcessor";
 import { useServerAnalytics } from "./hooks/useServerAnalytics";
 import { useReportExport } from "./hooks/useReportExport";
 import { sortReportRows, useReportSort } from "./hooks/useReportSort";
-import { SERVER_ROW_TABS, useServerReportRows } from "./hooks/useServerReportRows";
+import { OWN_VIEW_TABS, SERVER_ROW_TABS, useServerReportRows } from "./hooks/useServerReportRows";
 import { useReportColumns } from "./hooks/useReportColumns";
 import { useSmartReportExport } from "@/hooks/useSmartReportExport";
 import { SMART_REPORT_TABS } from "@/config/reportDefinitions";
@@ -141,8 +141,8 @@ export default function Reports() {
   const isInHouseGrouped = filters.activeTab === "assignments" && filters.inHouseViewMode === "grouped";
 
   const server = useServerReportRows({
-    // The morning report shows its own view; its rows load only for export.
-    enabled: isServerTab && filters.activeTab !== "manager_flash",
+    // These tabs show their own view; their rows load only for export.
+    enabled: isServerTab && !OWN_VIEW_TABS.has(filters.activeTab),
     report: filters.activeTab,
     propId: data.propId,
     ar,
@@ -399,10 +399,8 @@ export default function Reports() {
           isLoading={data.isLoading}
           properties={data.properties}
           activePropertyId={activePropertyId}
-          rooms={data.rooms}
+          propId={data.propId}
           buildings={data.buildings}
-          assignments={data.assignments}
-          reservations={data.reservations}
           onExportPDF={handleExportPDF}
           onExportExcel={handleExportExcel}
           onRegisterExport={handleRegisterExport}

@@ -22,8 +22,8 @@ type HeavyList =
 const TAB_LISTS: Record<string, HeavyList[]> = {
   analytics: [], // computed by the API (useServerAnalytics)
   manager_flash: [], // computed by the API (ManagerFlashTab)
-  occupancy_forecast: ["currentAssignments", "reservations"],
-  housing_map: ["profiles", "currentAssignments"],
+  occupancy_forecast: [], // computed by the API (OccupancyForecastTab)
+  housing_map: [], // its view loads its own data; export rows come from the API
   vacant_rooms: ["currentAssignments"], // occupancy matrix above the table
   maintenance: ["maintenance"], // dual-track ribbon above the table
 };

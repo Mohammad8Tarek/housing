@@ -7,6 +7,8 @@
 // so the server reproduces what the user's browser computed; without it the
 // runtime's local zone is used, exactly as before.
 
+import { fieldsOf, parseDate, wallClock } from "./calendar";
+
 export interface AnalyticsInput {
   ar: boolean;
   rooms: any[];
@@ -18,73 +20,6 @@ export interface AnalyticsInput {
   reservations: any[];
   hostings: any[];
   timeZone?: string;
-}
-
-// ─── Time-zone helpers ───────────────────────────────────────────────────────
-
-function zoneOffsetMs(ts: number, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }).formatToParts(new Date(ts));
-  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
-  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
-  return asUtc - Math.floor(ts / 1000) * 1000;
-}
-
-/** Like `new Date(y, m, d, h, mi, s, ms)` but in `timeZone` (local zone when omitted). */
-function wallClock(
-  timeZone: string | undefined,
-  y: number,
-  m: number,
-  d: number,
-  h = 0,
-  mi = 0,
-  s = 0,
-  ms = 0,
-): Date {
-  if (!timeZone) return new Date(y, m, d, h, mi, s, ms);
-  const guess = Date.UTC(y, m, d, h, mi, s, ms);
-  let ts = guess - zoneOffsetMs(guess, timeZone);
-  ts = guess - zoneOffsetMs(ts, timeZone); // settle across DST changes
-  return new Date(ts);
-}
-
-/** Wall-clock fields of `date` in `timeZone` (local zone when omitted). */
-function fieldsOf(date: Date, timeZone: string | undefined) {
-  if (!timeZone) {
-    return {
-      y: date.getFullYear(), m: date.getMonth(), d: date.getDate(),
-      h: date.getHours(), mi: date.getMinutes(), s: date.getSeconds(), ms: date.getMilliseconds(),
-    };
-  }
-  const shifted = new Date(date.getTime() + zoneOffsetMs(date.getTime(), timeZone));
-  return {
-    y: shifted.getUTCFullYear(), m: shifted.getUTCMonth(), d: shifted.getUTCDate(),
-    h: shifted.getUTCHours(), mi: shifted.getUTCMinutes(), s: shifted.getUTCSeconds(), ms: shifted.getUTCMilliseconds(),
-  };
-}
-
-const ZONELESS_DATETIME = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3})\d*)?)?$/;
-
-/** `new Date(value)`, except zone-less date-times are read in `timeZone`. */
-function parseDate(value: any, timeZone: string | undefined): Date {
-  if (timeZone && typeof value === "string") {
-    const m = ZONELESS_DATETIME.exec(value.trim());
-    if (m) {
-      return wallClock(
-        timeZone, Number(m[1]), Number(m[2]) - 1, Number(m[3]),
-        Number(m[4]), Number(m[5]), Number(m[6] ?? 0), Number((m[7] ?? "0").padEnd(3, "0")),
-      );
-    }
-  }
-  return new Date(value);
 }
 
 // ─── Building / floor filter (as applied by the Reports page) ────────────────

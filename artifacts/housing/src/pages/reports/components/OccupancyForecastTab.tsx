@@ -12,7 +12,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { toISODate } from "@/lib/date-utils";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { customFetch } from "@workspace/api-client-react";
+import { computeOccupancyForecast, type OccupancyForecast } from "@workspace/report-rows";
 import {
   Table,
   TableBody,
@@ -22,16 +24,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+const BROWSER_TIME_ZONE = (() => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  } catch {
+    return "";
+  }
+})();
+
+const emptyForecast = (ar: boolean) =>
+  computeOccupancyForecast({ ar, rooms: [], assignments: [], reservations: [], horizonDays: 0, buildingId: "all" });
+const EMPTY_FORECAST_AR = emptyForecast(true);
+const EMPTY_FORECAST_EN = emptyForecast(false);
+
 interface OccupancyForecastTabProps {
   ar: boolean;
   isLoading: boolean;
   properties: any[];
   activePropertyId?: string | number | null;
-  rooms: any[];
+  /** Property the API computes the forecast for (GET /api/reports/occupancy-forecast). */
+  propId?: number;
+  /** Building choices for the filter. */
   buildings: any[];
-  assignments: any[];
-  reservations: any[];
-  profiles?: any[];
   onExportPDF?: () => void;
   onExportExcel?: () => void;
   onRegisterExport?: (actions: { exportExcel?: () => void; exportPDF?: () => void }) => void;
@@ -42,10 +56,8 @@ export function OccupancyForecastTab({
   isLoading,
   properties = [],
   activePropertyId,
-  rooms = [],
+  propId,
   buildings = [],
-  assignments = [],
-  reservations = [],
   onExportPDF,
   onExportExcel,
   onRegisterExport,
@@ -67,145 +79,26 @@ export function OccupancyForecastTab({
     );
   }, [properties, activePropertyId]);
 
-  // Filtered rooms & capacity
-  const filteredRooms = useMemo(() => {
-    if (selectedBuildingId === "all") return rooms;
-    return rooms.filter((r: any) => r.buildingId === Number(selectedBuildingId));
-  }, [rooms, selectedBuildingId]);
-
-  const totalCapacity = useMemo(() => {
-    return filteredRooms.reduce((acc: number, r: any) => acc + (r.capacity || 1), 0);
-  }, [filteredRooms]);
-
-  // Current active assignments in filtered rooms
-  const activeRoomIds = useMemo(() => {
-    return new Set(filteredRooms.map((r: any) => r.id));
-  }, [filteredRooms]);
-
-  const currentActiveAssignments = useMemo(() => {
-    return assignments.filter(
-      (a: any) => activeRoomIds.has(a.roomId) && (a.status === "ACTIVE" || a.status === "VACATION")
-    );
-  }, [assignments, activeRoomIds]);
-
-  // Day-by-day forecast calculation
-  const forecastData = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const daysList = [];
-    let runningOccupants = currentActiveAssignments.length;
-
-    for (let i = 0; i < horizonDays; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
-      // Local calendar day, same as dateDisplay (toISOString() is UTC and was a
-      // day behind for UTC+ zones such as Egypt, since d is local midnight).
-      const dIso = toISODate(d);
-
-      // Day of week
-      const dayNameAr = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"][d.getDay()];
-      const dayNameEn = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d.getDay()];
-      const dayName = ar ? dayNameAr : dayNameEn;
-
-      // Expected arrivals on this day (from confirmed reservations)
-      const dayArrivals = reservations.filter((r: any) => {
-        if (r.status?.toUpperCase() === "CANCELLED") return false;
-        if (r.roomId && !activeRoomIds.has(r.roomId)) return false;
-        if (!r.checkInDate) return false;
-        const inDate = String(r.checkInDate).slice(0, 10);
-        return inDate === dIso;
-      }).length;
-
-      // Expected departures on this day (from active assignments due out)
-      const dayDepartures = assignments.filter((a: any) => {
-        if (!activeRoomIds.has(a.roomId)) return false;
-        if (a.status !== "ACTIVE" && a.status !== "VACATION") return false;
-        if (!a.checkOutDate) return false;
-        const outDate = String(a.checkOutDate).slice(0, 10);
-        return outDate === dIso;
-      }).length;
-
-      // Net change for the day
-      const netMovement = dayArrivals - dayDepartures;
-      
-      // Calculate projected occupied beds
-      if (i > 0) {
-        runningOccupants = Math.max(0, runningOccupants + netMovement);
-      }
-      const projectedOccupied = Math.min(totalCapacity, runningOccupants);
-      const projectedVacant = Math.max(0, totalCapacity - projectedOccupied);
-      const occPercent = totalCapacity > 0 ? Math.round((projectedOccupied / totalCapacity) * 100) : 0;
-
-      // Demand level
-      let demand = "NORMAL";
-      if (occPercent >= 90) demand = "CRITICAL";
-      else if (occPercent >= 75) demand = "HIGH";
-      else if (occPercent < 50) demand = "LOW";
-
-      daysList.push({
-        dayIndex: i,
-        dateObj: d,
-        dateIso: dIso,
-        dateDisplay: `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}`,
-        dayName,
-        dayArrivals,
-        dayDepartures,
-        netMovement,
-        projectedOccupied,
-        projectedVacant,
-        occPercent,
-        demand,
+  // Computed by the API in the browser's time zone (same code as before, now
+  // in @workspace/report-rows), so this tab needs no stay/reservation lists.
+  const forecastQuery = useQuery({
+    queryKey: ["report-occupancy-forecast", propId, horizonDays, selectedBuildingId, ar],
+    queryFn: () => {
+      const qs = new URLSearchParams({
+        propertyId: String(propId),
+        lang: ar ? "ar" : "en",
+        horizon: String(horizonDays),
+        buildingId: selectedBuildingId,
       });
-    }
-
-    return daysList;
-  }, [horizonDays, currentActiveAssignments, totalCapacity, activeRoomIds, reservations, assignments, ar]);
-
-  // Aggregate horizon metrics
-  const aggregateMetrics = useMemo(() => {
-    if (forecastData.length === 0) {
-      return {
-        peakOcc: 0,
-        peakDate: "—",
-        avgOcc: 0,
-        totalArrivals: 0,
-        totalDepartures: 0,
-        minVacant: 0,
-        netChange: 0,
-      };
-    }
-
-    let maxOcc = -1;
-    let maxDate = "—";
-    let sumOcc = 0;
-    let sumArrivals = 0;
-    let sumDepartures = 0;
-    let minVac = Infinity;
-
-    forecastData.forEach((d) => {
-      if (d.occPercent > maxOcc) {
-        maxOcc = d.occPercent;
-        maxDate = `${d.dayName} ${d.dateDisplay}`;
-      }
-      sumOcc += d.occPercent;
-      sumArrivals += d.dayArrivals;
-      sumDepartures += d.dayDepartures;
-      if (d.projectedVacant < minVac) {
-        minVac = d.projectedVacant;
-      }
-    });
-
-    return {
-      peakOcc: maxOcc,
-      peakDate: maxDate,
-      avgOcc: Math.round(sumOcc / forecastData.length),
-      totalArrivals: sumArrivals,
-      totalDepartures: sumDepartures,
-      minVacant: isFinite(minVac) ? minVac : 0,
-      netChange: sumArrivals - sumDepartures,
-    };
-  }, [forecastData]);
+      if (BROWSER_TIME_ZONE) qs.set("tz", BROWSER_TIME_ZONE);
+      return customFetch<OccupancyForecast>(`/api/reports/occupancy-forecast?${qs}`);
+    },
+    enabled: !!propId,
+    placeholderData: keepPreviousData,
+  });
+  const { totalCapacity, forecastData, aggregateMetrics } =
+    forecastQuery.data ?? (ar ? EMPTY_FORECAST_AR : EMPTY_FORECAST_EN);
+  isLoading = isLoading || forecastQuery.isLoading;
 
   if (isLoading) {
     return (
