@@ -397,17 +397,6 @@ export default function Tickets() {
     limit: pageSize,
   };
 
-  const myTicketsCount = useMemo(() => {
-    if (!currentUserProfile || !allTickets || !Array.isArray(allTickets))
-      return 0;
-    return allTickets.filter(
-      (t: any) =>
-        t.assignedTo === currentUserProfile.id &&
-        t.status !== "closed" &&
-        t.status !== "resolved",
-    ).length;
-  }, [allTickets, currentUserProfile]);
-
   const { data: _roomsWrapper } = useListRooms(
     {
       propertyId:
@@ -723,31 +712,25 @@ export default function Tickets() {
   }, [allTickets]);
   const paged = filtered;
 
-  // Counts
-  const totalCount = paginationData.total || 0;
-  const openCount =
-    allTickets?.filter((t: any) => t.status === "open").length || 0;
-  const inProgressCount =
-    allTickets?.filter((t: any) => t.status === "in_progress").length || 0;
-  const resolvedCount =
-    allTickets?.filter((t: any) => t.status === "resolved").length || 0;
-  const closedCount =
-    allTickets?.filter((t: any) => t.status === "closed").length || 0;
-
-  const maintenanceCount = useMemo(
-    () =>
-      allTickets?.filter((t: any) => t.category === "maintenance").length || 0,
-    [allTickets],
-  );
-  const housekeepingCount = useMemo(
-    () =>
-      allTickets?.filter((t: any) => t.category === "housekeeping").length || 0,
-    [allTickets],
-  );
-  const generalCount = useMemo(
-    () => allTickets?.filter((t: any) => t.category === "general").length || 0,
-    [allTickets],
-  );
+  // Status tab totals come from the API: every ticket matching the other
+  // filters, per status (not just the rows on this page). Older APIs without
+  // statusCounts fall back to counting this page.
+  const serverCounts = (allTicketsWrapper as any)?.statusCounts as
+    | {
+        all: number;
+        open: number;
+        in_progress: number;
+        resolved: number;
+        closed: number;
+      }
+    | undefined;
+  const countPage = (status: string) =>
+    allTickets?.filter((t: any) => t.status === status).length || 0;
+  const totalCount = serverCounts?.all ?? (paginationData.total || 0);
+  const openCount = serverCounts?.open ?? countPage("open");
+  const inProgressCount = serverCounts?.in_progress ?? countPage("in_progress");
+  const resolvedCount = serverCounts?.resolved ?? countPage("resolved");
+  const closedCount = serverCounts?.closed ?? countPage("closed");
 
   const exportExcel = () => {
     exportTicketsExcel(filtered, { ar, properties, roomMap, roomOccupantMap });

@@ -107,6 +107,43 @@ async function getAccessibleProperties(
 /**
  * بناء شروط الفلترة لبلاغات الصيانة / النظافة مع دعم الحصر للموظف وعزل الفئات
  */
+// Tickets per status under the request's filters except `status` itself, so the
+// status tabs show totals for every status (not just the rows on this page).
+type StatusCounts = {
+  all: number;
+  open: number;
+  in_progress: number;
+  resolved: number;
+  closed: number;
+};
+const emptyStatusCounts = (): StatusCounts => ({
+  all: 0,
+  open: 0,
+  in_progress: 0,
+  resolved: 0,
+  closed: 0,
+});
+
+async function countTicketsByStatus(
+  tenantDb: any,
+  whereClause: SQL | undefined,
+  into: StatusCounts,
+) {
+  const rows = await tenantDb
+    .select({ status: maintenanceTable.status, count: sql<number>`count(*)` })
+    .from(maintenanceTable)
+    .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+    .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
+    .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
+    .where(whereClause)
+    .groupBy(maintenanceTable.status);
+  for (const r of rows) {
+    const n = Number(r.count || 0);
+    into.all += n;
+    if (r.status && r.status in into) (into as any)[r.status] += n;
+  }
+}
+
 function buildConditions(
   query: any,
   categoryIsolation: {
@@ -447,6 +484,7 @@ router.get(
       // أ) في حال طلب جميع العقارات "all":
       if (isAllProperties) {
         let totalRecords = 0;
+        const statusCounts = emptyStatusCounts();
         const allFetchedRows: any[] = [];
 
         for (const prop of accessibleProps) {
@@ -492,6 +530,18 @@ router.get(
 
               const propTotal = Number(countRes?.count || 0);
               totalRecords += propTotal;
+
+              const facet = buildConditions(
+                { ...req.query, status: undefined },
+                categoryIsolation,
+                effectiveProfileId,
+                isStaffOnly,
+              );
+              await countTicketsByStatus(
+                tenantDb,
+                facet.length ? and(...facet) : undefined,
+                statusCounts,
+              );
 
               if (propTotal > 0) {
                 // جلب حتى offset + limit من كل عقار لضمان دقة الفرز المشترك
@@ -595,6 +645,7 @@ router.get(
         res.json({
           data: pagedRows.map(fmt),
           pagination: { total: totalRecords, page, limit },
+          statusCounts,
         });
         return;
       }
@@ -646,6 +697,19 @@ router.get(
             eq(maintenanceTable.workerId, workersTable.id),
           )
           .where(whereClause);
+
+        const statusCounts = emptyStatusCounts();
+        const facet = buildConditions(
+          { ...req.query, status: undefined },
+          categoryIsolation,
+          effectiveProfileId,
+          isStaffOnly,
+        );
+        await countTicketsByStatus(
+          tenantDb,
+          facet.length ? and(...facet) : undefined,
+          statusCounts,
+        );
 
         const rows = await tenantDb
           .select({
@@ -714,6 +778,7 @@ router.get(
 
         return {
           total: Number(countResult?.count || 0),
+          statusCounts,
           rows: rows.map((r) => ({
             ...r,
             propertyId: targetPropId,
@@ -725,6 +790,7 @@ router.get(
       res.json({
         data: result.rows.map(fmt),
         pagination: { total: result.total, page, limit },
+        statusCounts: result.statusCounts,
       });
     } catch (err) {
       next(err);
