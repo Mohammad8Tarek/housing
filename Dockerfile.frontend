@@ -1,16 +1,21 @@
 FROM node:22-slim AS builder
-RUN corepack enable pnpm
+RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 WORKDIR /app
-COPY pnpm-workspace.yaml package.json tsconfig.json tsconfig.base.json ./
-COPY lib/db/package.json ./lib/db/
-COPY lib/api-zod/package.json ./lib/api-zod/
+# Every workspace package manifest + the lockfile, so the install is the
+# exact, locked dependency set CI tests (pnpm 10, same as the lockfile).
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.json tsconfig.base.json ./
 COPY lib/api-client-react/package.json ./lib/api-client-react/
 COPY lib/api-spec/package.json ./lib/api-spec/
+COPY lib/api-zod/package.json ./lib/api-zod/
+COPY lib/dates/package.json ./lib/dates/
+COPY lib/db/package.json ./lib/db/
+COPY lib/queue/package.json ./lib/queue/
+COPY lib/report-rows/package.json ./lib/report-rows/
 COPY artifacts/api-server/package.json ./artifacts/api-server/
 COPY artifacts/housing/package.json ./artifacts/housing/
 COPY artifacts/employee-portal/package.json ./artifacts/employee-portal/
 COPY scripts/package.json ./scripts/
-RUN pnpm install --ignore-scripts
+RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY lib/ ./lib/
 COPY artifacts/housing/ ./artifacts/housing/
 ENV PORT=9000
