@@ -30,7 +30,8 @@ export function createWebSocketUrl(
       ? DEFAULT_RAILWAY_API_URL
       : getApiBaseUrl());
   const url = new URL(path, baseUrl || window.location.origin);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.protocol =
+    url.protocol === "https:" || url.protocol === "wss:" ? "wss:" : "ws:";
   url.search = search.toString();
   return url.toString();
 }
