@@ -1,6 +1,119 @@
-import { useMemo } from "react";
+// Housing analytics (KPI tiles, building/floor/type/department breakdowns,
+// maintenance summary, 6-month occupancy trend). Shared so the API can compute
+// it (GET /api/reports/analytics) instead of the browser downloading every
+// profile and stay. Logic moved unchanged from the Reports page hook.
+//
+// Calendar math (month boundaries, "+30 days") follows `timeZone` when given,
+// so the server reproduces what the user's browser computed; without it the
+// runtime's local zone is used, exactly as before.
 
-export function useReportAnalytics({
+export interface AnalyticsInput {
+  ar: boolean;
+  rooms: any[];
+  assignments: any[];
+  profiles: any[];
+  buildings: any[];
+  floors: any[];
+  maintenance: any[];
+  reservations: any[];
+  hostings: any[];
+  timeZone?: string;
+}
+
+// ─── Time-zone helpers ───────────────────────────────────────────────────────
+
+function zoneOffsetMs(ts: number, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(new Date(ts));
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
+  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  return asUtc - Math.floor(ts / 1000) * 1000;
+}
+
+/** Like `new Date(y, m, d, h, mi, s, ms)` but in `timeZone` (local zone when omitted). */
+function wallClock(
+  timeZone: string | undefined,
+  y: number,
+  m: number,
+  d: number,
+  h = 0,
+  mi = 0,
+  s = 0,
+  ms = 0,
+): Date {
+  if (!timeZone) return new Date(y, m, d, h, mi, s, ms);
+  const guess = Date.UTC(y, m, d, h, mi, s, ms);
+  let ts = guess - zoneOffsetMs(guess, timeZone);
+  ts = guess - zoneOffsetMs(ts, timeZone); // settle across DST changes
+  return new Date(ts);
+}
+
+/** Wall-clock fields of `date` in `timeZone` (local zone when omitted). */
+function fieldsOf(date: Date, timeZone: string | undefined) {
+  if (!timeZone) {
+    return {
+      y: date.getFullYear(), m: date.getMonth(), d: date.getDate(),
+      h: date.getHours(), mi: date.getMinutes(), s: date.getSeconds(), ms: date.getMilliseconds(),
+    };
+  }
+  const shifted = new Date(date.getTime() + zoneOffsetMs(date.getTime(), timeZone));
+  return {
+    y: shifted.getUTCFullYear(), m: shifted.getUTCMonth(), d: shifted.getUTCDate(),
+    h: shifted.getUTCHours(), mi: shifted.getUTCMinutes(), s: shifted.getUTCSeconds(), ms: shifted.getUTCMilliseconds(),
+  };
+}
+
+const ZONELESS_DATETIME = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3})\d*)?)?$/;
+
+/** `new Date(value)`, except zone-less date-times are read in `timeZone`. */
+function parseDate(value: any, timeZone: string | undefined): Date {
+  if (timeZone && typeof value === "string") {
+    const m = ZONELESS_DATETIME.exec(value.trim());
+    if (m) {
+      return wallClock(
+        timeZone, Number(m[1]), Number(m[2]) - 1, Number(m[3]),
+        Number(m[4]), Number(m[5]), Number(m[6] ?? 0), Number((m[7] ?? "0").padEnd(3, "0")),
+      );
+    }
+  }
+  return new Date(value);
+}
+
+// ─── Building / floor filter (as applied by the Reports page) ────────────────
+
+export function filterAnalyticsScope(
+  rooms: any[],
+  assignments: any[],
+  filterBuilding: string,
+  filterFloor: string,
+  roomMap: Record<number, any>,
+) {
+  const scopedRooms = rooms.filter((r: any) => {
+    if (filterBuilding !== "all" && filterBuilding && r.buildingId !== Number(filterBuilding)) return false;
+    if (filterFloor !== "all" && filterFloor && r.floorId !== Number(filterFloor)) return false;
+    return true;
+  });
+  const scopedAssignments = assignments.filter((a: any) => {
+    if (a.status !== "ACTIVE" && a.status !== "VACATION") return false;
+    const room = roomMap[a.roomId];
+    if (filterBuilding !== "all" && filterBuilding && (!room || room.buildingId !== Number(filterBuilding))) return false;
+    if (filterFloor !== "all" && filterFloor && (!room || room.floorId !== Number(filterFloor))) return false;
+    return true;
+  });
+  return { rooms: scopedRooms, assignments: scopedAssignments };
+}
+
+// ─── Analytics ───────────────────────────────────────────────────────────────
+
+export function computeReportAnalytics({
   ar = true,
   rooms = [],
   assignments = [],
@@ -10,7 +123,8 @@ export function useReportAnalytics({
   maintenance = [],
   reservations = [],
   hostings = [],
-}: any) {
+  timeZone,
+}: AnalyticsInput) {
   const safeRooms = Array.isArray(rooms) ? rooms : [];
   const safeAssignments = Array.isArray(assignments) ? assignments : [];
   const safeProfiles = Array.isArray(profiles) ? profiles : [];
@@ -20,22 +134,16 @@ export function useReportAnalytics({
   const safeReservations = Array.isArray(reservations) ? reservations : [];
   const safeHostings = Array.isArray(hostings) ? hostings : [];
 
-  const buildingNameMap = useMemo(() => {
-    const map = new Map<number, string>();
-    safeBuildings.forEach((b: any) => map.set(b.id, b.name || `Building ${b.id}`));
-    return map;
-  }, [safeBuildings]);
+  const buildingNameMap = new Map<number, string>();
+  safeBuildings.forEach((b: any) => buildingNameMap.set(b.id, b.name || `Building ${b.id}`));
 
-  const activeAssByRoom = useMemo(() => {
-    const map = new Map<number, any[]>();
-    safeAssignments
-      .filter((a: any) => a.status?.toLowerCase() === "active")
-      .forEach((a: any) => {
-        if (!map.has(a.roomId)) map.set(a.roomId, []);
-        map.get(a.roomId)!.push(a);
-      });
-    return map;
-  }, [safeAssignments]);
+  const activeAssByRoom = new Map<number, any[]>();
+  safeAssignments
+    .filter((a: any) => a.status?.toLowerCase() === "active")
+    .forEach((a: any) => {
+      if (!activeAssByRoom.has(a.roomId)) activeAssByRoom.set(a.roomId, []);
+      activeAssByRoom.get(a.roomId)!.push(a);
+    });
 
   const getRoomOccupancy = (r: any): number => {
     const assList = activeAssByRoom.get(r.id) || [];
@@ -63,12 +171,12 @@ export function useReportAnalytics({
     );
   };
 
-  const stats = useMemo(() => {
+  const stats = (() => {
     const totalRooms = safeRooms.length;
     const totalCapacity = safeRooms.reduce((s: number, r: any) => s + (r.capacity ?? 1), 0);
     const totalOccupied = safeRooms.reduce((s: number, r: any) => s + getRoomOccupancy(r), 0);
     const vacantBeds = Math.max(0, totalCapacity - totalOccupied);
-    
+
     let occupiedRooms = 0;
     let vacantRooms = 0;
     let maintRooms = 0;
@@ -80,7 +188,6 @@ export function useReportAnalytics({
 
     for (const r of safeRooms) {
       const occ = getRoomOccupancy(r);
-      const cap = r.capacity ?? 1;
       const st = String(r.status || "available").toLowerCase();
       const isMaint = ["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(st);
 
@@ -108,16 +215,16 @@ export function useReportAnalytics({
     }
 
     const activeAss = safeAssignments.filter((a: any) => a.status?.toLowerCase() === "active").length;
-    
+
     // Contract expiration within 30 days
     const now = new Date();
-    const thirtyDaysAhead = new Date();
-    thirtyDaysAhead.setDate(now.getDate() + 30);
+    const f = fieldsOf(now, timeZone);
+    const thirtyDaysAhead = wallClock(timeZone, f.y, f.m, f.d + 30, f.h, f.mi, f.s, f.ms);
     const todayStr = now.toISOString().split("T")[0];
 
     const expiringContracts = safeProfiles.filter((p: any) => {
       if (p.employmentType === "THIRD_PARTY" || !p.contractEndDate) return false;
-      const d = new Date(p.contractEndDate);
+      const d = parseDate(p.contractEndDate, timeZone);
       return d <= thirtyDaysAhead;
     }).length;
 
@@ -157,9 +264,9 @@ export function useReportAnalytics({
       netMovement: todayArrivals - todayDepartures,
       activeHostings,
     };
-  }, [safeRooms, safeAssignments, safeProfiles, safeReservations, safeHostings, activeAssByRoom]);
+  })();
 
-  const analytics = useMemo(() => {
+  const analytics = (() => {
     const totalCapacity = stats.totalCapacity;
     const totalOccupied = stats.totalOccupied;
     const occRate = totalCapacity > 0 ? Math.round((totalOccupied / totalCapacity) * 100) : 0;
@@ -267,7 +374,7 @@ export function useReportAnalytics({
       .forEach((a: any) => {
         const p = safeProfiles.find((prof: any) => prof.id === a.profileId);
         const dept = p?.department || (ar ? "عام" : "General");
-        
+
         if (!deptStatsMap[dept]) {
           deptStatsMap[dept] = {
             dept,
@@ -416,21 +523,22 @@ export function useReportAnalytics({
     // Build monthly data for the past 6 months
     const monthNamesAr = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
     const monthNamesEn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const now = new Date();
+    const nowFields = fieldsOf(new Date(), timeZone);
     const occupancyHistory = [];
 
     for (let i = 5; i >= 0; i--) {
-      const targetMonthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const targetYear = targetMonthDate.getFullYear();
-      const targetMonth = targetMonthDate.getMonth();
-      const monthEnd = new Date(targetYear, targetMonth + 1, 0);
+      const targetMonthDate = wallClock(timeZone, nowFields.y, nowFields.m - i, 1);
+      const tf = fieldsOf(targetMonthDate, timeZone);
+      const targetYear = tf.y;
+      const targetMonth = tf.m;
+      const monthEnd = wallClock(timeZone, targetYear, targetMonth + 1, 0);
 
       // Check how many assignments were active during that month
       let monthOccupancy = 0;
       for (const a of safeAssignments) {
         if (!a.checkInDate) continue;
-        const checkIn = new Date(a.checkInDate);
-        const checkOut = a.checkOutDate ? new Date(a.checkOutDate) : new Date(2099, 1, 1);
+        const checkIn = parseDate(a.checkInDate, timeZone);
+        const checkOut = a.checkOutDate ? parseDate(a.checkOutDate, timeZone) : wallClock(timeZone, 2099, 1, 1);
         if (checkIn <= monthEnd && checkOut >= targetMonthDate) {
           monthOccupancy++;
         }
@@ -487,7 +595,9 @@ export function useReportAnalytics({
       ticketsByCategory,
       occupancyHistory,
     };
-  }, [safeRooms, safeAssignments, safeProfiles, safeBuildings, safeFloors, safeMaintenance, stats, buildingNameMap, ar]);
+  })();
 
   return { stats, analytics };
 }
+
+export type ReportAnalytics = ReturnType<typeof computeReportAnalytics>;

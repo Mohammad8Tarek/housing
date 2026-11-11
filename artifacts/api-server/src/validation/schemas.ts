@@ -607,3 +607,14 @@ export const ReportRowsQuery = z
     tz: z.string().regex(/^[A-Za-z0-9_+\-/]{1,64}$/).optional(),
   })
   .passthrough();
+
+// ─── GET /api/reports/analytics ─────────────────────────────────────────────
+export const ReportAnalyticsQuery = z
+  .object({
+    propertyId: z.string().regex(/^\d{1,10}$/),
+    lang: z.enum(["ar", "en"]).optional(),
+    filterBuilding: z.string().max(20).optional(),
+    filterFloor: z.string().max(20).optional(),
+    tz: z.string().regex(/^[A-Za-z0-9_+\-/]{1,64}$/).optional(),
+  })
+  .passthrough();

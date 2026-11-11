@@ -20,7 +20,7 @@ type HeavyList =
   | "profiles" | "assignments" | "currentAssignments" | "reservations" | "maintenance"
   | "hostings" | "equipmentInventory" | "gateLogs" | "vacations";
 const TAB_LISTS: Record<string, HeavyList[]> = {
-  analytics: ["profiles", "currentAssignments", "maintenance", "reservations", "hostings"],
+  analytics: [], // computed by the API (useServerAnalytics)
   manager_flash: ["profiles", "assignments", "maintenance", "reservations"],
   occupancy_forecast: ["currentAssignments", "reservations"],
   housing_map: ["profiles", "currentAssignments"],
