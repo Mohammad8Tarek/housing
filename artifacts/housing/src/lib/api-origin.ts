@@ -1,7 +1,7 @@
 import { getSecurityHeaders } from "./security-signer";
 
 const DEFAULT_RAILWAY_API_URL =
-  "https://housing-production-302d.up.railway.app";
+  "https://sunrise-api-production-386a84ca.up.railway.app";
 
 export function getApiBaseUrl(): string {
   const configured = import.meta.env.VITE_API_URL?.trim();
