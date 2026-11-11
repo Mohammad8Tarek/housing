@@ -1,6 +1,8 @@
+# Railway: API server (artifacts/api-server). Uses the same Dockerfile CI
+# builds, so the install is the locked dependency set on pnpm 10.
 [build]
-builder = "nixpacks"
-buildCommand = "pnpm install --frozen-lockfile && cd artifacts/api-server && node ./build.mjs"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.backend"
 
 [deploy]
 startCommand = "node --enable-source-maps ./artifacts/api-server/dist/index.mjs"
