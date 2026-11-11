@@ -21,6 +21,7 @@ import {
   VacationsReportQuery,
 } from "../../validation/schemas.js";
 import { getTenantId } from "../../lib/request-utils.js";
+import { reportPropertyCondition } from "../../lib/report-property-scope.js";
 import { withTableFallback } from "../../lib/with-table-fallback.js";
 
 const router: Router = Router();
@@ -32,11 +33,6 @@ router.get(
   validate({ query: RoomMovesReportQuery }),
   async (req, res, next) => {
     try {
-      const rawProp = req.query.propertyId as string | undefined;
-      const isAll =
-        !rawProp || rawProp === "all" || rawProp === "-1" || rawProp === "0";
-      const propertyId = isAll ? null : Number(rawProp);
-
       const fromDate = req.query.fromDate as string | undefined;
       const toDate = req.query.toDate as string | undefined;
       const reasonCode = (req.query.reasonCode as string) || "all";
@@ -51,9 +47,12 @@ router.get(
 
       let conditions: any[] = [];
 
-      if (propertyId) {
-        conditions.push(eq(roomMovesTable.propertyId, propertyId));
-      }
+      // Limited to the properties this user may read (also for "all").
+      const propertyScope = reportPropertyCondition(
+        req,
+        roomMovesTable.propertyId,
+      );
+      if (propertyScope) conditions.push(propertyScope);
 
       if (reasonCode && reasonCode !== "all") {
         conditions.push(eq(roomMovesTable.reasonCode, reasonCode));

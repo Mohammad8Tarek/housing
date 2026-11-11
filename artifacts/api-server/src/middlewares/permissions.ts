@@ -472,14 +472,21 @@ export function hasPermission(
   return permissionKeys(module, action).some((key) => permissions.has(key));
 }
 
-function requestedPropertyId(req: Request): number | null {
-  const raw =
-    (req.query?.propertyId as string | undefined) ??
-    (req.body && typeof req.body === "object"
-      ? (req.body as any).propertyId
-      : undefined);
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+// Every property id the request names. Both the query and the body are
+// checked: handlers read either (getTenantId falls back from one to the
+// other), so checking only the first one present let `?propertyId=0` with a
+// body propertyId of another hotel through.
+function requestedPropertyIds(req: Request): number[] {
+  const candidates: unknown[] = [req.query?.propertyId];
+  if (req.body && typeof req.body === "object") {
+    candidates.push((req.body as any).propertyId);
+  }
+  const ids: number[] = [];
+  for (const raw of candidates.flat()) {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed > 0) ids.push(parsed);
+  }
+  return ids;
 }
 
 import { getRedisConnection } from "@workspace/queue";
@@ -628,8 +635,10 @@ export async function loadAuthUser(
     session.propertyId = propertyIds[0];
   }
 
-  const requestedPid = requestedPropertyId(req);
-  if (!isSystemAdmin && requestedPid && !propertyIds.includes(requestedPid)) {
+  if (
+    !isSystemAdmin &&
+    requestedPropertyIds(req).some((pid) => !propertyIds.includes(pid))
+  ) {
     res.status(403).json({ error: "Access denied to this property" });
     return null;
   }
