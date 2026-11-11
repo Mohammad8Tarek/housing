@@ -174,7 +174,16 @@ function buildConditions(
 
   // 2. الحالة
   if (query.status && query.status !== "all") {
-    conditions.push(eq(maintenanceTable.status, String(query.status)));
+    // "open,in_progress" filters on several statuses (used by the kanban).
+    const statuses = String(query.status)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    conditions.push(
+      statuses.length > 1
+        ? inArray(maintenanceTable.status, statuses)
+        : eq(maintenanceTable.status, statuses[0] ?? ""),
+    );
   }
 
   // 3. الأولوية

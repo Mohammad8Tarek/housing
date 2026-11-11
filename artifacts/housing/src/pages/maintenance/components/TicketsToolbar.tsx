@@ -10,6 +10,7 @@ interface TicketsToolbarProps {
   viewMode: "list" | "kanban";
   onSetViewMode: (mode: "list" | "kanban") => void;
   onExportExcel: () => void;
+  isExporting?: boolean;
   cols: any[];
   visible: Set<string>;
   toggle: (key: string, checked: boolean) => void;
@@ -24,6 +25,7 @@ export function TicketsToolbar({
   viewMode,
   onSetViewMode,
   onExportExcel,
+  isExporting = false,
   cols,
   visible,
   toggle,
@@ -89,6 +91,7 @@ export function TicketsToolbar({
             variant="outline"
             size="sm"
             onClick={onExportExcel}
+            disabled={isExporting}
             className="h-8 text-xs gap-1.5 font-medium bg-background"
             title={ar ? "تصدير إلى Excel" : "Export Excel"}
           >
