@@ -5,11 +5,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://housing-production-302d.up.railway.app/api/:path*"
+      "destination": "https://sunrise-api-production-386a84ca.up.railway.app/api/:path*"
     },
     {
       "source": "/ws",
-      "destination": "wss://housing-production-302d.up.railway.app/ws"
+      "destination": "wss://sunrise-api-production-386a84ca.up.railway.app/ws"
     },
     {
       "source": "/(.*)",
