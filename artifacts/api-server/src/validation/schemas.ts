@@ -573,7 +573,7 @@ export const WhatsAppConnectBody = body({ phoneNumber: o(bScalar(30)), resetSess
 // ─── GET /api/reports/rows/:report (server-side report pages) ───────────────
 const qText = (max: number) => z.string().max(max).optional();
 export const SERVER_REPORTS = [
-  "arrivals_manifest", "departures_manifest", "housekeeping_sheet", "room_discrepancy",
+  "manager_flash", "arrivals_manifest", "departures_manifest", "housekeeping_sheet", "room_discrepancy",
   "daily_movement", "assignments", "vacant_rooms", "housing", "department_occupancy",
   "profiles", "expiring_contracts", "hostings", "vacations", "maintenance",
   "equipment_inventory", "water_distribution", "gate_logs", "police_report", "policy_exceptions",
@@ -605,5 +605,25 @@ export const ReportRowsQuery = z
     inventoryViewMode: z.enum(["summary", "detailed", "items"]).optional(),
     waterSortMode: qText(20),
     tz: z.string().regex(/^[A-Za-z0-9_+\-/]{1,64}$/).optional(),
+  })
+  .passthrough();
+
+// ─── GET /api/reports/analytics ─────────────────────────────────────────────
+export const ReportAnalyticsQuery = z
+  .object({
+    propertyId: z.string().regex(/^\d{1,10}$/),
+    lang: z.enum(["ar", "en"]).optional(),
+    filterBuilding: z.string().max(20).optional(),
+    filterFloor: z.string().max(20).optional(),
+    tz: z.string().regex(/^[A-Za-z0-9_+\-/]{1,64}$/).optional(),
+  })
+  .passthrough();
+
+// ─── GET /api/reports/manager-flash ─────────────────────────────────────────
+export const ManagerFlashQuery = z
+  .object({
+    propertyId: z.string().regex(/^\d{1,10}$/),
+    lang: z.enum(["ar", "en"]).optional(),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   })
   .passthrough();

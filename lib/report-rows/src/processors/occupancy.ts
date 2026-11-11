@@ -1,5 +1,5 @@
 // Report row builders — occupancy. Split out of useReportDataProcessor; logic unchanged.
-import { formatDate } from "../date-utils";
+import { formatDate, toISODate } from "../date-utils";
 import {
   getProfileDisplayName,
   getProfileDisplayJobTitle,
@@ -47,7 +47,9 @@ export function processOccupancyForecast(ctx: ReportProcessorContext): any[] {
   for (let i = 0; i < horizon; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
-    const dIso = d.toISOString().split("T")[0];
+    // Local calendar day, same as dateDisplay (toISOString() is UTC and was a
+    // day behind for UTC+ zones such as Egypt, since d is local midnight).
+    const dIso = toISODate(d);
 
     const dayNameAr = [
       "الأحد",

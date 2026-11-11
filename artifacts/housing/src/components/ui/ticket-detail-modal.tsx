@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { resolveApiUrl } from "@/lib/api-origin";
 import {
   Dialog,
   DialogContent,
@@ -184,6 +185,8 @@ export default function TicketDetailModal({
   >("master");
   const [selectedTaskIndex, setSelectedTaskIndex] = useState<number>(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // Lists return photos as /api links (see GET /maintenance/:id/photo).
+  const photoSrc = ticket.photoUrl ? resolveApiUrl(ticket.photoUrl) : null;
   const [commentText, setCommentText] = useState("");
   const [commentsList, setCommentsList] = useState<Array<{ text: string; author: string; time: string }>>([]);
   const [showSubTicketForm, setShowSubTicketForm] = useState(false);
@@ -1036,11 +1039,11 @@ export default function TicketDetailModal({
                         {ar ? "مرفق الصورة" : "Attachment Preview"}
                       </span>
                       <div
-                        onClick={() => setLightboxSrc(ticket.photoUrl)}
+                        onClick={() => setLightboxSrc(photoSrc)}
                         className="relative rounded-lg overflow-hidden h-28 border cursor-pointer group"
                       >
                         <img
-                          src={ticket.photoUrl}
+                          src={photoSrc ?? undefined}
                           alt="Ticket preview"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                         />
@@ -1284,10 +1287,10 @@ export default function TicketDetailModal({
                     <div className="group relative rounded-xl border bg-card overflow-hidden shadow-xs">
                       <div
                         className="aspect-video bg-muted/30 overflow-hidden relative cursor-pointer"
-                        onClick={() => setLightboxSrc(ticket.photoUrl)}
+                        onClick={() => setLightboxSrc(photoSrc)}
                       >
                         <img
-                          src={ticket.photoUrl}
+                          src={photoSrc ?? undefined}
                           alt="Ticket Attachment"
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
@@ -1308,7 +1311,7 @@ export default function TicketDetailModal({
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => setLightboxSrc(ticket.photoUrl)}
+                          onClick={() => setLightboxSrc(photoSrc)}
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </Button>

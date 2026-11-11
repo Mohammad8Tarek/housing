@@ -10,7 +10,7 @@ import { AnalyticsTab } from "./components/AnalyticsTab";
 import { useReportData } from "./hooks/useReportData";
 import { useReportFilters } from "./hooks/useReportFilters";
 import { useReportDataProcessor } from "./hooks/useReportDataProcessor";
-import { useReportAnalytics } from "./hooks/useReportAnalytics";
+import { useServerAnalytics } from "./hooks/useServerAnalytics";
 import { useReportExport } from "./hooks/useReportExport";
 import { sortReportRows, useReportSort } from "./hooks/useReportSort";
 import { SERVER_ROW_TABS, useServerReportRows } from "./hooks/useServerReportRows";
@@ -68,35 +68,15 @@ export default function Reports() {
           (f: any) => String(f.buildingId) === String(filters.filterBuilding),
         );
 
-  const filteredRoomsForAnalytics = useMemo(() => {
-    return data.rooms.filter((r: any) => {
-      if (filters.filterBuilding !== "all" && filters.filterBuilding && r.buildingId !== Number(filters.filterBuilding)) return false;
-      if (filters.filterFloor !== "all" && filters.filterFloor && r.floorId !== Number(filters.filterFloor)) return false;
-      return true;
-    });
-  }, [data.rooms, filters.filterBuilding, filters.filterFloor]);
-
-  const filteredAssignmentsForAnalytics = useMemo(() => {
-    return data.assignments.filter((a: any) => {
-      if (a.status !== "ACTIVE" && a.status !== "VACATION") return false;
-      const room = data.roomMap[a.roomId];
-      if (filters.filterBuilding !== "all" && filters.filterBuilding && (!room || room.buildingId !== Number(filters.filterBuilding))) return false;
-      if (filters.filterFloor !== "all" && filters.filterFloor && (!room || room.floorId !== Number(filters.filterFloor))) return false;
-      return true;
-    });
-  }, [data.assignments, data.roomMap, filters.filterBuilding, filters.filterFloor]);
-
-  const { stats, analytics } = useReportAnalytics({
+  // Analytics are computed by the API; only the Analytics tab (and its PDF) use them.
+  const serverAnalytics = useServerAnalytics({
+    enabled: filters.activeTab === "analytics",
+    propId: data.propId,
     ar,
-    rooms: filteredRoomsForAnalytics,
-    assignments: filteredAssignmentsForAnalytics,
-    profiles: data.profiles,
-    buildings: data.buildings,
-    floors: data.floors,
-    maintenance: data.maintenance,
-    reservations: data.reservations,
-    hostings: data.hostings,
+    filterBuilding: filters.filterBuilding,
+    filterFloor: filters.filterFloor,
   });
+  const { stats, analytics } = serverAnalytics;
 
   // Rows are rebuilt from the full datasets, so wait until typing pauses.
   const debouncedSearch = useDebounce(filters.search, 300);
@@ -161,7 +141,8 @@ export default function Reports() {
   const isInHouseGrouped = filters.activeTab === "assignments" && filters.inHouseViewMode === "grouped";
 
   const server = useServerReportRows({
-    enabled: isServerTab,
+    // The morning report shows its own view; its rows load only for export.
+    enabled: isServerTab && filters.activeTab !== "manager_flash",
     report: filters.activeTab,
     propId: data.propId,
     ar,
@@ -392,13 +373,7 @@ export default function Reports() {
           isLoading={data.isLoading}
           properties={data.properties}
           activePropertyId={activePropertyId}
-          rooms={data.rooms}
-          buildings={data.buildings}
-          floors={data.floors}
-          assignments={data.assignments}
-          reservations={data.reservations}
-          maintenance={data.maintenance}
-          profiles={data.profiles}
+          propId={data.propId}
           onExportPDF={handleExportPDF}
           onExportExcel={handleExportExcel}
           onRegisterExport={handleRegisterExport}
@@ -409,7 +384,7 @@ export default function Reports() {
       {filters.activeTab === "analytics" && (
         <AnalyticsTab
           ar={ar}
-          isLoading={data.isLoading}
+          isLoading={data.isLoading || serverAnalytics.isLoading}
           rooms={data.rooms}
           analytics={analytics}
           evalStats={data.evalStats}

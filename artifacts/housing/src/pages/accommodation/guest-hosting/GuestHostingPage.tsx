@@ -21,6 +21,7 @@ import { renderHostingBulkBar } from "./parts/HostingBulkBar";
 import { renderHostingsTable } from "./parts/HostingsTable";
 import { renderEditHostingDialog } from "./parts/EditHostingDialog";
 import { renderIssueAccessCardsDialog } from "./parts/IssueAccessCardsDialog";
+import { resolveApiUrl } from "@/lib/api-origin";
 
 export default function GuestHosting() {
   const s = useGuestHostingState();
@@ -349,6 +350,7 @@ export default function GuestHosting() {
                                   "data:image/",
                                 ) ||
                                   companion.documentImage.startsWith("http") ||
+                                  companion.documentImage.startsWith("/api/") ||
                                   /\.(png|jpg|jpeg|gif|webp)$/i.test(
                                     companion.documentImage,
                                   )) && (
@@ -356,7 +358,7 @@ export default function GuestHosting() {
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        setLightboxSrc(companion.documentImage);
+                                        setLightboxSrc(resolveApiUrl(companion.documentImage));
                                         setLightboxName(
                                           companion.documentFileName,
                                         );
@@ -364,7 +366,7 @@ export default function GuestHosting() {
                                       className="w-full block text-left"
                                     >
                                       <img
-                                        src={companion.documentImage}
+                                        src={resolveApiUrl(companion.documentImage)}
                                         alt={
                                           companion.documentFileName ||
                                           (ar

@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { toISODate } from "@/lib/date-utils";
 import {
   Table,
   TableBody,
@@ -98,7 +99,9 @@ export function OccupancyForecastTab({
     for (let i = 0; i < horizonDays; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
-      const dIso = d.toISOString().split("T")[0];
+      // Local calendar day, same as dateDisplay (toISOString() is UTC and was a
+      // day behind for UTC+ zones such as Egypt, since d is local midnight).
+      const dIso = toISODate(d);
 
       // Day of week
       const dayNameAr = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"][d.getDay()];
