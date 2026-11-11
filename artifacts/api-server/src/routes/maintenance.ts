@@ -221,6 +221,18 @@ function session(req: any) {
 /**
  * ✅ Safe Formatter (fmt)
  */
+// Photos are stored inline as data URLs (often several MB each). Lists return
+// a short link to GET /maintenance/:id/photo instead; the `v` hash changes
+// with the photo so browsers can cache it. Real http(s) URLs pass through.
+function listPhotoUrl(propertyId: number) {
+  return sql<string | null>`CASE
+    WHEN ${maintenanceTable.photoUrl} LIKE 'data:%'
+      THEN '/api/maintenance/' || ${maintenanceTable.id} || '/photo?propertyId=' || ${propertyId}::text
+        || '&v=' || left(md5(${maintenanceTable.photoUrl}), 12)
+    ELSE ${maintenanceTable.photoUrl}
+  END`;
+}
+
 function fmt(r: any) {
   if (!r) return null;
 
@@ -379,6 +391,8 @@ router.get(
                 .select({ count: sql<number>`count(*)` })
                 .from(maintenanceTable)
                 .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+                // The search condition also matches building names.
+                .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
                 .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
                 .where(whereClause);
 
@@ -423,7 +437,7 @@ router.get(
                     resolvedAt: maintenanceTable.resolvedAt,
                     dueDate: maintenanceTable.dueDate,
                     notes: maintenanceTable.notes,
-                    photoUrl: maintenanceTable.photoUrl,
+                    photoUrl: listPhotoUrl(prop.id),
                     createdAt: maintenanceTable.createdAt,
                     rating: maintenanceTable.rating,
                     ratingComment: maintenanceTable.ratingComment,
@@ -503,6 +517,8 @@ router.get(
           .select({ count: sql<number>`count(*)` })
           .from(maintenanceTable)
           .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
+          // The search condition also matches building names.
+          .leftJoin(buildingsTable, eq(roomsTable.buildingId, buildingsTable.id))
           .leftJoin(workersTable, eq(maintenanceTable.workerId, workersTable.id))
           .where(whereClause);
 
@@ -542,7 +558,7 @@ router.get(
             resolvedAt: maintenanceTable.resolvedAt,
             dueDate: maintenanceTable.dueDate,
             notes: maintenanceTable.notes,
-            photoUrl: maintenanceTable.photoUrl,
+            photoUrl: listPhotoUrl(targetPropId),
             createdAt: maintenanceTable.createdAt,
             rating: maintenanceTable.rating,
             ratingComment: maintenanceTable.ratingComment,
@@ -574,6 +590,60 @@ router.get(
         data: result.rows.map(fmt),
         pagination: { total: result.total, page, limit },
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// 1c. صورة البلاغ — Serves a ticket photo stored inline (data URL) as an image.
+router.get(
+  "/maintenance/:id/photo",
+  requireAnyPermission(
+    ["maintenance", "view"],
+    ["maintenance", "view_maintenance"],
+    ["maintenance", "view_housekeeping"],
+    ["maintenance", "edit"],
+    ["housekeeping", "view"],
+    ["housekeeping", "edit"]
+  ),
+  validate({ params: IdParams, query: CommonListQuery }),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
+      const id = Number(req.params.id);
+      const rows = await withTenant(propertyId, (tenantDb) =>
+        tenantDb
+          .select({ photoUrl: maintenanceTable.photoUrl })
+          .from(maintenanceTable)
+          .where(eq(maintenanceTable.id, id))
+          .limit(1),
+      );
+      const photo = rows[0]?.photoUrl;
+      if (!photo) {
+        res.status(404).json({ error: "Photo not found", errorAr: "لا توجد صورة لهذا البلاغ" });
+        return;
+      }
+      if (/^https?:\/\//i.test(photo)) {
+        res.redirect(302, photo);
+        return;
+      }
+      const m = /^data:(image\/[a-z0-9.+-]+);base64,(.*)$/is.exec(photo);
+      if (!m) {
+        res.status(404).json({ error: "Photo not found", errorAr: "لا توجد صورة لهذا البلاغ" });
+        return;
+      }
+      res.setHeader("Content-Type", m[1].toLowerCase());
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      // Stored images are user uploads: never let one run script (e.g. SVG).
+      res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+      // The list links carry a content hash (?v=…), so the URL changes with the photo.
+      res.setHeader("Cache-Control", req.query.v ? "private, max-age=31536000, immutable" : "private, no-cache");
+      res.send(Buffer.from(m[2], "base64"));
     } catch (err) {
       next(err);
     }
