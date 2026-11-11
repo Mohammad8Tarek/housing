@@ -42,7 +42,7 @@ listener on port 10006), so it runs on Railway, not on Vercel functions.
    `PORT` is set by Railway; the server listens on it.
 
 5. **Networking → Generate Domain** for the API service. Note it as
-   `<api-domain>` (currently `sunrise-api-production-386a84ca.up.railway.app`).
+   `<api-domain>` (e.g. `housing-api-production.up.railway.app`).
 6. Database: the API runs all migrations (`public` + every tenant schema) on
    start-up, idempotently. **An empty database has no users**, so nobody can
    log in. Restore existing data into the Railway Postgres **before** the first
