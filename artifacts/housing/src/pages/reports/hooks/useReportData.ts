@@ -1,7 +1,13 @@
 import { useMemo, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { customFetch, useListProperties, useGetSettings } from "@workspace/api-client-react";
+import {
+  customFetch,
+  getGetSettingsQueryKey,
+  getListPropertiesQueryKey,
+  useListProperties,
+  useGetSettings,
+} from "@workspace/api-client-react";
 import { fetchAllPages } from "@/lib/fetch-all-pages";
 import { buildReportMaps } from "@workspace/report-rows";
 import { useLookupValues, LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
@@ -32,8 +38,9 @@ export function useReportData(
   _filterBuilding: string = "all",
   activeTab: string = "analytics",
 ) {
+  // Same cache entry as PropertyContext, so the (logo-heavy) list loads once.
   const { data: properties = [] } = useListProperties({
-    query: { queryKey: ["properties"], enabled: true },
+    query: { queryKey: getListPropertiesQueryKey(), enabled: true },
   });
 
   const propId = useMemo(() => {
@@ -46,7 +53,8 @@ export function useReportData(
 
   const { data: settings } = useGetSettings(
     { propertyId: propId },
-    { query: { queryKey: ["settings", propId], enabled: !!propId } },
+    // Same cache entry as AppLayout (default key), so settings load once.
+    { query: { queryKey: getGetSettingsQueryKey({ propertyId: propId }), enabled: !!propId } },
   );
 
   // Every list is loaded completely (all pages), so reports never drop rows

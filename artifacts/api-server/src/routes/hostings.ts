@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { withTenant, hostingsTable, hostingCompanionsTable, profilesTable, roomsTable, buildingsTable, floorsTable } from "@workspace/db";
-import { eq, and, inArray, sql, or, ne, ilike, desc, count } from "drizzle-orm";
+import { eq, and, inArray, sql, or, ne, ilike, desc, count, getTableColumns } from "drizzle-orm";
 import { CreateHostingBody, UpdateHostingBody, UpdateHostingParams, DeleteHostingParams, ApproveHostingParams, CheckinHostingParams, CheckinHostingBody, CheckoutHostingParams } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { requirePermission, requireAnyPermission } from "../middlewares/permissions.js";
@@ -111,6 +111,34 @@ function fmtRelated(r: Record<string, any> | null | undefined) {
   return out;
 }
 
+// Companion ID images are stored inline as data URLs (hundreds of KB each).
+// The hostings list sends a link to GET /hostings/:id/companions/:cid/document
+// instead, computed in SQL so the image never leaves Postgres for a list. The
+// checks mirror safeDocumentImage(): invalid or oversized images stay null.
+function listCompanionColumns(propertyId: number) {
+  const { documentImage, ...cols } = getTableColumns(hostingCompanionsTable);
+  return {
+    ...cols,
+    documentImage: sql<string | null>`CASE
+      WHEN ${documentImage} LIKE 'data:%' THEN
+        CASE WHEN length(${documentImage}) <= ${MAX_DOCUMENT_IMAGE_LENGTH}
+              AND ${documentImage} ~* '^data:image/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+/=]+$'
+          THEN '/api/hostings/' || ${hostingCompanionsTable.hostingId} || '/companions/'
+            || ${hostingCompanionsTable.id} || '/document?propertyId=' || ${propertyId}::text
+            || '&v=' || left(md5(${documentImage}), 12)
+        END
+      ELSE ${documentImage}
+    END`,
+  };
+}
+
+function fmtListCompanion(c: Record<string, any>) {
+  const linked = typeof c.documentImage === "string" && c.documentImage.startsWith("/api/hostings/");
+  const out = fmtCompanion(c);
+  if (linked) out.documentImage = c.documentImage;
+  return out;
+}
+
 async function fetchCompanions(tenantDb: any, hostingId: number) {
   const rows = await tenantDb
     .select()
@@ -193,7 +221,7 @@ router.get(
         const companions =
           hostingIds.length > 0
             ? await tenantDb
-                .select()
+                .select(listCompanionColumns(propertyId))
                 .from(hostingCompanionsTable)
                 .where(inArray(hostingCompanionsTable.hostingId, hostingIds))
             : [];
@@ -201,7 +229,7 @@ router.get(
         const companionMap = new Map<number, any[]>();
         for (const c of companions) {
           const arr = companionMap.get(c.hostingId) ?? [];
-          arr.push(fmtCompanion(c));
+          arr.push(fmtListCompanion(c));
           companionMap.set(c.hostingId, arr);
         }
 
@@ -1045,6 +1073,48 @@ router.post(
 );
 
 /* Companions CRUD */
+router.get(
+  "/hostings/:id/companions/:companionId/document",
+  requirePermission("guest_hosting", "view"),
+  validate({ params: IdCompanionIdParams, query: CommonListQuery }),
+  async (req, res, next): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId is required" });
+        return;
+      }
+      const hostingId = Number(req.params.id);
+      const companionId = Number(req.params.companionId);
+      const rows = await withTenant(propertyId, (tenantDb) =>
+        tenantDb
+          .select({ documentImage: hostingCompanionsTable.documentImage })
+          .from(hostingCompanionsTable)
+          .where(and(eq(hostingCompanionsTable.id, companionId), eq(hostingCompanionsTable.hostingId, hostingId)))
+          .limit(1),
+      );
+      const image = safeDocumentImage(rows[0]?.documentImage);
+      if (!image) {
+        res.status(404).json({ error: "Document not found", errorAr: "لا يوجد مستند لهذا المرافق" });
+        return;
+      }
+      if (DOCUMENT_WEB_URL_RE.test(image)) {
+        res.redirect(302, image);
+        return;
+      }
+      const m = /^data:(image\/[a-z]+);base64,(.*)$/is.exec(image)!;
+      res.setHeader("Content-Type", m[1].toLowerCase().replace("image/jpg", "image/jpeg"));
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+      // List links carry a content hash (?v=…), so the URL changes with the image.
+      res.setHeader("Cache-Control", req.query.v ? "private, max-age=31536000, immutable" : "private, no-cache");
+      res.send(Buffer.from(m[2], "base64"));
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 router.get(
   "/hostings/:id/companions",
   requirePermission("guest_hosting", "view"),
