@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+import { revokeUserSessions } from "../lib/session-revoke.js";
 import { Router } from "express";
 import crypto from "node:crypto";
 import {
@@ -43,6 +45,20 @@ const normalizeRole = (role: unknown): string =>
     .trim()
     .toLowerCase();
 
+// Wrong username and wrong password get the same answer (no username
+// enumeration). The account still locks after the policy's failed attempts.
+const INVALID_CREDENTIALS_BODY = {
+  error: "بيانات الدخول غير صحيحة / Invalid username or password",
+  code: "INVALID_CREDENTIALS",
+};
+// bcrypt hash of a random value, made once at start-up with the same cost as
+// real passwords: compared against for unknown usernames so both paths take
+// the same time.
+const DUMMY_HASH = bcrypt.hashSync(
+  randomBytes(16).toString("hex"),
+  BCRYPT_ROUNDS,
+);
+
 // ─── POST /auth/login ─────────────────────────────────────────────────────
 router.post("/auth/login", async (req, res): Promise<void> => {
   const parsed = LoginBody.safeParse(req.body);
@@ -77,7 +93,10 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       details: `Failed login attempt with non-existent username "${username.trim()}" from ${ip}`,
       ipAddress: ip,
     });
-    res.status(401).json({ error: "Invalid credentials" });
+    // Same work and same answer as a wrong password for a real user, so the
+    // response does not reveal whether the username exists.
+    await bcrypt.compare(password, DUMMY_HASH);
+    res.status(401).json(INVALID_CREDENTIALS_BODY);
     return;
   }
 
@@ -140,7 +159,6 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
     const newCount = updated.failedLoginAttempts ?? 0;
     const lockedUntil = updated.lockedUntil;
-    const remainingBeforeLock = Math.max(0, threshold - newCount);
 
     if (lockedUntil && new Date(lockedUntil) > new Date()) {
       const lockMinutes = policy.lockoutDurationMinutes ?? 15;
@@ -182,18 +200,21 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       ipAddress: ip,
     });
 
-    res.status(401).json({
-      error: `بيانات الدخول غير صحيحة. متبقي ${remainingBeforeLock} محاولات قبل قفل الحساب`,
-      code: "INVALID_CREDENTIALS",
-      failedAttempts: newCount,
-      maxAttempts: threshold,
-      remainingAttempts: remainingBeforeLock,
-    });
+    res.status(401).json(INVALID_CREDENTIALS_BODY);
     return;
   }
 
-  if (user.status?.toLowerCase() === "inactive") {
-    res.status(401).json({ error: "Account disabled" });
+  // Checked after the password on purpose: only someone who knows the
+  // password learns that the account is disabled.
+  if (
+    ["inactive", "locked", "suspended", "disabled"].includes(
+      String(user.status ?? "").toLowerCase(),
+    )
+  ) {
+    res.status(401).json({
+      error: "الحساب موقوف. تواصل مع مدير النظام / Account disabled",
+      code: "ACCOUNT_DISABLED",
+    });
     return;
   }
 
@@ -462,6 +483,9 @@ router.post(
     // ─── Record password history ────────────────────────────────────────
     await recordPasswordHistory(userId, newHash);
     await cleanupOldPasswordHistory(userId, policy.historyCount);
+
+    // Sign out every other session of this user (keep this one).
+    await revokeUserSessions(req, userId, req.sessionID);
 
     // Clear passwordExpired flag from session
     const session = req.session as any;
