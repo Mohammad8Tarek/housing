@@ -65,9 +65,9 @@ export function useUsersPageState() {
   const [selectedBulkRole, setSelectedBulkRole] = useState("manager");
   const [selectedBulkProps, setSelectedBulkProps] = useState<number[]>([]);
   const [isBulkExecuting, setIsBulkExecuting] = useState(false);
-  const [activeMainTab, setActiveMainTab] = useState<"users" | "matrix">(
-    "users",
-  );
+  const [activeMainTab, setActiveMainTab] = useState<
+    "users" | "matrix" | "access"
+  >("users");
   const [matrixTargetUserId, setMatrixTargetUserId] = useState<number | null>(
     null,
   );

@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ShieldCheck, Search, Users, X } from "lucide-react";
+import { ShieldCheck, Search, Users, X, ListChecks } from "lucide-react";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { ColumnChooser } from "@/components/ui/column-chooser";
 import {
@@ -18,6 +18,7 @@ import {
 import { PermissionMatrixCenter } from "./components/PermissionMatrixCenter";
 import { CreateUserDialog } from "./components/CreateUserDialog";
 import { RoleTemplatesDialog } from "./components/RoleTemplatesDialog";
+import { AccessReviewTab } from "./components/AccessReviewTab";
 import { usePermission } from "@/hooks/use-permission";
 import { DeleteUserDialog } from "./components/DeleteUserDialog";
 import { useUsersPageState } from "./list/useUsersPageState";
@@ -147,9 +148,24 @@ export default function UsersPage() {
             </Badge>
           </button>
         </PermissionGate>
+
+        <button
+          type="button"
+          onClick={() => setActiveMainTab("access")}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-bold border-b-2 transition-all whitespace-nowrap ${
+            activeMainTab === "access"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+          }`}
+        >
+          <ListChecks className="w-4 h-4" />
+          <span>{ar ? "مراجعة الصلاحيات" : "Access Review"}</span>
+        </button>
       </div>
 
-      {activeMainTab === "matrix" ? (
+      {activeMainTab === "access" ? (
+        <AccessReviewTab ar={ar} />
+      ) : activeMainTab === "matrix" ? (
         <PermissionMatrixCenter
           users={allUsers}
           selectedUserId={matrixTargetUserId}

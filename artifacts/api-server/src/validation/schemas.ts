@@ -936,3 +936,15 @@ export const OccupancyForecastQuery = z
       .optional(),
   })
   .passthrough();
+
+// GET /users/access-review — who can do what
+export const AccessReviewQuery = z.object({
+  page: digitsQuery.optional(),
+  limit: digitsQuery.optional(),
+  search: z.string().trim().max(200).optional(),
+  status: z.enum(["all", "active", "inactive"]).optional(),
+  permission: z
+    .string()
+    .regex(/^[a-z_]+\.[a-z_]+$/)
+    .optional(),
+});
