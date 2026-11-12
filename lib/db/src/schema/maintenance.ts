@@ -5,6 +5,8 @@ import {
   integer,
   timestamp,
   index,
+  uniqueIndex,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -97,6 +99,32 @@ export const maintenanceEventsTable = pgTable(
   ],
 );
 export type MaintenanceEvent = typeof maintenanceEventsTable.$inferSelect;
+
+// Each property's service catalogue (problem types): names, department and
+// target time. Seeded with the defaults on first use; deactivated, never deleted.
+export const maintenanceServicesTable = pgTable(
+  "maintenance_services",
+  {
+    id: serial("id").primaryKey(),
+    category: text("category").notNull().default("maintenance"), // maintenance | housekeeping | general
+    key: text("key").notNull(),
+    labelAr: text("label_ar").notNull(),
+    labelEn: text("label_en").notNull(),
+    targetMinutes: integer("target_minutes").notNull().default(240),
+    active: boolean("active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_maintenance_services_category_key").on(
+      table.category,
+      table.key,
+    ),
+  ],
+);
+export type MaintenanceService = typeof maintenanceServicesTable.$inferSelect;
 
 export const insertMaintenanceSchema = createInsertSchema(
   maintenanceTable,

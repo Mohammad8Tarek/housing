@@ -1,4 +1,6 @@
 import { useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { customFetch } from "@workspace/api-client-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -87,6 +89,34 @@ export function NewTicketDialog({
   isPending,
 }: NewTicketDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // The property's own service catalogue (Settings > Maintenance services);
+  // the built-in lists are the fallback.
+  const { data: servicesRes } = useQuery({
+    queryKey: ["/api/maintenance/services", formPropertyId],
+    queryFn: () =>
+      customFetch<{
+        data: Array<{
+          key: string;
+          category: string;
+          labelAr: string;
+          labelEn: string;
+          active: boolean;
+        }>;
+      }>(`/api/maintenance/services?propertyId=${formPropertyId}`),
+    enabled: open && !!formPropertyId,
+    staleTime: 5 * 60_000,
+  });
+  const fallbackTypes =
+    form.category === "housekeeping"
+      ? HOUSEKEEPING_ORDER_TYPES
+      : form.category === "maintenance"
+        ? MAINTENANCE_PROBLEM_TYPES
+        : GENERAL_PROBLEM_TYPES;
+  const catalogueTypes = (servicesRes?.data ?? []).filter(
+    (s) => s.active && s.category === (form.category || "maintenance"),
+  );
+  const serviceOptions = catalogueTypes.length ? catalogueTypes : fallbackTypes;
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -266,12 +296,7 @@ export function NewTicketDialog({
                 sideOffset={4}
                 className="max-h-64 overflow-y-auto"
               >
-                {(form.category === "housekeeping"
-                  ? HOUSEKEEPING_ORDER_TYPES
-                  : form.category === "maintenance"
-                    ? MAINTENANCE_PROBLEM_TYPES
-                    : GENERAL_PROBLEM_TYPES
-                ).map((item) => (
+                {serviceOptions.map((item) => (
                   <SelectItem key={item.key} value={item.key}>
                     {ar ? item.labelAr : item.labelEn}
                   </SelectItem>

@@ -610,6 +610,22 @@ export const MaintenanceDailyReportSendBody = z.object({
   // Send to these addresses instead of the configured list (e.g. a test).
   recipients: z.array(z.string().email().max(200)).max(20).optional(),
 });
+// Maintenance service catalogue
+export const MaintenanceServiceCreateBody = z.object({
+  propertyId: o(bId),
+  category: z.enum(["maintenance", "housekeeping", "general"]),
+  labelAr: z.string().trim().min(1).max(100),
+  labelEn: z.string().trim().min(1).max(100),
+  targetMinutes: z.coerce.number().int().min(5).max(43200),
+});
+export const MaintenanceServiceUpdateBody = z.object({
+  propertyId: o(bId),
+  labelAr: z.string().trim().min(1).max(100).optional(),
+  labelEn: z.string().trim().min(1).max(100).optional(),
+  targetMinutes: z.coerce.number().int().min(5).max(43200).optional(),
+  active: z.boolean().optional(),
+  sortOrder: z.coerce.number().int().min(0).max(10000).optional(),
+});
 // auth
 export const SwitchPropertyBody = body({ propertyId: o(bId) });
 export const ForgotOtpRequestBody = body({ identifier: o(bText(200)) });
