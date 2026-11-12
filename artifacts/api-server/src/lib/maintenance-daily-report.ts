@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import { createTransporter, isSmtpConfigured } from "./email-service.js";
 import { ticketNumber, ticketSla } from "./maintenance-tickets.js";
 import { logger } from "./logger.js";
+import { loadServiceCatalogue } from "./maintenance-services.js";
 
 export const REPORT_TIME_ZONE = "Africa/Cairo";
 
@@ -149,6 +150,7 @@ export async function buildDailyReport(
     },
   );
 
+  const catalogue = await loadServiceCatalogue(propertyId);
   const out: DailyReportRow[] = rows.map((r: any) => {
     const reportedAt = r.reported_at ? new Date(r.reported_at) : null;
     const startedAt = r.started_at ? new Date(r.started_at) : reportedAt;
@@ -160,17 +162,23 @@ export async function buildDailyReport(
             Math.round((resolvedAt.getTime() - startedAt.getTime()) / 60000),
           )
         : null;
-    const service = SERVICE_LABELS[r.problem_type];
+    const own = catalogue.get(r.problem_type);
+    const service = own
+      ? { ar: own.labelAr, en: own.labelEn }
+      : SERVICE_LABELS[r.problem_type];
     const dept = DEPT[r.category] ?? DEPT.maintenance;
     const status = STATUS[r.status] ?? { ar: r.status, en: r.status };
-    const sla = ticketSla({
-      problemType: r.problem_type,
-      priority: r.priority,
-      status: r.status,
-      reportedAt,
-      resolvedAt,
-      dueDate: r.due_date,
-    });
+    const sla = ticketSla(
+      {
+        problemType: r.problem_type,
+        priority: r.priority,
+        status: r.status,
+        reportedAt,
+        resolvedAt,
+        dueDate: r.due_date,
+      },
+      own?.targetMinutes,
+    );
     return {
       ticketNo: ticketNumber({ id: r.id, category: r.category, reportedAt }),
       location: r.room_number

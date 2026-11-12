@@ -239,9 +239,11 @@ export function TicketsKanbanBoard({
               {colTickets.map((ticket) => {
                 const pStyle = priorityBadgeStyle(ticket.priority);
                 const problemName = ar
-                  ? problemTypesMap[ticket.problemType]?.labelAr ||
+                  ? ticket.serviceLabelAr ||
+                    problemTypesMap[ticket.problemType]?.labelAr ||
                     ticket.problemType
-                  : problemTypesMap[ticket.problemType]?.labelEn ||
+                  : ticket.serviceLabelEn ||
+                    problemTypesMap[ticket.problemType]?.labelEn ||
                     ticket.problemType;
 
                 const roomNum =

@@ -1341,4 +1341,19 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_enabled BOOLEAN NOT NULL DEFAULT false;
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_emails TEXT;`,
   },
+  {
+    name: "maintenance_services.catalogue",
+    q: `CREATE TABLE IF NOT EXISTS maintenance_services (
+        id SERIAL PRIMARY KEY,
+        category TEXT NOT NULL DEFAULT 'maintenance',
+        key TEXT NOT NULL,
+        label_ar TEXT NOT NULL,
+        label_en TEXT NOT NULL,
+        target_minutes INTEGER NOT NULL DEFAULT 240,
+        active BOOLEAN NOT NULL DEFAULT true,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_maintenance_services_category_key ON maintenance_services (category, key);`,
+  },
 ];

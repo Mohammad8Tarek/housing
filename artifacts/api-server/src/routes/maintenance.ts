@@ -1,4 +1,11 @@
 import {
+  cachedService,
+  invalidateServiceCatalogue,
+  listServices,
+  loadServiceCatalogue,
+  serviceKeyFrom,
+} from "../lib/maintenance-services.js";
+import {
   buildDailyReport,
   cairoToday,
   renderDailyReportCsv,
@@ -19,6 +26,7 @@ import {
   db,
   maintenanceTable,
   maintenanceEventsTable,
+  maintenanceServicesTable,
   roomsTable,
   buildingsTable,
   floorsTable,
@@ -62,6 +70,8 @@ import {
   MaintenanceCommentBody,
   MaintenanceDailyReportQuery,
   MaintenanceDailyReportSendBody,
+  MaintenanceServiceCreateBody,
+  MaintenanceServiceUpdateBody,
   IdParams,
   PropertyIdOnlyBody,
   SubTicketBody,
@@ -385,7 +395,11 @@ function fmt(r: any) {
     assignedAt: safeISO(r.assignedAt),
     // Ticket system: readable number and target (SLA) time
     ticketNo: r.id != null ? ticketNumber(r) : null,
-    ...ticketSla(r),
+    // The property's service catalogue (warmed by the handler): names and
+    // target time for this problem type; code defaults otherwise.
+    serviceLabelAr: cachedService(r.propertyId, r.problemType)?.labelAr ?? null,
+    serviceLabelEn: cachedService(r.propertyId, r.problemType)?.labelEn ?? null,
+    ...ticketSla(r, cachedService(r.propertyId, r.problemType)?.targetMinutes),
   };
 }
 
@@ -678,6 +692,11 @@ router.get(
         });
 
         const pagedRows = allFetchedRows.slice(offset, offset + limit);
+        await Promise.all(
+          [...new Set(pagedRows.map((r: any) => Number(r.propertyId)))]
+            .filter(Boolean)
+            .map((pid) => loadServiceCatalogue(pid)),
+        );
 
         res.json({
           data: pagedRows.map(fmt),
@@ -826,6 +845,7 @@ router.get(
         };
       });
 
+      await loadServiceCatalogue(Number(targetPropId));
       res.json({
         data: result.rows.map(fmt),
         pagination: { total: result.total, page, limit },
@@ -838,6 +858,121 @@ router.get(
 );
 
 // 1c. صورة البلاغ — Serves a ticket photo stored inline (data URL) as an image.
+// ─── Service catalogue (per property) ───────────────────────────────────────
+// GET /maintenance/services — the property's services (seeded with defaults)
+router.get(
+  "/maintenance/services",
+  requireAnyPermission(
+    ["maintenance", "view"],
+    ["maintenance", "view_maintenance"],
+    ["maintenance", "view_housekeeping"],
+    ["housekeeping", "view"],
+    ["settings", "view"],
+  ),
+  validate({ query: CommonListQuery }),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+        return;
+      }
+      const rows = await withTenant(propertyId, (tenantDb) =>
+        listServices(tenantDb),
+      );
+      res.json({ success: true, data: rows });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /maintenance/services — add a service
+router.post(
+  "/maintenance/services",
+  requireAnyPermission(["settings", "edit"], ["maintenance", "edit"]),
+  validate({ body: MaintenanceServiceCreateBody }),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+        return;
+      }
+      const { category, labelAr, labelEn, targetMinutes } = req.body;
+      const created = await withTenant(propertyId, async (tenantDb) => {
+        const existing = await listServices(tenantDb);
+        let key = serviceKeyFrom(labelEn);
+        const taken = new Set(
+          existing
+            .filter((r: any) => r.category === category)
+            .map((r: any) => r.key),
+        );
+        for (let i = 2; taken.has(key); i++)
+          key = `${serviceKeyFrom(labelEn)}_${i}`;
+        const [row] = await tenantDb
+          .insert(maintenanceServicesTable)
+          .values({
+            category,
+            key,
+            labelAr,
+            labelEn,
+            targetMinutes,
+            sortOrder: existing.length,
+          })
+          .returning();
+        return row;
+      });
+      invalidateServiceCatalogue(propertyId);
+      res.status(201).json({ success: true, data: created });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// PATCH /maintenance/services/:id — rename, change target time, (de)activate
+router.patch(
+  "/maintenance/services/:id",
+  requireAnyPermission(["settings", "edit"], ["maintenance", "edit"]),
+  validate({ params: IdParams, body: MaintenanceServiceUpdateBody }),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+        return;
+      }
+      const { propertyId: _p, ...changes } = req.body;
+      if (Object.keys(changes).length === 0) {
+        res.status(400).json({ success: false, message: "No changes" });
+        return;
+      }
+      const [row] = await withTenant(propertyId, (tenantDb) =>
+        tenantDb
+          .update(maintenanceServicesTable)
+          .set(changes)
+          .where(eq(maintenanceServicesTable.id, Number(req.params.id)))
+          .returning(),
+      );
+      if (!row) {
+        res.status(404).json({ success: false, message: "Service not found" });
+        return;
+      }
+      invalidateServiceCatalogue(propertyId);
+      res.json({ success: true, data: row });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // ─── Daily report (also emailed nightly at 22:00 Cairo) ────────────────────
 // GET /maintenance/daily-report?date=YYYY-MM-DD&format=html|json|csv
 router.get(
@@ -1141,6 +1276,7 @@ router.get(
         }
       }
 
+      if (matchedProp?.id) await loadServiceCatalogue(matchedProp.id);
       res.json(
         fmt({
           ...foundRecord,
@@ -1388,6 +1524,7 @@ router.post(
         });
       }
 
+      await loadServiceCatalogue(propertyId);
       return res.status(201).json(fmt({ ...record, roomNumber, propertyId }));
     } catch (err) {
       return next(err);
@@ -1821,6 +1958,7 @@ router.patch(
         });
       }
 
+      await loadServiceCatalogue(targetPropertyId);
       return res.json(
         fmt({ ...updated, propertyId: targetPropertyId, roomNumber }),
       );
@@ -2140,9 +2278,13 @@ router.post(
         module: "maintenance",
         action: "sync",
       });
-      return res
-        .status(201)
-        .json(fmt({ ...record, propertyId: targetPropertyId }));
+      return res.status(201).json(
+        fmt({
+          ...record,
+          propertyId: targetPropertyId,
+          ...(await loadServiceCatalogue(targetPropertyId).then(() => ({}))),
+        }),
+      );
     } catch (err) {
       return next(err);
     }

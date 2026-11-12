@@ -1,3 +1,4 @@
+import { MaintenanceServicesSection } from "./components/MaintenanceServicesSection";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { FormProvider } from "react-hook-form";
 import { applyBrandColors } from "@/lib/brand-colors";
@@ -23,6 +24,7 @@ import {
   Mail,
   Scale,
   ShieldAlert,
+  Wrench,
 } from "lucide-react";
 import { LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { useProperty } from "@/context/PropertyContext";
@@ -71,6 +73,8 @@ export default function Settings() {
   const canHrSync = canView("hr_sync");
   const canDoorLocks = canView("smart_locks");
   const canWhatsApp = canView("whatsapp");
+  const canMaintenanceServices =
+    canView("maintenance") || can("settings", "edit");
   const canManageEmail = Boolean(
     can("settings", "manage_email") ||
     can("settings", "edit") ||
@@ -242,6 +246,13 @@ export default function Settings() {
           allowed: canDoorLocks,
         },
         {
+          id: "maintenance-services",
+          labelAr: "خدمات الصيانة",
+          labelEn: "Services",
+          icon: Wrench,
+          allowed: canMaintenanceServices,
+        },
+        {
           id: "whatsapp",
           labelAr: "الواتساب",
           labelEn: "WhatsApp",
@@ -267,6 +278,7 @@ export default function Settings() {
       canSecurity,
       canHrSync,
       canDoorLocks,
+      canMaintenanceServices,
       canWhatsApp,
       canManageEmail,
     ],
@@ -682,6 +694,14 @@ export default function Settings() {
             </TabsContent>
           )}
 
+          {canMaintenanceServices && (
+            <TabsContent value="maintenance-services" className="space-y-4">
+              <MaintenanceServicesSection
+                propertyId={selectedPropertyId}
+                language={language}
+              />
+            </TabsContent>
+          )}
           {canView("whatsapp") && (
             <TabsContent value="whatsapp" className="space-y-4">
               <WhatsAppSettingsSection

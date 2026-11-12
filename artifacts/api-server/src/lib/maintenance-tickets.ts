@@ -62,9 +62,14 @@ const PRIORITY_FACTOR: Record<string, number> = {
 export function targetMinutes(
   problemType?: string | null,
   priority?: string | null,
+  /** The property's own target for this service (catalogue), if any. */
+  baseOverride?: number | null,
 ): number {
   const base =
-    SERVICE_TARGET_MINUTES[String(problemType ?? "")] ?? DEFAULT_TARGET_MINUTES;
+    baseOverride && baseOverride > 0
+      ? baseOverride
+      : (SERVICE_TARGET_MINUTES[String(problemType ?? "")] ??
+        DEFAULT_TARGET_MINUTES);
   const factor = PRIORITY_FACTOR[String(priority ?? "").toLowerCase()] ?? 1;
   return Math.max(15, Math.round(base * factor));
 }
@@ -75,15 +80,23 @@ const DONE = new Set(["resolved", "closed", "completed", "done"]);
  * Due time and whether the ticket is overdue. An explicit dueDate on the
  * ticket wins; otherwise reportedAt + the service's target time.
  */
-export function ticketSla(t: {
-  problemType?: string | null;
-  priority?: string | null;
-  status?: string | null;
-  reportedAt?: Date | string | null;
-  resolvedAt?: Date | string | null;
-  dueDate?: string | null;
-}): { dueAt: string | null; slaMinutes: number; isOverdue: boolean } {
-  const slaMinutes = targetMinutes(t.problemType, t.priority);
+export function ticketSla(
+  t: {
+    problemType?: string | null;
+    priority?: string | null;
+    status?: string | null;
+    reportedAt?: Date | string | null;
+    resolvedAt?: Date | string | null;
+    dueDate?: string | null;
+  },
+  /** The property's own target for the ticket's service, if configured. */
+  serviceTargetMinutes?: number | null,
+): { dueAt: string | null; slaMinutes: number; isOverdue: boolean } {
+  const slaMinutes = targetMinutes(
+    t.problemType,
+    t.priority,
+    serviceTargetMinutes,
+  );
   let due: Date | null = null;
   if (t.dueDate) {
     const d = new Date(t.dueDate);

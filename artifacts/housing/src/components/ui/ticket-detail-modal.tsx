@@ -294,6 +294,7 @@ export default function TicketDetailModal({
   const canReopen = status !== "open";
 
   const serviceLabel =
+    ticket.serviceLabelEn ||
     PROBLEM_TYPES_MAP[ticket.problemType]?.labelEn ||
     PROBLEM_TYPES_MAP[ticket.problemType]?.labelAr ||
     ticket.problemType ||
@@ -302,6 +303,7 @@ export default function TicketDetailModal({
       : "Maintenance Service");
 
   const serviceLabelAr =
+    ticket.serviceLabelAr ||
     PROBLEM_TYPES_MAP[ticket.problemType]?.labelAr ||
     PROBLEM_TYPES_MAP[ticket.problemType]?.labelEn ||
     ticket.problemType ||

@@ -414,9 +414,11 @@ export function TicketsTable({
                     >
                       {req.title ||
                         (ar
-                          ? PROBLEM_TYPES_MAP[req.problemType]?.labelAr ||
+                          ? req.serviceLabelAr ||
+                            PROBLEM_TYPES_MAP[req.problemType]?.labelAr ||
                             req.problemType
-                          : PROBLEM_TYPES_MAP[req.problemType]?.labelEn ||
+                          : req.serviceLabelEn ||
+                            PROBLEM_TYPES_MAP[req.problemType]?.labelEn ||
                             req.problemType) ||
                         (ar ? "طلب صيانة" : "Maintenance Ticket")}
                     </span>
@@ -446,9 +448,11 @@ export function TicketsTable({
                     </span>
                     <span className="text-[11px] text-muted-foreground truncate">
                       {ar
-                        ? PROBLEM_TYPES_MAP[req.problemType]?.labelAr ||
+                        ? req.serviceLabelAr ||
+                          PROBLEM_TYPES_MAP[req.problemType]?.labelAr ||
                           req.problemType
-                        : PROBLEM_TYPES_MAP[req.problemType]?.labelEn ||
+                        : req.serviceLabelEn ||
+                          PROBLEM_TYPES_MAP[req.problemType]?.labelEn ||
                           req.problemType}
                     </span>
                   </div>
