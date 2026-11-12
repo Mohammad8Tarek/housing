@@ -1,5 +1,6 @@
 // Report row builders — policy exceptions. Split out of useReportDataProcessor; logic unchanged.
 import { formatDate } from "../date-utils";
+import { normalizeGender } from "../room-policy";
 import {
   getProfileDisplayName,
   getProfileDisplayDepartment,
@@ -106,12 +107,15 @@ export function processPolicyExceptions(ctx: ReportProcessorContext): any[] {
           : "Resolved: Corrected and compliant"
         : "";
 
+    // Approved = stored as an exception (the server now only stores one
+    // approved by a user with the permission), or the exception tag older
+    // check-ins wrote into the notes. A note that merely mentions "override"
+    // is not an approval.
     const isApprovedException =
       !isResolved &&
       Boolean(
         (a as any).hasPolicyException ||
-        (a.notes &&
-          (a.notes.includes("استثناء") || a.notes.includes("override"))),
+        (a.notes && a.notes.includes("[استثناء سياسة السكن")),
       );
 
     const exceptionApprover =
@@ -531,25 +535,22 @@ export function processPolicyExceptions(ctx: ReportProcessorContext): any[] {
     // Check D: Strict Gender Segregation Check
     const strictGender =
       policySettings?.policyStrictGenderSegregation !== false;
-    const empGender = (emp.gender || "").trim().toLowerCase();
-    const roomGender = (room.gender || "").trim().toLowerCase();
+    // Same normalisation as the placement check: M/F/male/female/ذكر/أنثى…
+    // A mixed / any room has no gender ("").
+    const empGender = normalizeGender(emp.gender);
+    const roomGender = normalizeGender(room.gender);
     if (strictGender && empGender) {
       let genderViolation = false;
       let genderDetails = "";
-      if (
-        roomGender &&
-        roomGender !== "any" &&
-        roomGender !== "all" &&
-        roomGender !== empGender
-      ) {
+      if (roomGender && roomGender !== empGender) {
         genderViolation = true;
         genderDetails = ar
-          ? `المقيم (${empGender === "female" ? "أنثى" : "ذكر"}) مسكن بغرفة مخصصة لـ (${roomGender === "female" ? "الإناث" : "الذكور"})`
-          : `Resident (${empGender}) assigned to (${roomGender}) room`;
+          ? `المقيم (${empGender === "F" ? "أنثى" : "ذكر"}) مسكن بغرفة مخصصة لـ (${roomGender === "F" ? "الإناث" : "الذكور"})`
+          : `Resident (${empGender === "F" ? "female" : "male"}) assigned to a ${roomGender === "F" ? "female" : "male"} room`;
       }
       if (isActive) {
         const conflictingRoommates = roommates.filter((rm: any) => {
-          const g = (rm.gender || "").trim().toLowerCase();
+          const g = normalizeGender(rm.gender);
           return g && g !== empGender;
         });
         if (conflictingRoommates.length > 0) {

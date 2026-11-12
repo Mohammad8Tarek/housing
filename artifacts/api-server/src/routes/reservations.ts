@@ -1,3 +1,10 @@
+import {
+  DUPLICATE_STAY_ERROR,
+  decidePolicy,
+  evaluatePlacementPolicy,
+  exceptionColumns,
+  isDuplicateActiveStay,
+} from "../lib/placement-policy.js";
 import { Router } from "express";
 import {
   withTenant,
@@ -751,6 +758,16 @@ router.delete(
   },
 );
 
+/** Thrown inside the check-in transaction to refuse it and roll it back. */
+class CheckinRefused extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: Record<string, unknown>,
+  ) {
+    super("check-in refused");
+  }
+}
+
 router.post(
   "/reservations/:id/checkin",
   requireAnyPermission(["reservations", "checkin"], ["reservations", "edit"]),
@@ -803,20 +820,60 @@ router.post(
           return { conflict: true, status: current.status } as const;
         }
 
+        // Lock the room: two check-ins cannot take its last bed at once.
         const [room] = await tenantDb
           .select({
             id: roomsTable.id,
             roomNumber: roomsTable.roomNumber,
             currentOccupancy: roomsTable.currentOccupancy,
             capacity: roomsTable.capacity,
+            status: roomsTable.status,
           })
           .from(roomsTable)
           .where(eq(roomsTable.id, roomId))
-          .limit(1);
+          .limit(1)
+          .for("update");
 
         if (!room) return { roomNotFound: true } as const;
         if (room.currentOccupancy >= room.capacity) {
           return { roomFull: true, capacity: room.capacity } as const;
+        }
+
+        // Same room checks as a normal check-in (POST /assignments).
+        if (
+          [
+            "maintenance",
+            "out_of_service",
+            "out_of_order",
+            "oos",
+            "ooo",
+          ].includes(String(room.status ?? "").toLowerCase())
+        ) {
+          throw new CheckinRefused(400, {
+            error: `لا يمكن التسكين في هذه الغرفة لأنها غير صالحة للسكن حالياً (الحالة: ${room.status}).`,
+            errorEn: `This room cannot be used right now (status: ${room.status}).`,
+            code: "ROOM_NOT_ELIGIBLE",
+          });
+        }
+        const roomActive = await tenantDb
+          .select({
+            bedNumber: assignmentsTable.bedNumber,
+            isEntireRoom: assignmentsTable.isEntireRoom,
+          })
+          .from(assignmentsTable)
+          .where(
+            and(
+              eq(assignmentsTable.roomId, roomId),
+              eq(assignmentsTable.status, "ACTIVE"),
+            ),
+          );
+        if (roomActive.some((a) => a.isEntireRoom)) {
+          throw new CheckinRefused(409, {
+            error:
+              "هذه الغرفة مخصصة بالكامل لموظف آخر ولا يمكن تسكين أي شخص إضافي عليها.",
+            errorEn: "This room is booked entirely by another resident.",
+            code: "ROOM_ENTIRE_OCCUPIED",
+          });
         }
 
         // 1. Find or create profile
@@ -937,22 +994,77 @@ router.post(
           (current as any).isEntireRoom,
         );
         const bedMatch = current.notes?.match(/\[سرير رقم:?\s*(\d+)\]/);
-        const parsedBed = bedMatch
-          ? parseInt(bedMatch[1])
-          : isEntireRoom
-            ? 1
-            : null;
+        if (isEntireRoom && roomActive.length > 0) {
+          throw new CheckinRefused(409, {
+            error: `لا يمكن تخصيص الغرفة بالكامل لوجود مقيمين حاليين بها (${roomActive.length}).`,
+            errorEn: `The room cannot be booked entirely while ${roomActive.length} resident(s) live in it.`,
+            code: "ROOM_NOT_EMPTY_FOR_ENTIRE",
+          });
+        }
+        const takenBeds = new Set(
+          roomActive.map((a) => Number(a.bedNumber)).filter(Boolean),
+        );
+        let bed: number | null = bedMatch ? parseInt(bedMatch[1]) : null;
+        if (isEntireRoom) {
+          bed = bed ?? 1;
+        } else if (bed != null) {
+          if (bed < 1 || bed > room.capacity) {
+            throw new CheckinRefused(400, {
+              error: `رقم السرير ${bed} غير موجود في الغرفة (عدد الأسرة ${room.capacity}).`,
+              errorEn: `Bed ${bed} does not exist in this room (${room.capacity} beds).`,
+              code: "INVALID_BED",
+            });
+          }
+          if (takenBeds.has(bed)) {
+            throw new CheckinRefused(409, {
+              error: `السرير رقم ${bed} مشغول حالياً. اختار سرير تاني.`,
+              errorEn: `Bed ${bed} is already taken. Pick another bed.`,
+              code: "BED_TAKEN",
+            });
+          }
+        } else {
+          // No bed chosen: the first free one (never a bed someone holds).
+          for (let b = 1; b <= room.capacity; b++) {
+            if (!takenBeds.has(b)) {
+              bed = b;
+              break;
+            }
+          }
+          if (bed == null) {
+            return { roomFull: true, capacity: room.capacity } as const;
+          }
+        }
+
+        // Housing policy (same rules as the screens). A refusal rolls back
+        // the whole check-in, including a profile created above.
+        const policy = decidePolicy(
+          req,
+          await evaluatePlacementPolicy(tenantDb, {
+            profileId: profile.id,
+            roomId,
+            isEntireRoom,
+          }),
+          req.body,
+        );
+        if (!policy.ok) {
+          throw new CheckinRefused(policy.status, policy.body);
+        }
+        const policyCols = exceptionColumns(policy.exception);
 
         const newOccupancy = isEntireRoom
           ? room.capacity
           : Math.min(room.capacity, room.currentOccupancy + 1);
 
-        // 4. Update room occupancy
+        // 4. Update room occupancy (a room with a resident is occupied;
+        //    one still waiting for cleaning stays flagged)
+        const wasDirty = ["dirty", "occupied_dirty"].includes(
+          String(room.status ?? "").toLowerCase(),
+        );
         await tenantDb
           .update(roomsTable)
           .set({
             currentOccupancy: newOccupancy,
-            status: newOccupancy >= room.capacity ? "occupied" : "available",
+            status: wasDirty ? "occupied_dirty" : "occupied",
           })
           .where(eq(roomsTable.id, roomId));
 
@@ -962,16 +1074,20 @@ router.post(
           .values({
             profileId: profile.id,
             roomId: roomId,
-            bedNumber: isEntireRoom ? 1 : parsedBed || 1,
+            bedNumber: bed,
             isEntireRoom: isEntireRoom,
             checkInDate: String(cin),
             expectedCheckOutDate: current.checkOutDate || null,
             status: "ACTIVE",
-            hasPolicyException: Boolean((req.body as any)?.hasPolicyException),
-            policyExceptionReason:
-              (req.body as any)?.policyExceptionReason || null,
-            policyApprovedBy: (req.body as any)?.policyApprovedBy || null,
-            notes: `حجز رقم #${current.id}${current.notes ? ` - ${current.notes}` : ""}`,
+            hasPolicyException: policyCols.hasPolicyException,
+            policyExceptionReason: policyCols.policyExceptionReason,
+            policyApprovedBy: policyCols.policyApprovedBy,
+            notes: [
+              policyCols.notePrefix || null,
+              `حجز رقم #${current.id}${current.notes ? ` - ${current.notes}` : ""}`,
+            ]
+              .filter(Boolean)
+              .join(" "),
           })
           .returning();
 
@@ -982,8 +1098,28 @@ router.post(
           .where(eq(reservationsTable.id, resId))
           .returning();
 
-        return { data: updated, assignment, profile, room } as const;
+        return {
+          data: updated,
+          assignment,
+          profile,
+          room,
+          policyException: policy.exception,
+          policyWarnings: policy.warnings,
+        } as const;
+      }).catch((err) => {
+        if (err instanceof CheckinRefused) return { refused: err } as const;
+        if (isDuplicateActiveStay(err)) {
+          return {
+            refused: new CheckinRefused(409, DUPLICATE_STAY_ERROR),
+          } as const;
+        }
+        throw err;
       });
+
+      if ("refused" in result) {
+        res.status(result.refused.status).json(result.refused.body);
+        return;
+      }
 
       if ("notFound" in result) {
         res.status(404).json({ error: "Reservation not found" });
@@ -1038,6 +1174,10 @@ router.post(
           checkOutDate: updated.checkOutDate,
           performedBy: s.username,
           performedByRole: s.userRole,
+          policyException: result.policyException ?? undefined,
+          policyWarnings: result.policyWarnings?.length
+            ? result.policyWarnings.map((v) => v.code)
+            : undefined,
         },
       });
 

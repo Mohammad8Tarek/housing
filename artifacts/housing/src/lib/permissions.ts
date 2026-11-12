@@ -45,6 +45,8 @@ export type Action =
   | "publish"
   | "unlock"
   | "override_single_occupancy"
+  | "override_vacation"
+  | "approve_policy_exception"
   | "view_maintenance"
   | "view_housekeeping"
   | "manage_policies"
@@ -72,6 +74,8 @@ export const ACTIONS: Action[] = [
   "publish",
   "unlock",
   "override_single_occupancy",
+  "override_vacation",
+  "approve_policy_exception",
   "view_maintenance",
   "view_housekeeping",
   "manage_policies",
@@ -105,6 +109,8 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "transfer",
     "export",
     "override_single_occupancy",
+    "override_vacation",
+    "approve_policy_exception",
   ],
   reservations: [
     "view",
@@ -556,6 +562,14 @@ export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
   override_single_occupancy: {
     en: "Single Occupant / Entire Room Booking",
     ar: "تسكين غرفة كاملة / نزيل بمفرده",
+  },
+  override_vacation: {
+    en: "Temporary Substitute in a Bed on Vacation",
+    ar: "تسكين بديل مؤقت على سرير موظف في إجازة",
+  },
+  approve_policy_exception: {
+    en: "Approve Housing-Policy Exceptions",
+    ar: "اعتماد استثناءات سياسة السكن",
   },
   view_maintenance: {
     en: "View Maintenance Orders Only",

@@ -727,6 +727,14 @@ export default function InHouse() {
               ?.json?.()
               .catch(() => null)) ||
             {};
+          if (
+            body?.code === "POLICY_VIOLATION" &&
+            Array.isArray(body.violations)
+          ) {
+            // The server checks roommates too: ask for an approved exception.
+            setTransferPolicyModal({ open: true, violations: body.violations });
+            return;
+          }
           if (body?.code === "BED_TAKEN") {
             description = ar
               ? `هذا السرير مشغول بالفعل في الغرفة الجديدة. اختر سريرًا آخر.`
@@ -736,7 +744,7 @@ export default function InHouse() {
               ? `الغرفة المستهدفة ممتلئة.`
               : `Target room is full.`;
           } else if (body?.error) {
-            description = body.error;
+            description = ar ? body.error : body.errorEn || body.error;
           }
         } catch {}
         toast.error(description || (ar ? "خطأ" : "Error"));

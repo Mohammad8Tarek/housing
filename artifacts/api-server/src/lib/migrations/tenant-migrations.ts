@@ -1379,6 +1379,24 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       );`,
   },
   {
+    // One ACTIVE stay per person, enforced by the database (only when the
+    // existing data allows it; otherwise skipped with a notice and retried
+    // on the next start once the duplicates are cleaned up).
+    name: "assignments.one_active_per_profile",
+    q: `DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM assignments WHERE status = 'ACTIVE'
+          GROUP BY profile_id HAVING count(*) > 1
+        ) THEN
+          CREATE UNIQUE INDEX IF NOT EXISTS uq_assignments_one_active_per_profile
+            ON assignments (profile_id) WHERE status = 'ACTIVE';
+        ELSE
+          RAISE NOTICE 'uq_assignments_one_active_per_profile skipped: some profiles have more than one ACTIVE stay';
+        END IF;
+      END $$;`,
+  },
+  {
     // Users and role templates live in the public schema; nothing per tenant.
     name: "role_templates.public_only",
     q: `SELECT 1`,

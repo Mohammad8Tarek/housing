@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +10,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, AlertTriangle, ShieldAlert } from "lucide-react";
 import type { PolicyCheckResult } from "../types";
+import {
+  MIN_EXCEPTION_REASON,
+  useExceptionApprover,
+} from "@/components/PolicyExceptionApprovalModal";
 
 /** Policy Exception Approval Dialog */
 export function PolicyExceptionDialog({
@@ -34,6 +37,8 @@ export function PolicyExceptionDialog({
   setPolicyOverrideReason: (v: string) => void;
   onApprove: () => void;
 }) {
+  const { canApprove } = useExceptionApprover();
+  void setPolicyApprovedBy;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
@@ -67,41 +72,24 @@ export function PolicyExceptionDialog({
             </ul>
           </div>
 
-          {/* Authorizing Authority */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground">
-              {ar
-                ? "المعتمد للطلب / الجهة المصرحة بالاستثناء *"
-                : "Authorizing Authority *"}
-            </label>
-            <Input
-              placeholder={
-                ar
-                  ? "مثال: مدير السكن / مدير الموارد البشرية / المدير العام"
-                  : "e.g. Housing Manager / HR Director / General Manager"
-              }
-              value={policyApprovedBy}
-              onChange={(e) => setPolicyApprovedBy(e.target.value)}
-            />
-            <div className="flex gap-1.5 flex-wrap pt-1">
-              {[
-                ar ? "مدير السكن" : "Housing Manager",
-                ar ? "مدير الموارد البشرية" : "HR Director",
-                ar ? "المدير العام" : "General Manager",
-              ].map((preset) => (
-                <Button
-                  key={preset}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="text-[11px] h-7 px-2"
-                  onClick={() => setPolicyApprovedBy(preset)}
-                >
-                  {preset}
-                </Button>
-              ))}
+          {/* Approver: the signed-in user, recorded by the server */}
+          {canApprove ? (
+            <div className="text-xs rounded-lg border bg-muted/40 px-3 py-2">
+              {ar ? "المعتمِد: " : "Approved by: "}
+              <span className="font-bold">{policyApprovedBy}</span>
+              <span className="text-muted-foreground">
+                {ar
+                  ? " — هيتسجل باسم حسابك في السجل"
+                  : " — recorded under your account"}
+              </span>
             </div>
-          </div>
+          ) : (
+            <div className="text-xs rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-destructive">
+              {ar
+                ? "مش عندك صلاحية اعتماد استثناءات سياسة السكن. اطلب من مدير السكن يعتمدها أو اختار غرفة مطابقة للسياسة."
+                : "You don't have permission to approve housing-policy exceptions. Ask a housing manager, or pick a room that meets the policy."}
+            </div>
+          )}
 
           {/* Justification / Reason */}
           <div className="space-y-1.5">
@@ -156,6 +144,10 @@ export function PolicyExceptionDialog({
             type="button"
             className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
             onClick={onApprove}
+            disabled={
+              !canApprove ||
+              policyOverrideReason.trim().length < MIN_EXCEPTION_REASON
+            }
           >
             <CheckCircle2 className="w-4 h-4 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
             {ar

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useCheckinReservation } from "@workspace/api-client-react";
 import {
@@ -99,6 +99,7 @@ export function useReservationCheckin({
     });
   }, [checkinRooms, checkinRoomSearch, checkinRecommendations]);
 
+  const lastCheckinRef = useRef<{ res: any; roomId: number } | null>(null);
   const checkinMutation = useCheckinReservation({
     mutation: {
       onSuccess: (data: any) => {
@@ -129,8 +130,25 @@ export function useReservationCheckin({
         setKeyPromptOpen(true);
       },
       onError: (e: any) => {
+        // The server found a policy breach (it sees the full room): ask for
+        // an approved exception, then retry the same check-in.
+        const last = lastCheckinRef.current;
+        if (
+          e?.data?.code === "POLICY_VIOLATION" &&
+          Array.isArray(e.data.violations) &&
+          last
+        ) {
+          setResPolicyModal({
+            open: true,
+            violations: e.data.violations,
+            pendingAction: (approval) => {
+              executeCheckinOperation(last.res, last.roomId, approval);
+            },
+          });
+          return;
+        }
         const msg =
-          e?.data?.error ||
+          (ar ? e?.data?.error : e?.data?.errorEn || e?.data?.error) ||
           e?.message ||
           (ar ? "خطأ في التسكين" : "Check-in error");
         toast.error(msg);
@@ -143,6 +161,7 @@ export function useReservationCheckin({
     targetRoomId: number,
     approval?: { approvedBy: string; reason: string },
   ) => {
+    lastCheckinRef.current = { res, roomId: targetRoomId };
     setSelectedProfile({
       id: res.profileId || 0,
       propertyId:

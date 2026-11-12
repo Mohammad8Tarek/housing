@@ -47,6 +47,8 @@ export const PERMISSION_ACTIONS = [
   "publish",
   "unlock",
   "override_single_occupancy",
+  "override_vacation",
+  "approve_policy_exception",
   "view_maintenance",
   "view_housekeeping",
   "assign",
@@ -83,6 +85,8 @@ export const MODULE_ACTIONS: Record<PermissionModule, PermissionAction[]> = {
     "transfer",
     "export",
     "override_single_occupancy",
+    "override_vacation",
+    "approve_policy_exception",
   ],
   reservations: [
     "view",

@@ -28,6 +28,13 @@ import {
   sendWelcomeWhatsAppForAssignment,
 } from "../../lib/whatsapp-engine.js";
 import { fmtAssignment } from "./shared.js";
+import {
+  DUPLICATE_STAY_ERROR,
+  decidePolicy,
+  evaluatePlacementPolicy,
+  exceptionColumns,
+  isDuplicateActiveStay,
+} from "../../lib/placement-policy.js";
 import { validate } from "../../middlewares/validate.js";
 import { IdParams, SendWhatsAppBody } from "../../validation/schemas.js";
 
@@ -73,6 +80,7 @@ router.post(
 
     let resolvedProfileId = parsed.data.profileId;
     let crossPropertyNoteTag = "";
+    let closeSourceAfterCreate: { targetName: string } | null = null;
 
     // Check if the profile exists locally in the target tenant schema
     const localProfile = await withTenant(propertyId, async (tenantDb) => {
@@ -114,13 +122,10 @@ router.post(
             ? `[انتداب مؤقت من ${srcName}]`
             : `[محوّل من ${srcName}]`;
 
+        // The source stay is closed only after the new one is created
+        // (below), so a refused placement never leaves the person homeless.
         if (checkoutPreviousAssignment || archiveSourceProfile) {
-          await closeSourceAssignmentOnTransfer(
-            effectiveSourcePropId,
-            parsed.data.profileId,
-            targetName,
-            archiveSourceProfile,
-          );
+          closeSourceAfterCreate = { targetName };
         }
       } catch (syncErr: any) {
         console.error("[assignments] Cross-property sync failed:", syncErr);
@@ -152,12 +157,46 @@ router.post(
     }
 
     const result = await withTenant(propertyId, async (tenantDb) => {
+      // Lock the room row: two people cannot take its last bed at once.
       const [room] = await tenantDb
         .select()
         .from(roomsTable)
-        .where(eq(roomsTable.id, parsed.data.roomId));
+        .where(eq(roomsTable.id, parsed.data.roomId))
+        .for("update");
       if (!room)
         return { error: "Room not found", code: "ROOM_NOT_FOUND", status: 404 };
+
+      // ── 0. Person and bed must be valid ────────────────────────────────────
+      const [person] = await tenantDb
+        .select({ status: profilesTable.status })
+        .from(profilesTable)
+        .where(eq(profilesTable.id, resolvedProfileId))
+        .limit(1);
+      if (
+        person &&
+        ["TRANSFERRED", "LEFT", "TERMINATED", "RESIGNED", "ARCHIVED"].includes(
+          String(person.status ?? "").toUpperCase(),
+        )
+      ) {
+        return {
+          error: `لا يمكن تسكين هذا الموظف لأن حالته (${person.status}). حدّث حالته أولاً من ملفه الشخصي.`,
+          errorEn: `This employee cannot be housed while their status is ${person.status}. Update their profile first.`,
+          code: "PROFILE_NOT_ELIGIBLE",
+          status: 409,
+        };
+      }
+      const requestedBed = parsed.data.bedNumber;
+      if (
+        requestedBed != null &&
+        (requestedBed < 1 || requestedBed > (room.capacity || 1))
+      ) {
+        return {
+          error: `رقم السرير ${requestedBed} غير موجود في الغرفة (عدد الأسرة ${room.capacity}).`,
+          errorEn: `Bed ${requestedBed} does not exist in this room (${room.capacity} beds).`,
+          code: "INVALID_BED",
+          status: 400,
+        };
+      }
 
       // ── 1. فحص صلاحية الغرفة للتسكين ──────────────────────────────────────
       const roomStatus = room.status?.toLowerCase() || "";
@@ -308,6 +347,7 @@ router.post(
       }
 
       // ── 3. فحص تعارض السرير واستثناء إجازة الموظف ──────────────────────────
+      let vacationOccupantFound = false;
       if (parsed.data.bedNumber && !isEntireRoomRequested) {
         const existingBedAssignments = await tenantDb
           .select({
@@ -404,7 +444,21 @@ router.post(
               status: 400,
             };
           }
+          vacationOccupantFound = true;
         }
+      }
+
+      // The vacation-substitute flag only applies to a bed whose resident is
+      // on vacation; on its own it must not let anyone overfill a room.
+      if (isTemporaryVacationOverride && !vacationOccupantFound) {
+        return {
+          error:
+            "التسكين كبديل إجازة متاح فقط على سرير موظف في إجازة. اختار السرير ده بالتحديد.",
+          errorEn:
+            "A vacation substitute can only take the bed of a resident who is on vacation. Pick that bed.",
+          code: "VACATION_OVERRIDE_INVALID",
+          status: 400,
+        };
       }
 
       // ── 4. فحص استيعاب الغرفة ─────────────────────────────────────────────
@@ -419,18 +473,36 @@ router.post(
         };
       }
 
+      // ── 5. سياسة السكن (نفس قواعد الشاشات) ─────────────────────────────────
+      const policy = decidePolicy(
+        req,
+        await evaluatePlacementPolicy(tenantDb, {
+          profileId: resolvedProfileId,
+          roomId: parsed.data.roomId,
+          isEntireRoom: isEntireRoomRequested,
+        }),
+        req.body,
+      );
+      if (!policy.ok) {
+        return { ...policy.body, status: policy.status };
+      }
+
       const newOccupancy = isEntireRoomRequested
         ? room.capacity
         : isTemporaryVacationOverride
           ? room.currentOccupancy
           : room.currentOccupancy + 1;
 
+      // A room that still needs cleaning stays flagged for housekeeping.
+      const wasDirty = ["dirty", "occupied_dirty"].includes(
+        String(room.status ?? "").toLowerCase(),
+      );
       await tenantDb
         .update(roomsTable)
         .set({
           currentOccupancy: newOccupancy,
           // Workflow: Room with active guest becomes "occupied"
-          status: "occupied",
+          status: wasDirty ? "occupied_dirty" : "occupied",
         })
         .where(eq(roomsTable.id, parsed.data.roomId));
 
@@ -462,15 +534,12 @@ router.post(
         }
       }
 
-      const hasPolicyException = Boolean((req.body as any)?.hasPolicyException);
-      const policyExceptionReason =
-        typeof (req.body as any)?.policyExceptionReason === "string"
-          ? (req.body as any).policyExceptionReason.trim()
-          : null;
-      const policyApprovedBy =
-        typeof (req.body as any)?.policyApprovedBy === "string"
-          ? (req.body as any).policyApprovedBy.trim()
-          : null;
+      const {
+        hasPolicyException,
+        policyExceptionReason,
+        policyApprovedBy,
+        notePrefix: policyNote,
+      } = exceptionColumns(policy.exception);
 
       let finalNotes = parsed.data.notes || "";
       if (crossPropertyNoteTag) {
@@ -484,9 +553,8 @@ router.post(
         finalNotes =
           `[تسكين مؤقت بديل إجازة بتصريح الإدارة] ${finalNotes}`.trim();
       }
-      if (hasPolicyException) {
-        finalNotes =
-          `[استثناء سياسة السكن معتمد من: ${policyApprovedBy || "الإدارة"}] ${policyExceptionReason ? `(المبرر: ${policyExceptionReason})` : ""} ${finalNotes}`.trim();
+      if (policyNote) {
+        finalNotes = `${policyNote} ${finalNotes}`.trim();
       }
 
       const [assignment] = await tenantDb
@@ -507,12 +575,25 @@ router.post(
         })
         .returning();
 
-      return { assignment, room };
+      return {
+        assignment,
+        room,
+        policyException: policy.exception,
+        policyWarnings: policy.warnings,
+      };
+    }).catch((err) => {
+      // Two simultaneous check-ins of one person: the database keeps one.
+      if (isDuplicateActiveStay(err)) {
+        return { ...DUPLICATE_STAY_ERROR, status: 409 } as any;
+      }
+      throw err;
     });
 
     if (result.error) {
       res.status(result.status).json({
         error: result.error,
+        errorEn: (result as any).errorEn,
+        violations: (result as any).violations,
         code: result.code,
         existingAssignmentId: result.existingAssignmentId,
         existingRoomId: result.existingRoomId,
@@ -546,8 +627,27 @@ router.post(
         isTemporaryVacationOverride,
         assignedBy: s.username,
         assignedByRole: s.userRole,
+        policyException: result.policyException ?? undefined,
+        policyWarnings: result.policyWarnings?.length
+          ? result.policyWarnings.map((v: any) => v.code)
+          : undefined,
       },
     });
+
+    // Cross-property: end the stay in the other hotel now that this one exists.
+    if (closeSourceAfterCreate && effectiveSourcePropId) {
+      await closeSourceAssignmentOnTransfer(
+        effectiveSourcePropId,
+        parsed.data.profileId,
+        closeSourceAfterCreate.targetName,
+        archiveSourceProfile,
+      ).catch((e) =>
+        console.error(
+          "[assignments] closing the source stay after transfer failed:",
+          e?.message,
+        ),
+      );
+    }
 
     broadcastToProperty(propertyId, {
       module: "accommodation",

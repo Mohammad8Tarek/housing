@@ -1539,4 +1539,21 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       ALTER TABLE public.users ADD COLUMN IF NOT EXISTS role_template_id INTEGER;
       CREATE INDEX IF NOT EXISTS idx_users_role_template_id ON public.users (role_template_id);`,
   },
+  {
+    // New accommodation permissions (policy exceptions, vacation substitutes):
+    // users already trusted with the single-occupancy override get them, so
+    // nobody loses the ability to approve an exception on deploy. Idempotent.
+    name: "users.grant_policy_exception_permissions",
+    q: `UPDATE public.users
+        SET permissions = array_append(permissions, 'accommodation.approve_policy_exception')
+        WHERE ('accommodation.override_single_occupancy' = ANY(permissions)
+               OR 'reservations.override_single_occupancy' = ANY(permissions))
+          AND NOT ('accommodation.approve_policy_exception' = ANY(permissions));
+      UPDATE public.users
+        SET permissions = array_append(permissions, 'accommodation.override_vacation')
+        WHERE ('accommodation.override_single_occupancy' = ANY(permissions)
+               OR 'reservations.override_single_occupancy' = ANY(permissions)
+               OR 'accommodation.edit' = ANY(permissions))
+          AND NOT ('accommodation.override_vacation' = ANY(permissions));`,
+  },
 ];

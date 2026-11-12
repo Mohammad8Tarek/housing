@@ -581,6 +581,15 @@ BEGIN
     );
     CREATE UNIQUE INDEX IF NOT EXISTS uq_maintenance_services_category_key ON "maintenance_services"("category", "key");
 
+    -- One ACTIVE stay per person (only when existing data allows it)
+    IF NOT EXISTS (
+      SELECT 1 FROM "assignments" WHERE "status" = 'ACTIVE'
+      GROUP BY "profile_id" HAVING count(*) > 1
+    ) THEN
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_assignments_one_active_per_profile
+        ON "assignments" ("profile_id") WHERE "status" = 'ACTIVE';
+    END IF;
+
     -- Reports emailed on a schedule
     CREATE TABLE IF NOT EXISTS "report_schedules" (
       "id" SERIAL PRIMARY KEY,
