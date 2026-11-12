@@ -3,6 +3,7 @@ import { applyBrandColors } from "@/lib/brand-colors";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { useProperty } from "@/context/PropertyContext";
+import { QuickSearch } from "./QuickSearch";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
 import { useTheme } from "next-themes";
@@ -805,6 +806,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="flex items-center gap-1">
+              <QuickSearch
+                ar={ar}
+                propertyId={
+                  typeof activePropertyId === "number" ? activePropertyId : null
+                }
+                pages={visibleNavItems.flatMap((n) =>
+                  n.subItems && n.subItems.length
+                    ? n.subItems.map((sub) => ({
+                        label: `${n.label} › ${sub.label}`,
+                        href: sub.href,
+                      }))
+                    : n.href
+                      ? [{ label: n.label, href: n.href }]
+                      : [],
+                )}
+                buildNavHref={buildNavHref}
+              />
               <DropdownMenu
                 open={notifOpen}
                 onOpenChange={(open) => {

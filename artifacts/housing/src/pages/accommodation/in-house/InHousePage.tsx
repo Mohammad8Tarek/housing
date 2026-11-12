@@ -90,7 +90,9 @@ export default function InHouse() {
 
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(
+    () => new URLSearchParams(window.location.search).get("search") ?? "",
+  );
   const debouncedSearch = useDebounce(search, 500);
 
   useEffect(() => {

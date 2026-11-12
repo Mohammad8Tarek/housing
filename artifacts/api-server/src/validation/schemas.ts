@@ -948,3 +948,9 @@ export const AccessReviewQuery = z.object({
     .regex(/^[a-z_]+\.[a-z_]+$/)
     .optional(),
 });
+
+// GET /search — quick search across the current property
+export const GlobalSearchQuery = z.object({
+  q: z.string().max(100).optional(),
+  propertyId: digitsQuery.optional(),
+});
