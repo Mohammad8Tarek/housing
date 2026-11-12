@@ -35,6 +35,8 @@ export const UpdateSettingsBody = z
     departureAlertsEnabled: optBool,
     departureAlertThreshold: optInt(0, 365),
     reportFooter: optText(2000),
+    maintenanceReportEnabled: optBool,
+    maintenanceReportEmails: optText(2000),
     portalContactEmail: optText(200),
     portalContactPhone: optText(50),
     portalContactExt: optText(20),
@@ -592,6 +594,21 @@ export const UpdateMaintenanceTicketBody = z.object({
 export const MaintenanceCommentBody = z.object({
   propertyId: o(bId),
   comment: z.string().trim().min(1).max(2000),
+});
+// Daily maintenance report (preview / send now)
+const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+export const MaintenanceDailyReportQuery = z
+  .object({
+    propertyId: o(bId),
+    date: ymd.optional(),
+    format: z.enum(["html", "json", "csv"]).optional(),
+  })
+  .passthrough();
+export const MaintenanceDailyReportSendBody = z.object({
+  propertyId: o(bId),
+  date: ymd.optional(),
+  // Send to these addresses instead of the configured list (e.g. a test).
+  recipients: z.array(z.string().email().max(200)).max(20).optional(),
 });
 // auth
 export const SwitchPropertyBody = body({ propertyId: o(bId) });

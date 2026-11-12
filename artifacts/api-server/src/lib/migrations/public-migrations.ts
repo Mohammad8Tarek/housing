@@ -1520,4 +1520,9 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       END IF;
     END $$;`,
   },
+  {
+    name: "public.settings.maintenance_report",
+    q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_enabled BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_emails TEXT;`,
+  },
 ];

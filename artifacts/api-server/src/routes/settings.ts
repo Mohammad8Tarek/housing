@@ -83,6 +83,8 @@ router.patch(
         "departureAlertsEnabled",
         "departureAlertThreshold",
         "reportFooter",
+        "maintenanceReportEnabled",
+        "maintenanceReportEmails",
         "portalContactEmail",
         "portalContactPhone",
         "portalContactExt",
