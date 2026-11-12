@@ -1,3 +1,4 @@
+import { reportPropertyCondition } from "../lib/report-property-scope.js";
 import { Router } from "express";
 import {
   db,
@@ -154,8 +155,14 @@ router.get(
         result = tenantRes.data;
         total = tenantRes.total;
       } else {
-        // Query master public audit log (for "all" properties and global system events)
+        // Query master public audit log (for "all" properties and global system events).
+        // Non system admins only see the properties they have access to.
         const conditions = buildConditions();
+        const propertyScope = reportPropertyCondition(
+          req,
+          activityLogsTable.propertyId,
+        );
+        if (propertyScope) conditions.push(propertyScope);
         const whereClause =
           conditions.length > 0 ? and(...conditions) : undefined;
 

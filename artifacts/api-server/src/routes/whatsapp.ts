@@ -26,7 +26,10 @@ import {
   BroadcastRecipient,
   getPendingQueueCount,
   processOutboxQueue,
+  getQuotaStatus,
+  getOptOutCount,
 } from "../lib/whatsapp-engine.js";
+import { sendingPausedUntil } from "../lib/whatsapp/send.js";
 
 const router = Router();
 
@@ -86,10 +89,18 @@ router.get(
           ? dbRow?.phone_number || (hasMetaConfig ? "Meta Cloud Active" : null)
           : session.phoneNumber || dbRow?.phone_number || null;
       const pendingQueueCount = await getPendingQueueCount(propertyId);
+      const quota = await getQuotaStatus(propertyId).catch(() => null);
+      const pausedUntil = sendingPausedUntil.get(propertyId) ?? 0;
 
       res.json({
         success: true,
         provider,
+        // Anti-ban state (QR connection)
+        banned: dbRow?.status === "banned",
+        quota,
+        optOutCount: await getOptOutCount(propertyId),
+        sendingPausedUntil:
+          pausedUntil > Date.now() ? new Date(pausedUntil).toISOString() : null,
         status: effectiveStatus,
         phoneNumber: effectivePhone,
         qrCode: provider === "meta_cloud" ? null : effectiveQr,
@@ -697,8 +708,12 @@ router.post(
         stats: {
           totalRequested: recipients.length,
           queued: result.queued,
-          skippedNoPhone: recipients.length - validRecipients.length,
+          skippedNoPhone:
+            recipients.length - validRecipients.length + result.skippedNoPhone,
+          skippedDuplicate: result.skippedDuplicate,
+          skippedOptedOut: result.skippedOptedOut,
         },
+        quota: await getQuotaStatus(propertyId).catch(() => null),
       });
     } catch (err: any) {
       console.error("[POST /api/whatsapp/broadcast/send] error:", err.message);

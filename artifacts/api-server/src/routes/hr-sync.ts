@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { Router } from "express";
 import {
   pool,
@@ -70,6 +71,12 @@ const HrSyncConfigSchema = z.object({
   esignConfig: z.record(z.any()).optional().nullable(),
 });
 
+// Constant-time comparison so the API key cannot be guessed by timing.
+function safeEqual(a: unknown, b: unknown): boolean {
+  const x = Buffer.from(String(Array.isArray(a) ? a[0] : (a ?? "")));
+  const y = Buffer.from(String(Array.isArray(b) ? b[0] : (b ?? "")));
+  return x.length === y.length && timingSafeEqual(x, y);
+}
 const router: Router = Router();
 import { syncEmployeeAccommodationLifecycle } from "../lib/hr-sync/lifecycle.js";
 import { processReceive } from "../lib/hr-sync/process-receive.js";
@@ -392,8 +399,8 @@ router.post(
       }
     } else {
       if (expectedKey) {
-        if (providedKey !== expectedKey) {
-          console.warn("[HR_SYNC_AUTH_FAIL]", { expectedKey, providedKey });
+        if (!safeEqual(providedKey, expectedKey)) {
+          console.warn("[HR_SYNC_AUTH_FAIL] invalid x-api-key");
           res.status(401).json({ success: false, error: "Unauthorized" });
           return;
         }
@@ -805,7 +812,7 @@ router.post(
     const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
     const providedKey = String(req.headers["x-api-key"] || "").trim();
     if (expectedKey) {
-      if (providedKey !== expectedKey) {
+      if (!safeEqual(providedKey, expectedKey)) {
         console.warn("[HR_SYNC_AUTH_FAIL_VACATION]", {
           expectedKey,
           providedKey,
@@ -955,8 +962,8 @@ router.post(
       const expectedKey = (process.env["HR_SYNC_API_KEY"] || "").trim();
       const providedKey = String(req.headers["x-api-key"] || "").trim();
       if (expectedKey) {
-        if (providedKey !== expectedKey) {
-          console.warn("[HR_SYNC_AUTH_FAIL_DEP]", { expectedKey, providedKey });
+        if (!safeEqual(providedKey, expectedKey)) {
+          console.warn("[HR_SYNC_AUTH_FAIL_DEP] invalid x-api-key");
           res.status(401).json({ success: false, error: "Unauthorized" });
           return;
         }
@@ -1123,7 +1130,7 @@ router.get(
       }
     } else {
       if (expectedKey) {
-        if (providedKey !== expectedKey) {
+        if (!safeEqual(providedKey, expectedKey)) {
           res.status(401).json({ success: false, error: "Unauthorized" });
           return;
         }

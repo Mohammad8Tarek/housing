@@ -41,6 +41,7 @@ import {
 import { validate } from "../middlewares/validate.js";
 import {
   CommonListQuery,
+  UpdateMaintenanceTicketBody,
   IdParams,
   PropertyIdOnlyBody,
   SubTicketBody,
@@ -1263,7 +1264,11 @@ router.patch(
     ["housekeeping", "assign"],
     ["maintenance", "view_housekeeping"],
   ),
-  validate({ params: IdParams, query: CommonListQuery }),
+  validate({
+    params: IdParams,
+    query: CommonListQuery,
+    body: UpdateMaintenanceTicketBody,
+  }),
   async (req, res, next) => {
     try {
       const user = (req as any).authUser;
@@ -1361,8 +1366,41 @@ router.patch(
       }
 
       // إزالة propertyId من حقول التحديث لتجنب أخطاء الجدول ومعالجة معرفات الفنيين
-      const updateData = { ...req.body };
+      // req.body is UpdateMaintenanceTicketBody: only editable fields remain.
+      const updateData: Record<string, any> = { ...req.body };
       delete updateData.propertyId;
+      for (const k of ["startedAt", "resolvedAt"] as const) {
+        if (k in updateData) {
+          updateData[k] = updateData[k] ? new Date(updateData[k]) : null;
+          if (updateData[k] && Number.isNaN(updateData[k].getTime())) {
+            delete updateData[k];
+          }
+        }
+      }
+      // Status timestamps are kept by the server, so every way of changing a
+      // status (kanban, bulk, table, detail view) records them.
+      const nextStatus = updateData.status as string | undefined;
+      if (nextStatus && nextStatus !== existingRecord.status) {
+        const now = new Date();
+        if (nextStatus === "in_progress" && !existingRecord.startedAt) {
+          updateData.startedAt ??= now;
+        }
+        if (nextStatus === "resolved" || nextStatus === "closed") {
+          if (!existingRecord.resolvedAt) updateData.resolvedAt ??= now;
+          if (!existingRecord.startedAt) updateData.startedAt ??= now;
+        }
+        if (nextStatus === "open" || nextStatus === "in_progress") {
+          // Reopened: the earlier resolution no longer applies.
+          if (existingRecord.resolvedAt) updateData.resolvedAt = null;
+        }
+      }
+      if (Object.keys(updateData).length === 0) {
+        res.status(400).json({
+          success: false,
+          message: "لا توجد حقول قابلة للتعديل / No editable fields",
+        });
+        return;
+      }
       if ("workerId" in updateData) {
         updateData.workerId = updateData.workerId
           ? Number(updateData.workerId)

@@ -1,3 +1,4 @@
+import { normalizePhoneNumber } from "./templates.js";
 import { safeSchemaName } from "../pg-ident.js";
 import { pool } from "@workspace/db";
 import { ensureProfilePortalAccount } from "../portal-accounts.js";
@@ -530,7 +531,13 @@ export async function sendWhatsAppBroadcast(params: {
   propertyId: number;
   recipients: BroadcastRecipient[];
   messageText: string;
-}): Promise<{ total: number; queued: number; skippedNoPhone: number }> {
+}): Promise<{
+  total: number;
+  queued: number;
+  skippedNoPhone: number;
+  skippedDuplicate: number;
+  skippedOptedOut: number;
+}> {
   const { propertyId, recipients, messageText } = params;
 
   // Resolve property name
@@ -546,13 +553,23 @@ export async function sendWhatsAppBroadcast(params: {
 
   let queued = 0;
   let skippedNoPhone = 0;
+  let skippedDuplicate = 0;
+  let skippedOptedOut = 0;
+  // One message per phone number, even if several profiles share it.
+  const seenPhones = new Set<string>();
 
   for (const r of recipients) {
     const rawPhone = (r.phone || "").trim();
-    if (!rawPhone) {
+    const phoneKey = normalizePhoneNumber(rawPhone);
+    if (!rawPhone || !phoneKey) {
       skippedNoPhone++;
       continue;
     }
+    if (seenPhones.has(phoneKey)) {
+      skippedDuplicate++;
+      continue;
+    }
+    seenPhones.add(phoneKey);
 
     // Compile dynamic variables
     const vars: Record<string, string> = {
@@ -571,22 +588,28 @@ export async function sendWhatsAppBroadcast(params: {
 
     const textToSend = compileWhatsAppTemplate(messageText, vars);
 
-    sendWhatsAppMessageSafe(
-      propertyId,
-      rawPhone,
-      textToSend,
-      "BROADCAST",
-      r.name,
-    ).catch((err) => {
+    try {
+      const res = await sendWhatsAppMessageSafe(
+        propertyId,
+        rawPhone,
+        textToSend,
+        "BROADCAST",
+        r.name,
+      );
+      if (res.queued) queued++;
+      else if (res.reason === "OPTED_OUT") skippedOptedOut++;
+      else if (res.reason === "DUPLICATE") skippedDuplicate++;
+      else skippedNoPhone++;
+    } catch (err) {
       console.error(`[WhatsApp Broadcast] Error queuing for ${r.name}:`, err);
-    });
-
-    queued++;
+    }
   }
 
   return {
     total: recipients.length,
     queued,
     skippedNoPhone,
+    skippedDuplicate,
+    skippedOptedOut,
   };
 }

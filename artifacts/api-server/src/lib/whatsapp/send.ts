@@ -1,7 +1,13 @@
 import { pool } from "@workspace/db";
-import { checkAndIncrementAntiBanQuota, isQuietHoursNow } from "./quota.js";
+import {
+  checkSendQuota,
+  isQuietHoursNow,
+  TRANSACTIONAL_TYPES,
+  isTransactionalType,
+} from "./quota.js";
 import { injectAntiBanFingerprint, normalizePhoneNumber } from "./templates.js";
 import { getWhatsAppSession } from "./session.js";
+import { isOptedOut } from "./opt-out.js";
 
 // Outbox queue processing state per property
 export const isProcessingOutbox = new Map<number, boolean>();
@@ -10,12 +16,29 @@ export const isProcessingOutbox = new Map<number, boolean>();
 export const propertyBatchSentCount = new Map<number, number>();
 
 /**
- * Process all pending messages from public.whatsapp_outbox_queue in FIFO order
- * Incorporates strict anti-ban safety:
- * - Pre-validates destination phone numbers
- * - Random human delay jitter between consecutive messages (5s to 9s)
- * - Cooling-off break of 40s-60s every 15 dispatched messages
- * - Invisible cryptographic fingerprinting on every payload
+ * Sending paused for a property (rate limited / restricted by WhatsApp).
+ * While paused nothing is sent; messages stay PENDING.
+ */
+export const sendingPausedUntil = new Map<number, number>();
+
+const MAX_RETRIES = 4;
+/** Minutes before retry n (1-based): 5, 15, 45, 120. */
+const RETRY_DELAY_MIN = [5, 15, 45, 120];
+
+/** Errors that mean WhatsApp is throttling or restricting the number. */
+const RATE_LIMIT_RE = /rate-overlimit|rate limit|too many|429|blocked|spam/i;
+
+/**
+ * Process pending messages from public.whatsapp_outbox_queue, one at a time.
+ * Anti-ban rules (QR / Baileys):
+ * - quota checked before every message, counted from the delivery log
+ *   (survives restarts), with lower warm-up limits for a new number
+ * - transactional messages first; broadcasts wait during night quiet hours
+ * - opted-out numbers are skipped
+ * - human-like pacing: typing simulation, 10-18s between messages and a
+ *   70-110s pause every 8 messages
+ * - failures retried later with backoff, not immediately
+ * - rate-limit / restriction errors pause sending for the property
  */
 export async function processOutboxQueue(
   propertyId: number,
@@ -27,12 +50,20 @@ export async function processOutboxQueue(
       pendingRemaining: await getPendingQueueCount(propertyId),
     };
   }
+  const pausedUntil = sendingPausedUntil.get(propertyId) ?? 0;
+  if (pausedUntil > Date.now()) {
+    return {
+      processed: 0,
+      failed: 0,
+      pendingRemaining: await getPendingQueueCount(propertyId),
+    };
+  }
 
   isProcessingOutbox.set(propertyId, true);
 
   try {
     const configRes = await pool.query(
-      `SELECT provider, meta_access_token, meta_phone_number_id 
+      `SELECT provider, meta_access_token, meta_phone_number_id
        FROM public.property_whatsapp_configs WHERE property_id = $1`,
       [propertyId],
     );
@@ -41,7 +72,7 @@ export async function processOutboxQueue(
     if (!isMetaCloud) {
       const session = await getWhatsAppSession(propertyId);
       if (session.status !== "connected" || !session.sock) {
-        // Offline: messages remain securely in whatsapp_outbox_queue with status 'PENDING'
+        // Offline: messages stay PENDING until the connection is back.
         return {
           processed: 0,
           failed: 0,
@@ -50,167 +81,185 @@ export async function processOutboxQueue(
       }
     }
 
-    // Anti-ban check: Quiet hours (23:00 to 07:30)
-    // Transactional messages (TEST, CHECKIN_WELCOME, RESERVATION_CONFIRM, DIRECT) are dispatched immediately.
-    // Non-urgent bulk broadcasts are held until morning.
-    const inQuietHours = isQuietHoursNow();
-    if (inQuietHours) {
-      console.log(
-        `[WhatsApp Anti-Ban] 🌙 Night quiet hours active in Egypt (23:00 - 07:30). Allowing urgent transactional messages (Check-in / Reservation / Test) while holding broadcasts.`,
-      );
-    }
-
     let processed = 0;
     let failed = 0;
 
     while (true) {
-      // Check quota before fetching next batch (for Baileys accounts)
+      // Night quiet hours: only transactional messages go out.
+      const inQuietHours = isQuietHoursNow();
+      const { rows } = await pool.query(
+        `SELECT id, property_id, recipient_phone, recipient_name, message_type, message_content, retry_count
+         FROM public.whatsapp_outbox_queue
+         WHERE property_id = $1 AND status = 'PENDING'
+           AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
+           AND ($2::boolean = false OR message_type = ANY($3::text[]))
+         ORDER BY (CASE WHEN message_type = 'TEST' THEN 1
+                        WHEN message_type = ANY($3::text[]) THEN 2
+                        ELSE 3 END) ASC, id ASC
+         LIMIT 1`,
+        [propertyId, inQuietHours, TRANSACTIONAL_TYPES],
+      );
+      const item = rows[0];
+      if (!item) break;
+
+      // Per-message quota (Baileys only; Meta Cloud has its own limits).
       if (!isMetaCloud) {
-        const quotaCheck = checkAndIncrementAntiBanQuota(propertyId);
-        if (!quotaCheck.allowed) {
-          console.warn(`[WhatsApp Anti-Ban] 🛡️ ${quotaCheck.reason}`);
+        const quota = await checkSendQuota(propertyId, item.message_type);
+        if (!quota.allowed) {
+          console.warn(`[WhatsApp Anti-Ban] 🛡️ ${quota.reason}`);
           break;
         }
       }
 
-      const querySql = inQuietHours
-        ? `SELECT id, property_id, recipient_phone, recipient_name, message_type, message_content, retry_count
-           FROM public.whatsapp_outbox_queue
-           WHERE property_id = $1 AND status = 'PENDING' AND message_type IN ('TEST', 'CHECKIN_WELCOME', 'RESERVATION_CONFIRM', 'DIRECT')
-           ORDER BY (CASE WHEN message_type = 'TEST' THEN 1 WHEN message_type = 'CHECKIN_WELCOME' THEN 2 WHEN message_type = 'RESERVATION_CONFIRM' THEN 3 ELSE 4 END) ASC, id ASC
-           LIMIT 50`
-        : `SELECT id, property_id, recipient_phone, recipient_name, message_type, message_content, retry_count
-           FROM public.whatsapp_outbox_queue
-           WHERE property_id = $1 AND status = 'PENDING'
-           ORDER BY (CASE WHEN message_type = 'TEST' THEN 1 WHEN message_type = 'CHECKIN_WELCOME' THEN 2 WHEN message_type = 'RESERVATION_CONFIRM' THEN 3 ELSE 4 END) ASC, id ASC
-           LIMIT 50`;
-
-      const { rows: pendingItems } = await pool.query(querySql, [propertyId]);
-
-      if (pendingItems.length === 0) {
-        break;
-      }
-
-      console.log(
-        `[WhatsApp Outbox] Dispatching batch chunk of ${pendingItems.length} pending messages for property ${propertyId} (Provider: ${isMetaCloud ? "Meta Cloud API" : "Baileys"})...`,
-      );
-
-      for (const item of pendingItems) {
-        // Re-verify session is still active (for Baileys)
-        if (!isMetaCloud) {
-          const currentSession = await getWhatsAppSession(propertyId);
-          if (currentSession.status !== "connected" || !currentSession.sock) {
-            console.warn(
-              `[WhatsApp Outbox] Connection dropped while processing outbox for property ${propertyId}. Halting until reconnect.`,
-            );
-            return {
-              processed,
-              failed,
-              pendingRemaining: await getPendingQueueCount(propertyId),
-            };
-          }
-        }
-
-        // Mark as PROCESSING
+      // Opted-out recipients get no broadcasts.
+      if (
+        !isTransactionalType(item.message_type) &&
+        (await isOptedOut(propertyId, item.recipient_phone))
+      ) {
         await pool
           .query(
-            `UPDATE public.whatsapp_outbox_queue SET status = 'PROCESSING' WHERE id = $1`,
+            `UPDATE public.whatsapp_outbox_queue
+             SET status = 'OPTED_OUT', processed_at = NOW(), last_error = 'Recipient opted out'
+             WHERE id = $1`,
+            [item.id],
+          )
+          .catch(() => {});
+        await logDelivery(
+          propertyId,
+          item.recipient_phone,
+          item.recipient_name,
+          item.message_type,
+          item.message_content,
+          "FAILED",
+          "المستلم ألغى الاشتراك / Recipient opted out",
+        );
+        continue;
+      }
+
+      // Re-verify the session (Baileys)
+      if (!isMetaCloud) {
+        const currentSession = await getWhatsAppSession(propertyId);
+        if (currentSession.status !== "connected" || !currentSession.sock) {
+          console.warn(
+            `[WhatsApp Outbox] Connection dropped while processing outbox for property ${propertyId}. Halting until reconnect.`,
+          );
+          break;
+        }
+      }
+
+      await pool
+        .query(
+          `UPDATE public.whatsapp_outbox_queue SET status = 'PROCESSING' WHERE id = $1`,
+          [item.id],
+        )
+        .catch(() => {});
+
+      const result = await executeSendHumanLike(
+        item.property_id,
+        item.recipient_phone,
+        item.message_content,
+        item.message_type,
+        item.recipient_name,
+        item.id,
+      );
+
+      if (result.success) {
+        processed++;
+        const batchTotal = (propertyBatchSentCount.get(propertyId) || 0) + 1;
+        propertyBatchSentCount.set(propertyId, batchTotal);
+
+        await pool
+          .query(
+            `UPDATE public.whatsapp_outbox_queue
+             SET status = 'SENT', processed_at = NOW(), last_error = NULL
+             WHERE id = $1`,
             [item.id],
           )
           .catch(() => {});
 
-        const result = await executeSendHumanLike(
-          item.property_id,
-          item.recipient_phone,
-          item.message_content,
-          item.message_type,
-          item.recipient_name,
-          item.id,
-        );
-
-        if (result.success) {
-          processed++;
-          const batchTotal = (propertyBatchSentCount.get(propertyId) || 0) + 1;
-          propertyBatchSentCount.set(propertyId, batchTotal);
-
-          await pool
-            .query(
-              `UPDATE public.whatsapp_outbox_queue 
-             SET status = 'SENT', processed_at = NOW(), last_error = NULL 
-             WHERE id = $1`,
-              [item.id],
-            )
-            .catch(() => {});
-
-          if (isMetaCloud) {
-            // Official Meta API: Fast, highly reliable, no need for long cooling pauses
-            await new Promise((r) => setTimeout(r, 600));
-          } else {
-            // Anti-ban cooling rule for direct phone QR (Baileys):
-            // Every 8 sent messages, enforce an extended cooling-off pause of 70-110 seconds to mimic human breaks
-            if (batchTotal > 0 && batchTotal % 8 === 0) {
-              const coolDownMs = 70000 + Math.floor(Math.random() * 40000); // 70s to 110s
-              console.log(
-                `[WhatsApp Anti-Ban] 🛡️ Completed safety cycle of 8 messages for property ${propertyId}. Enforcing cooling-off pause for ${Math.round(coolDownMs / 1000)}s to prevent account flag...`,
-              );
-              await new Promise((r) => setTimeout(r, coolDownMs));
-              console.log(
-                `[WhatsApp Anti-Ban] ✅ Cooling-off pause completed. Resuming safe dispatch.`,
-              );
-            } else {
-              // Enhanced human delay jitter: 10,000ms to 18,000ms (10 to 18 seconds)
-              const jitterMs = 10000 + Math.floor(Math.random() * 8000);
-              await new Promise((r) => setTimeout(r, jitterMs));
-            }
-          }
-        } else if (result.reason === "NOT_REGISTERED") {
-          failed++;
-          await pool
-            .query(
-              `UPDATE public.whatsapp_outbox_queue 
-             SET status = 'NOT_REGISTERED', processed_at = NOW(), last_error = 'Number not registered on WhatsApp' 
-             WHERE id = $1`,
-              [item.id],
-            )
-            .catch(() => {});
-          // Gentle 2-3s delay before trying next item
-          await new Promise((r) =>
-            setTimeout(r, 2000 + Math.floor(Math.random() * 1500)),
+        if (isMetaCloud) {
+          await sleep(600);
+        } else if (batchTotal % 8 === 0) {
+          // Longer break every 8 messages, like a person pausing.
+          const coolDownMs = 70000 + Math.floor(Math.random() * 40000);
+          console.log(
+            `[WhatsApp Anti-Ban] 🛡️ 8 messages sent for property ${propertyId}; pausing ${Math.round(coolDownMs / 1000)}s.`,
           );
-        } else if (result.reason === "NOT_CONNECTED") {
-          // Revert to PENDING so it retries automatically when connection restores
-          await pool
-            .query(
-              `UPDATE public.whatsapp_outbox_queue 
-             SET status = 'PENDING', retry_count = retry_count + 1, last_error = 'WhatsApp disconnected during dispatch' 
-             WHERE id = $1`,
-              [item.id],
-            )
-            .catch(() => {});
-          return {
-            processed,
-            failed,
-            pendingRemaining: await getPendingQueueCount(propertyId),
-          };
+          await sleep(coolDownMs);
         } else {
-          const nextRetry = (item.retry_count || 0) + 1;
-          const finalStatus = nextRetry >= 5 ? "FAILED" : "PENDING";
-          failed++;
-          await pool
-            .query(
-              `UPDATE public.whatsapp_outbox_queue 
-             SET status = $1, retry_count = $2, last_error = $3, processed_at = ${finalStatus === "FAILED" ? "NOW()" : "NULL"} 
-             WHERE id = $4`,
-              [
-                finalStatus,
-                nextRetry,
-                result.reason || "Unknown error",
-                item.id,
-              ],
-            )
-            .catch(() => {});
-          await new Promise((r) => setTimeout(r, 3000));
+          await sleep(10000 + Math.floor(Math.random() * 8000));
         }
+      } else if (result.reason === "NOT_REGISTERED") {
+        failed++;
+        await pool
+          .query(
+            `UPDATE public.whatsapp_outbox_queue
+             SET status = 'NOT_REGISTERED', processed_at = NOW(), last_error = 'Number not registered on WhatsApp'
+             WHERE id = $1`,
+            [item.id],
+          )
+          .catch(() => {});
+        await sleep(2000 + Math.floor(Math.random() * 1500));
+      } else if (result.reason === "INVALID_PHONE") {
+        failed++;
+        await pool
+          .query(
+            `UPDATE public.whatsapp_outbox_queue
+             SET status = 'FAILED', processed_at = NOW(), last_error = 'Invalid phone number'
+             WHERE id = $1`,
+            [item.id],
+          )
+          .catch(() => {});
+      } else if (result.reason === "NOT_CONNECTED") {
+        // Back to PENDING; sent when the connection is restored.
+        await pool
+          .query(
+            `UPDATE public.whatsapp_outbox_queue
+             SET status = 'PENDING', last_error = 'WhatsApp disconnected during dispatch'
+             WHERE id = $1`,
+            [item.id],
+          )
+          .catch(() => {});
+        break;
+      } else {
+        failed++;
+        const nextRetry = (item.retry_count || 0) + 1;
+        const giveUp = nextRetry > MAX_RETRIES;
+        const delayMin =
+          RETRY_DELAY_MIN[Math.min(nextRetry, RETRY_DELAY_MIN.length) - 1];
+        await pool
+          .query(
+            `UPDATE public.whatsapp_outbox_queue
+             SET status = $1, retry_count = $2, last_error = $3,
+                 processed_at = ${giveUp ? "NOW()" : "NULL"},
+                 next_attempt_at = ${giveUp ? "NULL" : `NOW() + ($5 || ' minutes')::interval`}
+             WHERE id = $4`,
+            giveUp
+              ? ["FAILED", nextRetry, result.reason || "Unknown error", item.id]
+              : [
+                  "PENDING",
+                  nextRetry,
+                  result.reason || "Unknown error",
+                  item.id,
+                  String(delayMin),
+                ],
+          )
+          .catch(() => {});
+
+        // WhatsApp throttling / restricting the number: stop for an hour.
+        if (!isMetaCloud && RATE_LIMIT_RE.test(String(result.reason || ""))) {
+          sendingPausedUntil.set(propertyId, Date.now() + 60 * 60 * 1000);
+          console.error(
+            `[WhatsApp Anti-Ban] ⛔ Property ${propertyId}: WhatsApp rate-limited or restricted the number (${result.reason}). Sending paused for 1 hour.`,
+          );
+          await recordWhatsAppAlert(
+            propertyId,
+            "تم إيقاف إرسال الواتساب مؤقتاً لمدة ساعة لأن واتساب قيّد الرقم أو حدّ من الإرسال. / WhatsApp sending paused for 1 hour: the number was rate-limited or restricted.",
+            String(result.reason || ""),
+          );
+          break;
+        }
+        await sleep(3000);
       }
     }
 
@@ -219,6 +268,46 @@ export async function processOutboxQueue(
   } finally {
     isProcessingOutbox.set(propertyId, false);
   }
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Critical WhatsApp event (paused, logged out, banned): written to the
+ * activity log so admins see it.
+ */
+export async function recordWhatsAppAlert(
+  propertyId: number,
+  message: string,
+  detail?: string,
+): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO public.activity_logs
+         (property_id, username, action, action_type, module, severity, entity_type, details, timestamp)
+       VALUES ($1, 'system', $2, 'ALERT', 'whatsapp', 'critical', 'whatsapp', $3, NOW())`,
+      [propertyId, message, JSON.stringify({ detail: detail ?? null })],
+    );
+  } catch (err: any) {
+    console.error("[WhatsApp] could not record alert:", err?.message);
+  }
+}
+
+/**
+ * Messages left PROCESSING by a restart mid-send go back to PENDING.
+ */
+export async function recoverStuckOutboxMessages(): Promise<void> {
+  try {
+    const res = await pool.query(
+      `UPDATE public.whatsapp_outbox_queue SET status = 'PENDING'
+       WHERE status = 'PROCESSING'`,
+    );
+    if (res.rowCount) {
+      console.log(
+        `[WhatsApp Outbox] Recovered ${res.rowCount} message(s) stuck in PROCESSING.`,
+      );
+    }
+  } catch {}
 }
 
 /**
@@ -551,6 +640,31 @@ export async function sendWhatsAppMessageSafe(
       "Invalid phone number format",
     );
     return { success: false, reason: "INVALID_PHONE" };
+  }
+
+  if (messageType !== "TEST") {
+    // Broadcasts are never sent to numbers that opted out.
+    if (
+      !isTransactionalType(messageType) &&
+      (await isOptedOut(propertyId, cleanPhone))
+    ) {
+      return { success: false, reason: "OPTED_OUT" };
+    }
+    // Same text to the same number already waiting or sent in the last 24h
+    // (double click, repeated broadcast): sending it twice looks like spam.
+    try {
+      const dup = await pool.query(
+        `SELECT 1 FROM public.whatsapp_outbox_queue
+         WHERE property_id = $1 AND recipient_phone = $2 AND message_content = $3
+           AND (status IN ('PENDING', 'PROCESSING')
+                OR (status = 'SENT' AND processed_at > NOW() - INTERVAL '24 hours'))
+         LIMIT 1`,
+        [propertyId, cleanPhone, text],
+      );
+      if (dup.rows.length > 0) {
+        return { success: false, reason: "DUPLICATE" };
+      }
+    } catch {}
   }
 
   // 1. Insert into persistent database outbox queue

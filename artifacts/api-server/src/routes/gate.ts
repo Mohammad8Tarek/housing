@@ -1,3 +1,4 @@
+import { reportPropertyCondition } from "../lib/report-property-scope.js";
 import { Router } from "express";
 import crypto from "crypto";
 import QRCode from "qrcode";
@@ -722,10 +723,11 @@ router.get(
       const limit = Math.min(2000, Math.max(1, Number(req.query.limit) || 20));
       const offset = (page - 1) * limit;
 
-      const propertyId =
-        req.query.propertyId && req.query.propertyId !== "all"
-          ? Number(req.query.propertyId)
-          : null;
+      // Limited to the properties this user may read (also for "all").
+      const propertyScope = reportPropertyCondition(
+        req,
+        gateLogsTable.propertyId,
+      );
       const direction = req.query.direction as string | undefined;
       const status = req.query.status as string | undefined;
       const search = req.query.search as string | undefined;
@@ -733,9 +735,7 @@ router.get(
 
       const conditions = [];
 
-      if (propertyId) {
-        conditions.push(eq(gateLogsTable.propertyId, propertyId));
-      }
+      if (propertyScope) conditions.push(propertyScope);
       if (direction && direction !== "all") {
         conditions.push(eq(gateLogsTable.direction, direction));
       }
@@ -829,19 +829,17 @@ router.get(
   validate({ query: GateStatsQuery }),
   async (req, res): Promise<void> => {
     try {
-      const propertyId =
-        req.query.propertyId && req.query.propertyId !== "all"
-          ? Number(req.query.propertyId)
-          : null;
+      const propertyScope = reportPropertyCondition(
+        req,
+        gateLogsTable.propertyId,
+      );
       const date =
         (req.query.date as string) || new Date().toISOString().slice(0, 10);
 
       const baseConditions = [
         sql`DATE(${gateLogsTable.scannedAt} AT TIME ZONE 'UTC') = ${date}::date`,
       ];
-      if (propertyId) {
-        baseConditions.push(eq(gateLogsTable.propertyId, propertyId));
-      }
+      if (propertyScope) baseConditions.push(propertyScope);
 
       const whereBase = and(...baseConditions);
 

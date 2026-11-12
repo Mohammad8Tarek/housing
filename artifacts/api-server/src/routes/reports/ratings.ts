@@ -14,6 +14,7 @@ import { requirePermission } from "../../middlewares/permissions.js";
 import { validate } from "../../middlewares/validate.js";
 import { RatingsReportQuery } from "../../validation/schemas.js";
 import { getTenantId } from "../../lib/request-utils.js";
+import { reportPropertyCondition } from "../../lib/report-property-scope.js";
 import { withTableFallback } from "../../lib/with-table-fallback.js";
 
 const router: Router = Router();
@@ -272,11 +273,6 @@ router.get(
   validate({ query: RatingsReportQuery }),
   async (req, res, next) => {
     try {
-      const rawProp = req.query.propertyId as string | undefined;
-      const isAll =
-        !rawProp || rawProp === "all" || rawProp === "-1" || rawProp === "0";
-      const propertyId = isAll ? null : Number(rawProp);
-
       const fromDate = req.query.fromDate as string | undefined;
       const toDate = req.query.toDate as string | undefined;
       const ratingFilter = (
@@ -291,9 +287,12 @@ router.get(
 
       let conditions: any[] = [];
 
-      if (propertyId) {
-        conditions.push(eq(propertyHousingRatingsTable.propertyId, propertyId));
-      }
+      // Limited to the properties this user may read (also for "all").
+      const propertyScope = reportPropertyCondition(
+        req,
+        propertyHousingRatingsTable.propertyId,
+      );
+      if (propertyScope) conditions.push(propertyScope);
 
       if (ratingFilter && ratingFilter !== "all") {
         conditions.push(eq(propertyHousingRatingsTable.rating, ratingFilter));

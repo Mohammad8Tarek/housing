@@ -45,8 +45,8 @@ export async function requirePortalAuth(req: any, res: any, next: any) {
     const xSid = req.headers["x-session-id"] as string | undefined;
 
     // DEBUG: log why auth failed
+    // (no session ids in logs: they are bearer credentials)
     const debugInfo: any = {
-      sessionID: req.sessionID,
       hasCookie: !!req.headers["cookie"],
       portalInSession: !!(req.session as any)?.portal,
     };
@@ -61,7 +61,6 @@ export async function requirePortalAuth(req: any, res: any, next: any) {
     }
 
     req.sessionStore.get(xSid, (err: any, storedSess: any) => {
-      debugInfo.xSid = xSid;
       debugInfo.storeError = err?.message;
       debugInfo.storeFound = !!storedSess;
       debugInfo.storeHasPortal = !!storedSess?.portal;

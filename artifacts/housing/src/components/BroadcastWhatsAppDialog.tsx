@@ -120,6 +120,34 @@ export function BroadcastWhatsAppDialog({
   // Preview & sending states
   const [isLoadingPreview, setIsLoadingPreview] = useState<boolean>(false);
   const [isSending, setIsSending] = useState<boolean>(false);
+  // Anti-ban state of the WhatsApp number (safe daily quota, opt-outs...)
+  const [antiBan, setAntiBan] = useState<{
+    banned?: boolean;
+    sendingPausedUntil?: string | null;
+    optOutCount?: number;
+    quota?: {
+      sentLast24h: number;
+      dayLimit: number;
+      hourLimit: number;
+      warmup: boolean;
+      broadcastRemaining: number;
+    } | null;
+  } | null>(null);
+  useEffect(() => {
+    if (!open || !numPropId) return;
+    let cancelled = false;
+    fetch(`/api/whatsapp/status?propertyId=${numPropId}`, {
+      credentials: "include",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d) setAntiBan(d);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open, numPropId]);
   const [previewData, setPreviewData] = useState<{
     totalMatched: number;
     readyCount: number;
@@ -301,10 +329,30 @@ export function BroadcastWhatsAppDialog({
         throw new Error(data.error || "Failed to send broadcast");
       }
 
+      const st = data.stats || {};
+      const skipped: string[] = [];
+      if (st.skippedOptedOut)
+        skipped.push(
+          ar
+            ? `${st.skippedOptedOut} ألغوا الاشتراك`
+            : `${st.skippedOptedOut} opted out`,
+        );
+      if (st.skippedDuplicate)
+        skipped.push(
+          ar
+            ? `${st.skippedDuplicate} مكرر`
+            : `${st.skippedDuplicate} duplicates`,
+        );
       toast.success(
         ar
-          ? `🚀 تم جدولة إرسال ${data.stats?.queued || eligibleRecipients.length} رسالة جماعية في الخلفية بأمان!`
-          : `🚀 Broadcast queued successfully for ${data.stats?.queued || eligibleRecipients.length} recipients!`,
+          ? `🚀 تم جدولة إرسال ${st.queued ?? 0} رسالة جماعية في الخلفية بأمان!`
+          : `🚀 Broadcast queued for ${st.queued ?? 0} recipients!`,
+        skipped.length
+          ? {
+              description:
+                (ar ? "تم استبعاد: " : "Skipped: ") + skipped.join(" · "),
+            }
+          : undefined,
       );
       onOpenChange(false);
     } catch (err: any) {
@@ -823,22 +871,15 @@ export function BroadcastWhatsAppDialog({
             />
           </div>
 
-          {/* Anti-Ban Safe Pacing Footer Note */}
-          <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-xs text-muted-foreground flex items-start gap-2.5">
-            <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-            <div className="space-y-0.5">
-              <span className="font-bold text-foreground">
-                {ar
-                  ? "إرسال ذكي آمن ضد حظر الواتساب:"
-                  : "Anti-Ban Safe Pacing:"}
-              </span>
-              <p className="leading-normal">
-                {ar
-                  ? "يتم توزيع الرسائل عبر طابور ذكي مع تأخير واقعي ومحاكاة الكتابة البشرية (Human Typing Delay)، مما يضمن وصول الرسائل للجميع بسلاسة دون تعريض الرقم للإيقاف."
-                  : "Messages are paced in a background queue with realistic human typing delays to protect your WhatsApp account from being flagged."}
-              </p>
-            </div>
-          </div>
+          {/* Anti-ban: safe quota, estimated time, warnings */}
+          <AntiBanPanel
+            ar={ar}
+            antiBan={antiBan}
+            recipientCount={
+              previewData?.recipients?.filter((r: any) => r.hasPhone).length ??
+              0
+            }
+          />
         </div>
 
         <DialogFooter className="p-4 border-t bg-muted/30 sticky bottom-0 z-10 flex items-center justify-between sm:justify-between">
@@ -874,5 +915,105 @@ export function BroadcastWhatsAppDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Estimated minutes to send n messages at the queue's pace (QR mode). */
+function estimateMinutes(n: number, hourLimit: number): number {
+  if (n <= 0) return 0;
+  // ~14s per message + ~90s pause every 8, capped by the hourly limit.
+  const paced = (n * 14 + Math.floor(n / 8) * 90) / 60;
+  const byHourCap = (Math.ceil(n / Math.max(1, hourLimit)) - 1) * 60;
+  return Math.ceil(Math.max(paced, byHourCap));
+}
+
+function AntiBanPanel({
+  ar,
+  antiBan,
+  recipientCount,
+}: {
+  ar: boolean;
+  antiBan: any;
+  recipientCount: number;
+}) {
+  const q = antiBan?.quota;
+  if (antiBan?.banned) {
+    return (
+      <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-xs flex items-start gap-2.5">
+        <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+        <p className="leading-normal text-red-700 dark:text-red-300">
+          {ar
+            ? "واتساب رفض الاتصال بهذا الرقم (غالباً تم حظره أو تقييده). الإرسال متوقف — راجع الرقم على الهاتف ثم أعد الربط من الإعدادات."
+            : "WhatsApp refused this number (likely banned or restricted). Sending is stopped: check the phone, then link again from Settings."}
+        </p>
+      </div>
+    );
+  }
+  const remaining = q?.broadcastRemaining ?? null;
+  const overQuota = remaining !== null && recipientCount > remaining;
+  const today =
+    remaining === null ? recipientCount : Math.min(recipientCount, remaining);
+  const minutes = q ? estimateMinutes(today, q.hourLimit) : 0;
+  const days =
+    remaining !== null && q
+      ? Math.ceil(recipientCount / Math.max(1, q.dayLimit))
+      : 1;
+  return (
+    <div
+      className={`p-3 rounded-lg border text-xs flex items-start gap-2.5 ${
+        overQuota
+          ? "bg-amber-500/10 border-amber-500/30"
+          : "bg-emerald-500/5 border-emerald-500/20"
+      }`}
+    >
+      <ShieldCheck
+        className={`w-5 h-5 shrink-0 mt-0.5 ${overQuota ? "text-amber-600" : "text-emerald-600"}`}
+      />
+      <div className="space-y-1 text-muted-foreground">
+        <span className="font-bold text-foreground">
+          {ar ? "حماية الرقم من الحظر" : "Number protection"}
+        </span>
+        {q && (
+          <p>
+            {ar
+              ? `المُرسل آخر 24 ساعة: ${q.sentLast24h} من ${q.dayLimit} (الحد الآمن)${q.warmup ? " — رقم جديد في فترة التسخين" : ""}. المتبقي اليوم: ${remaining}.`
+              : `Sent in the last 24h: ${q.sentLast24h} of ${q.dayLimit} (safe limit)${q.warmup ? ", new number warm-up" : ""}. Remaining today: ${remaining}.`}
+          </p>
+        )}
+        {recipientCount > 0 && q && (
+          <p>
+            {ar
+              ? `${today} رسالة اليوم خلال حوالي ${minutes} دقيقة (رسالة كل 10–18 ثانية مع استراحات).`
+              : `${today} messages today in about ${minutes} min (one every 10–18s with breaks).`}
+          </p>
+        )}
+        {overQuota && (
+          <p className="font-medium text-amber-700 dark:text-amber-300">
+            {ar
+              ? `عدد المستلمين (${recipientCount}) أكبر من المتبقي اليوم؛ الباقي هيتبعت تلقائياً على مدار ${days} يوم. للأمان يُفضّل تقسيم المستلمين.`
+              : `${recipientCount} recipients exceed today's remaining quota; the rest go out automatically over ${days} days. Splitting the audience is safer.`}
+          </p>
+        )}
+        {!!antiBan?.sendingPausedUntil && (
+          <p className="font-medium text-amber-700 dark:text-amber-300">
+            {ar
+              ? "الإرسال متوقف مؤقتاً لأن واتساب حدّ من الرقم؛ سيُستأنف تلقائياً."
+              : "Sending is paused because WhatsApp throttled the number; it resumes automatically."}
+          </p>
+        )}
+        {!!antiBan?.optOutCount && (
+          <p>
+            {ar
+              ? `${antiBan.optOutCount} رقم ألغى الاشتراك (أرسل 0) ولن تصلهم الرسائل الجماعية.`
+              : `${antiBan.optOutCount} numbers opted out (replied 0) and are skipped.`}
+          </p>
+        )}
+        <p>
+          {ar
+            ? "نصيحة: اكتب رسائل شخصية بالاسم، وتجنّب الروابط الكثيرة، وخلي الناس يحفظوا الرقم — ده بيقلل البلاغات."
+            : "Tip: personalise with the name, avoid many links, and ask people to save the number. It reduces spam reports."}
+        </p>
+      </div>
+    </div>
   );
 }

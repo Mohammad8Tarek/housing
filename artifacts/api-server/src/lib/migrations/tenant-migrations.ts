@@ -1302,4 +1302,18 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         CHECK (status IN ('available', 'occupied', 'dirty', 'occupied_dirty', 'occupied_vacation', 'out_of_service', 'out_of_order', 'room_vacant', 'bed_vacant', 'room_and_bed_vacant', 'inspected', 'in_cleaning'));
     END $$`,
   },
+  {
+    name: "whatsapp_anti_ban_v2",
+    q: `
+      ALTER TABLE IF EXISTS whatsapp_outbox_queue ADD COLUMN IF NOT EXISTS next_attempt_at TIMESTAMPTZ;
+      CREATE TABLE IF NOT EXISTS whatsapp_opt_outs (
+        id SERIAL PRIMARY KEY,
+        property_id INTEGER NOT NULL,
+        phone TEXT NOT NULL,
+        source TEXT NOT NULL DEFAULT 'reply',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_tenant_wa_opt_outs_prop_phone ON whatsapp_opt_outs (property_id, phone);
+    `,
+  },
 ];

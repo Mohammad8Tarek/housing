@@ -6,6 +6,7 @@ import {
   timestamp,
   boolean,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -91,10 +92,29 @@ export const whatsappOutboxQueueTable = pgTable(
       .notNull()
       .defaultNow(),
     processedAt: timestamp("processed_at", { withTimezone: true }),
+    // Retry backoff: a failed message is not picked up again before this.
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
   },
   (table) => [
     index("idx_wa_outbox_property_status").on(table.propertyId, table.status),
     index("idx_wa_outbox_created_at").on(table.createdAt),
+  ],
+);
+
+// Numbers that replied 0 / STOP: they get no further broadcasts.
+export const whatsappOptOutsTable = pgTable(
+  "whatsapp_opt_outs",
+  {
+    id: serial("id").primaryKey(),
+    propertyId: integer("property_id").notNull(),
+    phone: text("phone").notNull(),
+    source: text("source").notNull().default("reply"), // reply | admin
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("uq_wa_opt_outs_prop_phone").on(table.propertyId, table.phone),
   ],
 );
 
