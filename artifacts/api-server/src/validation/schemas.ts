@@ -588,6 +588,11 @@ export const UpdateMaintenanceTicketBody = z.object({
   resolvedAt: o(bDate),
   dueDate: o(bDate),
 });
+// POST /maintenance/:id/comments
+export const MaintenanceCommentBody = z.object({
+  propertyId: o(bId),
+  comment: z.string().trim().min(1).max(2000),
+});
 // auth
 export const SwitchPropertyBody = body({ propertyId: o(bId) });
 export const ForgotOtpRequestBody = body({ identifier: o(bText(200)) });

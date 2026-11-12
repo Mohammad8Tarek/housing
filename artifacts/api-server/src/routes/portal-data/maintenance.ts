@@ -1,3 +1,4 @@
+import { recordTicketEvents } from "../../lib/maintenance-tickets.js";
 import { Router } from "express";
 import { withTenant } from "@workspace/db";
 import { assignmentsTable, maintenanceTable } from "@workspace/db";
@@ -132,8 +133,16 @@ router.post("/my-maintenance", async (req, res): Promise<void> => {
         status: "open",
         reportedBy: sess.fullName,
         photoUrl: parsed.data.photoUrl ?? null,
+        source: "portal",
       } as any)
       .returning();
+
+    await recordTicketEvents(
+      tenantDb,
+      request.id,
+      { name: sess.fullName, profileId: sess.profileDbId },
+      [{ type: "created", toValue: "open" }],
+    );
 
     return { request };
   });

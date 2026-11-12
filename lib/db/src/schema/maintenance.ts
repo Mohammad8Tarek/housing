@@ -45,6 +45,10 @@ export const maintenanceTable = pgTable(
     rating: integer("rating"),
     ratingComment: text("rating_comment"),
     ratedAt: timestamp("rated_at", { withTimezone: true }),
+    // Where the request came from: portal | admin | qr | system
+    source: text("source"),
+    // First time a technician / staff member was assigned
+    assignedAt: timestamp("assigned_at", { withTimezone: true }),
     ratedByProfileId: integer("rated_by_profile_id").references(
       () => profilesTable.id,
       {
@@ -67,6 +71,32 @@ export const maintenanceTable = pgTable(
     index("idx_maintenance_rated_at").on(table.ratedAt),
   ],
 );
+
+// Ticket history: status changes, assignments, priority changes and comments.
+export const maintenanceEventsTable = pgTable(
+  "maintenance_events",
+  {
+    id: serial("id").primaryKey(),
+    ticketId: integer("ticket_id")
+      .notNull()
+      .references(() => maintenanceTable.id, { onDelete: "cascade" }),
+    // created | status | assigned | priority | comment
+    type: text("type").notNull(),
+    fromValue: text("from_value"),
+    toValue: text("to_value"),
+    comment: text("comment"),
+    actorName: text("actor_name"),
+    actorUserId: integer("actor_user_id"),
+    actorProfileId: integer("actor_profile_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_maintenance_events_ticket").on(table.ticketId, table.createdAt),
+  ],
+);
+export type MaintenanceEvent = typeof maintenanceEventsTable.$inferSelect;
 
 export const insertMaintenanceSchema = createInsertSchema(
   maintenanceTable,

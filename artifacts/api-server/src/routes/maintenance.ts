@@ -1,7 +1,13 @@
+import {
+  ticketNumber,
+  ticketSla,
+  recordTicketEvents,
+} from "../lib/maintenance-tickets.js";
 import { Router } from "express";
 import {
   db,
   maintenanceTable,
+  maintenanceEventsTable,
   roomsTable,
   buildingsTable,
   floorsTable,
@@ -42,6 +48,7 @@ import { validate } from "../middlewares/validate.js";
 import {
   CommonListQuery,
   UpdateMaintenanceTicketBody,
+  MaintenanceCommentBody,
   IdParams,
   PropertyIdOnlyBody,
   SubTicketBody,
@@ -361,6 +368,11 @@ function fmt(r: any) {
     assignedToName: r.assignedToName ?? null,
     assignedToProfileId: r.assignedToProfileId ?? null,
     residentName: r.residentName ?? null,
+    source: r.source ?? null,
+    assignedAt: safeISO(r.assignedAt),
+    // Ticket system: readable number and target (SLA) time
+    ticketNo: r.id != null ? ticketNumber(r) : null,
+    ...ticketSla(r),
   };
 }
 
@@ -599,6 +611,8 @@ router.get(
                     ratingComment: maintenanceTable.ratingComment,
                     ratedAt: maintenanceTable.ratedAt,
                     ratedByProfileId: maintenanceTable.ratedByProfileId,
+                    source: maintenanceTable.source,
+                    assignedAt: maintenanceTable.assignedAt,
                   })
                   .from(maintenanceTable)
                   .leftJoin(
@@ -765,6 +779,8 @@ router.get(
             ratingComment: maintenanceTable.ratingComment,
             ratedAt: maintenanceTable.ratedAt,
             ratedByProfileId: maintenanceTable.ratedByProfileId,
+            source: maintenanceTable.source,
+            assignedAt: maintenanceTable.assignedAt,
           })
           .from(maintenanceTable)
           .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
@@ -977,6 +993,8 @@ router.get(
                 ratingComment: maintenanceTable.ratingComment,
                 ratedAt: maintenanceTable.ratedAt,
                 ratedByProfileId: maintenanceTable.ratedByProfileId,
+                source: maintenanceTable.source,
+                assignedAt: maintenanceTable.assignedAt,
               })
               .from(maintenanceTable)
               .leftJoin(roomsTable, eq(maintenanceTable.roomId, roomsTable.id))
@@ -1153,8 +1171,30 @@ router.post(
               notes: req.body.notes || null,
               ...(parentId ? { parentId } : {}),
               status: "open",
+              source: "admin",
+              assignedAt:
+                req.body.workerId || req.body.assignedTo ? new Date() : null,
             } as any)
             .returning();
+
+          // Ticket history: created (and assigned, if a technician was set).
+          const actor = {
+            name: user?.displayName || user?.username || null,
+            userId: user?.id ?? null,
+          };
+          await recordTicketEvents(tenantDb, inserted[0].id, actor, [
+            { type: "created", toValue: "open" },
+            ...(req.body.workerId || req.body.assignedTo
+              ? [
+                  {
+                    type: "assigned" as const,
+                    toValue: req.body.workerId
+                      ? `worker:${req.body.workerId}`
+                      : `profile:${req.body.assignedTo}`,
+                  },
+                ]
+              : []),
+          ]);
 
           let roomNum: string | undefined;
           if (inserted[0]?.roomId) {
@@ -1401,6 +1441,56 @@ router.patch(
         });
         return;
       }
+
+      // First assignment time (for the ticket's response-time metrics).
+      const assigning =
+        ("workerId" in updateData && updateData.workerId) ||
+        ("assignedTo" in updateData && updateData.assignedTo);
+      if (assigning && !existingRecord.assignedAt) {
+        updateData.assignedAt = new Date();
+      }
+
+      // Ticket history entries for what this change does.
+      const historyEvents: Array<{
+        type: "status" | "assigned" | "priority";
+        fromValue?: string | null;
+        toValue?: string | null;
+      }> = [];
+      if (updateData.status && updateData.status !== existingRecord.status) {
+        historyEvents.push({
+          type: "status",
+          fromValue: existingRecord.status,
+          toValue: updateData.status,
+        });
+      }
+      for (const key of ["workerId", "assignedTo"] as const) {
+        if (
+          key in updateData &&
+          String(updateData[key] ?? "") !== String(existingRecord[key] ?? "")
+        ) {
+          const kind = key === "workerId" ? "worker" : "profile";
+          historyEvents.push({
+            type: "assigned",
+            fromValue:
+              existingRecord[key] != null
+                ? `${kind}:${existingRecord[key]}`
+                : null,
+            toValue:
+              updateData[key] != null ? `${kind}:${updateData[key]}` : null,
+          });
+        }
+      }
+      if (
+        updateData.priority &&
+        String(updateData.priority).toLowerCase() !==
+          String(existingRecord.priority ?? "").toLowerCase()
+      ) {
+        historyEvents.push({
+          type: "priority",
+          fromValue: existingRecord.priority,
+          toValue: updateData.priority,
+        });
+      }
       if ("workerId" in updateData) {
         updateData.workerId = updateData.workerId
           ? Number(updateData.workerId)
@@ -1420,6 +1510,18 @@ router.patch(
             .set(updateData as any)
             .where(eq(maintenanceTable.id, p.data.id))
             .returning();
+
+          if (result[0]) {
+            await recordTicketEvents(
+              tenantDb,
+              result[0].id,
+              {
+                name: user?.displayName || user?.username || null,
+                userId: user?.id ?? null,
+              },
+              historyEvents,
+            );
+          }
 
           let roomNum: string | undefined;
           if (result[0]?.roomId) {
@@ -1916,6 +2018,166 @@ router.post(
         .json(fmt({ ...record, propertyId: targetPropertyId }));
     } catch (err) {
       return next(err);
+    }
+  },
+);
+
+// ─── Ticket history & comments ─────────────────────────────────────────────
+// Loads a ticket of the request's property and checks the user may see /
+// work on its category. Returns null after answering when not allowed.
+async function loadTicketForHistory(req: any, res: any, mode: "view" | "edit") {
+  const user = (req as any).authUser;
+  const isSysAdmin =
+    user?.isSystemAdmin ||
+    user?.roles?.includes("super_admin") ||
+    user?.roles?.includes("system_admin");
+  const propertyId = getTenantId(req);
+  const ticketId = Number(req.params.id);
+  if (!propertyId || !ticketId) {
+    res
+      .status(400)
+      .json({ success: false, message: "propertyId and id required" });
+    return null;
+  }
+  const [ticket] = await withTenant(propertyId, (tenantDb) =>
+    tenantDb
+      .select({ id: maintenanceTable.id, category: maintenanceTable.category })
+      .from(maintenanceTable)
+      .where(eq(maintenanceTable.id, ticketId))
+      .limit(1),
+  );
+  if (!ticket) {
+    res
+      .status(404)
+      .json({ success: false, message: "البلاغ غير موجود / Ticket not found" });
+    return null;
+  }
+  if (!isSysAdmin) {
+    const hsk = ticket.category === "housekeeping";
+    const allowed = hsk
+      ? hasPermission(user, "housekeeping", mode) ||
+        hasPermission(user, "housekeeping", "view") ||
+        hasPermission(user, "maintenance", "view_housekeeping")
+      : hasPermission(user, "maintenance", mode) ||
+        hasPermission(user, "maintenance", "view") ||
+        hasPermission(user, "maintenance", "view_maintenance");
+    if (!allowed) {
+      res.status(403).json({ success: false, message: "Permission denied" });
+      return null;
+    }
+  }
+  return { user, propertyId, ticketId };
+}
+
+// GET /maintenance/:id/events — the ticket's history and comments, oldest first
+router.get(
+  "/maintenance/:id/events",
+  requireAnyPermission(
+    ["maintenance", "view"],
+    ["maintenance", "view_maintenance"],
+    ["maintenance", "view_housekeeping"],
+    ["housekeeping", "view"],
+  ),
+  validate({ params: IdParams, query: CommonListQuery }),
+  async (req, res, next) => {
+    try {
+      const ctx = await loadTicketForHistory(req, res, "view");
+      if (!ctx) return;
+      const events = await withTenant(ctx.propertyId, async (tenantDb) => {
+        const rows = await tenantDb
+          .select()
+          .from(maintenanceEventsTable)
+          .where(eq(maintenanceEventsTable.ticketId, ctx.ticketId))
+          .orderBy(maintenanceEventsTable.createdAt, maintenanceEventsTable.id);
+
+        // Names for assignment entries ("worker:5" / "profile:7").
+        const ids = { worker: new Set<number>(), profile: new Set<number>() };
+        for (const r of rows) {
+          for (const v of [r.fromValue, r.toValue]) {
+            const m = /^(worker|profile):(\d+)$/.exec(String(v ?? ""));
+            if (m) ids[m[1] as "worker" | "profile"].add(Number(m[2]));
+          }
+        }
+        const names = new Map<string, string>();
+        if (ids.worker.size) {
+          const ws = await tenantDb
+            .select({ id: workersTable.id, name: workersTable.name })
+            .from(workersTable)
+            .where(inArray(workersTable.id, [...ids.worker]));
+          for (const w of ws) names.set(`worker:${w.id}`, w.name);
+        }
+        if (ids.profile.size) {
+          const ps = await tenantDb
+            .select({
+              id: profilesTable.id,
+              firstName: profilesTable.firstName,
+              lastName: profilesTable.lastName,
+            })
+            .from(profilesTable)
+            .where(inArray(profilesTable.id, [...ids.profile]));
+          for (const p of ps)
+            names.set(
+              `profile:${p.id}`,
+              `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim(),
+            );
+        }
+        const label = (v: string | null) => (v ? (names.get(v) ?? v) : null);
+        return rows.map((r) => ({
+          id: r.id,
+          type: r.type,
+          fromValue: r.type === "assigned" ? label(r.fromValue) : r.fromValue,
+          toValue: r.type === "assigned" ? label(r.toValue) : r.toValue,
+          comment: r.comment,
+          actorName: r.actorName,
+          createdAt:
+            r.createdAt instanceof Date
+              ? r.createdAt.toISOString()
+              : r.createdAt,
+        }));
+      });
+      res.json({ success: true, data: events });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /maintenance/:id/comments — add a comment to the ticket's history
+router.post(
+  "/maintenance/:id/comments",
+  requireAnyPermission(
+    ["maintenance", "edit"],
+    ["maintenance", "view"],
+    ["maintenance", "view_maintenance"],
+    ["housekeeping", "edit"],
+    ["housekeeping", "view"],
+    ["maintenance", "view_housekeeping"],
+  ),
+  validate({
+    params: IdParams,
+    query: CommonListQuery,
+    body: MaintenanceCommentBody,
+  }),
+  async (req, res, next) => {
+    try {
+      const ctx = await loadTicketForHistory(req, res, "edit");
+      if (!ctx) return;
+      const actorName = ctx.user?.displayName || ctx.user?.username || null;
+      await withTenant(ctx.propertyId, (tenantDb) =>
+        recordTicketEvents(
+          tenantDb,
+          ctx.ticketId,
+          { name: actorName, userId: ctx.user?.id ?? null },
+          [{ type: "comment", comment: req.body.comment }],
+        ),
+      );
+      broadcastToProperty(ctx.propertyId, {
+        module: "maintenance",
+        action: "sync",
+      });
+      res.status(201).json({ success: true });
+    } catch (err) {
+      next(err);
     }
   },
 );
