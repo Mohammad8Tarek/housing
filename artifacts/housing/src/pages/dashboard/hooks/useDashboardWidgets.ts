@@ -15,6 +15,7 @@ import {
   Home,
   CheckCircle2,
   type LucideIcon,
+  AlarmClock,
 } from "lucide-react";
 
 export type DashboardWidgetId =
@@ -33,7 +34,8 @@ export type DashboardWidgetId =
   | "building_charts"
   | "capacity_matrix"
   | "daily_operations"
-  | "housekeeping_queue";
+  | "housekeeping_queue"
+  | "sla_watch";
 
 export interface DashboardWidgetMeta {
   id: DashboardWidgetId;
@@ -171,6 +173,20 @@ export const DASHBOARD_WIDGETS_REGISTRY: DashboardWidgetMeta[] = [
     requiredModule: "housekeeping",
     requiredAction: "view",
     icon: CheckCircle2,
+    defaultVisible: true,
+  },
+  {
+    id: "sla_watch",
+    labelAr: "البلاغات المتأخرة",
+    labelEn: "Late Tickets",
+    descAr:
+      "البلاغات المفتوحة اللي عدّت الوقت المستهدف أو قربت، حسب الفني والقسم",
+    descEn:
+      "Open tickets past or close to their target time, by technician and department",
+    category: "operations",
+    requiredModule: "maintenance",
+    requiredAction: "view",
+    icon: AlarmClock,
     defaultVisible: true,
   },
   {

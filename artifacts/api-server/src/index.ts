@@ -370,6 +370,15 @@ async function start(): Promise<void> {
       logger.error({ err }, "Failed to schedule maintenance daily report");
     }
 
+    // Scheduled report emails (checked every 10 minutes)
+    try {
+      const { initReportScheduleCron } =
+        await import("./lib/report-schedules.js");
+      initReportScheduleCron();
+    } catch (err) {
+      logger.error({ err }, "Failed to start scheduled reports");
+    }
+
     // 2. Start PMS V2.1 Servers (they bind to 10006 locally)
     startAllPmsServers(app).catch((err) => {
       logger.error({ err }, "Failed to start PMS Servers (async caught)");

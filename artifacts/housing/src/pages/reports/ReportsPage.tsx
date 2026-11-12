@@ -1,3 +1,4 @@
+import { ReportSchedulesDialog } from "./components/ReportSchedulesDialog";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useProperty } from "@/context/PropertyContext";
@@ -405,6 +406,14 @@ export default function Reports() {
                 <span>{ar ? "كستم ريبورت" : "Custom Reports"}</span>
               </Button>
             </Link>
+          )}
+          {canExportReports && (
+            <ReportSchedulesDialog
+              ar={ar}
+              propId={data.propId}
+              report={filters.activeTab}
+              filters={filters}
+            />
           )}
           <ExportToolbar
             canExportReports={canExportReports}

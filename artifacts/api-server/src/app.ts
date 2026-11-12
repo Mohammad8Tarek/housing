@@ -7,6 +7,7 @@
  * 3. Error Handling: Global handler for all async errors.
  */
 
+import { setSessionStore } from "./lib/session-store-ref.js";
 import "./env.js";
 import express, { type Express, type Request } from "express";
 import cors from "cors";
@@ -189,6 +190,8 @@ if (sessionStoreType === "postgresql") {
 } else {
   sessionStore = new session.MemoryStore();
 }
+
+setSessionStore(sessionStore);
 
 const isProduction = process.env["NODE_ENV"] === "production";
 
@@ -391,6 +394,15 @@ app.use("/api", (_req, res, next) => {
   );
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
+  next();
+});
+
+// Last activity time of signed-in sessions (saved at most once a minute).
+app.use("/api", (req, _res, next) => {
+  const s = req.session as any;
+  if (s?.userId && Date.now() - Number(s.lastSeenAt ?? 0) > 60_000) {
+    s.lastSeenAt = Date.now();
+  }
   next();
 });
 

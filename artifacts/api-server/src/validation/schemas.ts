@@ -948,3 +948,57 @@ export const AccessReviewQuery = z.object({
     .regex(/^[a-z_]+\.[a-z_]+$/)
     .optional(),
 });
+
+// GET /search — quick search across the current property
+export const GlobalSearchQuery = z.object({
+  q: z.string().max(100).optional(),
+  propertyId: digitsQuery.optional(),
+});
+
+// GET /assignments/in-house — list filters (plus the common page/limit/search)
+export const InHouseListQuery = CommonListQuery.extend({
+  // Stays ending: already past the expected date, or within N days
+  ending: z.enum(["overdue", "7", "14", "30"]).optional(),
+});
+
+// Sessions (devices): public session id is a 16-char hex hash
+export const SessionIdParams = z.object({
+  sid: z.string().regex(/^[a-f0-9]{16}$/),
+});
+export const UserSessionParams = z.object({
+  id: z.string().regex(/^\d{1,9}$/),
+  sid: z.string().regex(/^[a-f0-9]{16}$/),
+});
+
+// Scheduled report emails
+const scheduleEmails = z
+  .string()
+  .max(2000)
+  .refine(
+    (v) => {
+      const list = v
+        .split(/[,;\s]+/)
+        .map((e) => e.trim())
+        .filter(Boolean);
+      return (
+        list.length > 0 &&
+        list.length <= 20 &&
+        list.every((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+      );
+    },
+    { message: "1-20 valid email addresses" },
+  );
+const ReportScheduleFields = {
+  reportKey: z.enum(SERVER_REPORTS),
+  frequency: z.enum(["daily", "weekly", "monthly"]),
+  dayOfWeek: z.number().int().min(0).max(6).nullable().optional(),
+  dayOfMonth: z.number().int().min(1).max(28).nullable().optional(),
+  hour: z.number().int().min(0).max(23),
+  recipients: scheduleEmails,
+  lang: z.enum(["ar", "en"]),
+  filters: z.record(z.string().max(40), z.string().max(200)).optional(),
+};
+export const CreateReportScheduleBody = z.object(ReportScheduleFields);
+export const UpdateReportScheduleBody = z
+  .object({ ...ReportScheduleFields, enabled: z.boolean() })
+  .partial();

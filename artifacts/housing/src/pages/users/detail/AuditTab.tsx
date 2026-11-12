@@ -18,11 +18,32 @@ import {
 import { Activity, RefreshCw, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserDetailPageState } from "./useUserDetailPageState";
+import { SessionsList } from "@/components/SessionsList";
+import { PermissionGate } from "@/components/ui/permission-gate";
+import { MonitorSmartphone } from "lucide-react";
 
 export function renderAuditTab(s: UserDetailPageState) {
-  const { ar, isAuditLoading, refetchAudit, auditLogs } = s;
+  const { ar, isAuditLoading, refetchAudit, auditLogs, userId } = s;
   return (
     <div className="space-y-6">
+      <PermissionGate module="users" action="edit">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MonitorSmartphone className="w-5 h-5 text-[#C9A24D]" />
+              {ar ? "الأجهزة المسجّل دخول منها" : "Signed-in devices"}
+            </CardTitle>
+            <CardDescription>
+              {ar
+                ? "الجلسات المفتوحة للحساب ده دلوقتي. تقدر تخرّج جهاز واحد أو تخرّجه من كل الأجهزة."
+                : "This account's open sessions. Sign out one device or sign the user out everywhere."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SessionsList ar={ar} userId={userId} />
+          </CardContent>
+        </Card>
+      </PermissionGate>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>

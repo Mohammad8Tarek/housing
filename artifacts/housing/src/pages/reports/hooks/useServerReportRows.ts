@@ -58,7 +58,7 @@ type RowsPage = {
   };
 };
 
-const FILTER_KEYS = [
+export const FILTER_KEYS = [
   "filterBuilding",
   "filterFloor",
   "filterStatus",

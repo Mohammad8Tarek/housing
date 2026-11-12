@@ -63,6 +63,7 @@ import { GenderDemographicsCard } from "./components/GenderDemographicsCard";
 import { BuildingCapacityMatrix } from "./components/BuildingCapacityMatrix";
 import { HousekeepingPriorityQueue } from "./components/HousekeepingPriorityQueue";
 import { DailyOperationsHub } from "./components/DailyOperationsHub";
+import { SlaWatchCard } from "./components/SlaWatchCard";
 import { QuickAssistBar } from "./components/QuickAssistTab";
 import { useDashboardWidgets } from "./hooks/useDashboardWidgets";
 import { DashboardCustomizeDialog } from "./components/DashboardCustomizeDialog";
@@ -1143,6 +1144,16 @@ export default function Dashboard() {
               />
             ) : null;
 
+            const slaWatchNode =
+              isWidgetVisible("sla_watch") &&
+              typeof activePropertyId === "number" &&
+              activePropertyId > 0 ? (
+                <SlaWatchCard
+                  propertyId={activePropertyId}
+                  buildNavHref={buildNavHref}
+                />
+              ) : null;
+
             const hasAnyContent = Boolean(
               donutNode ||
               deptNode ||
@@ -1151,7 +1162,8 @@ export default function Dashboard() {
               matrixNode ||
               operationsHubNode ||
               housekeepingNode ||
-              ticketsHubNode,
+              ticketsHubNode ||
+              slaWatchNode,
             );
 
             if (!hasAnyContent) {
@@ -1200,6 +1212,7 @@ export default function Dashboard() {
                     {chartsNode}
                     {matrixNode}
                     {ticketsHubNode}
+                    {slaWatchNode}
                     {operationsHubNode}
                     {housekeepingNode}
                   </div>
@@ -1209,6 +1222,7 @@ export default function Dashboard() {
                 {dashboardViewMode === "operations" && (
                   <div className="space-y-6">
                     {ticketsHubNode}
+                    {slaWatchNode}
                     {operationsHubNode}
                     {(housekeepingNode || donutNode) && (
                       <div className="grid gap-5 md:grid-cols-2">
@@ -1226,6 +1240,7 @@ export default function Dashboard() {
                     {chartsNode}
                     {matrixNode}
                     {ticketsHubNode}
+                    {slaWatchNode}
                     {(deptNode || donutNode || genderNode) && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {deptNode}
@@ -1240,6 +1255,7 @@ export default function Dashboard() {
                 {dashboardViewMode === "compact" && (
                   <div className="space-y-5">
                     {ticketsHubNode}
+                    {slaWatchNode}
                     {(chartsNode || deptNode) && (
                       <div className="grid gap-5 lg:grid-cols-2">
                         {chartsNode}

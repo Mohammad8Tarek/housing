@@ -14,7 +14,7 @@ import { loadServiceCatalogue } from "./maintenance-services.js";
 
 export const REPORT_TIME_ZONE = "Africa/Cairo";
 
-const SERVICE_LABELS: Record<string, { ar: string; en: string }> = {
+export const SERVICE_LABELS: Record<string, { ar: string; en: string }> = {
   Plumbing: { ar: "سباكة", en: "Plumbing" },
   Electrical: { ar: "كهرباء", en: "Electrical" },
   HVAC: { ar: "تكييف وتبريد", en: "HVAC & AC" },

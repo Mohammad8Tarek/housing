@@ -1,3 +1,4 @@
+import { buildSlaWatch } from "../lib/maintenance-sla-watch.js";
 import {
   cachedService,
   invalidateServiceCatalogue,
@@ -1007,6 +1008,31 @@ router.get(
       } else {
         res.json({ success: true, ...report });
       }
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// GET /maintenance/sla-watch — open tickets that are late or about to be
+router.get(
+  "/maintenance/sla-watch",
+  requireAnyPermission(
+    ["maintenance", "view"],
+    ["maintenance", "view_maintenance"],
+    ["housekeeping", "view"],
+    ["dashboard", "view"],
+  ),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+        return;
+      }
+      res.json({ success: true, ...(await buildSlaWatch(propertyId)) });
     } catch (err) {
       next(err);
     }
