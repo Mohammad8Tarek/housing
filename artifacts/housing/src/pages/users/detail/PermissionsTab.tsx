@@ -1,4 +1,5 @@
 // User detail > Access & permissions tab.
+import { RoleTemplateLink } from "./RoleTemplateLink";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ export function renderPermissionsTab(s: UserDetailPageState) {
     ar,
     actorCanGrant,
     user,
+    refetchUser,
     allUsers,
     primaryRole,
     perms,
@@ -74,6 +76,11 @@ export function renderPermissionsTab(s: UserDetailPageState) {
   } = s;
   return (
     <div className="space-y-6">
+      {/* Role template link (permissions follow the template) */}
+      {user && (
+        <RoleTemplateLink user={user} ar={ar} onChanged={() => refetchUser()} />
+      )}
+
       {/* Pure RBAC Fine-Grained Permissions Banner */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 rounded-xl border bg-gradient-to-r from-card to-muted/30">
         <div className="flex items-center gap-3">

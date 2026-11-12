@@ -64,7 +64,7 @@ export type PermissionAction = (typeof PERMISSION_ACTIONS)[number];
 export const MODULE_ACTIONS: Record<PermissionModule, PermissionAction[]> = {
   dashboard: ["view"],
   housing: ["view", "create", "edit", "delete", "export"],
-  housekeeping: ["view", "create", "edit", "delete", "export"],
+  housekeeping: ["view", "create", "edit", "assign", "delete", "export"],
   profiles: [
     "view",
     "create",
@@ -89,6 +89,7 @@ export const MODULE_ACTIONS: Record<PermissionModule, PermissionAction[]> = {
     "create",
     "edit",
     "checkin",
+    "checkout",
     "delete",
     "export",
     "override_single_occupancy",
@@ -195,7 +196,7 @@ function resolveInheritedRoles(roles: string[]): string[] {
   return [...resolved];
 }
 
-const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
+export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   super_admin: PERMISSION_MODULES.flatMap((module) => allModulePerms(module)),
   system_admin: PERMISSION_MODULES.flatMap((module) => allModulePerms(module)),
   admin: [

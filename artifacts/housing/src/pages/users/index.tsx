@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/page-states";
 import { PermissionMatrixCenter } from "./components/PermissionMatrixCenter";
 import { CreateUserDialog } from "./components/CreateUserDialog";
+import { RoleTemplatesDialog } from "./components/RoleTemplatesDialog";
+import { usePermission } from "@/hooks/use-permission";
 import { DeleteUserDialog } from "./components/DeleteUserDialog";
 import { useUsersPageState } from "./list/useUsersPageState";
 import { renderUsersStats } from "./list/UsersStats";
@@ -28,6 +30,7 @@ import { renderBulkPropertiesDialog } from "./list/BulkPropertiesDialog";
 
 export default function UsersPage() {
   const s = useUsersPageState();
+  const { isSuperAdmin } = usePermission();
   const {
     ar,
     deleteUser,
@@ -93,6 +96,7 @@ export default function UsersPage() {
               onHideAll={uHideAll}
               ar={ar}
             />
+            {isSuperAdmin && <RoleTemplatesDialog ar={ar} />}
             <PermissionGate module="users" action="create">
               <CreateUserDialog properties={properties ?? []} />
             </PermissionGate>
