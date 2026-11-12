@@ -581,6 +581,27 @@ BEGIN
     );
     CREATE UNIQUE INDEX IF NOT EXISTS uq_maintenance_services_category_key ON "maintenance_services"("category", "key");
 
+    -- Reports emailed on a schedule
+    CREATE TABLE IF NOT EXISTS "report_schedules" (
+      "id" SERIAL PRIMARY KEY,
+      "report_key" TEXT NOT NULL,
+      "frequency" TEXT NOT NULL DEFAULT 'daily',
+      "day_of_week" INTEGER,
+      "day_of_month" INTEGER,
+      "hour" INTEGER NOT NULL DEFAULT 8,
+      "recipients" TEXT NOT NULL,
+      "lang" TEXT NOT NULL DEFAULT 'ar',
+      "filters" JSONB NOT NULL DEFAULT '{}'::jsonb,
+      "enabled" BOOLEAN NOT NULL DEFAULT true,
+      "created_by" INTEGER NOT NULL,
+      "created_by_name" TEXT,
+      "last_run_at" TIMESTAMPTZ,
+      "last_status" TEXT,
+      "last_error" TEXT,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     -- Ensure all columns exist
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "property_id" INTEGER;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "room_id" INTEGER;

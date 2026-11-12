@@ -71,6 +71,7 @@ async function allSessionsOf(req: Request, userId: number): Promise<Raw[]> {
         [String(userId)],
       );
       for (const r of res.rows) {
+        if (r.sess?.internalRun) continue; // report scheduler, not a device
         found.set(r.sid, { sid: r.sid, sess: r.sess, expire: r.expire });
       }
     } catch {
@@ -84,6 +85,7 @@ async function allSessionsOf(req: Request, userId: number): Promise<Raw[]> {
     );
     for (const [sid, sess] of Object.entries(all)) {
       if (Number(sess?.userId) !== userId || found.has(sid)) continue;
+      if (sess?.internalRun) continue; // report scheduler, not a device
       const exp = sess?.cookie?.expires ? new Date(sess.cookie.expires) : null;
       if (exp && exp.getTime() < Date.now()) continue;
       found.set(sid, { sid, sess, expire: exp });

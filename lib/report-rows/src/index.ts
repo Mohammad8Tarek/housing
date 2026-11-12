@@ -3,3 +3,4 @@ export * from "./sort";
 export * from "./analytics";
 export * from "./manager-flash";
 export * from "./forecast";
+export * from "./columns";

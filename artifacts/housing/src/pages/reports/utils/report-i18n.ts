@@ -1,3 +1,4 @@
+import { REPORT_TITLES } from "@workspace/report-rows";
 // ============================================================================
 // Sunrise Staff Housing Management System — Enterprise Luxury Report Engine
 // Report tab configuration, Opera codes, bilingual header map and value translators.
@@ -216,120 +217,8 @@ export const REPORT_OPERA_CODES: Record<string, string> = {
 // ----------------------------------------------------------------------------
 // 1.1 Bilingual Titles & Hospitality Mapping (Opera PMS Standard)
 // ----------------------------------------------------------------------------
-export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> = {
-  manager_flash: {
-    ar: "تقرير المدير الصباحي للعمليات والإشغال",
-    en: "Daily Operations Morning Report (Manager Flash)",
-  },
-  arrivals_manifest: {
-    ar: "كشف الوصول والتسكين اليومي",
-    en: "Arrivals and Checked in Today",
-  },
-  departures_manifest: {
-    ar: "كشف المغادرات والتصفيات المستحقة",
-    en: "Departures and Checked Out Today",
-  },
-  housekeeping_sheet: {
-    ar: "كشف مهام ونظافة الغرف اليومي",
-    en: "Housekeeping Daily Task Sheet",
-  },
-  room_discrepancy: {
-    ar: "كشف تنبيهات وتدقيق حالات الغرف",
-    en: "Alerts & Room Discrepancy",
-  },
-  occupancy_forecast: {
-    ar: "توقعات الإشغال والأسرة المستقبلية",
-    en: "Occupancy & Bed Availability Forecast",
-  },
-  assignments: {
-    ar: "كشف المقيمين الفعليين حسب الغرف",
-    en: "Guests INH - By Room",
-  },
-  vacant_rooms: {
-    ar: "مصفوفة السعة التشغيلية والأسرة الشاغرة",
-    en: "Operational Bed Capacity & Vacant Matrix",
-  },
-  housing: {
-    ar: "سجل وحالة الغرف السكنية الشاملة",
-    en: "Housing Room Inventory & Capacity",
-  },
-  profiles: {
-    ar: "دليل ملفات العاملين والمقيمين بالسكن",
-    en: "Staff & Resident Profiles Directory",
-  },
-  expiring_contracts: {
-    ar: "كشف العقود المنتهية والمشرفة على الانتهاء",
-    en: "Expiring Contracts & Renewal Audit",
-  },
-  reservations: {
-    ar: "سجل الحجوزات والتسكين المستقبلي",
-    en: "Reservations & Booking Manifest",
-  },
-  hostings: {
-    ar: "سجل استضافة الضيوف والزوار",
-    en: "Guest & Visitor Hostings Ledger",
-  },
-  maintenance: {
-    ar: "سجل أوامر وبلاغات صيانة الغرف",
-    en: "Engineering Maintenance Work Orders",
-  },
-  housekeeping: {
-    ar: "سجل جاهزية ونظافة الغرف",
-    en: "Housekeeping Cleanliness Turnover Log",
-  },
-  equipment_inventory: {
-    ar: "جرد عهد ومحتويات الغرف السكنية",
-    en: "Room Amenities & Equipment Inventory",
-  },
-  history: {
-    ar: "سجل حركات التسكين التاريخي",
-    en: "Housing Historical Stays Archive",
-  },
-  daily_movement: {
-    ar: "تقرير الحركة اليومية للتسكين والمغادرة",
-    en: "Daily Housing Movements & Turnovers",
-  },
-  department_occupancy: {
-    ar: "كشف المقيمين حسب الشركة والأقسام",
-    en: "Guests INH - By Company",
-  },
-  gate_logs: {
-    ar: "سجل تصاريح وحركة البوابة الأمنية",
-    en: "Gate Access Security Manifest",
-  },
-  police_report: {
-    ar: "كشف شرطة السياحة للمقيمين بالسكن",
-    en: "Tourism Police Resident Housing Manifest",
-  },
-  service_ratings: {
-    ar: "تقرير تقييمات وجودة الخدمات بالسكن",
-    en: "Service Quality & Resident Ratings Report",
-  },
-  housing_map: {
-    ar: "المخطط الهيكلي المعماري وتوزيع الغرف",
-    en: "Housing Structure & Architectural Map",
-  },
-  water_distribution: {
-    ar: "كشف صرف وتوزيع مياه الشرب الشهري",
-    en: "Monthly Drinking Water Distribution Sheet",
-  },
-  vacations: {
-    ar: "تقرير الإجازات",
-    en: "Vacations Report",
-  },
-  policy_exceptions: {
-    ar: "تقرير مخالفات واستثناءات سياسات السكن",
-    en: "Housing Policy Exceptions & Audit Report",
-  },
-  housing_ratings: {
-    ar: "تقرير استطلاع جودة السكن الأسبوعي (سري تماماً)",
-    en: "Weekly Housing Quality Pulse Report (Anonymous)",
-  },
-  room_moves: {
-    ar: "كشف حركات نقل وتغيير الغرف والأسرة",
-    en: "Room Moves & Bed Transfers Audit Report",
-  },
-};
+export const REPORT_TAB_TITLES: Record<string, { ar: string; en: string }> =
+  REPORT_TITLES;
 
 // ----------------------------------------------------------------------------
 // 1.5 Bilingual Column Header Dictionary & Translation Engine

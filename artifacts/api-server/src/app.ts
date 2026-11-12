@@ -7,6 +7,7 @@
  * 3. Error Handling: Global handler for all async errors.
  */
 
+import { setSessionStore } from "./lib/session-store-ref.js";
 import "./env.js";
 import express, { type Express, type Request } from "express";
 import cors from "cors";
@@ -189,6 +190,8 @@ if (sessionStoreType === "postgresql") {
 } else {
   sessionStore = new session.MemoryStore();
 }
+
+setSessionStore(sessionStore);
 
 const isProduction = process.env["NODE_ENV"] === "production";
 
