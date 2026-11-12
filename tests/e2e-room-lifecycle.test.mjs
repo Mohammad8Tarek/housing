@@ -95,7 +95,10 @@ async function createRoom(roomNumber, capacity, roomType = "Standard") {
   return row;
 }
 
-async function createProfile(suffix, property = PROPERTY_ID) {
+// `level` decides which room sizes the housing policy allows (level 1 -> 1 bed,
+// 2 -> 2 beds, 3 -> 3 beds with the default settings), so each test uses a
+// resident that fits its room and the policy does not get in the way.
+async function createProfile(suffix, property = PROPERTY_ID, level = "1") {
   const code = `E2E-${RUN}-${suffix}`;
   const r = await api(
     "POST",
@@ -109,7 +112,7 @@ async function createProfile(suffix, property = PROPERTY_ID) {
       nationality: "Egyptian",
       address: "Test",
       jobTitle: "Waiter",
-      level: "1",
+      level,
       phone: `01${String(Date.now()).slice(-6)}${String(created.profiles.length).padStart(3, "0")}`,
       department: "F&B",
       hireDate: today,
@@ -187,7 +190,7 @@ before(async () => {
 test("check-in marks the room occupied and the assignment ACTIVE", async (t) => {
   if (!apiUp) return t.skip("API not reachable");
   const r = await createRoom(`${RUN}-101`, 2);
-  const p = await createProfile("A");
+  const p = await createProfile("A", PROPERTY_ID, "2");
 
   const res = await checkIn(p.id, r.id, { bedNumber: 1 });
   assert.equal(res.status, 201, JSON.stringify(res.json).slice(0, 300));
@@ -203,8 +206,8 @@ test("check-in marks the room occupied and the assignment ACTIVE", async (t) => 
 test("the same bed cannot be double-booked (409)", async (t) => {
   if (!apiUp) return t.skip("API not reachable");
   const r = await createRoom(`${RUN}-102`, 2);
-  const p1 = await createProfile("B1");
-  const p2 = await createProfile("B2");
+  const p1 = await createProfile("B1", PROPERTY_ID, "2");
+  const p2 = await createProfile("B2", PROPERTY_ID, "2");
 
   assert.equal((await checkIn(p1.id, r.id, { bedNumber: 1 })).status, 201);
   const dup = await checkIn(p2.id, r.id, { bedNumber: 1 });
@@ -223,28 +226,36 @@ test("room capacity is enforced (409 when full)", async (t) => {
   const p2 = await createProfile("C2");
 
   assert.equal((await checkIn(p1.id, r.id, { bedNumber: 1 })).status, 201);
-  const full = await checkIn(p2.id, r.id, { bedNumber: 2 });
+  // No bed chosen: the room itself is full (a bed number beyond the room's
+  // beds is refused separately as INVALID_BED).
+  const full = await checkIn(p2.id, r.id);
   assert.equal(full.status, 409, `expected 409 when room is full, got ${full.status}`);
 });
 
 test("entire-room booking is refused while someone lives there and fills the room when granted", async (t) => {
   if (!apiUp) return t.skip("API not reachable");
   const r = await createRoom(`${RUN}-104`, 3);
-  const p1 = await createProfile("D1");
-  const p2 = await createProfile("D2");
+  const p1 = await createProfile("D1", PROPERTY_ID, "3");
+  const p2 = await createProfile("D2", PROPERTY_ID, "3");
 
   assert.equal((await checkIn(p1.id, r.id, { bedNumber: 1 })).status, 201);
   const refused = await checkIn(p2.id, r.id, { isEntireRoom: true });
   assert.equal(refused.status, 409, `expected 409 entire-room on occupied room, got ${refused.status}`);
 
   const r2 = await createRoom(`${RUN}-105`, 3);
-  const whole = await checkIn(p2.id, r2.id, { isEntireRoom: true });
+  // A level-3 resident is not entitled to a whole room by policy: the admin
+  // grants it as an approved exception.
+  const whole = await checkIn(p2.id, r2.id, {
+    isEntireRoom: true,
+    hasPolicyException: true,
+    policyExceptionReason: "e2e: whole room granted",
+  });
   assert.equal(whole.status, 201, JSON.stringify(whole.json).slice(0, 300));
   const after = await room(r2.id);
   assert.equal(after.status, "occupied");
   assert.equal(after.currentOccupancy, after.capacity, "entire-room booking must consume the full capacity");
 
-  const third = await createProfile("D3");
+  const third = await createProfile("D3", PROPERTY_ID, "3");
   const blocked = await checkIn(third.id, r2.id, { bedNumber: 2 });
   assert.equal(blocked.status, 409, `entire-room must block further check-ins, got ${blocked.status}`);
 });
@@ -275,8 +286,8 @@ test("checkout releases the bed, sets the room dirty, and cleaning returns it to
 test("checkout of one occupant in a shared room yields occupied_dirty", async (t) => {
   if (!apiUp) return t.skip("API not reachable");
   const r = await createRoom(`${RUN}-107`, 2);
-  const p1 = await createProfile("F1");
-  const p2 = await createProfile("F2");
+  const p1 = await createProfile("F1", PROPERTY_ID, "2");
+  const p2 = await createProfile("F2", PROPERTY_ID, "2");
   const a1 = (await checkIn(p1.id, r.id, { bedNumber: 1 })).json;
   assert.equal((await checkIn(p2.id, r.id, { bedNumber: 2 })).status, 201);
 
@@ -358,7 +369,8 @@ test("transfer into an out-of-service room is refused", async (t) => {
 
 test("reservation check-in creates the assignment and occupies the room", async (t) => {
   if (!apiUp) return t.skip("API not reachable");
-  const r = await createRoom(`${RUN}-113`, 1);
+  // A reservation guest has no level (general staff: 4-bed rooms by policy).
+  const r = await createRoom(`${RUN}-113`, 4);
   const res = await api("POST", "/reservations", {
     propertyId: PROPERTY_ID,
     roomId: r.id,
@@ -390,6 +402,36 @@ test("reservation check-in creates the assignment and occupies the room", async 
 
   const again = await api("POST", `/reservations/${reservation.id}/checkin`, { roomId: r.id, actualCheckInDate: today });
   assert.ok(again.status >= 400, "a reservation cannot be checked in twice");
+});
+
+test("housing policy is enforced by the server and exceptions are recorded", async (t) => {
+  if (!apiUp) return t.skip("API not reachable");
+  // Level 1 is entitled to a single room; a 2-bed room breaks the policy.
+  const r = await createRoom(`${RUN}-115`, 2);
+  const p = await createProfile("P", PROPERTY_ID, "1");
+
+  const refused = await checkIn(p.id, r.id);
+  assert.equal(refused.status, 409, JSON.stringify(refused.json).slice(0, 300));
+  assert.equal(refused.json.code, "POLICY_VIOLATION");
+  assert.ok(refused.json.violations?.length > 0, "violations must be listed");
+
+  const noReason = await checkIn(p.id, r.id, { hasPolicyException: true, policyExceptionReason: "x" });
+  assert.equal(noReason.status, 400, "an exception needs a real reason");
+
+  const granted = await checkIn(p.id, r.id, {
+    hasPolicyException: true,
+    policyExceptionReason: "e2e: approved exception",
+    policyApprovedBy: "someone typed this",
+  });
+  assert.equal(granted.status, 201, JSON.stringify(granted.json).slice(0, 300));
+  const a = granted.json.data ?? granted.json;
+  // The server writes the approval into the stay's notes: rules broken,
+  // the signed-in user as approver (never the typed name) and the reason.
+  assert.ok(
+    a.notes.includes(`معتمد من: ${ADMIN_USER}]`) && a.notes.includes("e2e: approved exception"),
+    `exception not recorded: ${a.notes}`,
+  );
+  assert.ok(!a.notes.includes("someone typed this"), "the typed approver name must be ignored");
 });
 
 test("cross-property check-in brings the profile into the target property (Rule 6)", async (t) => {

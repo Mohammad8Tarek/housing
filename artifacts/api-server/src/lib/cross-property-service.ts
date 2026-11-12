@@ -13,6 +13,12 @@ import { eq, and, or, sql, not, count } from "drizzle-orm";
 import { broadcastToProperty } from "./websocket.js";
 import { logActivity } from "./activity-logger.js";
 import { su } from "./request-utils.js";
+import { hasPermission } from "../middlewares/permissions.js";
+import {
+  decidePolicy,
+  evaluatePlacementPolicy,
+  exceptionColumns,
+} from "./placement-policy.js";
 
 export interface SyncProfileOptions {
   sourcePropertyId: number;
@@ -459,6 +465,35 @@ export async function executeCrossPropertyTransfer(
       };
     }
 
+    if (
+      newBedNumber != null &&
+      (newBedNumber < 1 || newBedNumber > (newRoom.capacity || 1))
+    ) {
+      return {
+        error: `رقم السرير ${newBedNumber} غير موجود في الغرفة الجديدة (عدد الأسرة ${newRoom.capacity}).`,
+        code: "INVALID_BED",
+        status: 400,
+      };
+    }
+    const actor = (req as any)?.authUser;
+    if (
+      reqEntireRoom &&
+      !oldAssignment.isEntireRoom &&
+      newRoom.capacity > 1 &&
+      !(
+        actor &&
+        (hasPermission(actor, "accommodation", "override_single_occupancy") ||
+          hasPermission(actor, "reservations", "override_single_occupancy"))
+      )
+    ) {
+      return {
+        error:
+          "تخصيص غرفة متعددة الأسرّة بالكامل لشخص واحد يتطلب صلاحية (override_single_occupancy).",
+        code: "PERMISSION_DENIED_ENTIRE_ROOM",
+        status: 403,
+      };
+    }
+
     const roomStatus = newRoom.status?.toLowerCase() || "";
     if (
       ["maintenance", "out_of_service", "out_of_order", "oos", "ooo"].includes(
@@ -510,6 +545,7 @@ export async function executeCrossPropertyTransfer(
       };
     }
 
+    let vacationOccupantFound = false;
     if (newBedNumber && !isEntireRoomRequested) {
       const takenBeds = await tgtDb
         .select({
@@ -553,7 +589,26 @@ export async function executeCrossPropertyTransfer(
             status: 409,
           };
         }
+        if (
+          !(actor && hasPermission(actor, "accommodation", "override_vacation"))
+        ) {
+          return {
+            error:
+              "النقل كبديل مؤقت على سرير موظف في إجازة يتطلب صلاحية (accommodation.override_vacation).",
+            code: "PERMISSION_DENIED_VACATION_OVERRIDE",
+            status: 403,
+          };
+        }
+        vacationOccupantFound = true;
       }
+    }
+    if (isTemporaryVacationOverride && !vacationOccupantFound) {
+      return {
+        error:
+          "النقل كبديل إجازة متاح فقط على سرير موظف في إجازة. اختار السرير ده بالتحديد.",
+        code: "VACATION_OVERRIDE_INVALID",
+        status: 400,
+      };
     }
 
     if (
@@ -585,8 +640,107 @@ export async function executeCrossPropertyTransfer(
       transferType: "PERMANENT",
     });
 
-  // 4. Close previous assignment and update old room in source property
+  // 4. Create the new stay in the target property (room locked, policy checked)
   const nowStr = new Date().toISOString();
+  const createdInTarget = await withTenant(targetPropertyId, async (tgtDb) => {
+    const [lockedRoom] = await tgtDb
+      .select()
+      .from(roomsTable)
+      .where(eq(roomsTable.id, newRoom.id))
+      .for("update");
+    if (
+      !lockedRoom ||
+      (lockedRoom.currentOccupancy >= lockedRoom.capacity &&
+        !isTemporaryVacationOverride)
+    ) {
+      return {
+        error: `الغرفة الجديدة امتلأت قبل إتمام النقل.`,
+        code: "ROOM_FULL",
+        status: 409,
+      } as const;
+    }
+    const policy = decidePolicy(
+      req,
+      await evaluatePlacementPolicy(tgtDb, {
+        profileId: targetProfile.id,
+        roomId: newRoom.id,
+        isEntireRoom: isEntireRoomRequested,
+      }),
+      { hasPolicyException, policyExceptionReason },
+    );
+    if (!policy.ok) {
+      return { ...policy.body, status: policy.status } as const;
+    }
+    const policyCols = exceptionColumns(policy.exception);
+
+    const [newRemaining] = await tgtDb
+      .select({ count: count() })
+      .from(assignmentsTable)
+      .where(
+        and(
+          eq(assignmentsTable.roomId, newRoom.id),
+          sql`lower(${assignmentsTable.status}) = 'active'`,
+        ),
+      );
+
+    const newOcc = isEntireRoomRequested
+      ? newRoom.capacity
+      : isTemporaryVacationOverride
+        ? Number(newRemaining?.count ?? 0)
+        : Number(newRemaining?.count ?? 0) + 1;
+
+    await tgtDb
+      .update(roomsTable)
+      .set({
+        currentOccupancy: newOcc,
+        status: ["dirty", "occupied_dirty"].includes(
+          String(lockedRoom.status ?? "").toLowerCase(),
+        )
+          ? "occupied_dirty"
+          : "occupied",
+      })
+      .where(eq(roomsTable.id, newRoom.id));
+
+    const finalNotes = [
+      policyCols.notePrefix || null,
+      `تم النقل بين الفنادق من ${srcName} (الغرفة ${oldRoom?.roomNumber || oldAssignment.roomId})`,
+      transferReason ? `السبب: ${transferReason}` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
+    const [newAssignment] = await tgtDb
+      .insert(assignmentsTable)
+      .values({
+        profileId: targetProfile.id,
+        roomId: newRoom.id,
+        bedNumber: isEntireRoomRequested
+          ? newBedNumber || 1
+          : (newBedNumber ?? null),
+        isEntireRoom: isEntireRoomRequested,
+        checkInDate: nowStr,
+        expectedCheckOutDate: oldAssignment.expectedCheckOutDate,
+        hasPolicyException: policyCols.hasPolicyException,
+        policyExceptionReason: policyCols.policyExceptionReason,
+        policyApprovedBy: policyCols.policyApprovedBy,
+        notes: finalNotes,
+        status: "ACTIVE",
+      })
+      .returning();
+
+    await tgtDb
+      .update(profilesTable)
+      .set({ status: "ACTIVE" })
+      .where(eq(profilesTable.id, targetProfile.id));
+
+    return { newAssignment, policyException: policy.exception };
+  });
+  if ("error" in createdInTarget) {
+    return createdInTarget;
+  }
+
+  // 5. Close the previous stay in the source property — only now that the
+  //    new one exists, so a refused move never leaves the person without a bed.
   await withTenant(sourcePropertyId, async (srcDb) => {
     await srcDb
       .update(assignmentsTable)
@@ -637,71 +791,6 @@ export async function executeCrossPropertyTransfer(
     }
   });
 
-  // 5. Create new assignment and update new room in target property
-  const createdInTarget = await withTenant(targetPropertyId, async (tgtDb) => {
-    const [newRemaining] = await tgtDb
-      .select({ count: count() })
-      .from(assignmentsTable)
-      .where(
-        and(
-          eq(assignmentsTable.roomId, newRoom.id),
-          sql`lower(${assignmentsTable.status}) = 'active'`,
-        ),
-      );
-
-    const newOcc = isEntireRoomRequested
-      ? newRoom.capacity
-      : isTemporaryVacationOverride
-        ? Number(newRemaining?.count ?? 0)
-        : Number(newRemaining?.count ?? 0) + 1;
-
-    await tgtDb
-      .update(roomsTable)
-      .set({
-        currentOccupancy: newOcc,
-        status: "occupied",
-      })
-      .where(eq(roomsTable.id, newRoom.id));
-
-    const finalNotes = [
-      `تم النقل بين الفنادق من ${srcName} (الغرفة ${oldRoom?.roomNumber || oldAssignment.roomId})`,
-      transferReason ? `السبب: ${transferReason}` : null,
-    ]
-      .filter(Boolean)
-      .join(" | ");
-
-    const [newAssignment] = await tgtDb
-      .insert(assignmentsTable)
-      .values({
-        profileId: targetProfile.id,
-        roomId: newRoom.id,
-        bedNumber: isEntireRoomRequested
-          ? newBedNumber || 1
-          : (newBedNumber ?? null),
-        isEntireRoom: isEntireRoomRequested,
-        checkInDate: nowStr,
-        expectedCheckOutDate: oldAssignment.expectedCheckOutDate,
-        hasPolicyException:
-          hasPolicyException !== undefined
-            ? Boolean(hasPolicyException)
-            : Boolean(oldAssignment.hasPolicyException),
-        policyExceptionReason:
-          policyExceptionReason || oldAssignment.policyExceptionReason || null,
-        policyApprovedBy:
-          policyApprovedBy || oldAssignment.policyApprovedBy || null,
-        notes: finalNotes,
-        status: "ACTIVE",
-      })
-      .returning();
-
-    await tgtDb
-      .update(profilesTable)
-      .set({ status: "ACTIVE" })
-      .where(eq(profilesTable.id, targetProfile.id));
-
-    return newAssignment;
-  });
-
   // 6. Log activities and emit WebSockets to both source and target properties
   const s = su(req);
   const oldRoomNum = oldRoom?.roomNumber ?? "?";
@@ -740,7 +829,7 @@ export async function executeCrossPropertyTransfer(
     actionType: "ASSIGN",
     module: "accommodation",
     entityType: "assignment",
-    entityId: createdInTarget.id,
+    entityId: createdInTarget.newAssignment.id,
     details: {
       fromPropertyId: sourcePropertyId,
       toPropertyId: targetPropertyId,
@@ -773,7 +862,7 @@ export async function executeCrossPropertyTransfer(
   broadcastToProperty(targetPropertyId, {
     module: "accommodation",
     action: "created",
-    entityId: createdInTarget.id,
+    entityId: createdInTarget.newAssignment.id,
   });
   broadcastToProperty(targetPropertyId, {
     module: "housing",
@@ -800,7 +889,7 @@ export async function executeCrossPropertyTransfer(
 
   return {
     success: true,
-    updated: createdInTarget,
+    updated: createdInTarget.newAssignment,
     oldRoom,
     newRoom,
     targetProfile,

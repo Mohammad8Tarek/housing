@@ -1,3 +1,8 @@
+import {
+  decidePolicy,
+  evaluatePlacementPolicy,
+  exceptionColumns,
+} from "../../lib/placement-policy.js";
 import { Router } from "express";
 import {
   db,
@@ -149,16 +154,30 @@ router.post(
     }
 
     const result = await withTenant(propertyId, async (tenantDb) => {
+      // Lock the target room: two moves cannot take its last bed at once.
       const [newRoom] = await tenantDb
         .select()
         .from(roomsTable)
-        .where(eq(roomsTable.id, parsed.data.newRoomId));
+        .where(eq(roomsTable.id, parsed.data.newRoomId))
+        .for("update");
       if (!newRoom)
         return {
           error: "New room not found",
           code: "ROOM_NOT_FOUND",
           status: 404,
         };
+      const wantedBed = parsed.data.newBedNumber;
+      if (
+        wantedBed != null &&
+        (wantedBed < 1 || wantedBed > (newRoom.capacity || 1))
+      ) {
+        return {
+          error: `رقم السرير ${wantedBed} غير موجود في الغرفة الجديدة (عدد الأسرة ${newRoom.capacity}).`,
+          errorEn: `Bed ${wantedBed} does not exist in the new room (${newRoom.capacity} beds).`,
+          code: "INVALID_BED",
+          status: 400,
+        };
+      }
 
       // ── فحص صلاحية الغرفة الجديدة ─────────────────────────────────────────
       const newRoomStatus = newRoom.status?.toLowerCase() || "";
@@ -211,6 +230,37 @@ router.post(
         (assignment.isEntireRoom && newRoom.currentOccupancy === 0),
       );
 
+      // Giving someone a whole multi-bed room needs the same override as at
+      // check-in (keeping an entitlement they already had does not).
+      const transferActor = (req as any).authUser;
+      if (
+        Boolean((req.body as any)?.isEntireRoom) &&
+        !assignment.isEntireRoom &&
+        newRoom.capacity > 1 &&
+        !(
+          transferActor &&
+          (hasPermission(
+            transferActor,
+            "accommodation",
+            "override_single_occupancy",
+          ) ||
+            hasPermission(
+              transferActor,
+              "reservations",
+              "override_single_occupancy",
+            ))
+        )
+      ) {
+        return {
+          error:
+            "تخصيص غرفة متعددة الأسرّة بالكامل لشخص واحد يتطلب صلاحية (override_single_occupancy).",
+          errorEn:
+            "Giving one person a whole multi-bed room requires the override_single_occupancy permission.",
+          code: "PERMISSION_DENIED_ENTIRE_ROOM",
+          status: 403,
+        };
+      }
+
       if (isEntireRoomRequested && newRoom.currentOccupancy > 0) {
         return {
           error: `لا يمكن تخصيص الغرفة الجديدة بالكامل لوجود مقيمين حاليين بها (${newRoom.currentOccupancy} مقيم). يجب أن تكون الغرفة شاغرة تماماً لتخصيصها كغرفة فردية بالكامل.`,
@@ -220,6 +270,7 @@ router.post(
       }
 
       // ── فحص السرير في الغرفة الجديدة ───────────────────────────────────────
+      let vacationOccupantFound = false;
       if (parsed.data.newBedNumber && !isEntireRoomRequested) {
         const takenBeds = await tenantDb
           .select({
@@ -268,20 +319,25 @@ router.post(
           )
             ? transAuthUser.permissions
             : [];
+          // The route's own permission (transfer) is not enough: taking a
+          // vacationing resident's bed needs the dedicated override.
           const isManagerOrAdmin =
             ["super_admin", "system_admin", "admin", "manager"].includes(
               transUserRole,
             ) ||
             transUserPerms.includes("accommodation.override_vacation") ||
-            transUserPerms.includes("accommodation.transfer") ||
             transUserPerms.includes("accommodation.edit") ||
             (transAuthUser &&
-              (hasPermission(transAuthUser, "accommodation", "transfer") ||
+              (hasPermission(
+                transAuthUser,
+                "accommodation",
+                "override_vacation",
+              ) ||
                 hasPermission(transAuthUser, "accommodation", "edit")));
 
           if (!isManagerOrAdmin) {
             return {
-              error: `السرير رقم ${parsed.data.newBedNumber} محجوز للموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}) وهو في إجازة. النقل المؤقت كبديل يتطلب صلاحية مدير السكن أو الآدمن أو صلاحية (accommodation.transfer).`,
+              error: `السرير رقم ${parsed.data.newBedNumber} محجوز للموظف (${primaryOccupant.firstName} ${primaryOccupant.lastName}) وهو في إجازة. النقل المؤقت كبديل يتطلب صلاحية مدير السكن أو الآدمن أو صلاحية (accommodation.override_vacation).`,
               code: "PERMISSION_DENIED_VACATION_OVERRIDE",
               status: 403,
             };
@@ -301,7 +357,19 @@ router.post(
               status: 409,
             };
           }
+          vacationOccupantFound = true;
         }
+      }
+
+      if (isTemporaryVacationOverride && !vacationOccupantFound) {
+        return {
+          error:
+            "النقل كبديل إجازة متاح فقط على سرير موظف في إجازة. اختار السرير ده بالتحديد.",
+          errorEn:
+            "A vacation substitute can only take the bed of a resident who is on vacation. Pick that bed.",
+          code: "VACATION_OVERRIDE_INVALID",
+          status: 400,
+        };
       }
 
       if (
@@ -314,6 +382,22 @@ router.post(
           status: 409,
         };
       }
+
+      // ── سياسة السكن في الغرفة الجديدة ────────────────────────────────────
+      const policy = decidePolicy(
+        req,
+        await evaluatePlacementPolicy(tenantDb, {
+          profileId: assignment.profileId,
+          roomId: newRoom.id,
+          isEntireRoom: isEntireRoomRequested,
+          excludeAssignmentIds: [assignment.id],
+        }),
+        req.body,
+      );
+      if (!policy.ok) {
+        return { ...policy.body, status: policy.status };
+      }
+      const policyCols = exceptionColumns(policy.exception);
 
       const [oldRoom] = await tenantDb
         .select()
@@ -357,11 +441,19 @@ router.post(
           ? Number(newRemaining?.count ?? 0)
           : Number(newRemaining?.count ?? 0) + 1;
 
+      const newRoomDirty = ["dirty", "occupied_dirty"].includes(
+        String(newRoom.status ?? "").toLowerCase(),
+      );
       await tenantDb
         .update(roomsTable)
         .set({
           currentOccupancy: newOcc,
-          status: newOcc > 0 ? "occupied" : "available",
+          status:
+            newOcc > 0
+              ? newRoomDirty
+                ? "occupied_dirty"
+                : "occupied"
+              : "available",
         })
         .where(eq(roomsTable.id, newRoom.id));
 
@@ -390,19 +482,13 @@ router.post(
             : (parsed.data.newBedNumber ?? null),
           isEntireRoom: isEntireRoomRequested,
           checkInDate: nowStr,
-          hasPolicyException:
-            (req.body as any)?.hasPolicyException !== undefined
-              ? Boolean((req.body as any)?.hasPolicyException)
-              : assignment.hasPolicyException,
-          policyExceptionReason:
-            (req.body as any)?.policyExceptionReason ||
-            assignment.policyExceptionReason ||
-            null,
-          policyApprovedBy:
-            (req.body as any)?.policyApprovedBy ||
-            assignment.policyApprovedBy ||
-            null,
+          // The exception belongs to the room it was approved for: a move to a
+          // compliant room clears it, a move to another breach needs its own.
+          hasPolicyException: policyCols.hasPolicyException,
+          policyExceptionReason: policyCols.policyExceptionReason,
+          policyApprovedBy: policyCols.policyApprovedBy,
           notes: [
+            policyCols.notePrefix || null,
             assignment.notes,
             `تم النقل من الغرفة ${oldRoom?.roomNumber || assignment.roomId} إلى الغرفة ${newRoom.roomNumber}`,
             parsed.data.transferReason
@@ -451,13 +537,14 @@ router.post(
         oldBld,
         newBld,
         oldBedNumber: assignment.bedNumber,
+        policyException: policy.exception,
+        policyWarnings: policy.warnings,
       };
     });
 
     if (result.error) {
-      res
-        .status((result as any).status || 400)
-        .json({ error: result.error, code: (result as any).code });
+      const { status: errStatus, ...errBody } = result as any;
+      res.status(errStatus || 400).json(errBody);
       return;
     }
 
@@ -493,6 +580,10 @@ router.post(
         profileId: transferData.updated?.profileId,
         transferredBy: s.username,
         transferredByRole: s.userRole,
+        policyException: (transferData as any).policyException ?? undefined,
+        policyWarnings: (transferData as any).policyWarnings?.length
+          ? (transferData as any).policyWarnings.map((v: any) => v.code)
+          : undefined,
       },
     });
 

@@ -920,15 +920,33 @@ router.post(
 
         const roomIdToUse = parsed.data.roomId ?? current[0].roomId;
         if (roomIdToUse) {
+          // Lock the room: two check-ins cannot take its last bed at once.
           const [room] = await tenantDb
             .select({
               currentOccupancy: roomsTable.currentOccupancy,
               capacity: roomsTable.capacity,
+              status: roomsTable.status,
             })
             .from(roomsTable)
             .where(eq(roomsTable.id, roomIdToUse))
-            .limit(1);
+            .limit(1)
+            .for("update");
 
+          if (
+            room &&
+            [
+              "maintenance",
+              "out_of_service",
+              "out_of_order",
+              "oos",
+              "ooo",
+            ].includes(String(room.status ?? "").toLowerCase())
+          ) {
+            return {
+              conflict: true,
+              customError: `لا يمكن التسكين في هذه الغرفة لأنها غير صالحة للسكن حالياً (${room.status}) / This room cannot be used right now.`,
+            } as const;
+          }
           if (room && room.currentOccupancy >= room.capacity) {
             return {
               conflict: true,
@@ -955,17 +973,23 @@ router.post(
             .select({
               currentOccupancy: roomsTable.currentOccupancy,
               capacity: roomsTable.capacity,
+              status: roomsTable.status,
             })
             .from(roomsTable)
             .where(eq(roomsTable.id, roomIdToUse))
             .limit(1);
           if (room) {
             const newOcc = room.currentOccupancy + 1;
+            // A room with someone in it is occupied (still flagged if it
+            // was waiting for cleaning).
+            const wasDirty = ["dirty", "occupied_dirty"].includes(
+              String((room as any).status ?? "").toLowerCase(),
+            );
             await tenantDb
               .update(roomsTable)
               .set({
                 currentOccupancy: newOcc,
-                status: newOcc >= room.capacity ? "occupied" : "available",
+                status: wasDirty ? "occupied_dirty" : "occupied",
               })
               .where(eq(roomsTable.id, roomIdToUse));
           }

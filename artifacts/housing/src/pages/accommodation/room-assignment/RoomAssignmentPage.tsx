@@ -54,6 +54,10 @@ import { KeyIssuancePromptDialog } from "./components/KeyIssuancePromptDialog";
 import { VacationOverrideDialog } from "./components/VacationOverrideDialog";
 import { CrossPropertyConfirmDialog } from "./components/CrossPropertyConfirmDialog";
 import { PolicyExceptionDialog } from "./components/PolicyExceptionDialog";
+import {
+  MIN_EXCEPTION_REASON,
+  useExceptionApprover,
+} from "@/components/PolicyExceptionApprovalModal";
 
 export default function RoomAssignment() {
   const { activePropertyId } = useProperty();
@@ -125,7 +129,10 @@ export default function RoomAssignment() {
   const [customPhone, setCustomPhone] = useState("");
   const [policyOverride, setPolicyOverride] = useState<boolean>(false);
   const [policyOverrideReason, setPolicyOverrideReason] = useState<string>("");
-  const [policyApprovedBy, setPolicyApprovedBy] = useState<string>("");
+  // The approver is the signed-in user (the server records it from the session).
+  const exceptionApprover = useExceptionApprover();
+  const policyApprovedBy = exceptionApprover.name;
+  const setPolicyApprovedBy = (_v: string) => {};
   const [policyExceptionModalOpen, setPolicyExceptionModalOpen] =
     useState<boolean>(false);
   const isCrossProperty = Boolean(
@@ -351,9 +358,21 @@ export default function RoomAssignment() {
     : [];
   const isMultiBed = bedOptions.length > 1;
 
+  // Violations the server reported for the current choice (it checks with
+  // the full room data, so it can catch what this screen could not see).
+  const [serverViolations, setServerViolations] = useState<
+    { code: string; messageAr: string; messageEn: string }[] | null
+  >(null);
+  useEffect(() => {
+    setServerViolations(null);
+  }, [selectedProfile?.id, selectedRoomId, isEntireRoom]);
+
   const policyCheck = useMemo(() => {
     if (!selectedProfile || !selectedRoom)
       return { compliant: true, violations: [] };
+    if (serverViolations?.length) {
+      return { compliant: false, violations: serverViolations };
+    }
     return checkPolicyCompliance({
       profile: selectedProfile,
       room: selectedRoom,
@@ -369,6 +388,7 @@ export default function RoomAssignment() {
     profilesList,
     settings,
     isEntireRoom,
+    serverViolations,
   ]);
 
   const createMutation = useCreateAssignment({
@@ -420,6 +440,15 @@ export default function RoomAssignment() {
               ?.json?.()
               .catch(() => null)) ||
             {};
+          if (
+            body?.code === "POLICY_VIOLATION" &&
+            Array.isArray(body.violations)
+          ) {
+            setServerViolations(body.violations);
+            setPolicyOverride(false);
+            setPolicyExceptionModalOpen(true);
+            return;
+          }
           if (body?.code === "BED_OCCUPANT_ON_VACATION" && body?.canOverride) {
             setVacationPromptData({
               occupantName:
@@ -566,9 +595,18 @@ export default function RoomAssignment() {
     }
 
     if (!policyCheck.compliant && !policyOverride) {
-      // If policy exceptions require approval, prompt user with the formal approval modal
-      setPolicyExceptionModalOpen(true);
-      return;
+      if ((settings as any)?.policyRequireExceptionApproval === false) {
+        // The property allows violations with a warning (the server logs them).
+        toast.warning(
+          ar
+            ? "تنبيه: التسكين ده يخالف سياسة السكن وهيتسجل في السجل"
+            : "Warning: this placement breaks the housing policy and will be logged",
+        );
+      } else {
+        // Violations need a formal exception: open the approval dialog
+        setPolicyExceptionModalOpen(true);
+        return;
+      }
     }
 
     // If cross-property: OPEN THE EXPLICIT CONFIRMATION MODAL TO ASK THE USER DIRECTLY!
@@ -595,10 +633,9 @@ export default function RoomAssignment() {
       policyOverride ||
       Boolean(exceptionData?.reason || exceptionData?.approvedBy);
 
-    const finalNotes =
-      isException && effReason
-        ? `${notes ? notes + " | " : ""}[استثناء سياسة: ${effReason}${effApprovedBy ? ` | المعتمد: ${effApprovedBy}` : ""}]`
-        : notes || undefined;
+    // The server records the exception (rules broken, reason, approver)
+    // in the stay's notes itself.
+    const finalNotes = notes || undefined;
 
     createMutation.mutate({
       data: {
@@ -725,19 +762,19 @@ export default function RoomAssignment() {
 
   /** Policy exception dialog approve: validate, record override, then continue the flow. */
   const handleApprovePolicyException = () => {
-    if (!policyApprovedBy.trim()) {
+    if (!exceptionApprover.canApprove) {
       toast.error(
         ar
-          ? "يرجى تحديد الجهة المعتمدة للاستثناء"
-          : "Please specify authorizing authority",
+          ? "مش عندك صلاحية اعتماد استثناءات سياسة السكن"
+          : "You don't have permission to approve housing-policy exceptions",
       );
       return;
     }
-    if (!policyOverrideReason.trim()) {
+    if (policyOverrideReason.trim().length < MIN_EXCEPTION_REASON) {
       toast.error(
         ar
-          ? "يرجى كتابة سبب الاستثناء الإداري"
-          : "Please enter exception justification",
+          ? "اكتب سبب الاستثناء (5 أحرف على الأقل)"
+          : "Enter the reason for the exception (at least 5 characters)",
       );
       return;
     }

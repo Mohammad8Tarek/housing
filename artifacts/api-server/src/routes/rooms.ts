@@ -1,3 +1,4 @@
+import { normalizeGender } from "@workspace/report-rows";
 import { Router } from "express";
 import {
   pool,
@@ -815,6 +816,68 @@ router.patch(
       if (!currentRoom) {
         res.status(404).json({ error: "Room not found" });
         return;
+      }
+
+      // ── Do not shrink or re-gender a room below the people living in it ───
+      const capacityChanging =
+        parsed.data.capacity !== undefined &&
+        parsed.data.capacity !== currentRoom.capacity;
+      const genderChanging =
+        bodyToParse.gender !== undefined &&
+        normalizeGender(bodyToParse.gender) !==
+          normalizeGender(currentRoom.gender);
+      if (capacityChanging || genderChanging) {
+        const residents = await withTenant(propertyId, (tenantDb) =>
+          tenantDb
+            .select({
+              bedNumber: assignmentsTable.bedNumber,
+              gender: profilesTable.gender,
+            })
+            .from(assignmentsTable)
+            .leftJoin(
+              profilesTable,
+              eq(assignmentsTable.profileId, profilesTable.id),
+            )
+            .where(
+              and(
+                eq(assignmentsTable.roomId, params.data.id),
+                eq(assignmentsTable.status, "ACTIVE"),
+              ),
+            ),
+        );
+        if (capacityChanging) {
+          const newCap = Number(parsed.data.capacity);
+          const highestBed = Math.max(
+            0,
+            ...residents.map((r) => Number(r.bedNumber) || 0),
+          );
+          if (newCap < residents.length || newCap < highestBed) {
+            res.status(409).json({
+              error: `لا يمكن تقليل سعة الغرفة إلى ${newCap} وفيها ${residents.length} مقيم (أعلى سرير مشغول ${highestBed}). انقل المقيمين أولاً.`,
+              errorEn: `The room cannot go down to ${newCap} beds while ${residents.length} resident(s) live in it (highest bed in use: ${highestBed}). Move them first.`,
+              code: "CAPACITY_BELOW_OCCUPANCY",
+            });
+            return;
+          }
+        }
+        const newGender = normalizeGender(bodyToParse.gender);
+        if (
+          genderChanging &&
+          newGender &&
+          residents.some((r) => {
+            const g = normalizeGender(r.gender);
+            return g && g !== newGender;
+          })
+        ) {
+          res.status(409).json({
+            error:
+              "لا يمكن تغيير تخصيص الغرفة (رجال/سيدات) وفيها مقيمين من النوع الآخر. انقلهم أولاً.",
+            errorEn:
+              "The room's gender cannot change while residents of the other gender live in it. Move them first.",
+            code: "GENDER_CONFLICT_WITH_RESIDENTS",
+          });
+          return;
+        }
       }
 
       const effectiveBuildingId =

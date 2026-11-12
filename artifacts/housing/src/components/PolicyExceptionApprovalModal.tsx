@@ -7,11 +7,25 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ShieldAlert, AlertTriangle } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { usePermission } from "@/hooks/use-permission";
+
+/** Shortest reason the server accepts for an exception. */
+export const MIN_EXCEPTION_REASON = 5;
+
+/** The signed-in user's name, recorded by the server as the approver. */
+export function useExceptionApprover(): { name: string; canApprove: boolean } {
+  const { user } = useAuth();
+  const { can } = usePermission();
+  return {
+    name: String((user as any)?.username ?? ""),
+    canApprove: can("accommodation", "approve_policy_exception"),
+  };
+}
 
 export interface PolicyViolationItem {
   rule?: string;
@@ -42,27 +56,19 @@ export function PolicyExceptionApprovalModal({
   const { language } = useLanguage();
   const ar = language === "ar";
 
-  const [approvedBy, setApprovedBy] = useState("");
+  const { name: approvedBy, canApprove } = useExceptionApprover();
   const [reason, setReason] = useState("");
 
   const handleConfirm = () => {
-    if (!approvedBy.trim()) {
+    if (reason.trim().length < MIN_EXCEPTION_REASON) {
       toast.error(
         ar
-          ? "يرجى تحديد اسم أو جهة الاعتماد المصرحة بالاستثناء"
-          : "Please specify authorizing authority for policy exception",
+          ? "اكتب سبب الاستثناء (5 أحرف على الأقل)"
+          : "Enter the reason for the exception (at least 5 characters)",
       );
       return;
     }
-    if (!reason.trim()) {
-      toast.error(
-        ar
-          ? "يرجى كتابة سبب التسكين أو النقل الاستثنائي"
-          : "Please enter operational reason for this exception",
-      );
-      return;
-    }
-    onConfirm({ approvedBy: approvedBy.trim(), reason: reason.trim() });
+    onConfirm({ approvedBy, reason: reason.trim() });
   };
 
   return (
@@ -93,41 +99,24 @@ export function PolicyExceptionApprovalModal({
             </ul>
           </div>
 
-          {/* Authorizing Authority */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground">
-              {ar
-                ? "المعتمد للطلب / الجهة المصرحة بالاستثناء *"
-                : "Authorizing Authority *"}
-            </label>
-            <Input
-              placeholder={
-                ar
-                  ? "مثال: مدير السكن / مدير الموارد البشرية / المدير العام"
-                  : "e.g. Housing Manager / HR Director / General Manager"
-              }
-              value={approvedBy}
-              onChange={(e) => setApprovedBy(e.target.value)}
-            />
-            <div className="flex gap-1.5 flex-wrap pt-1">
-              {[
-                ar ? "مدير السكن" : "Housing Manager",
-                ar ? "مدير الموارد البشرية" : "HR Director",
-                ar ? "المدير العام" : "General Manager",
-              ].map((preset) => (
-                <Button
-                  key={preset}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="text-[11px] h-7 px-2"
-                  onClick={() => setApprovedBy(preset)}
-                >
-                  {preset}
-                </Button>
-              ))}
+          {/* Approver: the signed-in user, recorded by the server */}
+          {canApprove ? (
+            <div className="text-xs rounded-lg border bg-muted/40 px-3 py-2">
+              {ar ? "المعتمِد: " : "Approved by: "}
+              <span className="font-bold">{approvedBy}</span>
+              <span className="text-muted-foreground">
+                {ar
+                  ? " — هيتسجل باسم حسابك في السجل"
+                  : " — recorded under your account"}
+              </span>
             </div>
-          </div>
+          ) : (
+            <div className="text-xs rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-destructive">
+              {ar
+                ? "مش عندك صلاحية اعتماد استثناءات سياسة السكن. اطلب من مدير السكن يعتمدها أو اختار غرفة مطابقة للسياسة."
+                : "You don't have permission to approve housing-policy exceptions. Ask a housing manager, or pick a room that meets the policy."}
+            </div>
+          )}
 
           {/* Justification / Reason */}
           <div className="space-y-1.5">
@@ -187,7 +176,11 @@ export function PolicyExceptionApprovalModal({
             type="button"
             className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
             onClick={handleConfirm}
-            disabled={isLoading}
+            disabled={
+              isLoading ||
+              !canApprove ||
+              reason.trim().length < MIN_EXCEPTION_REASON
+            }
           >
             <ShieldAlert className="w-4 h-4" />
             {ar ? "اعتماد الاستثناء وتأكيد التسكين" : "Approve & Confirm"}
