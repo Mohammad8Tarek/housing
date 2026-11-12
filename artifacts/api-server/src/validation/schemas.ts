@@ -570,6 +570,24 @@ export const ReservationCheckoutBody = body({
   notes: o(bText(2000)),
   reason: o(bText(500)),
 });
+// maintenance
+// PATCH /maintenance/:id. Only the fields staff edit; anything else in the
+// body (rating, roomId, category, reportedAt, parentId...) is dropped, so a
+// ticket cannot be rewritten wholesale. Not passthrough on purpose.
+export const UpdateMaintenanceTicketBody = z.object({
+  propertyId: o(bId),
+  status: o(z.enum(["open", "pending", "in_progress", "resolved", "closed"])),
+  priority: o(bText(20)),
+  description: o(bText(5000)),
+  notes: o(bText(20000)),
+  problemType: o(bText(100)),
+  photoUrl: o(bDataUrl),
+  workerId: o(bId),
+  assignedTo: o(bId),
+  startedAt: o(bDate),
+  resolvedAt: o(bDate),
+  dueDate: o(bDate),
+});
 // auth
 export const SwitchPropertyBody = body({ propertyId: o(bId) });
 export const ForgotOtpRequestBody = body({ identifier: o(bText(200)) });

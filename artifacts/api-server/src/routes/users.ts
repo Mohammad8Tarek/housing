@@ -1,3 +1,4 @@
+import { canActOnUser, isRootUser } from "../lib/user-access.js";
 import { Router } from "express";
 import {
   db,
@@ -8,7 +9,7 @@ import {
   familyVisitApprovalStepsTable,
   familyVisitRequestsTable,
 } from "@workspace/db";
-import { eq, and, sql, or, not, ilike } from "drizzle-orm";
+import { eq, and, sql, or, not, ilike, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
   CreateUserBody,
@@ -489,7 +490,7 @@ router.get(
       .where(eq(usersTable.id, id))
       .limit(1);
 
-    if (!user) {
+    if (!user || !canActOnUser((req as any).authUser, user, "view")) {
       res.status(404).json({ error: "User not found" });
       return;
     }
@@ -627,6 +628,14 @@ router.patch(
       .limit(1);
     if (!targetUser) {
       res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    if (!canActOnUser((req as any).authUser, targetUser, "manage")) {
+      res.status(403).json({
+        error: "لا يمكنك إدارة هذا المستخدم",
+        errorEn: "You cannot manage this user",
+      });
       return;
     }
 
@@ -818,6 +827,14 @@ router.post(
       return;
     }
 
+    if (!canActOnUser((req as any).authUser, targetUser, "manage")) {
+      res.status(403).json({
+        error: "لا يمكنك إدارة هذا المستخدم",
+        errorEn: "You cannot manage this user",
+      });
+      return;
+    }
+
     if (
       isSystemAdminRoles(targetUser.roles ?? []) &&
       !(req.session as any)?.isSystemAdmin
@@ -869,6 +886,14 @@ router.delete(
       .limit(1);
     if (!targetUser) {
       res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    if (!canActOnUser((req as any).authUser, targetUser, "manage")) {
+      res.status(403).json({
+        error: "لا يمكنك إدارة هذا المستخدم",
+        errorEn: "You cannot manage this user",
+      });
       return;
     }
 
@@ -983,9 +1008,45 @@ router.post(
       const actor = await loadAuthUser(req, res);
       if (!actor) return;
 
+      // Every target must be one this actor may manage: no admins / super
+      // admins and only users of the actor's own properties.
+      const targets = await db
+        .select({
+          id: usersTable.id,
+          roles: usersTable.roles,
+          propertyId: usersTable.propertyId,
+          propertyIds: usersTable.propertyIds,
+        })
+        .from(usersTable)
+        .where(inArray(usersTable.id, ids.map(Number)));
+      const blocked = targets.filter((t) => !canActOnUser(actor, t, "manage"));
+      if (blocked.length > 0) {
+        res.status(403).json({
+          error: "لا يمكنك إدارة بعض المستخدمين المحددين",
+          errorEn: "You cannot manage some of the selected users",
+          userIds: blocked.map((t) => t.id),
+        });
+        return;
+      }
+
       let updatedCount = 0;
 
       if (action === "role" && role) {
+        // Same rules as a single edit: changing roles needs
+        // users.manage_permissions, and only system admins grant admin roles.
+        if (!hasPermission(actor, "users", "manage_permissions")) {
+          res.status(403).json({
+            error: "تغيير الأدوار يتطلب صلاحية إدارة الصلاحيات",
+            errorEn: "Changing roles requires users.manage_permissions",
+          });
+          return;
+        }
+        if (isSystemAdminRoles([role]) && !isRootUser(actor)) {
+          res
+            .status(403)
+            .json({ error: "Only system admins can grant system-admin roles" });
+          return;
+        }
         const check = validateNoPrivilegeEscalation(actor, [role]);
         if (!check.valid) {
           res.status(403).json({ error: check.error, errorEn: check.errorEn });

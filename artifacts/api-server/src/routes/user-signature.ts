@@ -1,3 +1,4 @@
+import { canActOnUser } from "../lib/user-access.js";
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logActivity } from "../lib/activity-logger.js";
@@ -33,6 +34,25 @@ function su(req: any) {
     userRole: Array.isArray(s.userRole) ? s.userRole[0] : s.userRole || "",
     isSystemAdmin: !!s.isSystemAdmin,
   };
+}
+
+async function targetAllowed(
+  actor: any,
+  targetUserId: number,
+  mode: "view" | "manage",
+): Promise<boolean> {
+  const rows = await pool.query(
+    "SELECT id, roles, property_id, property_ids FROM public.users WHERE id = $1",
+    [targetUserId],
+  );
+  const r = rows.rows[0];
+  const target = r && {
+    id: r.id,
+    roles: r.roles,
+    propertyId: r.property_id,
+    propertyIds: r.property_ids,
+  };
+  return !!target && canActOnUser(actor, target, mode);
 }
 
 router.get("/users/me/signature", async (req, res): Promise<void> => {
@@ -140,8 +160,11 @@ router.get(
     const authUser = await loadAuthUser(req, res);
     const canView =
       admin.isSystemAdmin ||
-      (authUser ? hasPermission(authUser, "users", "view") : false) ||
-      targetUserId === admin.userId;
+      targetUserId === admin.userId ||
+      (authUser
+        ? hasPermission(authUser, "users", "view") &&
+          (await targetAllowed(authUser, targetUserId, "view"))
+        : false);
     if (!canView) {
       res.status(403).json({
         success: false,
@@ -185,10 +208,15 @@ router.post(
     }
     const isSelf = targetUserId === admin.userId;
     const authUser = await loadAuthUser(req, res);
+    // Another user's signature: only for users this actor may manage (not
+    // admins / super admins, same property), so approvals cannot be forged.
     const canEdit =
       admin.isSystemAdmin ||
-      (authUser ? hasPermission(authUser, "users", "edit") : false) ||
-      isSelf;
+      isSelf ||
+      (authUser
+        ? hasPermission(authUser, "users", "edit") &&
+          (await targetAllowed(authUser, targetUserId, "manage"))
+        : false);
     if (!canEdit) {
       res.status(403).json({
         success: false,
@@ -292,10 +320,15 @@ router.delete(
     }
     const isSelf = targetUserId === admin.userId;
     const authUser = await loadAuthUser(req, res);
+    // Another user's signature: only for users this actor may manage (not
+    // admins / super admins, same property), so approvals cannot be forged.
     const canDelete =
       admin.isSystemAdmin ||
-      (authUser ? hasPermission(authUser, "users", "edit") : false) ||
-      isSelf;
+      isSelf ||
+      (authUser
+        ? hasPermission(authUser, "users", "edit") &&
+          (await targetAllowed(authUser, targetUserId, "manage"))
+        : false);
     if (!canDelete) {
       res.status(403).json({
         success: false,
