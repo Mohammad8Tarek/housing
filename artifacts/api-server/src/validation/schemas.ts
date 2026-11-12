@@ -960,3 +960,12 @@ export const InHouseListQuery = CommonListQuery.extend({
   // Stays ending: already past the expected date, or within N days
   ending: z.enum(["overdue", "7", "14", "30"]).optional(),
 });
+
+// Sessions (devices): public session id is a 16-char hex hash
+export const SessionIdParams = z.object({
+  sid: z.string().regex(/^[a-f0-9]{16}$/),
+});
+export const UserSessionParams = z.object({
+  id: z.string().regex(/^\d{1,9}$/),
+  sid: z.string().regex(/^[a-f0-9]{16}$/),
+});

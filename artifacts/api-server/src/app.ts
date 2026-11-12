@@ -394,6 +394,15 @@ app.use("/api", (_req, res, next) => {
   next();
 });
 
+// Last activity time of signed-in sessions (saved at most once a minute).
+app.use("/api", (req, _res, next) => {
+  const s = req.session as any;
+  if (s?.userId && Date.now() - Number(s.lastSeenAt ?? 0) > 60_000) {
+    s.lastSeenAt = Date.now();
+  }
+  next();
+});
+
 app.use("/api", securityHeadersMiddleware);
 app.use("/api", apiRateLimit);
 app.use("/api", auditLogMiddleware);

@@ -21,6 +21,7 @@ import {
   Sun,
   Menu,
   Languages,
+  MonitorSmartphone,
   BedDouble,
   UserCheck,
   ChevronDown,
@@ -61,6 +62,14 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import { SessionsList } from "@/components/SessionsList";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const SEEN_KEY = (userId?: number) => `notif_seen_ids_u${userId ?? 0}`;
 
@@ -176,6 +185,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     reports: location.includes("/reports"),
   });
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [devicesOpen, setDevicesOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   // Per-user seen IDs — different users on same browser get separate state
   const userSeenKey = SEEN_KEY(user?.id);
@@ -638,6 +648,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
       />
+      <Dialog open={devicesOpen} onOpenChange={setDevicesOpen}>
+        <DialogContent className="max-w-lg" dir={dir}>
+          <DialogHeader>
+            <DialogTitle>{ar ? "أجهزتي" : "My devices"}</DialogTitle>
+            <DialogDescription>
+              {ar
+                ? "الأجهزة اللي حسابك مسجّل دخول منها دلوقتي. لو فيه جهاز مش بتاعك اعمله خروج وغيّر كلمة المرور."
+                : "Devices currently signed in to your account. If you don't recognise one, sign it out and change your password."}
+            </DialogDescription>
+          </DialogHeader>
+          {devicesOpen && <SessionsList ar={ar} userId={null} />}
+        </DialogContent>
+      </Dialog>
       <div
         className="flex h-screen h-[100dvh] w-full bg-background overflow-hidden"
         dir={dir}
@@ -1134,6 +1157,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   >
                     <Lock className="w-4 h-4 mr-2" />
                     {ar ? "تغيير كلمة المرور" : "Change Password"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setDevicesOpen(true)}
+                    className="cursor-pointer"
+                  >
+                    <MonitorSmartphone className="w-4 h-4 mr-2" />
+                    {ar ? "أجهزتي" : "My devices"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

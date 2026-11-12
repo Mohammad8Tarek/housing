@@ -248,6 +248,10 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     userRole: user.roles?.[0] ?? null,
     jobTitle: user.jobTitle ?? null,
     loginAt: Date.now(),
+    lastSeenAt: Date.now(),
+    // Shown on the "signed-in devices" screen.
+    ip,
+    userAgent: String(req.headers["user-agent"] ?? "").slice(0, 300),
     passwordExpired,
   };
 
