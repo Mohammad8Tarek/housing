@@ -551,6 +551,23 @@ BEGIN
       "rated_by_profile_id" INTEGER
     );
 
+    -- Ticket system: request source, first assignment time, history / comments
+    ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "source" TEXT;
+    ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "assigned_at" TIMESTAMPTZ;
+    CREATE TABLE IF NOT EXISTS "maintenance_events" (
+      "id" SERIAL PRIMARY KEY,
+      "ticket_id" INTEGER NOT NULL REFERENCES "maintenance"("id") ON DELETE CASCADE,
+      "type" TEXT NOT NULL,
+      "from_value" TEXT,
+      "to_value" TEXT,
+      "comment" TEXT,
+      "actor_name" TEXT,
+      "actor_user_id" INTEGER,
+      "actor_profile_id" INTEGER,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_maintenance_events_ticket ON "maintenance_events"("ticket_id", "created_at");
+
     -- Ensure all columns exist
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "property_id" INTEGER;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "room_id" INTEGER;

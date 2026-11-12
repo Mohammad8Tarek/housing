@@ -1511,4 +1511,13 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       CREATE INDEX IF NOT EXISTS idx_public_wa_delivery_prop_status_created ON public.whatsapp_delivery_logs (property_id, status, created_at);
     `,
   },
+  {
+    name: "public.maintenance.ticket_system_v1",
+    q: `DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'maintenance') THEN
+        ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS source TEXT;
+        ALTER TABLE public.maintenance ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMPTZ;
+      END IF;
+    END $$;`,
+  },
 ];

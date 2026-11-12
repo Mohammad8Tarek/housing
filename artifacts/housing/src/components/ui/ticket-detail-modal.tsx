@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { customFetch } from "@workspace/api-client-react";
 import { resolveApiUrl } from "@/lib/api-origin";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -191,9 +193,41 @@ export default function TicketDetailModal({
   // Lists return photos as /api links (see GET /maintenance/:id/photo).
   const photoSrc = ticket.photoUrl ? resolveApiUrl(ticket.photoUrl) : null;
   const [commentText, setCommentText] = useState("");
-  const [commentsList, setCommentsList] = useState<
-    Array<{ text: string; author: string; time: string }>
-  >([]);
+  // Ticket history (status / assignment / priority changes) and comments,
+  // stored on the server (GET /maintenance/:id/events).
+  const queryClient = useQueryClient();
+  const historyKey = [
+    "/api/maintenance",
+    ticket.id,
+    "events",
+    ticket.propertyId,
+  ];
+  const { data: historyRes } = useQuery({
+    queryKey: historyKey,
+    queryFn: () =>
+      customFetch<{ data: TicketEvent[] }>(
+        `/api/maintenance/${ticket.id}/events?propertyId=${ticket.propertyId ?? ""}`,
+      ),
+    enabled: open && !!ticket.id,
+    refetchInterval: open ? 15000 : false,
+  });
+  const history: TicketEvent[] = historyRes?.data ?? [];
+  const commentsList = history.filter((e) => e.type === "comment");
+  const addComment = useMutation({
+    mutationFn: (comment: string) =>
+      customFetch(
+        `/api/maintenance/${ticket.id}/comments?propertyId=${ticket.propertyId ?? ""}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ comment }),
+        },
+      ),
+    onSuccess: () => {
+      setCommentText("");
+      queryClient.invalidateQueries({ queryKey: historyKey });
+    },
+  });
   const [showSubTicketForm, setShowSubTicketForm] = useState(false);
   const [subTicketForm, setSubTicketForm] = useState({
     problemType: "",
@@ -311,16 +345,8 @@ export default function TicketDetailModal({
     workers.find((w: any) => w.id === ticket.workerId)?.phone;
 
   const handleAddComment = () => {
-    if (!commentText.trim()) return;
-    setCommentsList((prev) => [
-      ...prev,
-      {
-        text: commentText.trim(),
-        author: ar ? "المشرف المناوب" : "Duty Supervisor",
-        time: format(new Date(), "hh:mm a"),
-      },
-    ]);
-    setCommentText("");
+    if (!commentText.trim() || addComment.isPending) return;
+    addComment.mutate(commentText.trim());
   };
 
   return (
@@ -347,7 +373,7 @@ export default function TicketDetailModal({
                   {ar ? "التفاصيل" : "Details"}
                 </span>
                 <span className="font-mono text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground font-semibold">
-                  #{ticket.id}
+                  {ticket.ticketNo ?? `#${ticket.id}`}
                 </span>
               </div>
 
@@ -397,7 +423,7 @@ export default function TicketDetailModal({
                   }`}
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
-                  <span>{ar ? "التعليقات" : "Comments"}</span>
+                  <span>{ar ? "السجل والتعليقات" : "History & Comments"}</span>
                 </button>
 
                 <button
@@ -1407,7 +1433,7 @@ export default function TicketDetailModal({
                     <Button
                       size="sm"
                       onClick={handleAddComment}
-                      disabled={!commentText.trim()}
+                      disabled={!commentText.trim() || addComment.isPending}
                       className="h-8 text-xs gap-1.5"
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
@@ -1416,32 +1442,39 @@ export default function TicketDetailModal({
                   </div>
                 </div>
 
-                {commentsList.length === 0 ? (
+                {history.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground bg-card rounded-xl border">
                     <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">
-                      {ar ? "لا توجد تعليقات حتى الآن" : "No comments yet"}
+                      {ar
+                        ? "لا يوجد سجل أو تعليقات حتى الآن"
+                        : "No history or comments yet"}
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-2.5">
-                    {commentsList.map((c, i) => (
-                      <div
-                        key={i}
-                        className="bg-card p-3.5 rounded-xl border shadow-xs space-y-1"
+                  <ol className="space-y-2.5">
+                    {[...history].reverse().map((e) => (
+                      <li
+                        key={e.id}
+                        className={`p-3 rounded-xl border shadow-xs space-y-1 ${
+                          e.type === "comment" ? "bg-card" : "bg-muted/30"
+                        }`}
                       >
-                        <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center justify-between gap-2 text-xs">
                           <span className="font-bold text-foreground">
-                            {c.author}
+                            {e.actorName || (ar ? "النظام" : "System")}
                           </span>
-                          <span className="text-muted-foreground font-mono">
-                            {c.time}
+                          <span className="text-muted-foreground font-mono shrink-0">
+                            {formatDate(e.createdAt)}{" "}
+                            {format(new Date(e.createdAt), "HH:mm")}
                           </span>
                         </div>
-                        <p className="text-xs text-foreground/90">{c.text}</p>
-                      </div>
+                        <p className="text-xs text-foreground/90 whitespace-pre-wrap">
+                          {describeTicketEvent(e, ar)}
+                        </p>
+                      </li>
                     ))}
-                  </div>
+                  </ol>
                 )}
               </div>
             )}
@@ -1507,7 +1540,9 @@ export default function TicketDetailModal({
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span>
                 {ar ? "رقم التذكرة:" : "Ticket ID:"}{" "}
-                <strong className="text-foreground">#{ticket.id}</strong>
+                <strong className="text-foreground">
+                  {ticket.ticketNo ?? `#${ticket.id}`}
+                </strong>
               </span>
               <span>•</span>
               <span>
@@ -1529,4 +1564,44 @@ export default function TicketDetailModal({
       <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
     </>
   );
+}
+
+type TicketEvent = {
+  id: number;
+  type: "created" | "status" | "assigned" | "priority" | "comment";
+  fromValue: string | null;
+  toValue: string | null;
+  comment: string | null;
+  actorName: string | null;
+  createdAt: string;
+};
+
+/** One line describing a history entry, in the UI language. */
+function describeTicketEvent(e: TicketEvent, ar: boolean): string {
+  const st = (v: string | null) =>
+    v ? (ar ? STATUS_AR[v] || v : v.replace(/_/g, " ")) : "—";
+  switch (e.type) {
+    case "comment":
+      return e.comment ?? "";
+    case "created":
+      return ar ? "تم إنشاء البلاغ" : "Ticket created";
+    case "status":
+      return ar
+        ? `تغيير الحالة: ${st(e.fromValue)} ← ${st(e.toValue)}`
+        : `Status: ${st(e.fromValue)} → ${st(e.toValue)}`;
+    case "assigned":
+      return e.toValue
+        ? ar
+          ? `تم التعيين إلى: ${e.toValue}`
+          : `Assigned to: ${e.toValue}`
+        : ar
+          ? "تم إلغاء التعيين"
+          : "Unassigned";
+    case "priority":
+      return ar
+        ? `تغيير الأولوية: ${e.fromValue ?? "—"} ← ${e.toValue ?? "—"}`
+        : `Priority: ${e.fromValue ?? "—"} → ${e.toValue ?? "—"}`;
+    default:
+      return "";
+  }
 }

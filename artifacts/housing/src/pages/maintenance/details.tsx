@@ -327,7 +327,8 @@ export default function MaintenanceDetails() {
               {ar ? "عودة" : "Back"}
             </Button>
             <h1 className="text-2xl font-bold text-gray-900">
-              {ar ? "تفاصيل الطلب" : "Request Details"} #{ticket.id}
+              {ar ? "تفاصيل الطلب" : "Request Details"}{" "}
+              {(ticket as any).ticketNo ?? `#${ticket.id}`}
             </h1>
           </div>
         </div>

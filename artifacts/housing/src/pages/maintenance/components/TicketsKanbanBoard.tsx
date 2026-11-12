@@ -277,8 +277,13 @@ export function TicketsKanbanBoard({
                   >
                     {/* Card Top: ID, Category & Priority */}
                     <div className="flex items-center justify-between gap-1.5 text-xs">
-                      <span className="font-mono font-bold text-muted-foreground text-[11px]">
-                        #{ticket.id}
+                      <span className="font-mono font-bold text-muted-foreground text-[11px] flex items-center gap-1">
+                        {ticket.ticketNo ?? `#${ticket.id}`}
+                        {ticket.isOverdue && (
+                          <span className="rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 px-1.5 text-[9px] font-sans font-semibold">
+                            {ar ? "متأخر" : "Overdue"}
+                          </span>
+                        )}
                       </span>
                       <div className="flex items-center gap-1.5">
                         {/* Category */}

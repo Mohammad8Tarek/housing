@@ -1,3 +1,4 @@
+import { recordTicketEvents } from "../lib/maintenance-tickets.js";
 import { Router } from "express";
 import {
   db,
@@ -198,8 +199,16 @@ router.post("/public/room-request", async (req, res): Promise<void> => {
           reportedBy: reporterLabel,
           photoUrl: photoUrl || null,
           notes: extraNotes,
+          source: "qr",
         } as any)
         .returning();
+
+      await recordTicketEvents(
+        tenantDb,
+        newTicket.id,
+        { name: reporterLabel },
+        [{ type: "created", toValue: "open" }],
+      );
 
       return { ticket: newTicket, roomNumber: room.roomNumber };
     });

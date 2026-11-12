@@ -204,8 +204,8 @@ export function TicketsTable({
               />
             </TableHead>
             {isVisible("id") && (
-              <TableHead className="font-semibold w-12 px-2 text-center">
-                {ar ? "رقم" : "ID"}
+              <TableHead className="font-semibold w-28 px-2 text-center">
+                {ar ? "رقم التذكرة" : "Ticket"}
               </TableHead>
             )}
             {isColVisible("building_floor") && (
@@ -300,8 +300,25 @@ export function TicketsTable({
               </TableCell>
 
               {isVisible("id") && (
-                <TableCell className="font-mono text-xs font-bold text-muted-foreground px-2 text-center">
-                  #{req.id}
+                <TableCell className="font-mono text-[11px] font-bold text-muted-foreground px-2 text-center">
+                  <div
+                    className="truncate"
+                    title={req.ticketNo ?? `#${req.id}`}
+                  >
+                    {req.ticketNo ?? `#${req.id}`}
+                  </div>
+                  {req.isOverdue && (
+                    <span
+                      className="mt-0.5 inline-block rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 px-1.5 text-[10px] font-sans font-semibold"
+                      title={
+                        req.dueAt
+                          ? `${ar ? "الموعد المستهدف" : "Due"}: ${new Date(req.dueAt).toLocaleString(ar ? "ar-EG" : "en-GB")}`
+                          : undefined
+                      }
+                    >
+                      {ar ? "متأخر" : "Overdue"}
+                    </span>
+                  )}
                 </TableCell>
               )}
 

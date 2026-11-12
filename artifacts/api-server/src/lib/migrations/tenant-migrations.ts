@@ -1316,4 +1316,24 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       CREATE UNIQUE INDEX IF NOT EXISTS uq_tenant_wa_opt_outs_prop_phone ON whatsapp_opt_outs (property_id, phone);
     `,
   },
+  {
+    name: "maintenance.ticket_system_v1",
+    q: `
+      ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS source TEXT;
+      ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMPTZ;
+      CREATE TABLE IF NOT EXISTS maintenance_events (
+        id SERIAL PRIMARY KEY,
+        ticket_id INTEGER NOT NULL REFERENCES maintenance(id) ON DELETE CASCADE,
+        type TEXT NOT NULL,
+        from_value TEXT,
+        to_value TEXT,
+        comment TEXT,
+        actor_name TEXT,
+        actor_user_id INTEGER,
+        actor_profile_id INTEGER,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_maintenance_events_ticket ON maintenance_events (ticket_id, created_at);
+    `,
+  },
 ];
