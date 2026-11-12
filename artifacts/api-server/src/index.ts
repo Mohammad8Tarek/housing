@@ -361,6 +361,15 @@ async function start(): Promise<void> {
       logger.error({ err }, "Failed to start housekeeping cron job");
     }
 
+    // Nightly maintenance / housekeeping report email (22:00 Cairo)
+    try {
+      const { initMaintenanceReportCron } =
+        await import("./lib/maintenance-daily-report.js");
+      initMaintenanceReportCron();
+    } catch (err) {
+      logger.error({ err }, "Failed to schedule maintenance daily report");
+    }
+
     // 2. Start PMS V2.1 Servers (they bind to 10006 locally)
     startAllPmsServers(app).catch((err) => {
       logger.error({ err }, "Failed to start PMS Servers (async caught)");

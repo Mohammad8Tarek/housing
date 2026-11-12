@@ -1,4 +1,15 @@
 import {
+  buildDailyReport,
+  cairoToday,
+  renderDailyReportCsv,
+  renderDailyReportHtml,
+  sendDailyReport,
+} from "../lib/maintenance-daily-report.js";
+import {
+  notifyTicketAssigned,
+  notifyTicketResolved,
+} from "../lib/maintenance-notify.js";
+import {
   ticketNumber,
   ticketSla,
   recordTicketEvents,
@@ -49,6 +60,8 @@ import {
   CommonListQuery,
   UpdateMaintenanceTicketBody,
   MaintenanceCommentBody,
+  MaintenanceDailyReportQuery,
+  MaintenanceDailyReportSendBody,
   IdParams,
   PropertyIdOnlyBody,
   SubTicketBody,
@@ -825,6 +838,84 @@ router.get(
 );
 
 // 1c. صورة البلاغ — Serves a ticket photo stored inline (data URL) as an image.
+// ─── Daily report (also emailed nightly at 22:00 Cairo) ────────────────────
+// GET /maintenance/daily-report?date=YYYY-MM-DD&format=html|json|csv
+router.get(
+  "/maintenance/daily-report",
+  requireAnyPermission(
+    ["maintenance", "view"],
+    ["maintenance", "view_maintenance"],
+    ["housekeeping", "view"],
+    ["reports", "view"],
+  ),
+  validate({ query: MaintenanceDailyReportQuery }),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+        return;
+      }
+      const date = (req.query.date as string) || cairoToday();
+      const report = await buildDailyReport(propertyId, date);
+      const format = (req.query.format as string) || "json";
+      if (format === "html") {
+        res.type("html").send(renderDailyReportHtml(report));
+      } else if (format === "csv") {
+        const [y, m, d] = date.split("-");
+        res
+          .type("text/csv; charset=utf-8")
+          .attachment(`Maintenance_Daily_${d}-${m}-${y}.csv`)
+          .send(renderDailyReportCsv(report));
+      } else {
+        res.json({ success: true, ...report });
+      }
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// POST /maintenance/daily-report/send — email the report now
+router.post(
+  "/maintenance/daily-report/send",
+  requireAnyPermission(["maintenance", "edit"], ["settings", "edit"]),
+  validate({ body: MaintenanceDailyReportSendBody }),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+        return;
+      }
+      const date = req.body.date || cairoToday();
+      const result = await sendDailyReport(
+        propertyId,
+        date,
+        req.body.recipients,
+      );
+      if (!result.sent) {
+        res.status(400).json({
+          success: false,
+          message:
+            result.reason === "SMTP not configured"
+              ? "إعدادات البريد (SMTP) غير مكتملة / Email (SMTP) is not configured"
+              : "لا توجد إيميلات مستلمين / No recipient emails configured",
+          ...result,
+        });
+        return;
+      }
+      res.json({ success: true, ...result });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 router.get(
   "/maintenance/:id/photo",
   requireAnyPermission(
@@ -1238,6 +1329,18 @@ router.post(
         },
       );
 
+      if (req.body.workerId || req.body.assignedTo) {
+        void withTenant(propertyId, (tenantDb) =>
+          notifyTicketAssigned(
+            tenantDb,
+            propertyId,
+            record,
+            req.body.assignedTo ? Number(req.body.assignedTo) : null,
+            req.body.workerId ? Number(req.body.workerId) : null,
+          ),
+        ).catch(() => {});
+      }
+
       const s = session(req);
       const isHsk = category === "housekeeping";
       const actionTitle = isHsk
@@ -1647,6 +1750,30 @@ router.patch(
       if (!updated) {
         res.status(404).json({ success: false, message: "البلاغ غير موجود" });
         return;
+      }
+
+      // Notifications (after the change; never block or fail the request).
+      const newlyAssigned = historyEvents.some(
+        (e) => e.type === "assigned" && e.toValue,
+      );
+      const nowResolved =
+        updateData.status === "resolved" &&
+        existingRecord.status !== "resolved";
+      if (newlyAssigned || nowResolved) {
+        void withTenant(targetPropertyId, async (tenantDb) => {
+          if (newlyAssigned) {
+            await notifyTicketAssigned(
+              tenantDb,
+              targetPropertyId,
+              updated,
+              "assignedTo" in updateData ? updateData.assignedTo : null,
+              "workerId" in updateData ? updateData.workerId : null,
+            );
+          }
+          if (nowResolved) {
+            await notifyTicketResolved(tenantDb, targetPropertyId, updated);
+          }
+        }).catch(() => {});
       }
 
       const s = session(req);

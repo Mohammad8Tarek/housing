@@ -1336,4 +1336,9 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       CREATE INDEX IF NOT EXISTS idx_maintenance_events_ticket ON maintenance_events (ticket_id, created_at);
     `,
   },
+  {
+    name: "settings.maintenance_report",
+    q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_enabled BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_emails TEXT;`,
+  },
 ];

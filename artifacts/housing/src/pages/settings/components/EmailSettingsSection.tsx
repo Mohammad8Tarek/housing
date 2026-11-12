@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
+import { MaintenanceReportCard } from "./MaintenanceReportCard";
 
 interface EmailSettingsSectionProps {
   propertyId: number | null;
@@ -581,6 +582,8 @@ export function EmailSettingsSection({
           )}
         </CardContent>
       </Card>
+
+      <MaintenanceReportCard propertyId={propertyId} ar={ar} />
     </div>
   );
 }
