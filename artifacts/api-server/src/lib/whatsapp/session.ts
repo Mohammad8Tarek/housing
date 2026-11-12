@@ -11,7 +11,17 @@ import path from "node:path";
 import fs from "node:fs";
 import pino from "pino";
 import { pool } from "@workspace/db";
-import { processOutboxQueue } from "./send.js";
+import {
+  processOutboxQueue,
+  recordWhatsAppAlert,
+  recoverStuckOutboxMessages,
+} from "./send.js";
+import {
+  isStartReply,
+  isStopReply,
+  recordOptOut,
+  removeOptOut,
+} from "./opt-out.js";
 import { normalizePhoneNumber } from "./templates.js";
 
 // Canonical sessions storage directory
@@ -186,7 +196,9 @@ export async function connectPropertyWhatsApp(
     },
     generateHighQualityLinkPreview: false,
     browser: Browsers.windows("Desktop"),
-    markOnlineOnConnect: true,
+    // Not "online" all the time: a number that is permanently online looks
+    // like a bot. Presence is set only around each message sent.
+    markOnlineOnConnect: false,
     syncFullHistory: false,
     getMessage: async () => undefined,
     connectTimeoutMs: 60000,
@@ -230,6 +242,23 @@ export async function connectPropertyWhatsApp(
         `[WhatsApp] Error saving creds for property ${propertyId}:`,
         err,
       );
+    }
+  });
+
+  // Replies from residents: "0" / STOP opts the number out of broadcasts,
+  // START opts back in. Each gets one short confirmation, and the message is
+  // marked read (two-way conversations look like a real person's account).
+  sock.ev.on("messages.upsert", async ({ messages, type }: any) => {
+    if (type !== "notify") return;
+    for (const m of messages ?? []) {
+      try {
+        await handleInboundMessage(propertyId, sock, m);
+      } catch (err: any) {
+        console.warn(
+          `[WhatsApp] inbound message handling failed for property ${propertyId}:`,
+          err?.message,
+        );
+      }
     }
   });
 
@@ -319,6 +348,11 @@ export async function connectPropertyWhatsApp(
       const isLoggedOut =
         (statusCode === DisconnectReason.loggedOut || statusCode === 401) &&
         !wasPairing;
+      // 403: WhatsApp banned or restricted the number. Reconnecting again
+      // and again only makes it worse.
+      const isBanned =
+        (statusCode === DisconnectReason.forbidden || statusCode === 403) &&
+        !wasPairing;
       const isRestartRequired =
         statusCode === DisconnectReason.restartRequired ||
         statusCode === 515 ||
@@ -330,7 +364,24 @@ export async function connectPropertyWhatsApp(
         `[WhatsApp] Property ${propertyId} connection closed (code ${statusCode}), isLoggedOut: ${isLoggedOut}, isRestartRequired: ${isRestartRequired}, wasPairing: ${wasPairing}`,
       );
 
-      if (isRestartRequired || wasPairing) {
+      if (isBanned) {
+        console.error(
+          `[WhatsApp] ⛔ Property ${propertyId}: connection refused by WhatsApp (403). The number may be banned or restricted. Auto-reconnect stopped.`,
+        );
+        pool
+          .query(
+            `UPDATE public.property_whatsapp_configs
+             SET status = 'banned', qr_code = NULL, updated_at = NOW()
+             WHERE property_id = $1`,
+            [propertyId],
+          )
+          .catch(() => {});
+        recordWhatsAppAlert(
+          propertyId,
+          "واتساب رفض الاتصال بالرقم (403) — غالباً تم حظره أو تقييده. تم إيقاف الإرسال. / WhatsApp refused the number (403): likely banned or restricted. Sending stopped.",
+          String(statusCode),
+        ).catch(() => {});
+      } else if (isRestartRequired || wasPairing) {
         // Pairing handshake or stream restart requested! WhatsApp requires immediate reconnect with saved credentials
         console.log(
           `[WhatsApp] Pairing handshake / stream restart in progress (code ${statusCode}) for property ${propertyId}. Immediate reconnect with saved credentials...`,
@@ -347,6 +398,11 @@ export async function connectPropertyWhatsApp(
         console.log(
           `[WhatsApp] Property ${propertyId} logged out. Resetting session credentials.`,
         );
+        recordWhatsAppAlert(
+          propertyId,
+          "تم تسجيل خروج رقم الواتساب (من الهاتف أو بواسطة واتساب). الرسائل في الانتظار حتى يُعاد الربط. / WhatsApp number logged out; messages wait until it is linked again.",
+          String(statusCode),
+        ).catch(() => {});
         session.qrCode = undefined;
         session.pairingCode = undefined;
         session.phoneNumber = undefined;
@@ -445,6 +501,9 @@ export function startKeepAliveHeartbeat(): void {
 
         let session = activeSessions.get(propertyId);
 
+        // A banned number is not reconnected automatically.
+        if (await isMarkedBanned(propertyId)) continue;
+
         // If session was disconnected or lost, auto-heal and restore
         if (
           !session ||
@@ -455,12 +514,12 @@ export function startKeepAliveHeartbeat(): void {
           );
           connectPropertyWhatsApp(propertyId, false).catch(() => {});
         } else if (session.status === "connected" && session.sock) {
-          // Verify socket is responsive by updating presence
-          try {
-            await session.sock.sendPresenceUpdate("available");
-          } catch {
+          // Check the socket without announcing presence: sending "available"
+          // every 25s kept the number permanently online, a bot signal.
+          const ws = (session.sock as any).ws;
+          if (ws && ws.isOpen === false && ws.isConnecting !== true) {
             console.warn(
-              `[WhatsApp Heartbeat] Socket silent failure for property ${propertyId}. Reconnecting...`,
+              `[WhatsApp Heartbeat] Socket closed for property ${propertyId}. Reconnecting...`,
             );
             connectPropertyWhatsApp(propertyId, false).catch(() => {});
           }
@@ -483,6 +542,7 @@ export function startKeepAliveHeartbeat(): void {
  */
 export async function autoRestoreAllWhatsAppSessions(): Promise<void> {
   try {
+    await recoverStuckOutboxMessages();
     startKeepAliveHeartbeat();
 
     if (!fs.existsSync(SESSIONS_DIR)) return;
@@ -511,4 +571,72 @@ export async function autoRestoreAllWhatsAppSessions(): Promise<void> {
       err?.message,
     );
   }
+}
+
+async function isMarkedBanned(propertyId: number): Promise<boolean> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT status FROM public.property_whatsapp_configs WHERE property_id = $1`,
+      [propertyId],
+    );
+    return rows[0]?.status === "banned";
+  } catch {
+    return false;
+  }
+}
+
+/** Phone number (digits) of the sender of an incoming message, if known. */
+function senderPhone(m: any): string | null {
+  const key = m?.key ?? {};
+  const candidates = [
+    key.remoteJid,
+    key.remoteJidAlt,
+    key.senderPn,
+    key.participantPn,
+  ];
+  for (const jid of candidates) {
+    if (typeof jid === "string" && jid.endsWith("@s.whatsapp.net")) {
+      return normalizePhoneNumber(jid.split("@")[0].split(":")[0]);
+    }
+  }
+  return null;
+}
+
+async function handleInboundMessage(
+  propertyId: number,
+  sock: any,
+  m: any,
+): Promise<void> {
+  if (!m?.message || m.key?.fromMe) return;
+  const jid: string = m.key?.remoteJid || "";
+  // Ignore groups, status updates and broadcasts.
+  if (!jid || jid.endsWith("@g.us") || jid === "status@broadcast") return;
+  const text: string =
+    m.message.conversation || m.message.extendedTextMessage?.text || "";
+  if (!text) return;
+
+  const stop = isStopReply(text);
+  const start = !stop && isStartReply(text);
+  if (!stop && !start) return;
+
+  const phone = senderPhone(m);
+  if (!phone) {
+    console.warn(
+      `[WhatsApp] opt-out reply from ${jid} without a phone number; not recorded.`,
+    );
+    return;
+  }
+
+  if (stop) await recordOptOut(propertyId, phone, "reply");
+  else await removeOptOut(propertyId, phone);
+
+  await sock.readMessages?.([m.key]).catch(() => {});
+  const reply = stop
+    ? "تم إلغاء اشتراكك في الرسائل الجماعية ✅ لن تصلك رسائل جماعية بعد الآن. للاشتراك مرة أخرى أرسل: اشتراك\nYou have been unsubscribed from broadcast messages. Reply START to subscribe again."
+    : "تم تفعيل اشتراكك في الرسائل مرة أخرى ✅\nYou are subscribed again.";
+  await new Promise((r) => setTimeout(r, 1500 + Math.random() * 2000));
+  await sock.sendMessage(jid, { text: reply });
+  console.log(
+    `[WhatsApp] Property ${propertyId}: ${phone} ${stop ? "opted out" : "opted back in"}.`,
+  );
 }

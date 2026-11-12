@@ -127,12 +127,20 @@ export function injectAntiBanFingerprint(
  * Clean & normalize phone number for WhatsApp
  */
 export function normalizePhoneNumber(rawPhone: string): string {
-  let cleaned = rawPhone.replace(/[^0-9]/g, "");
-  // Egyptian numbers: 01xxxxxxxxx (11 digits) -> 201xxxxxxxxx
+  // Arabic-Indic / Persian digits -> ASCII, then keep digits only.
+  let cleaned = String(rawPhone ?? "")
+    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/[^0-9]/g, "");
+  // International prefix 00 (0020...) -> 20...
+  if (cleaned.startsWith("00")) cleaned = cleaned.slice(2);
+  // Egyptian numbers
   if (cleaned.startsWith("01") && cleaned.length === 11) {
-    cleaned = "2" + cleaned;
+    cleaned = "2" + cleaned; // 01xxxxxxxxx -> 201xxxxxxxxx
   } else if (cleaned.startsWith("1") && cleaned.length === 10) {
-    cleaned = "20" + cleaned;
+    cleaned = "20" + cleaned; // 1xxxxxxxxx -> 201xxxxxxxxx
+  } else if (cleaned.startsWith("2001") && cleaned.length === 13) {
+    cleaned = "20" + cleaned.slice(3); // +20 01xxxxxxxxx -> 201xxxxxxxxx
   }
   // Strip any leading zeros
   cleaned = cleaned.replace(/^0+/, "");

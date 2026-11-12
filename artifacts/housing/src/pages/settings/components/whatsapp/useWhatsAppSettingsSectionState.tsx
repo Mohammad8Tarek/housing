@@ -57,6 +57,19 @@ export function useWhatsAppSettingsSectionState({
   const [pairingTab, setPairingTab] = useState<"qr" | "code">("qr");
   const [requestingCode, setRequestingCode] = useState<boolean>(false);
   const [pendingQueueCount, setPendingQueueCount] = useState<number>(0);
+  // Anti-ban state from /api/whatsapp/status (banned, safe quota, opt-outs)
+  const [antiBanInfo, setAntiBanInfo] = useState<{
+    banned: boolean;
+    sendingPausedUntil: string | null;
+    optOutCount: number;
+    quota: {
+      sentLast24h: number;
+      sentLastHour: number;
+      dayLimit: number;
+      hourLimit: number;
+      warmup: boolean;
+    } | null;
+  } | null>(null);
   const [processingQueue, setProcessingQueue] = useState<boolean>(false);
 
   // Config Form
@@ -119,6 +132,12 @@ export function useWhatsAppSettingsSectionState({
         if (sData.pendingQueueCount !== undefined) {
           setPendingQueueCount(sData.pendingQueueCount);
         }
+        setAntiBanInfo({
+          banned: !!sData.banned,
+          sendingPausedUntil: sData.sendingPausedUntil ?? null,
+          optOutCount: Number(sData.optOutCount || 0),
+          quota: sData.quota ?? null,
+        });
         if (sData.isAutoSendEnabled !== undefined) {
           setIsAutoSendEnabled(sData.isAutoSendEnabled);
         }
@@ -633,6 +652,7 @@ export function useWhatsAppSettingsSectionState({
     setRequestingCode,
     pendingQueueCount,
     setPendingQueueCount,
+    antiBanInfo,
     processingQueue,
     setProcessingQueue,
     isAutoSendEnabled,

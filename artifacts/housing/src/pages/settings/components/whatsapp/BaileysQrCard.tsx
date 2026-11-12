@@ -44,6 +44,7 @@ export function renderBaileysQrCard(s: WhatsAppSettingsSectionState) {
     handleConnect,
     handleRequestPairingCode,
     handleDisconnect,
+    antiBanInfo,
   } = s;
   return (
     <Card className="border-border/60 shadow-sm">
@@ -127,6 +128,58 @@ export function renderBaileysQrCard(s: WhatsAppSettingsSectionState) {
           </PermissionGate>
         </div>
       </CardHeader>
+      {antiBanInfo && (
+        <div className="px-6 -mt-2 pb-4 space-y-2">
+          {antiBanInfo.banned && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
+              <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+              {ar
+                ? "واتساب رفض الاتصال بهذا الرقم (403) — غالباً تم حظره أو تقييده. توقف الإرسال وإعادة الاتصال التلقائي. افتح واتساب على الهاتف للتأكد، ثم أعد الربط أو استخدم رقماً آخر."
+                : "WhatsApp refused this number (403): likely banned or restricted. Sending and auto-reconnect stopped. Check WhatsApp on the phone, then link again or use another number."}
+            </div>
+          )}
+          {antiBanInfo.sendingPausedUntil && (
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700 dark:text-amber-300">
+              {ar
+                ? "الإرسال متوقف مؤقتاً لمدة ساعة لأن واتساب حدّ من الرقم؛ سيُستأنف تلقائياً."
+                : "Sending is paused for an hour because WhatsApp throttled the number; it resumes automatically."}
+            </div>
+          )}
+          {antiBanInfo.quota && (
+            <div className="flex flex-wrap gap-2 text-xs">
+              <Badge variant="outline" className="gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                {ar
+                  ? `آخر 24 ساعة: ${antiBanInfo.quota.sentLast24h}/${antiBanInfo.quota.dayLimit}`
+                  : `Last 24h: ${antiBanInfo.quota.sentLast24h}/${antiBanInfo.quota.dayLimit}`}
+              </Badge>
+              <Badge variant="outline" className="gap-1">
+                <Timer className="w-3.5 h-3.5" />
+                {ar
+                  ? `آخر ساعة: ${antiBanInfo.quota.sentLastHour}/${antiBanInfo.quota.hourLimit}`
+                  : `Last hour: ${antiBanInfo.quota.sentLastHour}/${antiBanInfo.quota.hourLimit}`}
+              </Badge>
+              {antiBanInfo.quota.warmup && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 border-amber-400 text-amber-700"
+                >
+                  {ar
+                    ? "رقم جديد: حدود أقل أول 14 يوم"
+                    : "New number: lower limits for 14 days"}
+                </Badge>
+              )}
+              {antiBanInfo.optOutCount > 0 && (
+                <Badge variant="outline">
+                  {ar
+                    ? `${antiBanInfo.optOutCount} ألغوا الاشتراك`
+                    : `${antiBanInfo.optOutCount} opted out`}
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <CardContent className="pt-0 space-y-4">
         {/* Golden Anti-Ban Rules Banner */}
@@ -157,8 +210,8 @@ export function renderBaileysQrCard(s: WhatsAppSettingsSectionState) {
             <li>
               <strong>{ar ? "حماية تلقائية نشطة:" : "Auto-Protection:"}</strong>{" "}
               {ar
-                ? "النظام يضع فواصل عشوائية (5-9 ث) وتبريداً تلقائياً وبصمة فريدة."
-                : "System applies random jitter (5-9s) and cooling pauses."}
+                ? "النظام يضع فواصل عشوائية (10-18 ث) واستراحات تلقائية وحدوداً يومية آمنة."
+                : "System applies random 10-18s gaps, breaks and safe daily limits."}
             </li>
           </ul>
         </div>
@@ -438,7 +491,7 @@ export function renderBaileysQrCard(s: WhatsAppSettingsSectionState) {
               </div>
               <div className="text-xs space-y-0.5">
                 <div className="font-semibold text-foreground">
-                  {ar ? "فواصل عشوائية (5-9s)" : "Random Jitter (5-9s)"}
+                  {ar ? "فواصل عشوائية (10-18 ث)" : "Random gaps (10-18s)"}
                 </div>
                 <div className="text-muted-foreground text-[11px] leading-relaxed">
                   {ar
@@ -455,13 +508,13 @@ export function renderBaileysQrCard(s: WhatsAppSettingsSectionState) {
               <div className="text-xs space-y-0.5">
                 <div className="font-semibold text-foreground">
                   {ar
-                    ? "استراحة تبريد كل 15 رسالة"
-                    : "Batch Cooldown (15 msgs)"}
+                    ? "استراحة كل 8 رسائل + حد يومي آمن"
+                    : "Break every 8 msgs + safe daily limit"}
                 </div>
                 <div className="text-muted-foreground text-[11px] leading-relaxed">
                   {ar
-                    ? "توقف أمان (40-60 ثانية) تلقائياً لتهدئة الحساب ومنع الحظر"
-                    : "Auto 40-60s cooling pause every 15 msgs sent"}
+                    ? "توقف 70-110 ثانية كل 8 رسائل، و30 رسالة/ساعة و150/يوم (أقل للرقم الجديد)"
+                    : "70-110s pause every 8 messages; 30/hour and 150/day (lower for a new number)"}
                 </div>
               </div>
             </div>
@@ -472,12 +525,14 @@ export function renderBaileysQrCard(s: WhatsAppSettingsSectionState) {
               </div>
               <div className="text-xs space-y-0.5">
                 <div className="font-semibold text-foreground">
-                  {ar ? "بصمة وهاش فريد لكل رسالة" : "Unique Hash Fingerprint"}
+                  {ar
+                    ? "إلغاء الاشتراك ومنع التكرار"
+                    : "Opt-out & no duplicates"}
                 </div>
                 <div className="text-muted-foreground text-[11px] leading-relaxed">
                   {ar
-                    ? "تشفير بحروف غير مرئية يمنع خوارزميات السبام من مطابقة النصوص"
-                    : "Invisible zero-width hash prevents bulk duplicate flags"}
+                    ? "من يرد بـ 0 لا تصله رسائل جماعية، ولا تتكرر نفس الرسالة لنفس الرقم"
+                    : "Replying 0 stops broadcasts; the same message never goes twice to a number"}
                 </div>
               </div>
             </div>

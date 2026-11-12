@@ -2388,6 +2388,17 @@ BEGIN
     );
     CREATE INDEX IF NOT EXISTS idx_tenant_wa_outbox_status ON "whatsapp_outbox_queue"("status");
     CREATE INDEX IF NOT EXISTS idx_tenant_wa_outbox_created_at ON "whatsapp_outbox_queue"("created_at");
+    ALTER TABLE "whatsapp_outbox_queue" ADD COLUMN IF NOT EXISTS "next_attempt_at" TIMESTAMPTZ;
+
+    -- Table: whatsapp_opt_outs (numbers that replied 0 / STOP)
+    CREATE TABLE IF NOT EXISTS "whatsapp_opt_outs" (
+      "id" SERIAL PRIMARY KEY,
+      "property_id" INTEGER NOT NULL,
+      "phone" TEXT NOT NULL,
+      "source" TEXT NOT NULL DEFAULT 'reply',
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_tenant_wa_opt_outs_prop_phone ON "whatsapp_opt_outs"("property_id", "phone");
 
     -- --------------------------------------------------------
     -- Table: room_import_jobs (per tenant)

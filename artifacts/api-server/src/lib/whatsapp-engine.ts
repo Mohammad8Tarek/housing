@@ -11,11 +11,17 @@ export {
   isArabicProfile,
 } from "./whatsapp/templates.js";
 export {
-  SAFE_HOURLY_LIMIT,
-  SAFE_DAILY_LIMIT,
-  checkAndIncrementAntiBanQuota,
+  LIMITS,
+  getQuotaStatus,
+  checkSendQuota,
   isQuietHoursNow,
 } from "./whatsapp/quota.js";
+export {
+  isOptedOut,
+  recordOptOut,
+  removeOptOut,
+  getOptOutCount,
+} from "./whatsapp/opt-out.js";
 export {
   getWhatsAppSession,
   connectPropertyWhatsApp,
