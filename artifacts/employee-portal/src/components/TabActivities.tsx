@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Calendar,
   Clock,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
+import { useMyActivities, useCatalog, usePortalInvalidate } from "../lib/portal-queries";
 
 interface Activity {
   id: number;
@@ -35,54 +36,33 @@ interface Activity {
 export default function TabActivities() {
   const { lang } = useTheme();
   const isRtl = lang === "ar";
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const invalidate = usePortalInvalidate();
+  const activitiesQuery = useMyActivities();
+  const catalogQuery = useCatalog();
+  const activities = (activitiesQuery.data ?? []) as Activity[];
+  const isLoading = activitiesQuery.isLoading && !activitiesQuery.data;
   const [registrations, setRegistrations] = useState<Record<number, string>>(
     {},
   );
-  const [categoryMap, setCategoryMap] = useState<
-    Record<string, { ar: string; en: string }>
-  >({});
-  const [isLoading, setIsLoading] = useState(true);
+  const categoryMap = useMemo(() => {
+    const map: Record<string, { ar: string; en: string }> = {};
+    (catalogQuery.data?.activityCategories || []).forEach((c: any) => {
+      map[c.key] = { ar: c.nameAr, en: c.name };
+    });
+    return map;
+  }, [catalogQuery.data]);
   const [registeringId, setRegisteringId] = useState<number | null>(null);
   const [ratings, setRatings] = useState<Record<number, number>>({});
   const [submittingRating, setSubmittingRating] = useState<number | null>(null);
 
+  // Keep the local registration map in sync with the server state
   useEffect(() => {
-    Promise.all([
-      apiFetch("/api/portal-data/my-activities", {
-        credentials: "include",
-      }).then((r) => r.json()),
-      apiFetch("/api/portal-data/catalog", { credentials: "include" })
-        .then((r) => r.json())
-        .catch(() => null),
-    ])
-      .then(([data, catalog]) => {
-        if (catalog?.activityCategories) {
-          const map: Record<string, { ar: string; en: string }> = {};
-          catalog.activityCategories.forEach((c: any) => {
-            map[c.key] = { ar: c.nameAr, en: c.name };
-          });
-          setCategoryMap(map);
-        }
-        if (Array.isArray(data)) {
-          setActivities(data);
-          const regs: Record<number, string> = {};
-          data.forEach((a: Activity) => {
-            if (a.registrationStatus) regs[a.id] = a.registrationStatus;
-          });
-          setRegistrations(regs);
-        } else if (data && data.success && Array.isArray(data.activities)) {
-          setActivities(data.activities);
-          const regs: Record<number, string> = {};
-          data.activities.forEach((a: Activity) => {
-            if (a.registrationStatus) regs[a.id] = a.registrationStatus;
-          });
-          setRegistrations(regs);
-        }
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
-  }, []);
+    const regs: Record<number, string> = {};
+    activities.forEach((a) => {
+      if (a.registrationStatus) regs[a.id] = a.registrationStatus;
+    });
+    setRegistrations(regs);
+  }, [activities]);
 
   const getTitle = (a: Activity) =>
     isRtl ? a.titleAr || a.titleEn : a.titleEn || a.titleAr;

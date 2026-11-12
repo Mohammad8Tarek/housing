@@ -1,7 +1,5 @@
 import { Switch, Route, Redirect, useLocation } from "wouter";
-import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "./lib/theme";
 import { PWAProvider } from "./lib/pwa";
@@ -16,38 +14,13 @@ const Dashboard = lazy(() => import("./pages/dashboard"));
 const ChangePassword = lazy(() => import("./pages/change-password"));
 const RequestDetails = lazy(() => import("./pages/request-details"));
 import BiometricLockScreen from "./components/BiometricLockScreen";
-import {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-  lazy,
-  Suspense,
-} from "react";
+import { useEffect, useState, useRef, useCallback, lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { apiFetch, clearSessionCache, setCachedSessionId } from "./lib/api";
 import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 
-// ─── Query Client with aggressive caching ───────────────────────────────────
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60_000, // data stays fresh 5 min
-      gcTime: 24 * 60 * 60_000, // keep in memory 24 h (for persistence)
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: true,
-      retry: 1,
-    },
-  },
-});
-
-// ─── LocalStorage persister for offline / instant-load caching ───────────────
-const localStoragePersister = createSyncStoragePersister({
-  storage: typeof window !== "undefined" ? window.localStorage : undefined,
-  key: "SUNRISE_PORTAL_QUERY_CACHE",
-  throttleTime: 1000,
-});
+import { queryClient, localStoragePersister, PORTAL_CACHE_BUSTER } from "./lib/query-client";
 
 // ─── AuthGuard ───────────────────────────────────────────────────────────────
 // IMPORTANT: We do NOT include `biometric` in the checkAuth useCallback deps.
@@ -70,9 +43,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     try {
       if (isNative) {
         // session_only flag → user chose rememberMe=false → don't auto-login on cold start
-        const { value: sessionOnly } = await Preferences.get({
-          key: "login_session_only",
-        });
+        const { value: sessionOnly } = await Preferences.get({ key: "login_session_only" });
         if (sessionOnly === "true") {
           const hasCurrent = sessionStorage.getItem("portal_employee");
           if (!hasCurrent) {
@@ -86,9 +57,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
           }
         }
 
-        const { value: empJson } = await Preferences.get({
-          key: "portal_employee",
-        });
+        const { value: empJson } = await Preferences.get({ key: "portal_employee" });
         if (!empJson) {
           clearSessionCache();
           setChecking(false);
@@ -143,10 +112,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
               sessionStorage.setItem("portal_employee", empJson);
               localStorage.setItem("portal_employee", empJson);
               if (isNative) {
-                await Preferences.set({
-                  key: "portal_employee",
-                  value: empJson,
-                });
+                await Preferences.set({ key: "portal_employee", value: empJson });
               }
             }
           } catch {}
@@ -155,29 +121,20 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
             // Try silent re-login with saved biometric credentials
             let reloginOk = false;
             try {
-              const { NativeBiometric } =
-                await import("@capgo/capacitor-native-biometric");
-              const creds = await NativeBiometric.getCredentials({
-                server: "com.sunrisehousing.portal",
-              }).catch(() => null);
+              const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
+              const creds = await NativeBiometric.getCredentials({ server: "com.sunrisehousing.portal" }).catch(() => null);
               if (creds?.username && creds?.password) {
                 const loginRes = await apiFetch("/api/portal-auth/login", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    employeeId: creds.username,
-                    password: creds.password,
-                  }),
+                  body: JSON.stringify({ employeeId: creds.username, password: creds.password }),
                 });
                 if (loginRes.ok) {
                   const loginData = await loginRes.json();
                   if (loginData.sessionId) {
                     sessionStorage.setItem("session_id", loginData.sessionId);
                     localStorage.setItem("session_id", loginData.sessionId);
-                    await Preferences.set({
-                      key: "session_id",
-                      value: loginData.sessionId,
-                    });
+                    await Preferences.set({ key: "session_id", value: loginData.sessionId });
                     setCachedSessionId(loginData.sessionId);
                   }
                   if (loginData.profile || loginData.employee) {
@@ -185,10 +142,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
                     const empJson = JSON.stringify(emp);
                     sessionStorage.setItem("portal_employee", empJson);
                     localStorage.setItem("portal_employee", empJson);
-                    await Preferences.set({
-                      key: "portal_employee",
-                      value: empJson,
-                    });
+                    await Preferences.set({ key: "portal_employee", value: empJson });
                   }
                   reloginOk = true;
                 }
@@ -197,9 +151,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
             if (!reloginOk) {
               // No biometric creds — trust local session (user may have just logged in)
-              const hasSid =
-                sessionStorage.getItem("session_id") ||
-                localStorage.getItem("session_id");
+              const hasSid = sessionStorage.getItem("session_id") || localStorage.getItem("session_id");
               if (!hasSid) {
                 clearSessionCache();
                 setChecking(false);
@@ -231,15 +183,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       // Check biometric lock for initial open — read Preferences directly (no hook dep)
       if (isNative) {
         try {
-          const { value: useFingerprint } = await Preferences.get({
-            key: "login_use_fingerprint",
-          });
+          const { value: useFingerprint } = await Preferences.get({ key: "login_use_fingerprint" });
           if (useFingerprint !== "false") {
-            const { NativeBiometric } =
-              await import("@capgo/capacitor-native-biometric");
-            const available = await NativeBiometric.isAvailable().catch(() => ({
-              isAvailable: false,
-            }));
+            const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
+            const available = await NativeBiometric.isAvailable().catch(() => ({ isAvailable: false }));
             if (available.isAvailable) {
               setLocked(true);
               setChecking(false);
@@ -256,7 +203,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       setChecking(false);
       setLocation("/login");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNative, setLocation]); // NOT including biometric — see note above
 
   // Run once on mount
@@ -271,21 +218,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     const handleVisibility = async () => {
       if (document.visibilityState === "hidden") {
         wasBackground.current = true;
-      } else if (
-        document.visibilityState === "visible" &&
-        wasBackground.current
-      ) {
+      } else if (document.visibilityState === "visible" && wasBackground.current) {
         wasBackground.current = false;
         try {
-          const { value: useFingerprint } = await Preferences.get({
-            key: "login_use_fingerprint",
-          });
+          const { value: useFingerprint } = await Preferences.get({ key: "login_use_fingerprint" });
           if (useFingerprint !== "false") {
-            const { NativeBiometric } =
-              await import("@capgo/capacitor-native-biometric");
-            const available = await NativeBiometric.isAvailable().catch(() => ({
-              isAvailable: false,
-            }));
+            const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
+            const available = await NativeBiometric.isAvailable().catch(() => ({ isAvailable: false }));
             if (available.isAvailable) {
               setLocked(true);
             }
@@ -295,8 +234,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     };
 
     document.addEventListener("visibilitychange", handleVisibility);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [isNative]);
 
   if (checking) {
@@ -306,31 +244,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
           <div className="w-16 h-16 rounded-[18px] bg-[#18B0BB]/10 border border-[#18B0BB]/20 flex items-center justify-center">
             <svg viewBox="0 0 100 100" width="40" height="40" fill="none">
               <circle cx="50" cy="52" r="22" fill="#18B0BB" opacity="0.9" />
-              <line
-                x1="15"
-                y1="70"
-                x2="85"
-                y2="70"
-                stroke="#18B0BB"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-              />
-              <path
-                d="M50 30 Q50 10 72 22"
-                stroke="#18B0BB"
-                strokeWidth="2.5"
-                fill="none"
-                strokeLinecap="round"
-                opacity="0.6"
-              />
-              <path
-                d="M50 30 Q50 10 28 22"
-                stroke="#18B0BB"
-                strokeWidth="2.5"
-                fill="none"
-                strokeLinecap="round"
-                opacity="0.6"
-              />
+              <line x1="15" y1="70" x2="85" y2="70" stroke="#18B0BB" strokeWidth="3.5" strokeLinecap="round" />
+              <path d="M50 30 Q50 10 72 22" stroke="#18B0BB" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.6" />
+              <path d="M50 30 Q50 10 28 22" stroke="#18B0BB" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.6" />
             </svg>
           </div>
           <Loader2 className="w-6 h-6 animate-spin text-[#18B0BB]" />
@@ -366,10 +282,7 @@ function RouteFallback() {
         background: "hsl(var(--bg))",
       }}
     >
-      <Loader2
-        className="animate-spin"
-        style={{ width: 28, height: 28, color: "hsl(var(--gold))" }}
-      />
+      <Loader2 className="animate-spin" style={{ width: 28, height: 28, color: "hsl(var(--gold))" }} />
     </div>
   );
 }
@@ -383,24 +296,24 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <PageTransition key={routeSlug} pageKey={routeSlug}>
         <Suspense fallback={<RouteFallback />}>
-          <Switch location={location}>
-            <Route path="/login" component={Login} />
-            <Route path="/forgot-password" component={ForgotPassword} />
-            <Route path="/change-password" component={ChangePassword} />
-            <Route path="/dashboard">
-              <AuthGuard>
-                <Dashboard />
-              </AuthGuard>
-            </Route>
-            <Route path="/request-details">
-              <AuthGuard>
-                <RequestDetails />
-              </AuthGuard>
-            </Route>
-            <Route path="/">
-              <Redirect to="/login" />
-            </Route>
-          </Switch>
+        <Switch location={location}>
+          <Route path="/login" component={Login} />
+          <Route path="/forgot-password" component={ForgotPassword} />
+          <Route path="/change-password" component={ChangePassword} />
+          <Route path="/dashboard">
+            <AuthGuard>
+              <Dashboard />
+            </AuthGuard>
+          </Route>
+          <Route path="/request-details">
+            <AuthGuard>
+              <RequestDetails />
+            </AuthGuard>
+          </Route>
+          <Route path="/">
+            <Redirect to="/login" />
+          </Route>
+        </Switch>
         </Suspense>
       </PageTransition>
     </AnimatePresence>
@@ -416,7 +329,7 @@ function App() {
         persistOptions={{
           persister: localStoragePersister,
           maxAge: 24 * 60 * 60 * 1000, // cache survives 24 h
-          buster: "v1",
+          buster: PORTAL_CACHE_BUSTER,
         }}
       >
         <PWAProvider>

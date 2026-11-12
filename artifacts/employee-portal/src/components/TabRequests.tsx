@@ -3,6 +3,8 @@ import { Loader2, X, Star } from "lucide-react";
 import { useLocation } from "wouter";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import { useMyMaintenance, portalKeys, type MaintenanceRequest } from "../lib/portal-queries";
 import MaterialIcon from "./MaterialIcon";
 import { toast } from "sonner";
 import { hapticFeedback } from "../lib/haptics";
@@ -157,26 +159,17 @@ export default function TabRequests() {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [msg, setMsg] = useState("");
-  const [requests, setRequests] = useState<Request[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(true);
+  const queryClient = useQueryClient();
+  const maintenanceQuery = useMyMaintenance();
+  const requests = (maintenanceQuery.data ?? []) as unknown as Request[];
+  const loadingHistory = maintenanceQuery.isLoading && !maintenanceQuery.data;
   const [showForm, setShowForm] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
   const fetchHistory = useCallback(() => {
-    setLoadingHistory(true);
-    apiFetch("/api/portal-data/my-maintenance", { credentials: "include" })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d && typeof d === "object" && "success" in d && d.success)
-          setRequests((d as { requests?: Request[] }).requests || []);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingHistory(false));
-  }, []);
+    queryClient.invalidateQueries({ queryKey: portalKeys.maintenance });
+  }, [queryClient]);
 
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,7 +187,10 @@ export default function TabRequests() {
 
       // Optimistic update
       if (data.request) {
-        setRequests((prev) => [data.request, ...prev]);
+        queryClient.setQueryData<MaintenanceRequest[]>(portalKeys.maintenance, (prev) => [
+          data.request,
+          ...(prev ?? []),
+        ]);
       }
 
       await hapticFeedback("medium");

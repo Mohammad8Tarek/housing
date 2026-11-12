@@ -284,19 +284,39 @@ function getSessionId(cookieHeader: string | undefined): string | null {
   return sid || null;
 }
 
-async function loadSessionAuth(cookieHeader: string | undefined): Promise<{
-  userId: number | string;
-  propertyId: number;
-  username: string;
-  isSystemAdmin: boolean;
-} | null> {
-  const sid = getSessionId(cookieHeader);
-  if (!sid) return null;
+type SessionLike = { get(sid: string, cb: (err: unknown, sess?: any) => void): void };
+let wsSessionStore: SessionLike | null = null;
+
+/**
+ * Lets app.ts hand over the live express-session store so WebSocket auth reads
+ * the same source of truth as HTTP (MemoryStore in dev, PostgreSQL in prod).
+ * Without it we fall back to querying the session table directly.
+ */
+export function setWsSessionStore(store: SessionLike | null): void {
+  wsSessionStore = store;
+}
+
+async function readSession(sid: string): Promise<any | null> {
+  if (wsSessionStore) {
+    return new Promise((resolve) => {
+      wsSessionStore!.get(sid, (err, sess) => resolve(err || !sess ? null : sess));
+    });
+  }
   const result = await pool.query(
     `SELECT sess FROM ${SESSION_TABLE_SQL} WHERE sid = $1 AND expire > NOW() LIMIT 1`,
     [sid],
   );
-  const sess = result.rows[0]?.sess;
+  return result.rows[0]?.sess ?? null;
+}
+
+type SessionAuth = {
+  userId: number | string;
+  propertyId: number;
+  username: string;
+  isSystemAdmin: boolean;
+};
+
+function authFromSession(sess: any): SessionAuth | null {
   if (!sess || typeof sess !== "object") return null;
 
   // Check for admin session
@@ -322,6 +342,12 @@ async function loadSessionAuth(cookieHeader: string | undefined): Promise<{
   }
 
   return null;
+}
+
+async function loadSessionAuth(cookieHeader: string | undefined): Promise<SessionAuth | null> {
+  const sid = getSessionId(cookieHeader);
+  if (!sid) return null;
+  return authFromSession(await readSession(sid));
 }
 
 // ✅ FIX: stable key — same user+property always gets the same key
@@ -420,30 +446,7 @@ export function initWebSocket(server: Server): WebSocketServer {
     let sessionAuth: Awaited<ReturnType<typeof loadSessionAuth>> | null = null;
     if (!tokenAuth && querySessionId) {
       try {
-        const result = await pool.query(
-          `SELECT sess FROM ${SESSION_TABLE_SQL} WHERE sid = $1 AND expire > NOW() LIMIT 1`,
-          [querySessionId],
-        );
-        const sess = result.rows[0]?.sess;
-        if (sess && typeof sess === "object") {
-          const userId = Number(sess.userId);
-          const propertyId = Number(sess.propertyId);
-          if (userId && propertyId) {
-            sessionAuth = {
-              userId,
-              propertyId,
-              username: String(sess.username ?? "unknown"),
-              isSystemAdmin: Boolean(sess.isSystemAdmin),
-            };
-          } else if (sess.portal?.profileDbId && sess.portal?.propertyId) {
-            sessionAuth = {
-              userId: `emp_${sess.portal.profileDbId}`,
-              propertyId: Number(sess.portal.propertyId),
-              username: sess.portal.fullName || "Profile",
-              isSystemAdmin: false,
-            };
-          }
-        }
+        sessionAuth = authFromSession(await readSession(querySessionId));
       } catch (err) {
         logger.warn({ err }, "[WS] Query sessionId auth lookup failed");
       }

@@ -14,6 +14,7 @@ import cors from "cors";
 import compression from "compression";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import { setWsSessionStore } from "./lib/websocket.js";
 import pinoHttp from "pino-http";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
@@ -194,6 +195,9 @@ if (sessionStoreType === "postgresql") {
 setSessionStore(sessionStore);
 
 const isProduction = process.env["NODE_ENV"] === "production";
+
+// WebSocket upgrades authenticate against the same store as HTTP requests
+setWsSessionStore(sessionStore as any);
 
 const sessionMiddleware = session({
   name: "sunrise.sid",

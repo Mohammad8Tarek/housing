@@ -51,6 +51,8 @@ export async function getSessionId(): Promise<string | null> {
 }
 
 export function clearSessionCache() {
+  // Cached portal data belongs to the signed-in resident; never leak it to the next login.
+  import("./query-client").then((m) => m.clearPortalQueryCache()).catch(() => {});
   _cachedSid = undefined;
   if (typeof sessionStorage !== "undefined") {
     sessionStorage.removeItem("session_id");

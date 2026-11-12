@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Camera, CheckCircle2, AlertCircle, Loader2, Save } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch, clearSessionCache } from "../lib/api";
+import { useMe, useMyProfile, usePortalInvalidate } from "../lib/portal-queries";
 import { useLocation } from "wouter";
 import { Preferences } from "@capacitor/preferences";
 import { Capacitor } from "@capacitor/core";
@@ -88,36 +89,27 @@ export default function TabProfile({
     }
   }, [employee]);
 
-  // Fetch fresh profile data independently
+  // Fresh profile data from the shared cache (instant on reopen, refreshed in background)
+  const invalidate = usePortalInvalidate();
+  const meQuery = useMe();
+  const myProfileQuery = useMyProfile();
   useEffect(() => {
-    apiFetch("/api/portal-auth/me", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((me) => {
-        const emp = me?.employee || me?.profile;
-        if (emp) {
-          setEmployee((prev: any) => ({ ...prev, ...emp }));
-        }
-      })
-      .catch(() => {});
-
-    apiFetch("/api/portal-data/my-profile", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        const p = data?.profile;
-        if (p) {
-          setEmployee((prev: any) => ({ ...prev, ...p }));
-          setForm((f) => ({
-            ...f,
-            phone: p.phone || f.phone || "",
-            address: p.address || f.address || "",
-            email: p.email || f.email || "",
-            emergencyContact: p.emergencyContact || f.emergencyContact || "",
-          }));
-          if (p.photoUrl) setPreview(p.photoUrl);
-        }
-      })
-      .catch(() => {});
-  }, []);
+    const emp = (meQuery.data as any)?.employee || (meQuery.data as any)?.profile;
+    if (emp) setEmployee((prev: any) => ({ ...prev, ...emp }));
+  }, [meQuery.data]);
+  useEffect(() => {
+    const p = (myProfileQuery.data as any)?.profile;
+    if (!p) return;
+    setEmployee((prev: any) => ({ ...prev, ...p }));
+    setForm((f) => ({
+      ...f,
+      phone: p.phone || f.phone || "",
+      address: p.address || f.address || "",
+      email: p.email || f.email || "",
+      emergencyContact: p.emergencyContact || f.emergencyContact || "",
+    }));
+    if (p.photoUrl) setPreview(p.photoUrl);
+  }, [myProfileQuery.data]);
 
   const saveProfileData = async (dataToSave: any) => {
     setStatus("loading");
@@ -134,6 +126,7 @@ export default function TabProfile({
       setStatus("success");
       setMsg(isRtl ? "تم الحفظ بنجاح" : "Saved successfully");
       setEditing(false);
+      invalidate.keys(["portal", "my-profile"], ["portal", "me"], ["portal", "roommates"]);
       setEmployee((prev: any) => {
         const next = { ...prev, ...dataToSave };
         try {

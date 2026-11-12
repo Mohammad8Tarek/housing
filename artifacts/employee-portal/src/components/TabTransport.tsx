@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
+import { useTransportSchedules, useMyBookings, usePortalInvalidate } from "../lib/portal-queries";
 import MaterialIcon from "./MaterialIcon";
 import PortalDateInput from "./PortalDateInput";
 
@@ -29,9 +30,13 @@ interface Booking {
 export default function TabTransport() {
   const { lang } = useTheme();
   const isRtl = lang === "ar";
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
+  const invalidate = usePortalInvalidate();
+  const schedulesQuery = useTransportSchedules();
+  const bookingsQuery = useMyBookings();
+  const schedules = (schedulesQuery.data ?? []) as Schedule[];
+  const bookings = (bookingsQuery.data ?? []) as Booking[];
+  const loading =
+    (schedulesQuery.isLoading && !schedulesQuery.data) || (bookingsQuery.isLoading && !bookingsQuery.data);
   const [bookingDate, setBookingDate] = useState(
     new Date().toISOString().split("T")[0],
   );
@@ -42,23 +47,6 @@ export default function TabTransport() {
   const [msg, setMsg] = useState("");
   const [tab, setTab] = useState<"schedules" | "bookings">("schedules");
 
-  useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      apiFetch("/api/portal-food/schedules", {
-        credentials: "include",
-      }).then((r) => r.json()),
-      apiFetch("/api/portal-food/my-bookings", {
-        credentials: "include",
-      }).then((r) => r.json()),
-    ])
-      .then(([schedData, bookData]) => {
-        if (schedData.success) setSchedules(schedData.schedules || []);
-        if (bookData.success) setBookings(bookData.bookings || []);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
 
   const handleBook = async () => {
     if (!selected) return;
@@ -74,6 +62,7 @@ export default function TabTransport() {
       if (!data.success) throw new Error(data.message || "Failed");
       setStatus("success");
       setMsg(isRtl ? "تم الحجز!" : "Booked!");
+      invalidate.keys(["portal", "my-bookings"]);
       setSelected(null);
       setTimeout(() => setStatus("idle"), 2000);
     } catch (err: any) {

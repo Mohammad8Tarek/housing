@@ -3,6 +3,8 @@ import { Loader2 } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { apiFetch } from "../lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNotifications, portalKeys, type NotificationsPayload } from "../lib/portal-queries";
 import MaterialIcon from "./MaterialIcon";
 
 interface Notification {
@@ -70,38 +72,27 @@ export default function TabNotifications({ onChangeTab }: Props) {
   const isRtl = lang === "ar";
   const push = usePushNotifications();
 
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const notificationsQuery = useNotifications();
+  const notifications = (notificationsQuery.data?.notifications ?? []) as unknown as Notification[];
+  const unreadCount = notificationsQuery.data?.unreadCount ?? 0;
+  const isLoading = notificationsQuery.isLoading && !notificationsQuery.data;
+  const patchCache = (fn: (prev: NotificationsPayload) => NotificationsPayload) =>
+    queryClient.setQueryData<NotificationsPayload>(portalKeys.notifications, (prev) =>
+      fn(prev ?? { notifications: [], unreadCount: 0 }),
+    );
   const [markingAll, setMarkingAll] = useState(false);
 
-  const fetchNotifications = async () => {
-    setIsLoading(true);
-    try {
-      const res = await apiFetch("/api/portal-notifications/my", {
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (data.success) {
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
-      }
-    } catch {
-      /* silent */
-    } finally {
-      setIsLoading(false);
-    }
+  const fetchNotifications = () => {
+    queryClient.invalidateQueries({ queryKey: portalKeys.notifications });
   };
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
 
   const markAsRead = async (id: number) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
-    );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
+    patchCache((prev) => ({
+      notifications: prev.notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+      unreadCount: Math.max(0, prev.unreadCount - 1),
+    }));
     try {
       await apiFetch(`/api/portal-notifications/read/${id}`, {
         method: "PUT",
@@ -120,8 +111,10 @@ export default function TabNotifications({ onChangeTab }: Props) {
         method: "PUT",
         credentials: "include",
       });
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      setUnreadCount(0);
+      patchCache((prev) => ({
+        notifications: prev.notifications.map((n) => ({ ...n, isRead: true })),
+        unreadCount: 0,
+      }));
       window.dispatchEvent(new Event("refresh_notifications"));
     } catch {
       /* silent */

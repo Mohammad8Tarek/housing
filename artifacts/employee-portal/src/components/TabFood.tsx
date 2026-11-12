@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
+import { useFoodMenu, useMyOrders, usePortalInvalidate } from "../lib/portal-queries";
 import MaterialIcon from "./MaterialIcon";
 import PortalDateInput from "./PortalDateInput";
 
@@ -32,9 +33,13 @@ interface MealOrder {
 export default function TabFood() {
   const { lang } = useTheme();
   const isRtl = lang === "ar";
-  const [menu, setMenu] = useState<MenuItem[]>([]);
-  const [orders, setOrders] = useState<MealOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const today = new Date().toISOString().split("T")[0];
+  const invalidate = usePortalInvalidate();
+  const menuQuery = useFoodMenu(today);
+  const ordersQuery = useMyOrders();
+  const menu = (menuQuery.data ?? []) as MenuItem[];
+  const orders = (ordersQuery.data ?? []) as MealOrder[];
+  const loading = (menuQuery.isLoading && !menuQuery.data) || (ordersQuery.isLoading && !ordersQuery.data);
   const [selected, setSelected] = useState<MenuItem | null>(null);
   const [orderDate, setOrderDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -45,25 +50,6 @@ export default function TabFood() {
   const [msg, setMsg] = useState("");
   const [tab, setTab] = useState<"menu" | "orders">("menu");
 
-  const today = new Date().toISOString().split("T")[0];
-
-  useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      apiFetch(`/api/portal-food/menu?date=${today}&type=daily`, {
-        credentials: "include",
-      }).then((r) => r.json()),
-      apiFetch("/api/portal-food/my-orders", { credentials: "include" }).then(
-        (r) => r.json(),
-      ),
-    ])
-      .then(([menuData, orderData]) => {
-        if (menuData.success) setMenu(menuData.items || []);
-        if (orderData.success) setOrders(orderData.orders || []);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [today]);
 
   const handleOrder = async () => {
     if (!selected) return;
@@ -83,6 +69,7 @@ export default function TabFood() {
       if (!data.success) throw new Error(data.message || "Failed");
       setStatus("success");
       setMsg(isRtl ? "تم الطلب!" : "Ordered!");
+      invalidate.keys(["portal", "my-orders"]);
       setSelected(null);
       setTimeout(() => setStatus("idle"), 2000);
     } catch (err: any) {

@@ -1,12 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-  useMemo,
-  lazy,
-  Suspense,
-} from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { useLocation } from "wouter";
 import { Moon, Sun, Bell, LogOut } from "lucide-react";
 import { useTheme } from "../lib/theme";
@@ -49,6 +41,18 @@ const TabChat = lazy(() =>
 import { getPortalTabFromUrl, normalizePortalTab } from "../lib/portal-tabs";
 import { useBackButton } from "../hooks/useBackButton";
 import { useNativePush, unregisterNativePush } from "../hooks/useNativePush";
+import { usePortalRealtime } from "../hooks/usePortalRealtime";
+import {
+  useDocuments,
+  useEvaluations,
+  useRoommates,
+  useMyContacts,
+  useNotifications,
+  useMyMaintenance,
+  usePortalInvalidate,
+  isRequestDone,
+  isRequestOpen,
+} from "../lib/portal-queries";
 
 interface Employee {
   id?: number;
@@ -113,38 +117,36 @@ export default function Dashboard() {
     }
   });
   const [portalData, setPortalData] = useState<PortalData | null>(null);
-  const [documents, setDocuments] = useState<Record<string, unknown>[]>([]);
-  const [evaluations, setEvaluations] = useState<Record<string, unknown>[]>([]);
-  const [roommates, setRoommates] = useState<Record<string, unknown>[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-
-  const fetched = useRef<Set<string>>(new Set());
 
   const [activeTab, setActiveTab] = useState<Tab>(getTabFromURL);
   const [isLoading, setIsLoading] = useState(true);
   const [showHR, setShowHR] = useState(false);
 
-  const [unreadCount, setUnreadCount] = useState(0);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const prevUnreadRef = useRef(0);
 
-  // Fetch HR contacts for Contact HR modal & Chat
-  const fetchContacts = useCallback(async () => {
-    try {
-      const res = await apiFetch("/api/portal-data/my-contacts", {
-        credentials: "include",
-      });
-      if (res.ok) {
-        const d = await res.json();
-        if (d?.contacts) setContacts(d.contacts);
-      }
-    } catch {}
-  }, []);
+  // ── Shared, cached portal data (TanStack Query; persisted for offline) ──
+  const isAuthed = Boolean(employee?.id);
+  const invalidate = usePortalInvalidate();
+  const documentsQuery = useDocuments(isAuthed && activeTab === "documents");
+  const evaluationsQuery = useEvaluations(isAuthed && activeTab === "evaluations");
+  const roommatesQuery = useRoommates(isAuthed && activeTab === "roommates");
+  const contactsQuery = useMyContacts(isAuthed);
+  const notificationsQuery = useNotifications(isAuthed);
+  const maintenanceQuery = useMyMaintenance(isAuthed);
 
-  useEffect(() => {
-    fetchContacts();
-  }, [fetchContacts]);
+  const documents = documentsQuery.data ?? [];
+  const evaluations = evaluationsQuery.data ?? [];
+  const roommates = roommatesQuery.data?.roommates ?? [];
+  const contacts = (contactsQuery.data ?? []) as Contact[];
+  const unreadCount = notificationsQuery.data?.unreadCount ?? 0;
+  const pendingCount = useMemo(() => {
+    const reqs = maintenanceQuery.data ?? [];
+    const open = reqs.filter(isRequestOpen).length;
+    const unrated = reqs.filter((r) => isRequestDone(r) && !r.rating).length;
+    return open + unrated;
+  }, [maintenanceQuery.data]);
 
   // Hardware Back Button integration (Android)
   useBackButton({
@@ -157,11 +159,7 @@ export default function Dashboard() {
     isRtl,
   });
 
-  const {
-    data: profileRes,
-    isError: isProfileError,
-    error: profileError,
-  } = usePortalProfile();
+  const { data: profileRes, isError: isProfileError, error: profileError } = usePortalProfile();
   const { data: roomRes } = usePortalRoom();
   const { data: notifRes } = usePortalNotifications();
   const { data: alertsRes } = usePortalAlerts();
@@ -171,15 +169,13 @@ export default function Dashboard() {
   // Restore employee from Preferences if native and not yet in state
   useEffect(() => {
     if (!employee && isNative) {
-      Preferences.get({ key: "portal_employee" })
-        .then(({ value }) => {
-          if (value) {
-            try {
-              setEmployee(JSON.parse(value) as Employee);
-            } catch {}
-          }
-        })
-        .catch(() => {});
+      Preferences.get({ key: "portal_employee" }).then(({ value }) => {
+        if (value) {
+          try {
+            setEmployee(JSON.parse(value) as Employee);
+          } catch {}
+        }
+      }).catch(() => {});
     }
   }, [employee, isNative]);
 
@@ -200,8 +196,7 @@ export default function Dashboard() {
           ...prev,
           ...profileData,
           fullName: profileData.name || profileData.fullName || prev?.fullName,
-          jobTitle:
-            profileData.position || profileData.jobTitle || prev?.jobTitle,
+          jobTitle: profileData.position || profileData.jobTitle || prev?.jobTitle,
           photoUrl: profileData.photo || profileData.photoUrl || prev?.photoUrl,
         };
       });
@@ -223,16 +218,6 @@ export default function Dashboard() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
-
-  // Track if a tab has been fetched (separate from ref for render-safe access)
-  const [fetchedTabs, setFetchedTabs] = useState<Set<string>>(new Set());
-  const markFetched = useCallback(
-    (tab: string) => {
-      fetched.current.add(tab);
-      setFetchedTabs((prev) => new Set(prev).add(tab));
-    },
-    [setFetchedTabs],
-  );
 
   const redirectToLogin = useCallback(() => {
     clearSessionCache();
@@ -281,82 +266,12 @@ export default function Dashboard() {
     threshold: 60,
   });
 
-  const fetchDocuments = useCallback(async () => {
-    if (fetched.current.has("documents")) return;
-    try {
-      const r = await apiFetch("/api/portal-data/documents", {
-        credentials: "include",
-      });
-      if (r.status === 401) {
-        return;
-      }
-      markFetched("documents");
-      const d = await r.json();
-      if (d && typeof d === "object" && "success" in d && d.success) {
-        setDocuments(
-          (d as { documents?: Record<string, unknown>[] }).documents || [],
-        );
-      }
-    } catch {
-      /* silent - offline */
-    }
-  }, [markFetched]);
-
-  const fetchEvaluations = useCallback(async () => {
-    if (fetched.current.has("evaluations")) return;
-    try {
-      const r = await apiFetch("/api/portal-data/my-evaluations", {
-        credentials: "include",
-      });
-      if (r.status === 401) {
-        return;
-      }
-      if (!r.ok) return;
-      markFetched("evaluations");
-      const d = await r.json();
-      if (Array.isArray(d)) setEvaluations(d as Record<string, unknown>[]);
-      else if (d && typeof d === "object" && "success" in d && d.success) {
-        setEvaluations(
-          (d as { evaluations?: Record<string, unknown>[] }).evaluations || [],
-        );
-      }
-    } catch {
-      /* silent - offline */
-    }
-  }, [markFetched]);
-
-  const fetchRoommates = useCallback(async () => {
-    if (fetched.current.has("roommates")) return;
-    try {
-      const r = await apiFetch("/api/portal-data/roommates", {
-        credentials: "include",
-      });
-      if (r.status === 401) {
-        return;
-      }
-      markFetched("roommates");
-      const d = await r.json();
-      if (d && typeof d === "object" && "success" in d && d.success) {
-        setRoommates(
-          (d as { roommates?: Record<string, unknown>[] }).roommates || [],
-        );
-      }
-    } catch {
-      /* silent - offline */
-    }
-  }, [markFetched]);
-
   const changeTab = useCallback(
     (tab: Tab, forceRefresh = false) => {
       const nextTab = normalizePortalTab(tab);
       haptic.tap();
       if (forceRefresh) {
-        fetched.current.delete(nextTab);
-        setFetchedTabs((prev) => {
-          const next = new Set(prev);
-          next.delete(nextTab);
-          return next;
-        });
+        invalidate.all();
       }
       if (nextTab === activeTab) return;
       setActiveTab(nextTab);
@@ -365,63 +280,38 @@ export default function Dashboard() {
       window.history.replaceState({}, "", url.toString());
       scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     },
-    [activeTab, haptic, setFetchedTabs],
+    [activeTab, haptic, invalidate],
   );
 
-  // Lazy tab fetching via effects
-  useEffect(() => {
-    if (activeTab === "documents") fetchDocuments();
-    if (activeTab === "evaluations") fetchEvaluations();
-    if (activeTab === "roommates") fetchRoommates();
-  }, [activeTab, fetchDocuments, fetchEvaluations, fetchRoommates]);
-
+  // Pull-to-refresh: refetch everything the portal has cached
   const handleRefresh = useCallback(async () => {
-    fetched.current.delete("dashboard");
-    fetched.current.delete(activeTab);
-    setFetchedTabs((prev) => {
-      const next = new Set(prev);
-      next.delete("dashboard");
-      next.delete(activeTab);
-      return next;
-    });
-    if (activeTab === "documents") await fetchDocuments();
-    if (activeTab === "evaluations") await fetchEvaluations();
-  }, [activeTab, fetchDocuments, fetchEvaluations, setFetchedTabs]);
+    await invalidate.all();
+  }, [invalidate]);
 
   const { pullDistance, isRefreshing, progress } = usePullToRefresh({
     onRefresh: handleRefresh,
     containerRef: scrollRef as React.RefObject<HTMLElement>,
   });
 
-  // Fetch notifications via polling (with proper effect)
-  const fetchNotifs = useCallback(async () => {
-    if (!employee) return;
-    try {
-      const res = await apiFetch("/api/portal-notifications/my", {
-        credentials: "include",
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && typeof data === "object") {
-          setUnreadCount((data as { unreadCount?: number }).unreadCount || 0);
-        }
-      }
-    } catch {
-      /* silent - offline */
-    }
-  }, [employee?.id]);
+  // Realtime: one WebSocket invalidates cached queries the moment data changes
+  // (replaces the old 15s notifications poll and 30s maintenance poll).
+  const realtimeStatus = usePortalRealtime({ enabled: isAuthed });
 
+  // Legacy event still dispatched by a few components after local mutations
   useEffect(() => {
-    fetchNotifs();
+    const onRefresh = () => invalidate.module("notifications");
+    window.addEventListener("refresh_notifications", onRefresh);
+    return () => window.removeEventListener("refresh_notifications", onRefresh);
+  }, [invalidate]);
+
+  // Slow safety-net refresh only while the socket is down
+  useEffect(() => {
+    if (!isAuthed || realtimeStatus === "online") return;
     const interval = setInterval(() => {
-      if (!document.hidden) fetchNotifs();
-    }, 15000);
-    window.addEventListener("refresh_notifications", fetchNotifs);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("refresh_notifications", fetchNotifs);
-    };
-  }, [fetchNotifs]);
+      if (!document.hidden) invalidate.keys(["portal", "my-notifications"], ["portal", "my-maintenance"]);
+    }, 120_000);
+    return () => clearInterval(interval);
+  }, [isAuthed, realtimeStatus, invalidate]);
 
   useEffect(() => {
     if (unreadCount > prevUnreadRef.current) {
@@ -445,46 +335,6 @@ export default function Dashboard() {
     scrollEl.addEventListener("scroll", onScroll, { passive: true });
     return () => scrollEl.removeEventListener("scroll", onScroll);
   }, []);
-
-  const [pendingCount, setPendingCount] = useState(0);
-
-  useEffect(() => {
-    if (!employee) return;
-    let cancelled = false;
-    const fetchPending = async () => {
-      try {
-        const r = await apiFetch("/api/portal-data/my-maintenance", {
-          credentials: "include",
-        });
-        if (r.ok) {
-          const d = await r.json();
-          const requests = Array.isArray(d)
-            ? d
-            : (d as { requests?: Record<string, unknown>[] }).requests || [];
-          const open = requests.filter((req: Record<string, unknown>) =>
-            ["open", "in_progress"].includes(
-              String(req.status || "").toLowerCase(),
-            ),
-          ).length;
-          const unrated = requests.filter(
-            (req: Record<string, unknown>) =>
-              ["resolved", "closed", "completed", "done"].includes(
-                String(req.status || "").toLowerCase(),
-              ) && !req.rating,
-          ).length;
-          if (!cancelled) setPendingCount(open + unrated);
-        }
-      } catch {
-        /* silent */
-      }
-    };
-    fetchPending();
-    const interval = setInterval(fetchPending, 30000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [employee?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -587,22 +437,6 @@ export default function Dashboard() {
           });
         }
 
-        await Promise.all([
-          apiFetch("/api/portal-data/my-contacts", { credentials: "include" })
-            .then((r) => (r.status === 401 ? null : r.json()))
-            .then((d) => {
-              if (
-                d &&
-                typeof d === "object" &&
-                "success" in d &&
-                d.success &&
-                Array.isArray((d as { contacts: Contact[] }).contacts)
-              ) {
-                setContacts((d as { contacts: Contact[] }).contacts);
-              }
-            })
-            .catch(() => {}),
-        ]);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -616,15 +450,8 @@ export default function Dashboard() {
     };
   }, [setLocation]);
 
-  // Memoize activeTab for conditional rendering
-  const isDocFetched = useMemo(
-    () => fetchedTabs.has("documents"),
-    [fetchedTabs],
-  );
-  const isEvalFetched = useMemo(
-    () => fetchedTabs.has("evaluations"),
-    [fetchedTabs],
-  );
+  const isDocFetched = documentsQuery.isFetched || documentsQuery.data !== undefined;
+  const isEvalFetched = evaluationsQuery.isFetched || evaluationsQuery.data !== undefined;
 
   if (isLoading || !employee) {
     return (
@@ -875,140 +702,127 @@ export default function Dashboard() {
           onTouchEnd={(e) => handleTouchEnd(e.nativeEvent)}
         >
           <Suspense fallback={<SkeletonCard />}>
-            {activeTab === "overview" && (
-              <TabOverview
-                employee={employee}
-                portalData={portalData}
-                onRequestTab={() => changeTab("requests")}
-                onActivitiesTab={() => changeTab("activities")}
-                onEvaluationsTab={() => changeTab("evaluations")}
-                onDocTab={() => changeTab("documents")}
-                onProfileTab={() => changeTab("profile")}
-                onRoommatesTab={() => changeTab("roommates")}
-                onHR={() => setShowHR(true)}
-              />
-            )}
-            {activeTab === "requests" && <TabRequests />}
-            {activeTab === "documents" &&
-              (documents.length === 0 && !isDocFetched ? (
-                <SkeletonDocuments />
-              ) : (
-                <TabDocuments
-                  documents={
-                    documents as {
-                      id: number;
-                      titleAr: string;
-                      titleEn: string;
-                      fileName: string;
-                      fileType: string;
-                      fileData: string;
-                      category: string;
-                      createdAt: string;
-                    }[]
-                  }
-                />
-              ))}
-            {activeTab === "activities" && <TabActivities />}
-            {activeTab === "evaluations" &&
-              (evaluations.length === 0 && !isEvalFetched ? (
-                <SkeletonRequests />
-              ) : (
-                <TabEvaluations
-                  evaluations={
-                    evaluations as {
-                      id: number;
-                      employeeId: number | null;
-                      rating: number | null;
-                      comment?: string;
-                      employeeResponse?: string;
-                      employeeRating?: number;
-                      category: string;
-                      titleAr?: string;
-                      titleEn?: string;
-                      descriptionAr?: string;
-                      descriptionEn?: string;
-                      department?: string;
-                      submittedAt: string;
-                      createdAt: string;
-                      _hasResponded?: boolean;
-                      items?: {
-                        id: number;
-                        templateId: number;
-                        titleAr: string;
-                        titleEn: string;
-                        type: "rating" | "text" | "yes_no";
-                        required: boolean;
-                        orderIndex: number;
-                      }[];
-                    }[]
-                  }
-                  onCommentAdded={() => {
-                    fetched.current.delete("evaluations");
-                    setFetchedTabs((prev) => {
-                      const n = new Set(prev);
-                      n.delete("evaluations");
-                      return n;
-                    });
-                    fetchEvaluations();
-                  }}
-                />
-              ))}
-            {activeTab === "portal-settings" && <TabPortalSettings />}
-            {activeTab === "profile" && (
-              <TabProfile
-                employee={employee}
-                photoUrl={employee?.photoUrl}
-                onDocTab={() => changeTab("documents")}
-              />
-            )}
-            {activeTab === "roommates" && (
-              <TabRoommates
-                roommates={
-                  roommates as {
+          {activeTab === "overview" && (
+            <TabOverview
+              employee={employee}
+              portalData={portalData}
+              onRequestTab={() => changeTab("requests")}
+              onActivitiesTab={() => changeTab("activities")}
+              onEvaluationsTab={() => changeTab("evaluations")}
+              onDocTab={() => changeTab("documents")}
+              onProfileTab={() => changeTab("profile")}
+              onRoommatesTab={() => changeTab("roommates")}
+              onHR={() => setShowHR(true)}
+            />
+          )}
+          {activeTab === "requests" && <TabRequests />}
+          {activeTab === "documents" &&
+            (documents.length === 0 && !isDocFetched ? (
+              <SkeletonDocuments />
+            ) : (
+              <TabDocuments
+                documents={
+                  documents as {
                     id: number;
-                    firstName: string;
-                    lastName: string;
-                    employeeCode: string;
-                    email: string;
-                    phone?: string;
-                    department: string;
-                    jobTitle?: string;
-                    photoUrl?: string;
+                    titleAr: string;
+                    titleEn: string;
+                    fileName: string;
+                    fileType: string;
+                    fileData: string;
+                    category: string;
+                    createdAt: string;
                   }[]
                 }
-                room={portalData?.room ?? undefined}
               />
-            )}
-            {activeTab === "notifications" && (
-              <TabNotifications
-                onChangeTab={
-                  changeTab as (tab: string, forceRefresh?: boolean) => void
+            ))}
+          {activeTab === "activities" && <TabActivities />}
+          {activeTab === "evaluations" &&
+            (evaluations.length === 0 && !isEvalFetched ? (
+              <SkeletonRequests />
+            ) : (
+              <TabEvaluations
+                evaluations={
+                  evaluations as {
+                    id: number;
+                    employeeId: number | null;
+                    rating: number | null;
+                    comment?: string;
+                    employeeResponse?: string;
+                    employeeRating?: number;
+                    category: string;
+                    titleAr?: string;
+                    titleEn?: string;
+                    descriptionAr?: string;
+                    descriptionEn?: string;
+                    department?: string;
+                    submittedAt: string;
+                    createdAt: string;
+                    _hasResponded?: boolean;
+                    items?: {
+                      id: number;
+                      templateId: number;
+                      titleAr: string;
+                      titleEn: string;
+                      type: "rating" | "text" | "yes_no";
+                      required: boolean;
+                      orderIndex: number;
+                    }[];
+                  }[]
                 }
+                onCommentAdded={() => {
+                  invalidate.keys(["portal", "my-evaluations"]);
+                }}
               />
-            )}
-            {activeTab === "food" && <TabFood />}
-            {activeTab === "transport" && <TabTransport />}
-            <div
-              style={{
-                display: activeTab === "chat" ? "flex" : "none",
-                flexDirection: "column",
-                height: "100%",
-                flex: 1,
-                width: "100%",
-              }}
-              className="w-full h-full flex flex-col flex-1"
-            >
-              <TabChat
-                myEmployeeId={
-                  Number(employee?.id ?? employee?.profileDbId ?? 0) ||
-                  undefined
-                }
-                contacts={contacts}
-                isActive={activeTab === "chat"}
-                onUnreadChange={setChatUnreadCount}
-                onChatOpenChange={setIsChatOpen}
-              />
-            </div>
+            ))}
+          {activeTab === "portal-settings" && <TabPortalSettings />}
+          {activeTab === "profile" && (
+            <TabProfile employee={employee} photoUrl={employee?.photoUrl} onDocTab={() => changeTab("documents")} />
+          )}
+          {activeTab === "roommates" && (
+            <TabRoommates
+              roommates={
+                roommates as {
+                  id: number;
+                  firstName: string;
+                  lastName: string;
+                  employeeCode: string;
+                  email: string;
+                  phone?: string;
+                  department: string;
+                  jobTitle?: string;
+                  photoUrl?: string;
+                }[]
+              }
+              room={(roommatesQuery.data?.room ?? portalData?.room) ?? undefined}
+            />
+          )}
+          {activeTab === "notifications" && (
+            <TabNotifications
+              onChangeTab={
+                changeTab as (tab: string, forceRefresh?: boolean) => void
+              }
+            />
+          )}
+          {activeTab === "food" && <TabFood />}
+          {activeTab === "transport" && <TabTransport />}
+          <div
+            style={{
+              display: activeTab === "chat" ? "flex" : "none",
+              flexDirection: "column",
+              height: "100%",
+              flex: 1,
+              width: "100%",
+            }}
+            className="w-full h-full flex flex-col flex-1"
+          >
+            <TabChat
+              myEmployeeId={Number(employee?.id ?? employee?.profileDbId ?? 0) || undefined}
+              contacts={contacts}
+              isActive={activeTab === "chat"}
+              onUnreadChange={setChatUnreadCount}
+              onChatOpenChange={setIsChatOpen}
+            />
+          </div>
           </Suspense>
         </div>
       </div>
