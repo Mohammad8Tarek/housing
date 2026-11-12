@@ -1525,4 +1525,18 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_enabled BOOLEAN NOT NULL DEFAULT false;
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_emails TEXT;`,
   },
+  {
+    name: "public.role_templates",
+    q: `CREATE TABLE IF NOT EXISTS public.role_templates (
+        id SERIAL PRIMARY KEY,
+        key TEXT NOT NULL UNIQUE,
+        name_ar TEXT NOT NULL,
+        name_en TEXT NOT NULL,
+        permissions TEXT[] NOT NULL DEFAULT '{}',
+        is_system BOOLEAN NOT NULL DEFAULT false,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      ALTER TABLE public.users ADD COLUMN IF NOT EXISTS role_template_id INTEGER;
+      CREATE INDEX IF NOT EXISTS idx_users_role_template_id ON public.users (role_template_id);`,
+  },
 ];

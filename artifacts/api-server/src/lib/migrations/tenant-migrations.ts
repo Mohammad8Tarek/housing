@@ -1356,4 +1356,9 @@ We wish you a safe trip and a pleasant stay! ✨';`,
       );
       CREATE UNIQUE INDEX IF NOT EXISTS uq_maintenance_services_category_key ON maintenance_services (category, key);`,
   },
+  {
+    // Users and role templates live in the public schema; nothing per tenant.
+    name: "role_templates.public_only",
+    q: `SELECT 1`,
+  },
 ];

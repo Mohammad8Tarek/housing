@@ -92,7 +92,7 @@ export default function Tickets() {
     isSuperAdmin || can("maintenance", "delete") || can("maintenance", "edit");
   const canAssignMnt =
     isSuperAdmin ||
-    can("maintenance", "assign" as any) ||
+    can("maintenance", "assign") ||
     can("maintenance", "edit") ||
     can("maintenance", "view");
 
@@ -112,7 +112,7 @@ export default function Tickets() {
     can("housekeeping", "edit");
   const canAssignHsk =
     isSuperAdmin ||
-    can("housekeeping", "assign" as any) ||
+    can("housekeeping", "assign") ||
     can("housekeeping", "edit") ||
     can("housekeeping", "view");
 

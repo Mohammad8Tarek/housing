@@ -52,7 +52,8 @@ export type Action =
   | "manage_room_types"
   | "manage_security"
   | "manage_email"
-  | "config";
+  | "config"
+  | "assign";
 
 export const ACTIONS: Action[] = [
   "view",
@@ -79,12 +80,13 @@ export const ACTIONS: Action[] = [
   "manage_security",
   "manage_email",
   "config",
+  "assign",
 ];
 
 export const MODULE_ACTIONS: Record<Module, Action[]> = {
   dashboard: ["view"],
   housing: ["view", "create", "edit", "delete", "export"],
-  housekeeping: ["view", "create", "edit", "delete", "export"],
+  housekeeping: ["view", "create", "edit", "assign", "delete", "export"],
   profiles: [
     "view",
     "create",
@@ -109,6 +111,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "create",
     "edit",
     "checkin",
+    "checkout",
     "delete",
     "export",
     "override_single_occupancy",
@@ -130,6 +133,7 @@ export const MODULE_ACTIONS: Record<Module, Action[]> = {
     "view_housekeeping",
     "create",
     "edit",
+    "assign",
     "delete",
     "export",
   ],
@@ -584,6 +588,10 @@ export const ACTION_LABELS: Record<Action, { en: string; ar: string }> = {
   config: {
     en: "Custom Reports & Query Builder",
     ar: "منشئ وبناء التقارير المخصصة",
+  },
+  assign: {
+    en: "Assign to Technician / Staff",
+    ar: "تعيين الطلب لفني أو موظف",
   },
 };
 

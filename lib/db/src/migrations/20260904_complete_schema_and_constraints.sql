@@ -2029,6 +2029,16 @@ BEGIN
     ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "locked_until" TIMESTAMPTZ;
     ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "password_changed_at" TIMESTAMPTZ;
     ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "last_property_id" INTEGER;
+    ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "role_template_id" INTEGER;
+    CREATE TABLE IF NOT EXISTS "role_templates" (
+      "id" SERIAL PRIMARY KEY,
+      "key" TEXT NOT NULL UNIQUE,
+      "name_ar" TEXT NOT NULL,
+      "name_en" TEXT NOT NULL,
+      "permissions" TEXT[] NOT NULL DEFAULT '{}',
+      "is_system" BOOLEAN NOT NULL DEFAULT false,
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
 
     -- --------------------------------------------------------
     -- Table: ws_sessions

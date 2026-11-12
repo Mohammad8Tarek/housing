@@ -321,6 +321,7 @@ router.get(
       .select({
         roles: usersTable.roles,
         permissions: usersTable.permissions,
+        roleTemplateId: usersTable.roleTemplateId,
         status: usersTable.status,
         locked_until: usersTable.lockedUntil,
         job_title: usersTable.jobTitle,
@@ -396,6 +397,7 @@ router.get(
         phone: usersTable.phone,
         roles: usersTable.roles,
         permissions: usersTable.permissions,
+        roleTemplateId: usersTable.roleTemplateId,
         status: usersTable.status,
         created_at: usersTable.createdAt,
         failed_login_attempts: usersTable.failedLoginAttempts,
@@ -429,6 +431,7 @@ router.get(
         nationalId: u.national_id ?? null,
         roles: u.roles ?? [],
         permissions: u.permissions ?? [],
+        roleTemplateId: u.roleTemplateId ?? null,
         hasSignature: !!u.has_signature,
         status: normalizeUserStatus(u.status, u.locked_until),
         failedLoginAttempts: u.failed_login_attempts ?? 0,
@@ -473,6 +476,7 @@ router.get(
         phone: usersTable.phone,
         roles: usersTable.roles,
         permissions: usersTable.permissions,
+        roleTemplateId: usersTable.roleTemplateId,
         status: usersTable.status,
         createdAt: usersTable.createdAt,
         failedLoginAttempts: usersTable.failedLoginAttempts,
@@ -506,6 +510,7 @@ router.get(
       nationalId: user.nationalId ?? null,
       roles: user.roles ?? [],
       permissions: user.permissions ?? [],
+      roleTemplateId: user.roleTemplateId ?? null,
       hasSignature: !!user.hasSignature,
       signatureImageUrl: user.signatureImageUrl ?? null,
       status: normalizeUserStatus(user.status, user.lockedUntil),
@@ -718,6 +723,12 @@ router.patch(
       }
       extraData.passwordHash = await bcrypt.hash(cleanPassword, BCRYPT_ROUNDS);
       extraData.passwordChangedAt = new Date();
+    }
+
+    // Permissions edited by hand: the user is no longer managed by a role
+    // template, so a later template change won't overwrite this edit.
+    if (Array.isArray(updateData.permissions)) {
+      extraData.roleTemplateId = null;
     }
 
     let updated: any;

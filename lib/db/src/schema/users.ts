@@ -30,6 +30,9 @@ export const usersTable = pgTable(
     passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
     roles: text("roles").array().notNull().default([]),
     permissions: text("permissions").array().notNull().default([]),
+    // Linked role template: editing the template updates this user's
+    // permissions. Null = permissions managed individually.
+    roleTemplateId: integer("role_template_id"),
     status: text("status").notNull().default("active"),
 
     propertyIds: integer("property_ids").array().notNull().default([]),
@@ -98,3 +101,18 @@ export type UserPasswordResetOtp =
   typeof userPasswordResetOtpsTable.$inferSelect;
 export type InsertUserPasswordResetOtp =
   typeof userPasswordResetOtpsTable.$inferInsert;
+
+// Role templates: named permission sets. Users linked to a template get its
+// permissions, and editing the template updates every linked user.
+export const roleTemplatesTable = pgTable("role_templates", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  nameAr: text("name_ar").notNull(),
+  nameEn: text("name_en").notNull(),
+  permissions: text("permissions").array().notNull().default([]),
+  isSystem: boolean("is_system").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+export type RoleTemplate = typeof roleTemplatesTable.$inferSelect;
