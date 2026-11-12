@@ -414,32 +414,4 @@ router.post(
   },
 );
 
-// ─── GET /stats — إحصائيات (للأدمن) ─────────────────────────────────────
-router.get("/stats", async (req, res, next) => {
-  try {
-    const sess = portalSession(req)!;
-
-    const stats = await withTenant(sess.propertyId, async (tenantDb) => {
-      const allFeedback = await tenantDb.select().from(portalFeedbackTable);
-      const allComments = await tenantDb.select().from(portalCommentsTable);
-      const rated = allFeedback.filter((f) => f.rating != null);
-      const avgRating =
-        rated.length > 0
-          ? rated.reduce((s, f) => s + (f.rating || 0), 0) / rated.length
-          : 0;
-
-      return {
-        totalFeedback: allFeedback.length,
-        totalComments: allComments.length,
-        avgRating: Math.round(avgRating * 10) / 10,
-        helpfulCount: allFeedback.filter((f) => f.helpful === "yes").length,
-      };
-    });
-
-    res.json({ success: true, ...stats });
-  } catch (err) {
-    next(err);
-  }
-});
-
 export default router;

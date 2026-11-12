@@ -10,7 +10,7 @@ import {
   assignmentsTable,
   propertyHousingPulseConfigTable,
 } from "@workspace/db";
-import { eq, desc, sql, isNull, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, isNull, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { broadcastToProperty, broadcastSyncAll } from "../lib/websocket.js";
 import { logActivity } from "../lib/activity-logger.js";
@@ -262,24 +262,65 @@ router.put(
           message: parsed.error.errors[0]?.message ?? "Invalid input",
         });
 
-      await withTenant(propertyId, async (tenantDb) => {
-        // Delete existing items and re-insert
-        await tenantDb
-          .delete(surveyItemsTable)
-          .where(eq(surveyItemsTable.templateId, templateId));
+      const outcome = await withTenant(propertyId, async (tenantDb) => {
+        // Must be a survey template (not a resident's response row).
+        const [template] = await tenantDb
+          .select({ id: evaluationsTable.id })
+          .from(evaluationsTable)
+          .where(
+            and(
+              eq(evaluationsTable.id, templateId),
+              isNull(evaluationsTable.surveyTemplateId),
+            ),
+          )
+          .limit(1);
+        if (!template) return "not_found" as const;
 
-        if (parsed.data.items.length > 0) {
-          const itemValues = parsed.data.items.map((item, idx) => ({
-            templateId,
+        // Update questions in place instead of delete + re-insert: answers
+        // reference the question id (ON DELETE CASCADE), so re-creating every
+        // question wiped all responses collected so far. Only questions the
+        // admin removed are deleted (with their answers).
+        const existing = await tenantDb
+          .select({ id: surveyItemsTable.id })
+          .from(surveyItemsTable)
+          .where(eq(surveyItemsTable.templateId, templateId));
+        const existingIds = new Set(existing.map((r: any) => Number(r.id)));
+        const keptIds = new Set<number>();
+
+        for (const [idx, item] of parsed.data.items.entries()) {
+          const values = {
             titleAr: item.titleAr,
             titleEn: item.titleEn,
             type: item.type,
             required: item.required,
             orderIndex: idx,
-          }));
-          await tenantDb.insert(surveyItemsTable).values(itemValues);
+          };
+          if (item.id && existingIds.has(item.id)) {
+            keptIds.add(item.id);
+            await tenantDb
+              .update(surveyItemsTable)
+              .set(values)
+              .where(eq(surveyItemsTable.id, item.id));
+          } else {
+            await tenantDb
+              .insert(surveyItemsTable)
+              .values({ templateId, ...values });
+          }
         }
+        const removed = [...existingIds].filter((id) => !keptIds.has(id));
+        if (removed.length > 0) {
+          await tenantDb
+            .delete(surveyItemsTable)
+            .where(inArray(surveyItemsTable.id, removed));
+        }
+        return "ok" as const;
       });
+
+      if (outcome === "not_found") {
+        return res
+          .status(404)
+          .json({ success: false, message: "Survey template not found" });
+      }
 
       return res.json({ success: true });
     } catch (err) {
@@ -355,6 +396,11 @@ router.get(
                 category: t.category,
                 department: t.department,
                 responseCount: uniqueForTemplate.size,
+                ratingCount: templateRatings.length,
+                ratingSum: templateRatings.reduce(
+                  (sum, r) => sum + (r.ratingValue || 0),
+                  0,
+                ),
                 avgRating:
                   templateRatings.length > 0
                     ? templateRatings.reduce(
@@ -375,8 +421,11 @@ router.get(
               if (!deptMap[dept])
                 deptMap[dept] = { count: 0, totalRating: 0, ratingCount: 0 };
               deptMap[dept].count += ts.responseCount;
-              deptMap[dept].totalRating += ts.avgRating * ts.responseCount;
-              deptMap[dept].ratingCount += ts.responseCount;
+              // Average of the department's actual ratings: surveys with no
+              // ratings no longer pull it toward 0, and a survey weighs by
+              // how many ratings it has, not how many people answered.
+              deptMap[dept].totalRating += ts.ratingSum;
+              deptMap[dept].ratingCount += ts.ratingCount;
             }
             const departmentBreakdown = Object.entries(deptMap).map(
               ([dept, data]) => ({
