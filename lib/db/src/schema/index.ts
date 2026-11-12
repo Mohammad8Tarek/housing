@@ -24,6 +24,7 @@ export * from "./survey_items";
 export * from "./room_locks";
 export * from "./hotek";
 export * from "./password_history";
+export * from "./user_mfa";
 export * from "./portal_food_transport";
 export * from "./portal_chat";
 export * from "./user_signatures";

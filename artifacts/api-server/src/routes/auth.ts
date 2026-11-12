@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { revokeUserSessions } from "../lib/session-revoke.js";
-import { Router } from "express";
+import { decryptSecret, matchRecoveryCode, verifyTotp } from "../lib/mfa.js";
+import { Router, type Request, type Response } from "express";
 import crypto from "node:crypto";
 import {
   db,
@@ -8,6 +9,7 @@ import {
   userPasswordResetOtpsTable,
   withTenant,
   settingsTable,
+  userMfaTable,
 } from "@workspace/db";
 import { eq, sql, desc, and, or } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -36,6 +38,7 @@ import {
   ForgotOtpRequestBody,
   ForgotOtpVerifyBody,
   ForgotResetBody,
+  TwoFactorCodeBody,
 } from "../validation/schemas.js";
 
 const router: Router = Router();
@@ -218,6 +221,48 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
+  // ─── Two-step verification ──────────────────────────────────────────
+  // Right password, but the account also needs a code from its
+  // authenticator app: keep only a pending marker in a fresh session (no
+  // userId, so nothing else treats it as signed in) until /auth/2fa/verify.
+  const [mfa] = await db
+    .select({ enabled: userMfaTable.enabled })
+    .from(userMfaTable)
+    .where(eq(userMfaTable.userId, user.id))
+    .limit(1)
+    .catch(() => [] as { enabled: boolean }[]);
+  if (mfa?.enabled) {
+    req.session.regenerate(() => {
+      (req.session as any).pendingMfa = {
+        userId: user.id,
+        at: Date.now(),
+        attempts: 0,
+      };
+      req.session.save(() => {
+        res.json({
+          twoFactorRequired: true,
+          code: "TWO_FACTOR_REQUIRED",
+          message:
+            "اكتب الكود من تطبيق المصادقة / Enter the code from your authenticator app",
+        });
+      });
+    });
+    return;
+  }
+
+  await finishLogin(req, res, user, ip, policy, propertyId);
+});
+
+/** Everything after the password (and code, if any) checked out: start the session. */
+async function finishLogin(
+  req: Request,
+  res: Response,
+  user: typeof usersTable.$inferSelect,
+  ip: string,
+  policy: Awaited<ReturnType<typeof getPasswordPolicy>>,
+  propertyId: number,
+): Promise<void> {
+  void propertyId;
   // ─── Reset lockout counters on success ──────────────────────────────
   await db
     .update(usersTable)
@@ -301,7 +346,142 @@ router.post("/auth/login", async (req, res): Promise<void> => {
       });
     });
   });
-});
+}
+
+// ─── POST /auth/2fa/verify ── second login step ───────────────────────────
+const MFA_PENDING_MS = 5 * 60_000;
+const MFA_MAX_ATTEMPTS = 5;
+
+router.post(
+  "/auth/2fa/verify",
+  validate({ body: TwoFactorCodeBody }),
+  async (req, res): Promise<void> => {
+    const pending = (req.session as any)?.pendingMfa as
+      | { userId: number; at: number; attempts: number }
+      | undefined;
+    if (!pending || Date.now() - pending.at > MFA_PENDING_MS) {
+      delete (req.session as any).pendingMfa;
+      res.status(401).json({
+        error:
+          "انتهت مهلة التحقق. سجّل الدخول من جديد / Verification expired, sign in again",
+        code: "TWO_FACTOR_EXPIRED",
+      });
+      return;
+    }
+    const ip = getClientIp(req);
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, pending.userId))
+      .limit(1);
+    const [mfa] = await db
+      .select()
+      .from(userMfaTable)
+      .where(eq(userMfaTable.userId, pending.userId))
+      .limit(1);
+    if (!user || !mfa?.enabled || !mfa.secretEnc) {
+      delete (req.session as any).pendingMfa;
+      res.status(401).json(INVALID_CREDENTIALS_BODY);
+      return;
+    }
+    const propertyId = user.propertyId ?? 0;
+    const policy = await getPasswordPolicy(propertyId);
+    if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+      delete (req.session as any).pendingMfa;
+      res.status(423).json({
+        error: "الحساب مقفل مؤقتاً / Account temporarily locked",
+        code: "ACCOUNT_LOCKED",
+      });
+      return;
+    }
+
+    const code = String(req.body.code ?? "").trim();
+    const step = verifyTotp(
+      decryptSecret(mfa.secretEnc),
+      code,
+      mfa.lastUsedStep,
+    );
+    const recoveryIdx =
+      step == null ? matchRecoveryCode(code, mfa.recoveryHashes ?? []) : -1;
+
+    if (step == null && recoveryIdx < 0) {
+      pending.attempts += 1;
+      // Wrong codes count toward the account lockout like wrong passwords.
+      const threshold = policy.lockoutThreshold ?? 5;
+      await db
+        .update(usersTable)
+        .set({
+          failedLoginAttempts: sql`${usersTable.failedLoginAttempts} + 1`,
+          lockedUntil: sql`CASE
+            WHEN ${usersTable.failedLoginAttempts} + 1 >= ${threshold}
+            THEN NOW() + INTERVAL '1 minute' * ${policy.lockoutDurationMinutes ?? 15}
+            ELSE NULL
+          END`,
+        })
+        .where(eq(usersTable.id, user.id));
+      await logActivity({
+        req,
+        propertyId,
+        username: user.username,
+        userId: user.id,
+        userRole: user.roles?.[0],
+        action: "LOGIN_2FA_FAILED",
+        actionType: "SECURITY",
+        module: "auth",
+        severity: "warning",
+        details: `Wrong two-step code from ${ip} (attempt ${pending.attempts}/${MFA_MAX_ATTEMPTS})`,
+        ipAddress: ip,
+      });
+      if (pending.attempts >= MFA_MAX_ATTEMPTS) {
+        delete (req.session as any).pendingMfa;
+        res.status(401).json({
+          error:
+            "محاولات كتير غلط. سجّل الدخول من جديد / Too many wrong codes, sign in again",
+          code: "TWO_FACTOR_EXPIRED",
+        });
+        return;
+      }
+      res.status(401).json({
+        error: "الكود غير صحيح / Wrong code",
+        code: "TWO_FACTOR_INVALID",
+        attemptsLeft: MFA_MAX_ATTEMPTS - pending.attempts,
+      });
+      return;
+    }
+
+    // Accepted: remember the step (no replay) or burn the recovery code.
+    await db
+      .update(userMfaTable)
+      .set(
+        step != null
+          ? { lastUsedStep: step, updatedAt: new Date() }
+          : {
+              recoveryHashes: (mfa.recoveryHashes ?? []).filter(
+                (_, i) => i !== recoveryIdx,
+              ),
+              updatedAt: new Date(),
+            },
+      )
+      .where(eq(userMfaTable.userId, user.id));
+    if (recoveryIdx >= 0) {
+      await logActivity({
+        req,
+        propertyId,
+        username: user.username,
+        userId: user.id,
+        userRole: user.roles?.[0],
+        action: "LOGIN_2FA_RECOVERY_CODE",
+        actionType: "SECURITY",
+        module: "auth",
+        severity: "warning",
+        details: `Signed in with a recovery code from ${ip} (${(mfa.recoveryHashes?.length ?? 1) - 1} left)`,
+        ipAddress: ip,
+      });
+    }
+    delete (req.session as any).pendingMfa;
+    await finishLogin(req, res, user, ip, policy, propertyId);
+  },
+);
 
 router.get(
   "/auth/ws-token",

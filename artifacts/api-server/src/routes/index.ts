@@ -18,6 +18,7 @@ import accessReviewRouter from "./access-review";
 import globalSearchRouter from "./global-search";
 import userSessionsRouter from "./user-sessions";
 import reportSchedulesRouter from "./report-schedules";
+import mfaRouter from "./mfa";
 import activityLogsRouter from "./activity_logs";
 import settingsRouter from "./settings";
 import dashboardRouter from "./dashboard";
@@ -61,6 +62,7 @@ const router: IRouter = Router();
 router.use(healthRouter);
 // ✅ loginRateLimit properly applied BEFORE the auth handler
 router.post("/auth/login", loginRateLimit);
+router.post("/auth/2fa/verify", loginRateLimit);
 router.use(authRouter);
 
 // Public QR Room Service routes (no login required for residents scanning door QR)
@@ -120,6 +122,7 @@ router.use(accessReviewRouter);
 router.use(globalSearchRouter);
 router.use(userSessionsRouter);
 router.use(reportSchedulesRouter);
+router.use(mfaRouter);
 router.use(usersRouter);
 router.use(roleTemplatesRouter);
 router.use(activityLogsRouter);

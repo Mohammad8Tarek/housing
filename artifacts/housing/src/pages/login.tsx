@@ -6,7 +6,11 @@ import * as z from "zod";
 import { useAuth, storeToken } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
+import {
+  useLogin,
+  getGetMeQueryKey,
+  customFetch,
+} from "@workspace/api-client-react";
 import {
   Form,
   FormControl,
@@ -17,7 +21,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Building2, Clock, Globe, KeyRound, Eye, EyeOff } from "lucide-react";
+import {
+  Building2,
+  Clock,
+  Globe,
+  KeyRound,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Loader } from "@/components/ui/loader";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -42,6 +54,11 @@ export default function Login() {
     max: number;
   } | null>(null);
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  // Second login step (two-step verification): the password was right and
+  // the server is waiting for the authenticator code.
+  const [mfaStep, setMfaStep] = useState<{ variables: any } | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaBusy, setMfaBusy] = useState(false);
 
   const isAr = language === "ar";
 
@@ -99,93 +116,137 @@ export default function Login() {
   const loginMutation = useLogin({
     mutation: {
       onSuccess: (data: any, variables: any) => {
-        setLockoutMsg(null);
-        setRemainingAttempts(null);
-        const sid =
-          data?.sessionId ||
-          data?.token ||
-          (data?.user?.id ? String(data.user.id) : "session_active");
-        storeToken(sid, keepLoggedIn);
-
-        const submittedUser =
-          variables?.data?.username || form.getValues("username");
-        const submittedPass =
-          variables?.data?.password || form.getValues("password");
-
-        // Save or clear remembered username
-        try {
-          if (keepLoggedIn && submittedUser) {
-            localStorage.setItem("saved_login_username", submittedUser);
-          } else {
-            localStorage.removeItem("saved_login_username");
-          }
-        } catch {}
-
-        // Prompt browser password manager / Credential Management API to store credentials upon SUCCESS
-        if (
-          typeof window !== "undefined" &&
-          "credentials" in navigator &&
-          (window as any).PasswordCredential &&
-          submittedUser &&
-          submittedPass
-        ) {
-          try {
-            const cred = new (window as any).PasswordCredential({
-              id: submittedUser,
-              password: submittedPass,
-              name: submittedUser,
-            });
-            navigator.credentials.store(cred).catch(() => {});
-          } catch {}
-        }
-
-        if (data?.user) {
-          queryClient.setQueryData(getGetMeQueryKey(), data.user);
-        }
-        toast.success(
-          isAr ? "تم تسجيل الدخول بنجاح" : "Logged in successfully",
-        );
-        setLocation("/dashboard");
-      },
-      onError: (error: any) => {
-        // ApiError stores parsed body in error.data, not error.response.data
-        const errBody = error?.data ?? error?.response?.data;
-        const code = errBody?.code;
-        const errMsg = errBody?.error || errBody?.message || "";
-
-        if (code === "ACCOUNT_LOCKED") {
-          const mins = errBody?.retryAfterMinutes ?? 15;
-          setLockoutMsg({
-            message: isAr
-              ? `الحساب مقفل. حاول مرة أخرى بعد ${mins} دقيقة`
-              : `Account locked. Try again in ${mins} minute${mins > 1 ? "s" : ""}`,
-            retryAfter: mins,
-          });
-          setRemainingAttempts(null);
-        } else if (code === "INVALID_CREDENTIALS") {
-          // The server no longer says how many attempts are left: that told
-          // anyone whether a username exists.
+        if (data?.twoFactorRequired) {
           setLockoutMsg(null);
           setRemainingAttempts(null);
-          toast.error(isAr ? "فشل تسجيل الدخول" : "Login Failed", {
-            description: isAr
-              ? "اسم المستخدم أو كلمة المرور غير صحيحة. الحساب يُقفل مؤقتاً بعد عدة محاولات خاطئة."
-              : "Wrong username or password. The account is locked for a while after several failed attempts.",
-          });
-        } else {
-          setLockoutMsg(null);
-          setRemainingAttempts(null);
-          toast.error(isAr ? "فشل تسجيل الدخول" : "Login Failed", {
-            description:
-              errMsg ||
-              (isAr
-                ? "بيانات الاعتماد غير صحيحة، يرجى المحاولة مرة أخرى."
-                : "Invalid credentials, please try again."),
-          });
+          setMfaCode("");
+          setMfaStep({ variables });
+          return;
         }
+        completeLogin(data, variables);
       },
+      onError: (error: any) => onLoginError(error),
     },
   });
+
+  function completeLogin(data: any, variables: any) {
+    setLockoutMsg(null);
+    setRemainingAttempts(null);
+    const sid =
+      data?.sessionId ||
+      data?.token ||
+      (data?.user?.id ? String(data.user.id) : "session_active");
+    storeToken(sid, keepLoggedIn);
+
+    const submittedUser =
+      variables?.data?.username || form.getValues("username");
+    const submittedPass =
+      variables?.data?.password || form.getValues("password");
+
+    // Save or clear remembered username
+    try {
+      if (keepLoggedIn && submittedUser) {
+        localStorage.setItem("saved_login_username", submittedUser);
+      } else {
+        localStorage.removeItem("saved_login_username");
+      }
+    } catch {}
+
+    // Prompt browser password manager / Credential Management API to store credentials upon SUCCESS
+    if (
+      typeof window !== "undefined" &&
+      "credentials" in navigator &&
+      (window as any).PasswordCredential &&
+      submittedUser &&
+      submittedPass
+    ) {
+      try {
+        const cred = new (window as any).PasswordCredential({
+          id: submittedUser,
+          password: submittedPass,
+          name: submittedUser,
+        });
+        navigator.credentials.store(cred).catch(() => {});
+      } catch {}
+    }
+
+    if (data?.user) {
+      queryClient.setQueryData(getGetMeQueryKey(), data.user);
+    }
+    toast.success(isAr ? "تم تسجيل الدخول بنجاح" : "Logged in successfully");
+    setLocation("/dashboard");
+  }
+
+  function onLoginError(error: any) {
+    // ApiError stores parsed body in error.data, not error.response.data
+    const errBody = error?.data ?? error?.response?.data;
+    const code = errBody?.code;
+    const errMsg = errBody?.error || errBody?.message || "";
+
+    if (code === "ACCOUNT_LOCKED") {
+      const mins = errBody?.retryAfterMinutes ?? 15;
+      setLockoutMsg({
+        message: isAr
+          ? `الحساب مقفل. حاول مرة أخرى بعد ${mins} دقيقة`
+          : `Account locked. Try again in ${mins} minute${mins > 1 ? "s" : ""}`,
+        retryAfter: mins,
+      });
+      setRemainingAttempts(null);
+    } else if (code === "INVALID_CREDENTIALS") {
+      // The server no longer says how many attempts are left: that told
+      // anyone whether a username exists.
+      setLockoutMsg(null);
+      setRemainingAttempts(null);
+      toast.error(isAr ? "فشل تسجيل الدخول" : "Login Failed", {
+        description: isAr
+          ? "اسم المستخدم أو كلمة المرور غير صحيحة. الحساب يُقفل مؤقتاً بعد عدة محاولات خاطئة."
+          : "Wrong username or password. The account is locked for a while after several failed attempts.",
+      });
+    } else {
+      setLockoutMsg(null);
+      setRemainingAttempts(null);
+      toast.error(isAr ? "فشل تسجيل الدخول" : "Login Failed", {
+        description:
+          errMsg ||
+          (isAr
+            ? "بيانات الاعتماد غير صحيحة، يرجى المحاولة مرة أخرى."
+            : "Invalid credentials, please try again."),
+      });
+    }
+  }
+
+  const verifyMfa = async () => {
+    if (!mfaStep || mfaCode.trim().length < 6) return;
+    setMfaBusy(true);
+    try {
+      const data = await customFetch<any>("/api/auth/2fa/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: mfaCode.trim() }),
+      });
+      setMfaStep(null);
+      completeLogin(data, mfaStep.variables);
+    } catch (error: any) {
+      const body = error?.data ?? {};
+      if (body.code === "TWO_FACTOR_INVALID") {
+        setMfaCode("");
+        toast.error(isAr ? "الكود غير صحيح" : "Wrong code", {
+          description:
+            body.attemptsLeft != null
+              ? isAr
+                ? `باقي ${body.attemptsLeft} محاولات`
+                : `${body.attemptsLeft} attempts left`
+              : undefined,
+        });
+      } else {
+        // Expired, too many tries or account locked: start again.
+        setMfaStep(null);
+        onLoginError(error);
+      }
+    } finally {
+      setMfaBusy(false);
+    }
+  };
 
   const onSubmit = (values: z.infer<typeof loginSchema>) => {
     loginMutation.mutate({ data: values });
@@ -291,137 +352,190 @@ export default function Login() {
             </p>
           </div>
 
-          <Form {...form}>
-            <form
-              method="post"
-              autoComplete="on"
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-5"
-            >
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-semibold">
-                      {isAr ? "اسم المستخدم" : "Username"}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        id="username"
-                        name="username"
-                        type="text"
-                        placeholder={
-                          isAr ? "أدخل اسم المستخدم" : "Enter your username"
-                        }
-                        autoComplete="username"
-                        autoFocus
-                        spellCheck={false}
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        className="h-11 transition-all focus-visible:ring-primary/50"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="font-semibold">
-                      {isAr ? "كلمة المرور" : "Password"}
-                    </FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <KeyRound
-                          className={`absolute ${isAr ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`}
-                        />
+          {mfaStep ? (
+            <div className="space-y-5">
+              <div className="flex items-start gap-3 rounded-xl border bg-muted/30 p-4">
+                <ShieldCheck className="w-6 h-6 text-primary shrink-0" />
+                <div className="text-sm">
+                  <div className="font-bold">
+                    {isAr ? "التحقق بخطوتين" : "Two-step verification"}
+                  </div>
+                  <div className="text-muted-foreground">
+                    {isAr
+                      ? "اكتب الكود المكوّن من 6 أرقام من تطبيق المصادقة على موبايلك. لو الموبايل مش معاك اكتب كود من أكواد الاسترجاع."
+                      : "Enter the 6-digit code from the authenticator app on your phone. Without your phone, enter one of your recovery codes."}
+                  </div>
+                </div>
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  verifyMfa();
+                }}
+                className="space-y-4"
+              >
+                <Input
+                  autoFocus
+                  dir="ltr"
+                  inputMode="text"
+                  autoComplete="one-time-code"
+                  maxLength={20}
+                  placeholder="123456"
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value)}
+                  className="h-12 text-center text-xl tracking-[0.4em] font-mono"
+                  aria-label={isAr ? "كود التحقق" : "Verification code"}
+                />
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-base font-bold"
+                  disabled={mfaBusy || mfaCode.trim().length < 6}
+                >
+                  {mfaBusy ? <Loader /> : isAr ? "تأكيد" : "Verify"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setMfaStep(null)}
+                >
+                  {isAr ? "رجوع" : "Back"}
+                </Button>
+              </form>
+            </div>
+          ) : (
+            <Form {...form}>
+              <form
+                method="post"
+                autoComplete="on"
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-5"
+              >
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold">
+                        {isAr ? "اسم المستخدم" : "Username"}
+                      </FormLabel>
+                      <FormControl>
                         <Input
                           {...field}
-                          id="password"
-                          name="password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          autoComplete="current-password"
-                          className="h-11 transition-all focus-visible:ring-primary/50 pl-10 pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword((v) => !v)}
-                          className={`absolute ${isAr ? "left-3" : "right-3"} top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted`}
-                          tabIndex={-1}
-                          aria-label={
-                            showPassword
-                              ? isAr
-                                ? "إخفاء كلمة المرور"
-                                : "Hide password"
-                              : isAr
-                                ? "إظهار كلمة المرور"
-                                : "Show password"
+                          id="username"
+                          name="username"
+                          type="text"
+                          placeholder={
+                            isAr ? "أدخل اسم المستخدم" : "Enter your username"
                           }
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                          autoComplete="username"
+                          autoFocus
+                          spellCheck={false}
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          className="h-11 transition-all focus-visible:ring-primary/50"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <div className="flex items-center justify-between pt-1">
-                <label
-                  htmlFor="keep-logged"
-                  className="flex items-center gap-2 cursor-pointer group"
-                >
-                  <Checkbox
-                    checked={keepLoggedIn}
-                    onCheckedChange={(v) => setKeepLoggedIn(!!v)}
-                    id="keep-logged"
-                    className="data-[state=checked]:bg-primary"
-                  />
-                  <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors select-none">
-                    {isAr ? "تذكرني" : "Remember me"}
-                  </span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setForgotPasswordOpen(true)}
-                  className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
-                >
-                  {isAr ? "نسيت كلمة المرور؟" : "Forgot password?"}
-                </button>
-              </div>
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold">
+                        {isAr ? "كلمة المرور" : "Password"}
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <KeyRound
+                            className={`absolute ${isAr ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`}
+                          />
+                          <Input
+                            {...field}
+                            id="password"
+                            name="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            autoComplete="current-password"
+                            className="h-11 transition-all focus-visible:ring-primary/50 pl-10 pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((v) => !v)}
+                            className={`absolute ${isAr ? "left-3" : "right-3"} top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted`}
+                            tabIndex={-1}
+                            aria-label={
+                              showPassword
+                                ? isAr
+                                  ? "إخفاء كلمة المرور"
+                                  : "Hide password"
+                                : isAr
+                                  ? "إظهار كلمة المرور"
+                                  : "Show password"
+                            }
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <Button
-                type="submit"
-                className="w-full h-11 text-base font-bold shadow-md hover:shadow-lg transition-all"
-                disabled={loginMutation.isPending}
-              >
-                {loginMutation.isPending ? (
-                  <span className="flex items-center">
-                    <Loader
-                      className={isAr ? "ml-2 h-4 w-4" : "mr-2 h-4 w-4"}
+                <div className="flex items-center justify-between pt-1">
+                  <label
+                    htmlFor="keep-logged"
+                    className="flex items-center gap-2 cursor-pointer group"
+                  >
+                    <Checkbox
+                      checked={keepLoggedIn}
+                      onCheckedChange={(v) => setKeepLoggedIn(!!v)}
+                      id="keep-logged"
+                      className="data-[state=checked]:bg-primary"
                     />
-                    {isAr ? "جاري الدخول..." : "Signing in..."}
-                  </span>
-                ) : isAr ? (
-                  "تسجيل الدخول"
-                ) : (
-                  "Sign In"
-                )}
-              </Button>
-            </form>
-          </Form>
+                    <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors select-none">
+                      {isAr ? "تذكرني" : "Remember me"}
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setForgotPasswordOpen(true)}
+                    className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+                  >
+                    {isAr ? "نسيت كلمة المرور؟" : "Forgot password?"}
+                  </button>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-11 text-base font-bold shadow-md hover:shadow-lg transition-all"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending ? (
+                    <span className="flex items-center">
+                      <Loader
+                        className={isAr ? "ml-2 h-4 w-4" : "mr-2 h-4 w-4"}
+                      />
+                      {isAr ? "جاري الدخول..." : "Signing in..."}
+                    </span>
+                  ) : isAr ? (
+                    "تسجيل الدخول"
+                  ) : (
+                    "Sign In"
+                  )}
+                </Button>
+              </form>
+            </Form>
+          )}
 
           <div className="pt-6 flex justify-center border-t border-border/50">
             <Button
