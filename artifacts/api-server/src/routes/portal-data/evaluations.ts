@@ -218,6 +218,30 @@ router.post(
         return;
       }
 
+      // Answers must belong to this survey's questions (otherwise any item id
+      // could be written and skew another survey's results).
+      if (itemResponses && itemResponses.length > 0) {
+        const validIds = await withTenant(sess.propertyId, async (tenantDb) =>
+          (
+            await tenantDb
+              .select({ id: surveyItemsTable.id })
+              .from(surveyItemsTable)
+              .where(eq(surveyItemsTable.templateId, evaluationId))
+          ).map((r: any) => Number(r.id)),
+        );
+        const unknown = itemResponses.filter(
+          (ir) => !validIds.includes(Number(ir.itemId)),
+        );
+        if (unknown.length > 0) {
+          res.status(400).json({
+            success: false,
+            message:
+              "بعض الأسئلة لا تنتمي لهذا الاستبيان / Some answers do not belong to this survey",
+          });
+          return;
+        }
+      }
+
       // Save multi-item responses if provided
       if (itemResponses && itemResponses.length > 0) {
         await withTenant(sess.propertyId, async (tenantDb) => {
@@ -393,7 +417,14 @@ router.get("/housing-rating-status", async (req, res): Promise<void> => {
         createdAt: propertyHousingRatingsTable.createdAt,
       })
       .from(propertyHousingRatingsTable)
-      .where(eq(propertyHousingRatingsTable.profileId, profileId))
+      // Profile ids are per property (tenant serials): the same id in another
+      // hotel is a different person, so the cooldown is per property too.
+      .where(
+        and(
+          eq(propertyHousingRatingsTable.profileId, profileId),
+          eq(propertyHousingRatingsTable.propertyId, propertyId),
+        ),
+      )
       .orderBy(desc(propertyHousingRatingsTable.createdAt))
       .limit(1);
 
@@ -538,7 +569,14 @@ router.post(
           createdAt: propertyHousingRatingsTable.createdAt,
         })
         .from(propertyHousingRatingsTable)
-        .where(eq(propertyHousingRatingsTable.profileId, profileId))
+        // Profile ids are per property (tenant serials): the same id in another
+        // hotel is a different person, so the cooldown is per property too.
+        .where(
+          and(
+            eq(propertyHousingRatingsTable.profileId, profileId),
+            eq(propertyHousingRatingsTable.propertyId, propertyId),
+          ),
+        )
         .orderBy(desc(propertyHousingRatingsTable.createdAt))
         .limit(1);
 

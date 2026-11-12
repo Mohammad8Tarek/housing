@@ -49,12 +49,8 @@ export function InHouseToolbar({
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          <PermissionGate
-            anyPermission={[
-              ["whatsapp", "create"],
-              ["accommodation", "edit"],
-            ]}
-          >
+          {/* Broadcasting risks the WhatsApp number: WhatsApp send permission only */}
+          <PermissionGate module="whatsapp" action="create">
             <Button
               variant="outline"
               size="sm"
@@ -94,12 +90,7 @@ export function InHouseToolbar({
         onExportPDF={onExportPDF}
         extraActions={
           <div className="flex items-center gap-2">
-            <PermissionGate
-              anyPermission={[
-                ["whatsapp", "create"],
-                ["accommodation", "edit"],
-              ]}
-            >
+            <PermissionGate module="whatsapp" action="create">
               <Button
                 variant="outline"
                 size="sm"

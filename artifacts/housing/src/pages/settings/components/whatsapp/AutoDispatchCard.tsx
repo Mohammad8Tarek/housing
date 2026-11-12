@@ -1,4 +1,5 @@
 // Auto-dispatch and broadcast toggles.
+import { PermissionGate } from "@/components/ui/permission-gate";
 import {
   Card,
   CardContent,
@@ -99,15 +100,17 @@ export function renderAutoDispatchCard(s: WhatsAppSettingsSectionState) {
                 : "Send targeted broadcasts to all in-house, specific building, floor, rooms, or selected guests with anti-ban pacing"}
             </p>
           </div>
-          <Button
-            type="button"
-            onClick={() => setBroadcastOpen(true)}
-            className="text-white gap-2 font-semibold text-xs shadow-sm flex-shrink-0"
-            style={{ backgroundColor: "#00a884" }}
-          >
-            <Radio className="w-4 h-4" />
-            {ar ? "فتح نافذة البث الجماعي" : "Launch Broadcast"}
-          </Button>
+          <PermissionGate module="whatsapp" action="create">
+            <Button
+              type="button"
+              onClick={() => setBroadcastOpen(true)}
+              className="text-white gap-2 font-semibold text-xs shadow-sm flex-shrink-0"
+              style={{ backgroundColor: "#00a884" }}
+            >
+              <Radio className="w-4 h-4" />
+              {ar ? "فتح نافذة البث الجماعي" : "Launch Broadcast"}
+            </Button>
+          </PermissionGate>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">

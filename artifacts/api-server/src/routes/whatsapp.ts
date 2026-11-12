@@ -642,7 +642,10 @@ router.post(
 // POST /api/whatsapp/broadcast/send - إطلاق إرسال الرسالة الجماعية
 router.post(
   "/broadcast/send",
-  requireAnyPermission(["whatsapp", "create"], ["accommodation", "edit"]),
+  // Broadcasting puts the property's WhatsApp number at risk of a ban, so it
+  // needs the WhatsApp send permission itself (accommodation.edit, which
+  // receptionists have, no longer allows it).
+  requireAnyPermission(["whatsapp", "create"]),
   validate({ body: BroadcastSendBody }),
   async (req, res): Promise<any> => {
     try {

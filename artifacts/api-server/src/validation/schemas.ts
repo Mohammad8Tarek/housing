@@ -721,8 +721,17 @@ export const EvaluationRespondBody = body({
   employeeRating: o(bNum),
   profileResponse: o(bText(5000)),
   employeeResponse: o(bText(5000)),
+  // One answer per question: rating questions 1-5, yes/no and text as text.
   itemResponses: o(
-    z.union([z.array(z.record(z.any())).max(500), z.record(z.any())]),
+    z
+      .array(
+        z.object({
+          itemId: z.coerce.number().int().positive(),
+          ratingValue: o(z.coerce.number().int().min(1).max(5)),
+          textValue: o(bText(5000)),
+        }),
+      )
+      .max(200),
   ),
 });
 export const HousingRatingBody = body({

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { withTenant } from "@workspace/db";
 import { assignmentsTable, maintenanceTable } from "@workspace/db";
-import { eq, and, desc, or } from "drizzle-orm";
+import { eq, and, desc, or, sql } from "drizzle-orm";
 import { portalSession } from "../portal-auth/shared.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { logActivity } from "../../lib/activity-logger.js";
@@ -40,7 +40,15 @@ router.get(
         userFilters.push(eq(maintenanceTable.reportedBy, sess.profileId));
       }
       if (assignment?.roomId) {
-        userFilters.push(eq(maintenanceTable.roomId, assignment.roomId));
+        // Tickets of the resident's room, but only from their own stay: earlier
+        // occupants' tickets (and photos) are not theirs to see.
+        const roomFilter = assignment.checkInDate
+          ? and(
+              eq(maintenanceTable.roomId, assignment.roomId),
+              sql`${maintenanceTable.reportedAt} >= ${String(assignment.checkInDate).slice(0, 10)}::date`,
+            )!
+          : eq(maintenanceTable.roomId, assignment.roomId);
+        userFilters.push(roomFilter);
       }
 
       const conditions = [or(...userFilters)];
@@ -211,23 +219,40 @@ router.post("/rate-maintenance", async (req, res): Promise<void> => {
       };
     }
 
-    // Verify authorization: resident assigned to the room or ticket was reported/rated by resident
+    // Who may rate: the resident who reported it (exact match, not a
+    // substring: profile "1" must not match "12"), or the room's current
+    // resident for a ticket raised during their stay, or whoever rated it.
+    const reporter = String(ticket.reportedBy ?? "").trim();
+    const reportedBySelf =
+      !!reporter &&
+      [sess.fullName, sess.profileId, String(sess.profileDbId)]
+        .filter(Boolean)
+        .map((v) => String(v).trim())
+        .includes(reporter);
+
     const [assignment] = await tenantDb
-      .select()
+      .select({ checkInDate: assignmentsTable.checkInDate })
       .from(assignmentsTable)
       .where(
         and(
           eq(assignmentsTable.profileId, sess.profileDbId),
           eq(assignmentsTable.roomId, ticket.roomId),
+          eq(assignmentsTable.status, "ACTIVE"),
         ),
       )
       .limit(1);
+    const reportedAt = ticket.reportedAt ? new Date(ticket.reportedAt) : null;
+    const duringCurrentStay =
+      !!assignment &&
+      (!assignment.checkInDate ||
+        !reportedAt ||
+        reportedAt.toISOString().slice(0, 10) >=
+          String(assignment.checkInDate).slice(0, 10));
 
     const isAuthorized =
-      assignment ||
-      ticket.ratedByProfileId === sess.profileDbId ||
-      ticket.reportedBy?.includes(sess.fullName) ||
-      ticket.reportedBy?.includes(sess.profileId);
+      reportedBySelf ||
+      duringCurrentStay ||
+      ticket.ratedByProfileId === sess.profileDbId;
 
     if (!isAuthorized) {
       return {
