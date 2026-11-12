@@ -163,14 +163,14 @@ export default function Login() {
           });
           setRemainingAttempts(null);
         } else if (code === "INVALID_CREDENTIALS") {
-          const remaining = errBody?.remainingAttempts ?? 0;
-          const max = errBody?.maxAttempts ?? 5;
+          // The server no longer says how many attempts are left: that told
+          // anyone whether a username exists.
           setLockoutMsg(null);
-          setRemainingAttempts({ count: remaining, max });
+          setRemainingAttempts(null);
           toast.error(isAr ? "فشل تسجيل الدخول" : "Login Failed", {
             description: isAr
-              ? `بيانات الدخول غير صحيحة. متبقي ${remaining} محاولات قبل قفل الحساب`
-              : `Invalid credentials. ${remaining} attempt${remaining > 1 ? "s" : ""} remaining before lockout`,
+              ? "اسم المستخدم أو كلمة المرور غير صحيحة. الحساب يُقفل مؤقتاً بعد عدة محاولات خاطئة."
+              : "Wrong username or password. The account is locked for a while after several failed attempts.",
           });
         } else {
           setLockoutMsg(null);

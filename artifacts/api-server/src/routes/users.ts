@@ -1,3 +1,4 @@
+import { revokeUserSessions } from "../lib/session-revoke.js";
 import { canActOnUser, isRootUser } from "../lib/user-access.js";
 import { Router } from "express";
 import {
@@ -28,7 +29,11 @@ import {
   invalidateAuthUserCache,
 } from "../middlewares/permissions.js";
 import { BCRYPT_ROUNDS } from "../lib/security-constants.js";
-import { getPasswordPolicy, validatePassword } from "../lib/password-policy.js";
+import {
+  getPasswordPolicy,
+  validatePassword,
+  recordPasswordHistory,
+} from "../lib/password-policy.js";
 import { validate } from "../middlewares/validate.js";
 import {
   CommonListQuery,
@@ -746,6 +751,27 @@ router.patch(
       updated = { ...targetUser };
     }
 
+    // New password or account disabled/locked: end the user's sessions, so
+    // old (possibly stolen) sessions stop working. An admin resetting their
+    // own password keeps the session they are using.
+    const statusNow = String(updateData.status ?? "").toUpperCase();
+    if (
+      extraData.passwordHash ||
+      statusNow === "INACTIVE" ||
+      statusNow === "LOCKED" ||
+      statusNow === "SUSPENDED"
+    ) {
+      if (extraData.passwordHash) {
+        await recordPasswordHistory(params.data.id, extraData.passwordHash);
+      }
+      const keep =
+        Number((req.session as any)?.userId) === params.data.id
+          ? req.sessionID
+          : undefined;
+      await revokeUserSessions(req, params.data.id, keep);
+      invalidateAuthUserCache(params.data.id);
+    }
+
     // تحديث الـ Property IDs بشكل صحيح (سواء كانت مصفوفة جديدة أو فارغة)
     if (Array.isArray(propertyIds)) {
       const arrLiteral = `{${propertyIds.join(",")}}`;
@@ -964,6 +990,7 @@ router.delete(
       });
 
       invalidateAuthUserCache(params.data.id);
+      await revokeUserSessions(req, params.data.id);
 
       // Audit log
       const session = req.session as any;
