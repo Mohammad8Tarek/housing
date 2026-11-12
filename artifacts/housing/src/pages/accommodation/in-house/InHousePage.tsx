@@ -56,6 +56,10 @@ import {
 import { BulkExtendDialog } from "./components/BulkExtendDialog";
 import { BulkCheckoutDialog } from "./components/BulkCheckoutDialog";
 import {
+  EndingStayFilter,
+  type EndingFilter,
+} from "./components/EndingStayFilter";
+import {
   VacationDialog,
   type VacationDialogState,
 } from "./components/VacationDialog";
@@ -94,6 +98,10 @@ export default function InHouse() {
     () => new URLSearchParams(window.location.search).get("search") ?? "",
   );
   const debouncedSearch = useDebounce(search, 500);
+  const [ending, setEnding] = useState<EndingFilter | null>(() => {
+    const v = new URLSearchParams(window.location.search).get("ending");
+    return v === "overdue" || v === "7" || v === "14" || v === "30" ? v : null;
+  });
 
   useEffect(() => {
     setCurrentPage(1);
@@ -292,7 +300,8 @@ export default function InHouse() {
       page: currentPage,
       limit: pageSize,
       search: debouncedSearch || undefined,
-    },
+      ...(ending ? { ending } : {}),
+    } as any,
     {
       query: {
         queryKey: getListInHouseAssignmentsQueryKey({
@@ -300,7 +309,8 @@ export default function InHouse() {
           page: currentPage,
           limit: pageSize,
           search: debouncedSearch || undefined,
-        }),
+          ...(ending ? { ending } : {}),
+        } as any),
         enabled: !!numericPropertyId,
       },
     },
@@ -1058,6 +1068,16 @@ export default function InHouse() {
           setBulkExtendOpen(true);
         }}
         onBulkCheckout={() => setBulkCheckoutOpen(true)}
+      />
+
+      <EndingStayFilter
+        ar={ar}
+        value={ending}
+        counts={(assignmentsRes as any)?.endingCounts}
+        onChange={(v) => {
+          setEnding(v);
+          setCurrentPage(1);
+        }}
       />
 
       <InHouseTable

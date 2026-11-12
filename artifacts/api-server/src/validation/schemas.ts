@@ -954,3 +954,9 @@ export const GlobalSearchQuery = z.object({
   q: z.string().max(100).optional(),
   propertyId: digitsQuery.optional(),
 });
+
+// GET /assignments/in-house — list filters (plus the common page/limit/search)
+export const InHouseListQuery = CommonListQuery.extend({
+  // Stays ending: already past the expected date, or within N days
+  ending: z.enum(["overdue", "7", "14", "30"]).optional(),
+});

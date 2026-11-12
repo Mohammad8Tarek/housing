@@ -18,7 +18,8 @@ import { findProfileAcrossAllProperties } from "../../lib/cross-property-service
 import { buildAssignmentSearchConditions } from "../../lib/search-helper.js";
 import { fmtAssignment } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
-import { CommonListQuery } from "../../validation/schemas.js";
+import { CommonListQuery, InHouseListQuery } from "../../validation/schemas.js";
+import { cairoToday } from "../../lib/maintenance-daily-report.js";
 
 const router: Router = Router();
 
@@ -26,7 +27,7 @@ const router: Router = Router();
 router.get(
   "/assignments/in-house",
   requirePermission("accommodation", "view"),
-  validate({ query: CommonListQuery }),
+  validate({ query: InHouseListQuery }),
   async (req, res): Promise<void> => {
     const propertyId = getTenantId(req);
     if (!propertyId) {
@@ -51,6 +52,22 @@ router.get(
     }
     if (query.floorId) {
       conditions.push(eq(roomsTable.floorId, parseInt(query.floorId)));
+    }
+    // Stays ending soon (expected_check_out_date is a YYYY-MM-DD text column).
+    const today = cairoToday();
+    const plusDays = (n: number) => {
+      const d = new Date(`${today}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + n);
+      return d.toISOString().slice(0, 10);
+    };
+    const endDate = sql`nullif(${assignmentsTable.expectedCheckOutDate}, '')`;
+    const ending = query.ending as string | undefined;
+    if (ending === "overdue") {
+      conditions.push(sql`${endDate} < ${today}`);
+    } else if (ending) {
+      conditions.push(
+        sql`${endDate} >= ${today} AND ${endDate} <= ${plusDays(Number(ending))}`,
+      );
     }
     if (query.search) {
       const searchCond = buildAssignmentSearchConditions(query.search, {
@@ -116,13 +133,29 @@ router.get(
 
       const total = Number(countResult[0]?.count || 0);
 
+      // How many active stays end soon — for the In-House filter chips.
+      const [endingCounts] = await tenantDb
+        .select({
+          overdue: sql<number>`count(*) FILTER (WHERE ${endDate} < ${today})::int`,
+          d7: sql<number>`count(*) FILTER (WHERE ${endDate} >= ${today} AND ${endDate} <= ${plusDays(7)})::int`,
+          d14: sql<number>`count(*) FILTER (WHERE ${endDate} >= ${today} AND ${endDate} <= ${plusDays(14)})::int`,
+          d30: sql<number>`count(*) FILTER (WHERE ${endDate} >= ${today} AND ${endDate} <= ${plusDays(30)})::int`,
+        })
+        .from(assignmentsTable)
+        .where(eq(assignmentsTable.status, "ACTIVE"));
+
       const items = await baseQuery
-        .orderBy(desc(assignmentsTable.createdAt))
+        .orderBy(
+          ...(ending
+            ? [sql`${endDate} ASC NULLS LAST`, desc(assignmentsTable.createdAt)]
+            : [desc(assignmentsTable.createdAt)]),
+        )
         .limit(limit)
         .offset(offset);
 
       return {
         total,
+        endingCounts,
         data: items.map((i) => ({
           ...i.assignment,
           profileStatus: i.profileStatus,
@@ -183,6 +216,7 @@ router.get(
         page,
         limit,
       },
+      endingCounts: result.endingCounts,
     });
   },
 );

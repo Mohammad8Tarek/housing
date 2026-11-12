@@ -185,7 +185,12 @@ export function DailyOperationsHub({
           <div className="space-y-2">
             {checkOuts && checkOuts.length > 0 ? (
               checkOuts.slice(0, 8).map((alert, i) => (
-                <Link key={i} href={buildNavHref("/accommodation/in-house")}>
+                <Link
+                  key={i}
+                  href={buildNavHref(
+                    `/accommodation/in-house?ending=${alert.daysRemaining < 0 ? "overdue" : "7"}`,
+                  )}
+                >
                   <div className="flex items-center justify-between p-2.5 rounded-xl border border-border/50 bg-card/50 hover:bg-muted/80 transition-all duration-200 cursor-pointer">
                     <div className="flex items-center gap-3 min-w-0">
                       <div
