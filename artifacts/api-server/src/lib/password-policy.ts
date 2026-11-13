@@ -11,6 +11,8 @@ export interface PasswordPolicy {
   historyCount: number;
   lockoutThreshold: number;
   lockoutDurationMinutes: number;
+  /** Roles (lower-case) that must have two-step verification on. */
+  requireTwoFactorRoles: string[];
 }
 
 export interface ValidationResult {
@@ -28,7 +30,16 @@ const DEFAULT_POLICY: PasswordPolicy = {
   historyCount: 5,
   lockoutThreshold: 5,
   lockoutDurationMinutes: 15,
+  requireTwoFactorRoles: [],
 };
+
+/** "super_admin, Admin" -> ["super_admin","admin"] */
+export function parseRoleList(raw: unknown): string[] {
+  return String(raw ?? "")
+    .split(/[,\s]+/)
+    .map((r) => r.trim().toLowerCase())
+    .filter(Boolean);
+}
 
 export async function getPasswordPolicy(
   propertyId: number,
@@ -57,6 +68,9 @@ export async function getPasswordPolicy(
       lockoutDurationMinutes:
         settings.lockoutDurationMinutes ??
         DEFAULT_POLICY.lockoutDurationMinutes,
+      requireTwoFactorRoles: parseRoleList(
+        (settings as any).requireTwoFactorRoles,
+      ),
     };
   } catch {
     return DEFAULT_POLICY;

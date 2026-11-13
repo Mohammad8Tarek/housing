@@ -58,6 +58,9 @@ export const settingsTable = pgTable("settings", {
   lockoutDurationMinutes: integer("lockout_duration_minutes")
     .notNull()
     .default(15),
+  // Roles that must have two-step verification (comma separated, e.g.
+  // "super_admin,system_admin,admin"). Empty = optional for everyone.
+  requireTwoFactorRoles: text("require_two_factor_roles").notNull().default(""),
 
   // ─── Email (SMTP) Configuration ──────────────────────────────────
   smtpHost: text("smtp_host"),

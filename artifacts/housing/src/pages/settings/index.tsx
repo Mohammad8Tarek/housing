@@ -107,6 +107,7 @@ export default function Settings() {
         passwordHistoryCount: (settings as any).passwordHistoryCount ?? 5,
         lockoutThreshold: (settings as any).lockoutThreshold ?? 5,
         lockoutDurationMinutes: (settings as any).lockoutDurationMinutes ?? 15,
+        requireTwoFactorRoles: (settings as any).requireTwoFactorRoles ?? "",
         policyLevel0Capacity: (settings as any).policyLevel0Capacity ?? 1,
         policyLevel1Capacity: (settings as any).policyLevel1Capacity ?? 1,
         policyLevel2Capacity: (settings as any).policyLevel2Capacity ?? 2,

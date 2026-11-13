@@ -231,6 +231,9 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     .where(eq(userMfaTable.userId, user.id))
     .limit(1)
     .catch(() => [] as { enabled: boolean }[]);
+  const roleNeedsMfa = (user.roles ?? [])
+    .map(normalizeRole)
+    .some((r) => policy.requireTwoFactorRoles.includes(r));
   if (mfa?.enabled) {
     req.session.regenerate(() => {
       (req.session as any).pendingMfa = {
@@ -250,7 +253,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
     return;
   }
 
-  await finishLogin(req, res, user, ip, policy, propertyId);
+  await finishLogin(req, res, user, ip, policy, propertyId, roleNeedsMfa);
 });
 
 /** Everything after the password (and code, if any) checked out: start the session. */
@@ -261,6 +264,7 @@ async function finishLogin(
   ip: string,
   policy: Awaited<ReturnType<typeof getPasswordPolicy>>,
   propertyId: number,
+  mfaSetupRequired = false,
 ): Promise<void> {
   void propertyId;
   // ─── Reset lockout counters on success ──────────────────────────────
@@ -294,6 +298,9 @@ async function finishLogin(
     jobTitle: user.jobTitle ?? null,
     loginAt: Date.now(),
     lastSeenAt: Date.now(),
+    // Role must have 2FA but hasn't set it up: the session is restricted to
+    // the 2FA setup endpoints until it is enabled (cleared in /auth/2fa/enable).
+    mfaSetupRequired,
     // Shown on the "signed-in devices" screen.
     ip,
     userAgent: String(req.headers["user-agent"] ?? "").slice(0, 300),
@@ -340,9 +347,11 @@ async function finishLogin(
           ...safeUser,
           isSystemAdmin: sessionData.isSystemAdmin,
           passwordExpired,
+          mfaSetupRequired,
         },
-        token: req.sessionID || "session_active",
-        sessionId: req.sessionID,
+        // The admin web app signs in with the HttpOnly cookie only; the raw
+        // session id is not handed to browser code any more.
+        token: "session_active",
       });
     });
   });
@@ -587,7 +596,12 @@ router.get("/auth/me", async (req, res): Promise<void> => {
   const passwordExpired = session?.passwordExpired ?? false;
 
   const { passwordHash: _, ...safeUser } = user;
-  res.json({ ...safeUser, isSystemAdmin, passwordExpired });
+  res.json({
+    ...safeUser,
+    isSystemAdmin,
+    passwordExpired,
+    mfaSetupRequired: Boolean(session?.mfaSetupRequired),
+  });
 });
 
 // ─── POST /auth/change-password ───────────────────────────────────────────

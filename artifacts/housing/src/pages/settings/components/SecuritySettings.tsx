@@ -15,6 +15,7 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Shield } from "lucide-react";
 import { useFormContext } from "react-hook-form";
 import type { SettingsFormData } from "../hooks/useSettingsForm";
@@ -233,9 +234,76 @@ export function SecuritySettings({
                 )}
               />
             </div>
+
+            <Separator className="my-2" />
+            <CardTitle className="text-lg">
+              {ar
+                ? "التحقق بخطوتين الإجباري"
+                : "Mandatory Two-Step Verification"}
+            </CardTitle>
+            <FormField
+              control={form.control}
+              name="requireTwoFactorRoles"
+              render={({ field }) => {
+                const selected = new Set(
+                  String(field.value ?? "")
+                    .split(/[,\s]+/)
+                    .map((r) => r.trim().toLowerCase())
+                    .filter(Boolean),
+                );
+                const toggle = (role: string, on: boolean) => {
+                  const next = new Set(selected);
+                  if (on) next.add(role);
+                  else next.delete(role);
+                  field.onChange([...next].join(","));
+                };
+                return (
+                  <FormItem>
+                    <FormLabel>
+                      {ar
+                        ? "الأدوار اللي لازم تفعّل التحقق بخطوتين"
+                        : "Roles that must set up two-step verification"}
+                    </FormLabel>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      {TWO_FACTOR_ROLE_OPTIONS.map((opt) => (
+                        <label
+                          key={opt.role}
+                          className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer"
+                        >
+                          <Checkbox
+                            checked={selected.has(opt.role)}
+                            onCheckedChange={(v) =>
+                              toggle(opt.role, v === true)
+                            }
+                          />
+                          <span>{ar ? opt.ar : opt.en}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {ar
+                        ? "المستخدم بالدور ده لو دخل من غير تحقق بخطوتين مش هيقدر يعمل أي حاجة غير إنه يفعّله، وما يقدرش يوقفه بعد كده."
+                        : "A user in these roles can't do anything after signing in until it's set up, and can't turn it off afterwards."}
+                    </p>
+                  </FormItem>
+                );
+              }}
+            />
           </div>
         </Form>
       </CardContent>
     </Card>
   );
 }
+
+const TWO_FACTOR_ROLE_OPTIONS: { role: string; ar: string; en: string }[] = [
+  { role: "super_admin", ar: "مدير النظام (Super Admin)", en: "Super Admin" },
+  {
+    role: "system_admin",
+    ar: "مسؤول النظام (System Admin)",
+    en: "System Admin",
+  },
+  { role: "admin", ar: "مدير فندق (Admin)", en: "Property Admin" },
+  { role: "manager", ar: "مدير السكن (Manager)", en: "Housing Manager" },
+  { role: "hr_admin", ar: "الموارد البشرية", en: "HR Admin" },
+];
