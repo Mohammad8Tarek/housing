@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { withTenant } from "@workspace/db";
+import { db, withTenant } from "@workspace/db";
 import {
   profilesTable,
   assignmentsTable,
@@ -235,8 +235,10 @@ router.get("/my-room", async (req, res): Promise<void> => {
         .where(eq(floorsTable.id, room.floorId))
         .limit(1)
         .then((r) => r[0] ?? null),
-      tenantDb
-        .select()
+      // properties is a global table: read it from public, not from the tenant
+      // search_path (tenant schemas carry a slim legacy copy without the newer columns)
+      db
+        .select({ id: propertiesTable.id, name: propertiesTable.name })
         .from(propertiesTable)
         .where(eq(propertiesTable.id, sess.propertyId))
         .limit(1)

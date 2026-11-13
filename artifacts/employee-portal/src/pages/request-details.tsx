@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   ArrowLeft,
   Loader2,
@@ -16,6 +16,9 @@ import { toast } from "sonner";
 import { useTheme } from "../lib/theme";
 import { useLocation } from "wouter";
 import { apiFetch } from "../lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import { formatDMY } from "@workspace/dates";
+import { useMyMaintenance, portalKeys, type MaintenanceRequest } from "../lib/portal-queries";
 
 interface Request {
   id: number;
@@ -31,6 +34,9 @@ interface Request {
   rating?: number | null;
   ratingComment?: string | null;
   ratedAt?: string | null;
+  startedAt?: string | null;
+  technicianName?: string | null;
+  dueDate?: string | null;
 }
 
 export default function RequestDetails() {
@@ -38,8 +44,8 @@ export default function RequestDetails() {
   const isRtl = lang === "ar";
   const [, setLocation] = useLocation();
 
-  const [request, setRequest] = useState<Request | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const maintenanceQuery = useMyMaintenance();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Rating state
@@ -53,37 +59,18 @@ export default function RequestDetails() {
     typeof window !== "undefined" ? window.location.search : "",
   ).get("id");
 
-  const fetchRequest = useCallback(async () => {
-    if (!requestId) return;
-    setLoading(true);
-    try {
-      const r = await apiFetch(
-        `/api/portal-data/my-maintenance?id=${requestId}`,
-        { credentials: "include" },
-      );
-      const d = await r.json();
-      if (
-        d &&
-        typeof d === "object" &&
-        "success" in d &&
-        d.success &&
-        Array.isArray((d as { requests: Request[] }).requests) &&
-        (d as { requests: Request[] }).requests.length > 0
-      ) {
-        const allReqs = (d as { requests: Request[] }).requests;
-        const target =
-          allReqs.find((r) => r.id === Number(requestId)) || allReqs[0];
-        setRequest(target);
-      }
-    } catch {
-    } finally {
-      setLoading(false);
-    }
-  }, [requestId]);
-
-  useEffect(() => {
-    fetchRequest();
-  }, [fetchRequest]);
+  // Served from the shared cache (opens instantly, stays live via WebSocket invalidation)
+  const request = useMemo<Request | null>(() => {
+    const list = (maintenanceQuery.data ?? []) as unknown as Request[];
+    if (!requestId) return null;
+    return list.find((r) => r.id === Number(requestId)) ?? null;
+  }, [maintenanceQuery.data, requestId]);
+  const loading = maintenanceQuery.isLoading && !maintenanceQuery.data;
+  const setRequest = (updater: (prev: Request | null) => Request | null) => {
+    queryClient.setQueryData<MaintenanceRequest[]>(portalKeys.maintenance, (prev) =>
+      (prev ?? []).map((r) => (r.id === Number(requestId) ? ((updater(r as unknown as Request) ?? r) as unknown as MaintenanceRequest) : r)),
+    );
+  };
 
   useEffect(() => {
     if (request?.rating) {
@@ -126,8 +113,7 @@ export default function RequestDetails() {
       setIsEditingRating(false);
     } catch (err: any) {
       toast.error(
-        err?.message ||
-          (isRtl ? "تعذر إرسال التقييم" : "Could not submit rating"),
+        err?.message || (isRtl ? "تعذر إرسال التقييم" : "Could not submit rating"),
       );
     } finally {
       setIsSubmittingRating(false);
@@ -222,23 +208,19 @@ export default function RequestDetails() {
   }
 
   const normStatus = (request.status || "").toLowerCase();
-  const isCompletedOrClosed = [
-    "resolved",
-    "closed",
-    "completed",
-    "done",
-  ].includes(normStatus);
+  const isCompletedOrClosed = ["resolved", "closed", "completed", "done"].includes(normStatus);
   const isInProgress = normStatus === "in_progress";
   const isOpen = normStatus === "open";
 
   const si = statusInfo[normStatus] ?? statusInfo.open;
-  const sLabel = isOpen
-    ? t("status.open")
-    : isInProgress
-      ? t("status.in_progress")
-      : isCompletedOrClosed
-        ? t("status.resolved")
-        : t("status.closed");
+  const sLabel =
+    isOpen
+      ? t("status.open")
+      : isInProgress
+        ? t("status.in_progress")
+        : isCompletedOrClosed
+          ? t("status.resolved")
+          : t("status.closed");
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -270,18 +252,19 @@ export default function RequestDetails() {
         <div className="relative flex items-center justify-between px-2">
           {/* Base Track */}
           <div className="absolute top-4 start-6 end-6 h-1 bg-muted rounded-full" />
-
+          
           {/* Active Fill Track */}
           <div
             className="absolute top-4 start-6 h-1 bg-accent2 rounded-full transition-all duration-500"
             style={{
-              width: isOpen
-                ? "25%"
-                : isInProgress
-                  ? "60%"
-                  : isCompletedOrClosed
-                    ? "calc(100% - 48px)"
-                    : "0%",
+              width:
+                isOpen
+                  ? "25%"
+                  : isInProgress
+                    ? "60%"
+                    : isCompletedOrClosed
+                      ? "calc(100% - 48px)"
+                      : "0%",
             }}
           />
 
@@ -294,10 +277,7 @@ export default function RequestDetails() {
               {isRtl ? "تم الإبلاغ" : "Reported"}
             </span>
             <span className="text-[9px] text-muted2 font-mono">
-              {new Date(request.reportedAt).toLocaleDateString(
-                isRtl ? "ar-EG" : "en-US",
-                { month: "numeric", day: "numeric" },
-              )}
+              {new Date(request.reportedAt).toLocaleDateString(isRtl ? "ar-EG" : "en-US", { month: "numeric", day: "numeric" })}
             </span>
           </div>
 
@@ -315,8 +295,8 @@ export default function RequestDetails() {
             <span className="text-[11px] font-bold text-foreground">
               {isRtl ? "تمت الجدولة" : "Scheduled"}
             </span>
-            <span className="text-[9px] text-muted2">
-              {isRtl ? "فريق المرافق" : "Facilities"}
+            <span className="text-[9px] text-muted2 truncate max-w-[72px]">
+              {request.technicianName || (isRtl ? "فريق المرافق" : "Facilities")}
             </span>
           </div>
 
@@ -329,21 +309,17 @@ export default function RequestDetails() {
                   : "bg-muted text-muted2"
               }`}
             >
-              <Loader2
-                className={`w-4 h-4 ${isInProgress ? "animate-spin" : ""}`}
-              />
+              <Loader2 className={`w-4 h-4 ${isInProgress ? "animate-spin" : ""}`} />
             </div>
             <span className="text-[11px] font-bold text-foreground">
               {isRtl ? "جاري الإصلاح" : "In Progress"}
             </span>
             <span className="text-[9px] text-muted2">
-              {isInProgress
-                ? isRtl
-                  ? "الآن"
-                  : "Active"
-                : isRtl
-                  ? "ميداني"
-                  : "Field"}
+              {request.startedAt
+                ? formatDMY(request.startedAt, "")
+                : isInProgress
+                  ? (isRtl ? "الآن" : "Active")
+                  : (isRtl ? "ميداني" : "Field")}
             </span>
           </div>
 
@@ -362,13 +338,7 @@ export default function RequestDetails() {
               {isRtl ? "تم الإنجاز" : "Resolved"}
             </span>
             <span className="text-[9px] text-muted2">
-              {request.resolvedAt
-                ? isRtl
-                  ? "مكتمل"
-                  : "Done"
-                : isRtl
-                  ? "معلق"
-                  : "Pending"}
+              {request.resolvedAt ? formatDMY(request.resolvedAt, isRtl ? "مكتمل" : "Done") : (isRtl ? "معلق" : "Pending")}
             </span>
           </div>
         </div>
@@ -387,14 +357,10 @@ export default function RequestDetails() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-foreground">
-                      {isRtl
-                        ? "تقييم جودة الخدمة"
-                        : "Service Quality Evaluation"}
+                      {isRtl ? "تقييم جودة الخدمة" : "Service Quality Evaluation"}
                     </h3>
                     <p className="text-[11px] text-muted2">
-                      {isRtl
-                        ? "شكراً لمشاركتنا رأيك في هذه الخدمة"
-                        : "Thank you for sharing your feedback"}
+                      {isRtl ? "شكراً لمشاركتنا رأيك في هذه الخدمة" : "Thank you for sharing your feedback"}
                     </p>
                   </div>
                 </div>
@@ -426,37 +392,24 @@ export default function RequestDetails() {
                   </span>
                   <span className="text-xs text-muted2">
                     {request.rating === 5
-                      ? isRtl
-                        ? "ممتاز"
-                        : "Excellent"
+                      ? isRtl ? "ممتاز" : "Excellent"
                       : request.rating === 4
-                        ? isRtl
-                          ? "جيد جداً"
-                          : "Very Good"
+                        ? isRtl ? "جيد جداً" : "Very Good"
                         : request.rating === 3
-                          ? isRtl
-                            ? "مقبول"
-                            : "Average"
+                          ? isRtl ? "مقبول" : "Average"
                           : request.rating === 2
-                            ? isRtl
-                              ? "ضعيف"
-                              : "Poor"
-                            : isRtl
-                              ? "سيء جداً"
-                              : "Very Poor"}
+                            ? isRtl ? "ضعيف" : "Poor"
+                            : isRtl ? "سيء جداً" : "Very Poor"}
                   </span>
                 </div>
 
                 {request.ratedAt && (
                   <span className="text-[11px] text-muted2 font-mono">
-                    {new Date(request.ratedAt).toLocaleDateString(
-                      isRtl ? "ar-EG" : "en-US",
-                      {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      },
-                    )}
+                    {new Date(request.ratedAt).toLocaleDateString(isRtl ? "ar-EG" : "en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
                   </span>
                 )}
               </div>
@@ -480,9 +433,7 @@ export default function RequestDetails() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-foreground">
-                      {isRtl
-                        ? "تقييم جودة الخدمة المكتملة"
-                        : "Rate Completed Service Quality"}
+                      {isRtl ? "تقييم جودة الخدمة المكتملة" : "Rate Completed Service Quality"}
                     </h3>
                     <p className="text-[11px] text-muted2">
                       {isRtl
@@ -505,9 +456,7 @@ export default function RequestDetails() {
               {/* Star Rating Selector */}
               <div className="bg-surface/60 border border-border2 rounded-2xl p-5 text-center space-y-3">
                 <p className="text-xs font-semibold text-muted2">
-                  {isRtl
-                    ? "كيف كانت تجربتك مع تنفيذ هذا الطلب؟"
-                    : "How was your experience with this service?"}
+                  {isRtl ? "كيف كانت تجربتك مع تنفيذ هذا الطلب؟" : "How was your experience with this service?"}
                 </p>
 
                 <div className="flex items-center justify-center gap-2 sm:gap-3 py-1">
@@ -536,62 +485,27 @@ export default function RequestDetails() {
                 </div>
 
                 <div className="text-sm font-bold text-foreground">
-                  {ratingScore === 5 &&
-                    (isRtl
-                      ? "⭐⭐⭐⭐⭐ ممتاز ومثالي"
-                      : "⭐⭐⭐⭐⭐ Excellent Service")}
-                  {ratingScore === 4 &&
-                    (isRtl ? "⭐⭐⭐⭐ جيد جداً ومحترف" : "⭐⭐⭐⭐ Very Good")}
-                  {ratingScore === 3 &&
-                    (isRtl
-                      ? "⭐⭐⭐ مقبول وبحاجة لبعض التحسين"
-                      : "⭐⭐⭐ Average")}
-                  {ratingScore === 2 &&
-                    (isRtl ? "⭐⭐ ضعيف وتأخر في الحل" : "⭐⭐ Poor / Delayed")}
-                  {ratingScore === 1 &&
-                    (isRtl ? "⭐ غير مرضٍ تماماً" : "⭐ Very Unsatisfactory")}
+                  {ratingScore === 5 && (isRtl ? "⭐⭐⭐⭐⭐ ممتاز ومثالي" : "⭐⭐⭐⭐⭐ Excellent Service")}
+                  {ratingScore === 4 && (isRtl ? "⭐⭐⭐⭐ جيد جداً ومحترف" : "⭐⭐⭐⭐ Very Good")}
+                  {ratingScore === 3 && (isRtl ? "⭐⭐⭐ مقبول وبحاجة لبعض التحسين" : "⭐⭐⭐ Average")}
+                  {ratingScore === 2 && (isRtl ? "⭐⭐ ضعيف وتأخر في الحل" : "⭐⭐ Poor / Delayed")}
+                  {ratingScore === 1 && (isRtl ? "⭐ غير مرضٍ تماماً" : "⭐ Very Unsatisfactory")}
                 </div>
               </div>
 
               {/* Quick Feedback Chips */}
               <div className="space-y-2">
                 <label className="text-[11px] font-bold text-muted2 uppercase tracking-wider block">
-                  {isRtl
-                    ? "عبارات سريعة (انقر للإضافة)"
-                    : "Quick Tags (Tap to add)"}
+                  {isRtl ? "عبارات سريعة (انقر للإضافة)" : "Quick Tags (Tap to add)"}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {(ratingScore >= 4
                     ? isRtl
-                      ? [
-                          "سرعة في الاستجابة",
-                          "فني محترف وخلوق",
-                          "نظافة ممتازة وإتقان",
-                          "حل جذري للمشكلة",
-                          "خدمة متميزة",
-                        ]
-                      : [
-                          "Fast Response",
-                          "Professional Technician",
-                          "Clean & Tidy Work",
-                          "Problem Solved",
-                          "Excellent Service",
-                        ]
+                      ? ["سرعة في الاستجابة", "فني محترف وخلوق", "نظافة ممتازة وإتقان", "حل جذري للمشكلة", "خدمة متميزة"]
+                      : ["Fast Response", "Professional Technician", "Clean & Tidy Work", "Problem Solved", "Excellent Service"]
                     : isRtl
-                      ? [
-                          "تأخر في الحضور",
-                          "عمل غير مكتمل",
-                          "حاجة لمتابعة إضافية",
-                          "سوء تعامل",
-                          "لم يتم حل المشكلة بالكامل",
-                        ]
-                      : [
-                          "Delayed Arrival",
-                          "Incomplete Work",
-                          "Follow-up Needed",
-                          "Poor Communication",
-                          "Issue Not Fully Solved",
-                        ]
+                      ? ["تأخر في الحضور", "عمل غير مكتمل", "حاجة لمتابعة إضافية", "سوء تعامل", "لم يتم حل المشكلة بالكامل"]
+                      : ["Delayed Arrival", "Incomplete Work", "Follow-up Needed", "Poor Communication", "Issue Not Fully Solved"]
                   ).map((tag) => (
                     <button
                       key={tag}
@@ -612,9 +526,7 @@ export default function RequestDetails() {
               {/* Comment Textarea */}
               <div className="space-y-2">
                 <label className="text-[11px] font-bold text-muted2 uppercase tracking-wider block">
-                  {isRtl
-                    ? "ملاحظات إضافية (اختياري)"
-                    : "Additional Comments (Optional)"}
+                  {isRtl ? "ملاحظات إضافية (اختياري)" : "Additional Comments (Optional)"}
                 </label>
                 <textarea
                   value={ratingComment}
@@ -644,9 +556,7 @@ export default function RequestDetails() {
                 ) : (
                   <>
                     <Check className="w-4 h-4" />
-                    {isRtl
-                      ? "إرسال التقييم واعتماد الجودة"
-                      : "Submit Rating & Confirm"}
+                    {isRtl ? "إرسال التقييم واعتماد الجودة" : "Submit Rating & Confirm"}
                   </>
                 )}
               </button>
@@ -749,10 +659,7 @@ export default function RequestDetails() {
           >
             <X className="w-6 h-6 text-white" />
           </button>
-          <div
-            className="max-w-4xl w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
             <img
               src={selectedImage}
               alt=""

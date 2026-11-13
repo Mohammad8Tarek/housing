@@ -110,7 +110,25 @@ export default function TabFood() {
         </h2>
       </div>
 
-      <div className="flex gap-1 bg-surface rounded-xl p-1 border border-border2"></div>
+      <div className="flex gap-1 bg-surface rounded-xl p-1 border border-border2" role="tablist">
+        {[
+          { id: "menu", label: isRtl ? "قائمة اليوم" : "Today's menu" },
+          { id: "orders", label: isRtl ? "طلباتي" : "My orders" },
+        ].map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => setTab(t.id as typeof tab)}
+            className={`flex-1 py-2 rounded-lg text-[12px] font-bold transition-colors ${
+              tab === t.id ? "bg-accent2 text-accent2-foreground shadow-sm" : "text-muted2 hover:text-foreground"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       {status === "success" && (
         <div className="flex items-center gap-2 p-3 bg-green-400/10 border border-green-400/20 rounded-xl text-green-400 text-[12px]">
@@ -140,9 +158,21 @@ export default function TabFood() {
                   className="text-muted2 opacity-40"
                 />
               </div>
-              <p className="text-[13px] text-muted2 font-medium">
-                {isRtl ? "لا توجد قائمة طعام اليوم" : "No menu available today"}
+              <p className="text-[13px] text-foreground font-bold">
+                {isRtl ? "لم تُنشر قائمة اليوم بعد" : "Today's menu isn't published yet"}
               </p>
+              <p className="text-[11px] text-muted2 mt-1 leading-relaxed">
+                {isRtl
+                  ? "تنشر إدارة السكن القائمة اليومية قبل موعد الوجبات. هيوصلك إشعار عند توفرها."
+                  : "Housing publishes the daily menu before meal times. You'll be notified when it's available."}
+              </p>
+              <button
+                type="button"
+                onClick={() => menuQuery.refetch()}
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-accent2/10 text-accent2 text-[12px] font-bold"
+              >
+                {isRtl ? "تحديث" : "Refresh"}
+              </button>
             </div>
           ) : (
             categoryOrder

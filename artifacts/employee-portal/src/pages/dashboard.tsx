@@ -32,6 +32,7 @@ const TabEvaluations = lazy(() => import("../components/TabEvaluations"));
 const TabDocuments = lazy(() => import("../components/TabDocuments"));
 const TabProfile = lazy(() => import("../components/TabProfile"));
 const TabRoommates = lazy(() => import("../components/TabRoommates"));
+const TabMyRoom = lazy(() => import("../components/TabMyRoom"));
 const TabNotifications = lazy(() => import("../components/TabNotifications"));
 const TabFood = lazy(() => import("../components/TabFood"));
 const TabTransport = lazy(() => import("../components/TabTransport"));
@@ -712,6 +713,7 @@ export default function Dashboard() {
               onDocTab={() => changeTab("documents")}
               onProfileTab={() => changeTab("profile")}
               onRoommatesTab={() => changeTab("roommates")}
+              onRoomTab={() => changeTab("my-room")}
               onHR={() => setShowHR(true)}
             />
           )}
@@ -777,6 +779,9 @@ export default function Dashboard() {
           {activeTab === "portal-settings" && <TabPortalSettings />}
           {activeTab === "profile" && (
             <TabProfile employee={employee} photoUrl={employee?.photoUrl} onDocTab={() => changeTab("documents")} />
+          )}
+          {activeTab === "my-room" && (
+            <TabMyRoom onRequestTab={() => changeTab("requests")} onRoommatesTab={() => changeTab("roommates")} />
           )}
           {activeTab === "roommates" && (
             <TabRoommates

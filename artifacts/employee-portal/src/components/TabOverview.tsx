@@ -57,6 +57,7 @@ interface Props {
   onDocTab: () => void;
   onProfileTab: () => void;
   onRoommatesTab: () => void;
+  onRoomTab?: () => void;
   onHR: () => void;
 }
 
@@ -79,6 +80,7 @@ export default function TabOverview({
   onDocTab,
   onProfileTab,
   onRoommatesTab,
+  onRoomTab,
   onHR,
 }: Props) {
   const { lang } = useTheme();
@@ -507,7 +509,14 @@ export default function TabOverview({
         </div>
 
         {/* Room & Bed Allocation Pill Card */}
-        <div className="relative z-10 rounded-2xl bg-black/25 border border-white/10 p-3.5 backdrop-blur-md flex items-center justify-between gap-3">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={onRoomTab}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onRoomTab?.(); }}
+          aria-label={isRtl ? "عرض تفاصيل غرفتي" : "Open my room details"}
+          className="relative z-10 rounded-2xl bg-black/25 border border-white/10 p-3.5 backdrop-blur-md flex items-center justify-between gap-3 cursor-pointer hover:bg-black/35 transition-colors"
+        >
           <div className="flex items-center gap-3 min-w-0">
             <div
               className={cn(

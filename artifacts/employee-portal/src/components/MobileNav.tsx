@@ -8,6 +8,7 @@ import {
   FileText,
   User,
   Users,
+  BedDouble,
   Calendar,
   UtensilsCrossed,
   Bus,
@@ -44,6 +45,16 @@ interface Props {
 }
 
 const MORE_ITEMS: NavItem[] = [
+  {
+    id: "my-room",
+    icon: BedDouble,
+    labelAr: "غرفتي",
+    labelEn: "My Room",
+    descAr: "المبنى، الدور، السرير والإشغال",
+    descEn: "Building, floor, bed & occupancy",
+    color: "text-[#E0C070]",
+    bgColor: "bg-[#E0C070]/10",
+  },
   {
     id: "roommates",
     icon: Users,

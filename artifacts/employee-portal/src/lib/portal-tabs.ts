@@ -7,6 +7,7 @@ export type PortalTab =
   | "notifications"
   | "portal-settings"
   | "profile"
+  | "my-room"
   | "roommates"
   | "food"
   | "transport"
@@ -21,6 +22,7 @@ const supportedTabs: PortalTab[] = [
   "notifications",
   "profile",
   "portal-settings",
+  "my-room",
   "roommates",
   "food",
   "transport",
