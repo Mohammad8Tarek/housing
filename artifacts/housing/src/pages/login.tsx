@@ -132,11 +132,8 @@ export default function Login() {
   function completeLogin(data: any, variables: any) {
     setLockoutMsg(null);
     setRemainingAttempts(null);
-    const sid =
-      data?.sessionId ||
-      data?.token ||
-      (data?.user?.id ? String(data.user.id) : "session_active");
-    storeToken(sid, keepLoggedIn);
+    // Cookie-only sign-in: clear anything older versions kept in storage.
+    storeToken(null, keepLoggedIn);
 
     const submittedUser =
       variables?.data?.username || form.getValues("username");
