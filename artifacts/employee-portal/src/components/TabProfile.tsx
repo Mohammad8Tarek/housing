@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Camera, CheckCircle2, AlertCircle, Loader2, Save } from "lucide-react";
 import { useTheme } from "../lib/theme";
+import { formatDMY } from "@workspace/dates";
 import { apiFetch, clearSessionCache } from "../lib/api";
 import { useMe, useMyProfile, usePortalInvalidate } from "../lib/portal-queries";
 import { useLocation } from "wouter";
@@ -266,9 +267,9 @@ export default function TabProfile({
           icon: "calendar_today",
           label: isRtl ? "تاريخ البدء" : "Start Date",
           value: employee?.hireDate
-            ? new Date(employee.hireDate).toLocaleDateString()
+            ? formatDMY(employee.hireDate, "")
             : employee?.startDate
-              ? new Date(employee.startDate).toLocaleDateString()
+              ? formatDMY(employee.startDate, "")
               : "—",
         },
       ],

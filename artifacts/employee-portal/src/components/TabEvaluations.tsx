@@ -372,7 +372,7 @@ export default function TabEvaluations({ evaluations, onCommentAdded }: Props) {
                 )}
                 <p className="text-xs text-muted2 mt-1">
                   {new Date(evaluation.createdAt).toLocaleDateString(
-                    isRtl ? "ar-SA" : "en-US",
+                    isRtl ? "ar-EG" : "en-US",
                     {
                       year: "numeric",
                       month: "short",

@@ -105,7 +105,7 @@ export default function TabDocuments({ documents }: Props) {
   const formatDate = (d: string) => {
     try {
       const date = new Date(d);
-      return date.toLocaleDateString(isRtl ? "ar-SA" : "en-US", {
+      return date.toLocaleDateString(isRtl ? "ar-EG" : "en-US", {
         month: "long",
         day: "numeric",
         year: "numeric",

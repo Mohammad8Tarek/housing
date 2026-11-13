@@ -81,7 +81,7 @@ export default function TabActivities() {
 
   const formatDate = (d: string) => {
     try {
-      return new Date(d).toLocaleDateString(isRtl ? "ar-SA" : "en-US", {
+      return new Date(d).toLocaleDateString(isRtl ? "ar-EG" : "en-US", {
         year: "numeric",
         month: "short",
         day: "numeric",

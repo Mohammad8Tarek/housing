@@ -169,6 +169,7 @@ export default function TabNotifications({ onChangeTab }: Props) {
         <div className="flex gap-1 ms-auto">
           <button
             onClick={fetchNotifications}
+            aria-label={isRtl ? "تحديث الإشعارات" : "Refresh notifications"}
             className="p-1.5 rounded-lg hover:bg-surface transition-colors"
           >
             <MaterialIcon icon="refresh" size={18} className="text-muted2" />
@@ -221,7 +222,7 @@ export default function TabNotifications({ onChangeTab }: Props) {
                         return isRtl
                           ? `منذ ${Math.floor(diff / 3600)} س`
                           : `${Math.floor(diff / 3600)}h ago`;
-                      return d.toLocaleDateString(isRtl ? "ar-SA" : "en-US", {
+                      return d.toLocaleDateString(isRtl ? "ar-EG" : "en-US", {
                         month: "short",
                         day: "numeric",
                       });

@@ -9,7 +9,8 @@
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "test": "pnpm -r --filter \"./artifacts/**\" --if-present run test",
     "test:lifecycle": "node --test tests/e2e-room-lifecycle.test.mjs",
-    "deadcode": "npx -y knip@5.88.1"
+    "deadcode": "npx -y knip@5.88.1",
+    "test:portal": "node --test tests/e2e-portal-smoke.test.mjs"
   },
   "private": true,
   "devDependencies": {

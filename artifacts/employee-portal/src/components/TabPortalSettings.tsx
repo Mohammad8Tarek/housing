@@ -525,6 +525,9 @@ export default function TabPortalSettings() {
               </div>
               <button
                 onClick={handleBiometricToggle}
+                role="switch"
+                aria-checked={bioEnabled}
+                aria-label={isRtl ? "تفعيل الدخول بالبصمة" : "Biometric sign-in"}
                 className={`relative w-10 h-6 rounded-full transition-all ${bioEnabled ? "bg-accent2" : "bg-border2"}`}
               >
                 <span

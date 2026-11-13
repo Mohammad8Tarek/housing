@@ -120,6 +120,7 @@ export default function ChangePassword() {
       <div className="fixed top-4 end-4 z-50 flex items-center gap-2">
         <button
           onClick={toggleLang}
+          aria-label={isRtl ? "تغيير اللغة" : "Switch language"}
           className="p-2.5 rounded-xl bg-card border border-border2 text-muted2 hover:text-foreground transition-all"
         >
           <Languages className="w-4 h-4" />
