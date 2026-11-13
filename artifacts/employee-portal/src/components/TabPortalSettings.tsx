@@ -10,6 +10,7 @@ import {
 import { useTheme } from "../lib/theme";
 import { usePWA } from "../lib/pwa";
 import { usePushNotifications } from "../hooks/usePushNotifications";
+import { useMe } from "../lib/portal-queries";
 import { toast } from "sonner";
 import { apiFetch, clearSessionCache } from "../lib/api";
 import { useLocation } from "wouter";
@@ -51,6 +52,7 @@ export default function TabPortalSettings() {
   const [exporting, setExporting] = useState(false);
 
   const push = usePushNotifications();
+  const meQuery = useMe();
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [isNotifLoading, setIsNotifLoading] = useState(false);
 
@@ -58,9 +60,8 @@ export default function TabPortalSettings() {
     setActivityOpen(true);
     setActivityLoading(true);
     try {
-      const res = await apiFetch("/api/portal-auth/me");
-      const d = await res.json();
-      setLastLoginAt(d?.lastLoginAt ?? null);
+      const d = meQuery.data ?? (await meQuery.refetch()).data;
+      setLastLoginAt((d as { lastLoginAt?: string } | undefined)?.lastLoginAt ?? null);
     } catch {
       setLastLoginAt(null);
     } finally {
@@ -71,9 +72,10 @@ export default function TabPortalSettings() {
   const handleExportData = async () => {
     setExporting(true);
     try {
-      const res = await apiFetch("/api/portal-auth/me");
-      const d = await res.json();
-      if (!res.ok || !d?.success) throw new Error("fetch failed");
+      const d = (meQuery.data ?? (await meQuery.refetch()).data) as
+        | { success?: boolean; profile?: unknown; employee?: unknown }
+        | undefined;
+      if (!d?.success) throw new Error("fetch failed");
       const payload = {
         exportedAt: new Date().toISOString(),
         profile: d.profile ?? d.employee ?? null,

@@ -38,6 +38,28 @@ function getIp(req: Request): string {
   return req.ip ?? req.socket?.remoteAddress ?? "unknown";
 }
 
+/**
+ * Login rate-limit key: per IP *and* per submitted identifier.
+ *
+ * Staff housing shares one NAT/Wi-Fi public IP, so an IP-only key let a handful
+ * of residents' failed logins lock out the whole building. Keying by
+ * IP+identifier gives each account its own small budget; per-account brute
+ * force is still stopped by the account-lockout in the login handlers, and
+ * volumetric abuse from one IP by the global apiRateLimit.
+ */
+export function loginAttemptKey(prefix: string, req: Request): string {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const raw =
+    body.profileId ??
+    body.employeeId ??
+    body.username ??
+    body.email ??
+    body.phone ??
+    "?";
+  const id = String(raw).trim().toLowerCase().slice(0, 80) || "?";
+  return `${prefix}:${getIp(req)}:${id}`;
+}
+
 const EXEMPT_PATHS = [
   /^\/api\/health/,
   /^\/api\/notifications/,
@@ -128,17 +150,17 @@ function createRateLimiter(opts: {
 
 export const loginRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 10,
   message: "Too many login attempts. Try again after 15 minutes.",
-  keyFn: (req) => `login:${getIp(req)}`,
+  keyFn: (req) => loginAttemptKey("login", req),
 });
 
 export const portalLoginRateLimit = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 10,
   message:
     "Too many profile portal login attempts. Try again after 15 minutes.",
-  keyFn: (req) => `portal_login:${getIp(req)}`,
+  keyFn: (req) => loginAttemptKey("portal_login", req),
 });
 
 export const apiRateLimit = createRateLimiter({
@@ -171,7 +193,7 @@ export const portalRateLimit = createRateLimiter({
  * resetLoginAttempts — يمسح عداد login بعد نجاح الدخول.
  */
 export async function resetLoginAttempts(req: Request): Promise<void> {
-  const key = `login:${getIp(req)}`;
+  const key = loginAttemptKey("login", req);
 
   const redis = getRedisConnection();
   if (redis) {

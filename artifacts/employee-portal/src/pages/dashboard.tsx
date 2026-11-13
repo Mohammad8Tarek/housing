@@ -43,6 +43,7 @@ import { getPortalTabFromUrl, normalizePortalTab } from "../lib/portal-tabs";
 import { useBackButton } from "../hooks/useBackButton";
 import { useNativePush, unregisterNativePush } from "../hooks/useNativePush";
 import { usePortalRealtime } from "../hooks/usePortalRealtime";
+import { queryClient, clearPortalQueryCache, SESSION_EXPIRED_EVENT } from "../lib/query-client";
 import {
   useDocuments,
   useEvaluations,
@@ -53,6 +54,7 @@ import {
   usePortalInvalidate,
   isRequestDone,
   isRequestOpen,
+  portalKeys,
 } from "../lib/portal-queries";
 
 interface Employee {
@@ -225,6 +227,18 @@ export default function Dashboard() {
     setLocation("/login");
   }, [setLocation]);
 
+  // Session expired mid-use (a portal request returned 401): clear everything
+  // and send the resident back to login instead of showing silently-empty tabs.
+  useEffect(() => {
+    const onExpired = () => {
+      clearPortalQueryCache();
+      clearSessionCache();
+      setLocation("/login");
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired);
+  }, [setLocation]);
+
   // Native FCM registration (Capacitor only). Registers once the employee is known.
   useNativePush({
     enabled: Boolean(employee?.id),
@@ -379,6 +393,9 @@ export default function Dashboard() {
         if (!data || !data.success) {
           return;
         }
+        // Seed the shared /me query so useMe() consumers (profile, settings)
+        // don't refetch it on mount.
+        queryClient.setQueryData(portalKeys.me, data);
         const emp = data.employee || data.profile;
         if (!emp) {
           return;
