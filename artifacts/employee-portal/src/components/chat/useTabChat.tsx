@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTheme } from "../../lib/theme";
 import { apiFetch } from "../../lib/api";
+import { subscribePortalSocket } from "../../lib/portal-socket";
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
 import {
@@ -278,232 +279,121 @@ export function useTabChat({
 
   const isWsConnectedRef = useRef(false);
 
-  // WebSocket Connection for Real-time chat (Optimized low-latency)
+  // Real-time chat events arrive on the portal's single shared WebSocket
+  // (lib/portal-socket.ts). The server keeps one socket per resident, so chat
+  // must not open its own connection or it would evict the realtime cache socket.
   useEffect(() => {
     if (!effectiveMyId) return;
-    let ws: WebSocket | null = null;
-    let reconnectTimer: any;
-    let pingTimer: any;
-    let isUnmounted = false;
+    const unsubscribe = subscribePortalSocket({
+      onStatus: (status) => {
+        isWsConnectedRef.current = status === "online";
+      },
+      onMessage: (parsed) => {
+        try {
+        if (parsed.type === "pong") return;
 
-    const getWsEndpoint = () => {
-      const configuredWs = import.meta.env.VITE_WS_URL?.trim();
-      if (configuredWs) return configuredWs;
+        // Handle the standard data_updated format from broadcastToProperty
+        if (parsed.module === "chat") {
+          if (parsed.action === "new_message") {
+            const newMsg = parsed.data?.message;
+            const convId = parsed.data?.conversationId;
+            if (!newMsg || !convId) return;
 
-      if (Capacitor.isNativePlatform()) {
-        const prodUrl =
-          import.meta.env.VITE_API_URL?.trim() ||
-          "https://resident.sunrise-resorts.com";
-        return prodUrl.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws";
-      }
+            // If the message is from me, skip (already handled optimistically)
+            if (newMsg.senderId === effectiveMyId) return;
 
-      const isVercel =
-        typeof window !== "undefined" &&
-        window.location.hostname.endsWith(".vercel.app");
-      if (isVercel) {
-        const railwayUrl =
-          import.meta.env.VITE_API_URL?.trim() ||
-          "https://resident.sunrise-resorts.com";
-        return (
-          railwayUrl.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws"
-        );
-      }
-
-      if (typeof window !== "undefined") {
-        if (
-          window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1"
-        ) {
-          return "ws://localhost:4000/ws";
-        }
-        const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-        return `${proto}//${window.location.host}/ws`;
-      }
-
-      return "ws://localhost:4000/ws";
-    };
-
-    const connectWs = () => {
-      if (isUnmounted) return;
-
-      const wsBase = getWsEndpoint();
-      // Try sessionStorage first, then localStorage (needed on native Android where
-      // Preferences.get async restoration may not have finished yet on first connect)
-      let sid: string | null = null;
-      try {
-        if (typeof sessionStorage !== "undefined") {
-          sid = sessionStorage.getItem("session_id");
-        }
-        if (!sid && typeof localStorage !== "undefined") {
-          sid = localStorage.getItem("session_id");
-        }
-      } catch {
-        /* storage may be restricted */
-      }
-
-      // If no session ID exists, do not attempt to connect unauthenticated
-      if (!sid && !Capacitor.isNativePlatform()) {
-        return;
-      }
-
-      const url = sid
-        ? `${wsBase}${wsBase.includes("?") ? "&" : "?"}sessionId=${encodeURIComponent(sid)}`
-        : wsBase;
-
-      try {
-        ws = new WebSocket(url);
-
-        ws.onopen = () => {
-          isWsConnectedRef.current = true;
-          console.info("[Chat WS] ⚡ Connected to", wsBase);
-          // Heartbeat ping every 20s to keep connection hot
-          clearInterval(pingTimer);
-          pingTimer = setInterval(() => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-              ws.send(JSON.stringify({ type: "ping" }));
+            // If it belongs to active conversation, append it instantly
+            if (activeConvRef.current?.id === convId) {
+              setMessages((prev) => {
+                if (prev.find((m) => m.id === newMsg.id)) return prev;
+                return [...prev, newMsg];
+              });
+              // Mark as read since user is viewing
+              apiFetch(`/api/portal-chat/conversations/${convId}/read`, {
+                method: "PUT",
+                credentials: "include",
+              }).catch(() => {});
             }
-          }, 20_000);
-        };
 
-        ws.onmessage = (event) => {
-          try {
-            const parsed = JSON.parse(event.data);
-            if (parsed.type === "pong") return;
+            // Fire notification if not in the active conversation or tab hidden
+            const activeId = activeConvRef.current?.id;
+            if (convId !== activeId || document.hidden) {
+              const senderName =
+                newMsg.senderId === 0
+                  ? isRtl
+                    ? "الإدارة"
+                    : "Management"
+                  : senders[newMsg.senderId]
+                    ? `${senders[newMsg.senderId].firstName} ${senders[newMsg.senderId].lastName}`
+                    : isRtl
+                      ? "رسالة جديدة"
+                      : "New message";
+              showNotification(
+                senderName,
+                getNotificationMessagePreview(
+                  newMsg.content,
+                  newMsg.contentType,
+                  isRtl,
+                ),
+              );
+            }
 
-            // Handle the standard data_updated format from broadcastToProperty
-            if (parsed.module === "chat") {
-              if (parsed.action === "new_message") {
-                const newMsg = parsed.data?.message;
-                const convId = parsed.data?.conversationId;
-                if (!newMsg || !convId) return;
-
-                // If the message is from me, skip (already handled optimistically)
-                if (newMsg.senderId === effectiveMyId) return;
-
-                // If it belongs to active conversation, append it instantly
-                if (activeConvRef.current?.id === convId) {
-                  setMessages((prev) => {
-                    if (prev.find((m) => m.id === newMsg.id)) return prev;
-                    return [...prev, newMsg];
-                  });
-                  // Mark as read since user is viewing
-                  apiFetch(`/api/portal-chat/conversations/${convId}/read`, {
-                    method: "PUT",
-                    credentials: "include",
-                  }).catch(() => {});
+            // Reload conversations list to update last message & unread
+            loadConversations(true);
+          } else if (parsed.action === "read_receipt") {
+            if (activeConvRef.current?.id === parsed.data?.conversationId) {
+              loadMessages(parsed.data.conversationId, true);
+            }
+            loadConversations(true);
+          } else if (parsed.action === "typing_start") {
+            const convId = parsed.data?.conversationId;
+            const empId = parsed.data?.employeeId ?? parsed.data?.profileId;
+            if (convId && empId && empId !== effectiveMyId) {
+              setTypingUsers((prev) => {
+                const current = new Set(prev[convId] || []);
+                current.add(empId);
+                return { ...prev, [convId]: current };
+              });
+              // Auto-clear typing after 3s
+              const key = `${convId}_${empId}`;
+              clearTimeout(typingTimeoutRef.current[key]);
+              typingTimeoutRef.current[key] = setTimeout(() => {
+                setTypingUsers((prev) => {
+                  const current = new Set(prev[convId] || []);
+                  current.delete(empId);
+                  return { ...prev, [convId]: current };
+                });
+              }, 3000);
+            }
+          } else if (parsed.action === "presence") {
+            const empId = Number(parsed.data?.employeeId);
+            const isOnline = Boolean(parsed.data?.isOnline);
+            const lastSeen = parsed.data?.lastSeen as string | undefined;
+            if (empId) {
+              setOnlineEmployees((prev) => {
+                const next = new Set(prev);
+                if (isOnline) {
+                  next.add(empId);
+                } else {
+                  next.delete(empId);
                 }
-
-                // Fire notification if not in the active conversation or tab hidden
-                const activeId = activeConvRef.current?.id;
-                if (convId !== activeId || document.hidden) {
-                  const senderName =
-                    newMsg.senderId === 0
-                      ? isRtl
-                        ? "الإدارة"
-                        : "Management"
-                      : senders[newMsg.senderId]
-                        ? `${senders[newMsg.senderId].firstName} ${senders[newMsg.senderId].lastName}`
-                        : isRtl
-                          ? "رسالة جديدة"
-                          : "New message";
-                  showNotification(
-                    senderName,
-                    getNotificationMessagePreview(
-                      newMsg.content,
-                      newMsg.contentType,
-                      isRtl,
-                    ),
-                  );
-                }
-
-                // Reload conversations list to update last message & unread
-                loadConversations(true);
-              } else if (parsed.action === "read_receipt") {
-                if (activeConvRef.current?.id === parsed.data?.conversationId) {
-                  loadMessages(parsed.data.conversationId, true);
-                }
-                loadConversations(true);
-              } else if (parsed.action === "typing_start") {
-                const convId = parsed.data?.conversationId;
-                const empId = parsed.data?.employeeId ?? parsed.data?.profileId;
-                if (convId && empId && empId !== effectiveMyId) {
-                  setTypingUsers((prev) => {
-                    const current = new Set(prev[convId] || []);
-                    current.add(empId);
-                    return { ...prev, [convId]: current };
-                  });
-                  // Auto-clear typing after 3s
-                  const key = `${convId}_${empId}`;
-                  clearTimeout(typingTimeoutRef.current[key]);
-                  typingTimeoutRef.current[key] = setTimeout(() => {
-                    setTypingUsers((prev) => {
-                      const current = new Set(prev[convId] || []);
-                      current.delete(empId);
-                      return { ...prev, [convId]: current };
-                    });
-                  }, 3000);
-                }
-              } else if (parsed.action === "presence") {
-                const empId = Number(parsed.data?.employeeId);
-                const isOnline = Boolean(parsed.data?.isOnline);
-                const lastSeen = parsed.data?.lastSeen as string | undefined;
-                if (empId) {
-                  setOnlineEmployees((prev) => {
-                    const next = new Set(prev);
-                    if (isOnline) {
-                      next.add(empId);
-                    } else {
-                      next.delete(empId);
-                    }
-                    return next;
-                  });
-                  if (lastSeen) {
-                    setLastSeenMap((prev) => ({ ...prev, [empId]: lastSeen }));
-                  }
-                }
+                return next;
+              });
+              if (lastSeen) {
+                setLastSeenMap((prev) => ({ ...prev, [empId]: lastSeen }));
               }
             }
-          } catch {
-            // ignore parse errors
           }
-        };
-
-        ws.onclose = (event: CloseEvent) => {
-          isWsConnectedRef.current = false;
-          clearInterval(pingTimer);
-          if (!isUnmounted) {
-            if (event.code === 1008 || event.code === 4001) {
-              console.warn(
-                "[Chat WS] Authentication required (1008). Standing by until session is authenticated.",
-              );
-              return;
-            }
-            reconnectTimer = setTimeout(connectWs, 3000);
-          }
-        };
-
-        ws.onerror = () => {
-          // onclose will fire after onerror
-        };
-      } catch {
-        if (!isUnmounted) {
-          reconnectTimer = setTimeout(connectWs, 2000);
         }
-      }
-    };
-
-    connectWs();
+        } catch {
+          // ignore handler errors
+        }
+      },
+    });
 
     return () => {
-      isUnmounted = true;
       isWsConnectedRef.current = false;
-      clearInterval(pingTimer);
-      clearTimeout(reconnectTimer);
-      if (ws) {
-        try {
-          ws.close();
-        } catch {}
-      }
+      unsubscribe();
     };
   }, [effectiveMyId]);
 
