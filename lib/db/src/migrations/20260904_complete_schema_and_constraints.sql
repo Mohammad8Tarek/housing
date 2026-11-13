@@ -1983,6 +1983,18 @@ BEGIN
     ALTER TABLE "surveys" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
 
     -- --------------------------------------------------------
+    -- Table: user_mfa (two-step verification; used in public)
+    CREATE TABLE IF NOT EXISTS "user_mfa" (
+      "user_id" INTEGER PRIMARY KEY,
+      "secret_enc" TEXT,
+      "pending_secret_enc" TEXT,
+      "enabled" BOOLEAN NOT NULL DEFAULT false,
+      "recovery_hashes" TEXT[] NOT NULL DEFAULT '{}',
+      "last_used_step" BIGINT,
+      "enabled_at" TIMESTAMPTZ,
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     -- Table: user_sessions
     -- --------------------------------------------------------
     CREATE TABLE IF NOT EXISTS "user_sessions" (

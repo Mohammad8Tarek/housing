@@ -19,6 +19,7 @@ import { Activity, RefreshCw, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserDetailPageState } from "./useUserDetailPageState";
 import { SessionsList } from "@/components/SessionsList";
+import { UserTwoFactorCard } from "./UserTwoFactorCard";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { MonitorSmartphone } from "lucide-react";
 
@@ -26,6 +27,9 @@ export function renderAuditTab(s: UserDetailPageState) {
   const { ar, isAuditLoading, refetchAudit, auditLogs, userId } = s;
   return (
     <div className="space-y-6">
+      <PermissionGate module="users" action="edit">
+        <UserTwoFactorCard ar={ar} userId={userId} />
+      </PermissionGate>
       <PermissionGate module="users" action="edit">
         <Card>
           <CardHeader>

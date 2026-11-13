@@ -1002,3 +1002,12 @@ export const CreateReportScheduleBody = z.object(ReportScheduleFields);
 export const UpdateReportScheduleBody = z
   .object({ ...ReportScheduleFields, enabled: z.boolean() })
   .partial();
+
+// Two-step verification: a 6-digit app code or a recovery code (xxxx-xxxx)
+export const TwoFactorCodeBody = z.object({
+  code: z.string().trim().min(6).max(20),
+});
+export const TwoFactorDisableBody = z.object({
+  password: z.string().min(1).max(200),
+  code: z.string().trim().min(6).max(20),
+});

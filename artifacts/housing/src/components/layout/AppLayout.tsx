@@ -22,6 +22,7 @@ import {
   Menu,
   Languages,
   MonitorSmartphone,
+  ShieldCheck,
   BedDouble,
   UserCheck,
   ChevronDown,
@@ -63,6 +64,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { SessionsList } from "@/components/SessionsList";
+import { TwoFactorDialog } from "@/components/TwoFactorDialog";
 import {
   Dialog,
   DialogContent,
@@ -186,6 +188,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   });
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [devicesOpen, setDevicesOpen] = useState(false);
+  const [twoFactorOpen, setTwoFactorOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   // Per-user seen IDs — different users on same browser get separate state
   const userSeenKey = SEEN_KEY(user?.id);
@@ -647,6 +650,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <ChangePasswordDialog
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
+      />
+      <TwoFactorDialog
+        ar={ar}
+        open={twoFactorOpen}
+        onOpenChange={setTwoFactorOpen}
       />
       <Dialog open={devicesOpen} onOpenChange={setDevicesOpen}>
         <DialogContent className="max-w-lg" dir={dir}>
@@ -1164,6 +1172,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   >
                     <MonitorSmartphone className="w-4 h-4 mr-2" />
                     {ar ? "أجهزتي" : "My devices"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setTwoFactorOpen(true)}
+                    className="cursor-pointer"
+                  >
+                    <ShieldCheck className="w-4 h-4 mr-2" />
+                    {ar ? "التحقق بخطوتين" : "Two-step verification"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

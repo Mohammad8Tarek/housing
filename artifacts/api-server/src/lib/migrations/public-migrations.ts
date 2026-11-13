@@ -1556,4 +1556,19 @@ We wish you a safe trip and a pleasant stay! ✨';`,
                OR 'accommodation.edit' = ANY(permissions))
           AND NOT ('accommodation.override_vacation' = ANY(permissions));`,
   },
+  {
+    // Two-step verification (TOTP) per user; secrets encrypted, recovery
+    // codes hashed. Separate table so user rows never carry them.
+    name: "public.user_mfa",
+    q: `CREATE TABLE IF NOT EXISTS public.user_mfa (
+        user_id INTEGER PRIMARY KEY,
+        secret_enc TEXT,
+        pending_secret_enc TEXT,
+        enabled BOOLEAN NOT NULL DEFAULT false,
+        recovery_hashes TEXT[] NOT NULL DEFAULT '{}',
+        last_used_step BIGINT,
+        enabled_at TIMESTAMPTZ,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );`,
+  },
 ];
