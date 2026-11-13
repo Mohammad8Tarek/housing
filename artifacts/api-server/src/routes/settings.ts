@@ -99,6 +99,7 @@ router.patch(
         // ─── Account Lockout ─────────────────────────────────────────
         "lockoutThreshold",
         "lockoutDurationMinutes",
+        "requireTwoFactorRoles",
         // ─── Email (SMTP) Configuration ──────────────────────────────
         "smtpHost",
         "smtpPort",

@@ -545,6 +545,17 @@ export async function loadAuthUser(
     res.status(401).json({ error: "Not authenticated" });
     return null;
   }
+  // The property requires two-step verification for this user's role and
+  // it is not set up yet: nothing works until it is (the 2FA endpoints and
+  // /auth/me use the session directly, so they stay reachable).
+  if (session?.mfaSetupRequired) {
+    res.status(403).json({
+      error:
+        "لازم تفعّل التحقق بخطوتين الأول / Two-step verification must be set up first",
+      code: "TWO_FACTOR_SETUP_REQUIRED",
+    });
+    return null;
+  }
 
   const now = Date.now();
   let cached = userMemoryCache.get(userId);

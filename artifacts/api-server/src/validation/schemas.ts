@@ -49,6 +49,7 @@ export const UpdateSettingsBody = z
     passwordHistoryCount: optInt(0, 50),
     lockoutThreshold: optInt(0, 100),
     lockoutDurationMinutes: optInt(0, 100000),
+    requireTwoFactorRoles: optText(300),
     smtpHost: optText(255),
     smtpPort: optInt(1, 65535),
     smtpSecure: optBool,

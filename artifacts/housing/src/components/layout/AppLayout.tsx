@@ -65,6 +65,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 import { SessionsList } from "@/components/SessionsList";
 import { TwoFactorDialog } from "@/components/TwoFactorDialog";
+import { TwoFactorSetupGate } from "@/components/TwoFactorSetupGate";
 import {
   Dialog,
   DialogContent,
@@ -644,6 +645,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   );
+
+  // The property requires two-step verification for this role and it is not
+  // set up yet: the server refuses everything else, so show only the setup.
+  if ((user as any)?.mfaSetupRequired) {
+    return (
+      <TwoFactorSetupGate ar={ar} onLogout={() => logoutMutation.mutate()} />
+    );
+  }
 
   return (
     <>

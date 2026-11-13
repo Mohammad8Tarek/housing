@@ -1845,6 +1845,7 @@ BEGIN
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "password_expiry_days" INTEGER NOT NULL DEFAULT 90;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "password_history_count" INTEGER NOT NULL DEFAULT 5;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "lockout_threshold" INTEGER NOT NULL DEFAULT 5;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "require_two_factor_roles" TEXT NOT NULL DEFAULT '';
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "lockout_duration_minutes" INTEGER NOT NULL DEFAULT 15;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_0_capacity" INTEGER DEFAULT 1;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "policy_level_1_capacity" INTEGER DEFAULT 1;

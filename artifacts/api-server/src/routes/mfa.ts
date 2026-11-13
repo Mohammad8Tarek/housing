@@ -29,6 +29,7 @@ import {
 import { canActOnUser } from "../lib/user-access.js";
 import { logActivity, getClientIp } from "../lib/activity-logger.js";
 import { revokeUserSessions } from "../lib/session-revoke.js";
+import { getPasswordPolicy } from "../lib/password-policy.js";
 
 const router: Router = Router();
 
@@ -178,6 +179,7 @@ router.post(
         "2FA_ENABLED",
         "Two-step verification turned on",
       );
+      delete (req.session as any).mfaSetupRequired;
       res.json({ enabled: true, recoveryCodes: codes });
     } catch (err) {
       next(err);
@@ -253,6 +255,20 @@ router.post(
         res.status(400).json({
           error: "كلمة المرور أو الكود غير صحيح / Wrong password or code",
           code: "TWO_FACTOR_INVALID",
+        });
+        return;
+      }
+      // A role that must have it cannot switch it off.
+      const policy = await getPasswordPolicy(ctx.user.propertyId ?? 0);
+      if (
+        (ctx.user.roles ?? []).some((r) =>
+          policy.requireTwoFactorRoles.includes(String(r).toLowerCase()),
+        )
+      ) {
+        res.status(403).json({
+          error:
+            "التحقق بخطوتين إجباري لدورك ولا يمكن إيقافه / Two-step verification is mandatory for your role",
+          code: "TWO_FACTOR_MANDATORY",
         });
         return;
       }

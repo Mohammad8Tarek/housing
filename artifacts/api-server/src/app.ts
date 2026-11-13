@@ -256,7 +256,10 @@ app.use((req, res, next) => {
 
     if (sessionStore && typeof sessionStore.get === "function") {
       sessionStore.get(xSid, (err, storedSess) => {
-        if (!err && storedSess) {
+        // Only the employee portal's native app (Capacitor, no cookie jar)
+        // may present its session by header. Admin sessions are cookie-only,
+        // so a leaked admin session id in storage or a log is useless.
+        if (!err && storedSess && (storedSess as any).portal) {
           Object.assign(req.session, storedSess);
           (req as any).sessionID = xSid;
         }

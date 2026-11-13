@@ -82,6 +82,8 @@ export const settingsSchema = z.object({
   passwordHistoryCount: z.coerce.number().min(0).max(50).default(5),
   lockoutThreshold: z.coerce.number().min(1).max(20).default(5),
   lockoutDurationMinutes: z.coerce.number().min(1).max(1440).default(15),
+  // Roles that must use two-step verification (comma separated; "" = optional)
+  requireTwoFactorRoles: z.string().max(300).default(""),
 
   // ─── Housing Allocation Policy ──────────────────────────────────────
   policyLevel0Capacity: z.coerce.number().min(1).max(10).default(1),
@@ -208,6 +210,7 @@ export function useSettingsForm() {
       passwordHistoryCount: 5,
       lockoutThreshold: 5,
       lockoutDurationMinutes: 15,
+      requireTwoFactorRoles: "",
       policyLevel0Capacity: 1,
       policyLevel1Capacity: 1,
       policyLevel2Capacity: 2,

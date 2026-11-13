@@ -166,14 +166,9 @@ export default function HistoryPage() {
       if (debouncedSearch) qs.set("search", debouncedSearch);
       if (filterStatus && filterStatus !== "ALL")
         qs.set("status", filterStatus);
-
-      const token =
-        localStorage.getItem("auth_token") ||
-        sessionStorage.getItem("auth_token");
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const res = await fetch(`/api/assignments/history?${qs.toString()}`, {
         headers,
@@ -254,13 +249,9 @@ export default function HistoryPage() {
     if (!deleteRecord) return;
     setIsDeleting(true);
     try {
-      const token =
-        localStorage.getItem("auth_token") ||
-        sessionStorage.getItem("auth_token");
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const res = await fetch(
         `/api/assignments/${deleteRecord.id}?propertyId=${activePropertyId}`,
@@ -301,13 +292,9 @@ export default function HistoryPage() {
     if (ids.length === 0) return;
     setIsBulkDeleting(true);
     try {
-      const token =
-        localStorage.getItem("auth_token") ||
-        sessionStorage.getItem("auth_token");
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const res = await fetch(
         `/api/assignments/bulk-delete?propertyId=${activePropertyId}`,
@@ -616,14 +603,9 @@ export default function HistoryPage() {
         if (debouncedSearch) qs.set("search", debouncedSearch);
         if (filterStatus && filterStatus !== "ALL")
           qs.set("status", filterStatus);
-
-        const token =
-          localStorage.getItem("auth_token") ||
-          sessionStorage.getItem("auth_token");
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
         };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
 
         const res = await fetch(`/api/assignments/history?${qs.toString()}`, {
           headers,

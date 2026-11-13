@@ -47,17 +47,15 @@ export interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+/**
+ * The admin app signs in with the HttpOnly session cookie only. Nothing is
+ * kept in web storage any more; this just clears what older versions left.
+ */
 export function storeToken(
-  token?: string | null,
-  persistent: boolean = true,
+  _token?: string | null,
+  _persistent: boolean = true,
 ): void {
-  const val = token || "session_active";
-  try {
-    sessionStorage.setItem("auth_token", val);
-    sessionStorage.setItem("session_id", val);
-    localStorage.setItem("auth_token", val);
-    localStorage.setItem("session_id", val);
-  } catch {}
+  clearToken();
 }
 
 export function clearToken(): void {

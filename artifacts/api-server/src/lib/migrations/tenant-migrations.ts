@@ -205,6 +205,10 @@ export const TENANT_MIGRATIONS: Migration[] = [
     name: "settings.lockout_duration_minutes",
     q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS lockout_duration_minutes INTEGER NOT NULL DEFAULT 15",
   },
+  {
+    name: "settings.require_two_factor_roles",
+    q: "ALTER TABLE settings ADD COLUMN IF NOT EXISTS require_two_factor_roles TEXT NOT NULL DEFAULT ''",
+  },
 
   // === Maintenance ===
   {

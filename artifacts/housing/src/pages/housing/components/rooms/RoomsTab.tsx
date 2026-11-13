@@ -256,15 +256,9 @@ export function RoomsTab({
       };
 
       if (editRoom) {
-        const token =
-          localStorage.getItem("auth_token") ||
-          sessionStorage.getItem("auth_token") ||
-          localStorage.getItem("session_id") ||
-          sessionStorage.getItem("session_id");
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
         };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
 
         const res = await fetch(
           `/api/rooms/${editRoom.id}?propertyId=${propertyId}`,
