@@ -22,8 +22,18 @@ describe("grantedPermissions", () => {
     expect(r.granted).toEqual(ALL_PERMISSIONS);
   });
 
-  it("uses only the stored permissions for other roles (no role defaults)", () => {
+  it("elevates the admin role to everything except properties", () => {
     const r = grantedPermissions(user(["admin"], ["maintenance.view"]));
+    expect(r.root).toBe(false);
+    // Admin can act, not just view.
+    expect(r.granted).toContain("maintenance.edit");
+    expect(r.granted).toContain("housekeeping.edit");
+    // ...but the super-only properties module is still withheld.
+    expect(r.granted.some((p) => p.startsWith("properties."))).toBe(false);
+  });
+
+  it("uses only the stored permissions for non-admin roles (no role defaults)", () => {
+    const r = grantedPermissions(user(["manager"], ["maintenance.view"]));
     expect(r.root).toBe(false);
     expect(r.granted).toEqual(["maintenance.view"]);
   });

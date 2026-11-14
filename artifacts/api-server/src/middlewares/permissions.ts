@@ -448,20 +448,26 @@ export function effectivePermissions(user: AuthUser): Set<string> {
     return new Set(["*"]);
   }
 
-  // 2. Pure Discretionary Fine-Grained Permissions (100% Decoupled from Roles)
-  // user.permissions is the EXCLUSIVE source of truth.
-  // NO automatic fallback to ROLE_DEFAULT_PERMISSIONS. Roles are purely organizational.
+  // 2. Fine-grained permissions come from the user's explicit list. The `admin`
+  //    role is the one elevated, non-super role: it is granted every module
+  //    except the super-only `properties` module (which /api/properties also
+  //    gates separately), on top of any explicit permissions. Every other role
+  //    is purely organizational — its holders act only through their own list.
   const permissions = new Set<string>();
+  const add = (permission: string) => {
+    if (permission === "none") return;
+    const norm = normalize(permission);
+    if (!norm) return;
+    permissions.add(norm);
+    if (norm.includes(".")) permissions.add(norm.replace(".", ":"));
+    if (norm.includes(":")) permissions.add(norm.replace(":", "."));
+  };
+
+  if (user.roles?.some((r) => normalize(r) === "admin")) {
+    for (const p of ROLE_DEFAULT_PERMISSIONS.admin) add(p);
+  }
   if (Array.isArray(user.permissions)) {
-    for (const permission of user.permissions) {
-      if (permission === "none") continue;
-      const norm = normalize(permission);
-      if (norm) {
-        permissions.add(norm);
-        if (norm.includes(".")) permissions.add(norm.replace(".", ":"));
-        if (norm.includes(":")) permissions.add(norm.replace(":", "."));
-      }
-    }
+    for (const permission of user.permissions) add(permission);
   }
 
   return permissions;

@@ -102,6 +102,10 @@ export function usePermission() {
     if (!user) return false;
     if (perms.has("*")) return true;
 
+    // The `admin` role is elevated: every module except the super-only
+    // `properties` module. Mirrors the API's effectivePermissions.
+    if (isAdmin && module !== "properties") return true;
+
     // Check module.action with dot or colon format
     const dotKey = `${module}.${action}`.toLowerCase();
     const colonKey = `${module}:${action}`.toLowerCase();
