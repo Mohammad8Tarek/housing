@@ -4,7 +4,11 @@ import { useLocation } from "wouter";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
-import { useMyMaintenance, portalKeys, type MaintenanceRequest } from "../lib/portal-queries";
+import {
+  useMyMaintenance,
+  portalKeys,
+  type MaintenanceRequest,
+} from "../lib/portal-queries";
 import MaterialIcon from "./MaterialIcon";
 import { toast } from "sonner";
 import { hapticFeedback } from "../lib/haptics";
@@ -170,7 +174,6 @@ export default function TabRequests() {
     queryClient.invalidateQueries({ queryKey: portalKeys.maintenance });
   }, [queryClient]);
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("loading");
@@ -187,10 +190,10 @@ export default function TabRequests() {
 
       // Optimistic update
       if (data.request) {
-        queryClient.setQueryData<MaintenanceRequest[]>(portalKeys.maintenance, (prev) => [
-          data.request,
-          ...(prev ?? []),
-        ]);
+        queryClient.setQueryData<MaintenanceRequest[]>(
+          portalKeys.maintenance,
+          (prev) => [data.request, ...(prev ?? [])],
+        );
       }
 
       await hapticFeedback("medium");

@@ -290,101 +290,101 @@ export function useTabChat({
       },
       onMessage: (parsed) => {
         try {
-        if (parsed.type === "pong") return;
+          if (parsed.type === "pong") return;
 
-        // Handle the standard data_updated format from broadcastToProperty
-        if (parsed.module === "chat") {
-          if (parsed.action === "new_message") {
-            const newMsg = parsed.data?.message;
-            const convId = parsed.data?.conversationId;
-            if (!newMsg || !convId) return;
+          // Handle the standard data_updated format from broadcastToProperty
+          if (parsed.module === "chat") {
+            if (parsed.action === "new_message") {
+              const newMsg = parsed.data?.message;
+              const convId = parsed.data?.conversationId;
+              if (!newMsg || !convId) return;
 
-            // If the message is from me, skip (already handled optimistically)
-            if (newMsg.senderId === effectiveMyId) return;
+              // If the message is from me, skip (already handled optimistically)
+              if (newMsg.senderId === effectiveMyId) return;
 
-            // If it belongs to active conversation, append it instantly
-            if (activeConvRef.current?.id === convId) {
-              setMessages((prev) => {
-                if (prev.find((m) => m.id === newMsg.id)) return prev;
-                return [...prev, newMsg];
-              });
-              // Mark as read since user is viewing
-              apiFetch(`/api/portal-chat/conversations/${convId}/read`, {
-                method: "PUT",
-                credentials: "include",
-              }).catch(() => {});
-            }
+              // If it belongs to active conversation, append it instantly
+              if (activeConvRef.current?.id === convId) {
+                setMessages((prev) => {
+                  if (prev.find((m) => m.id === newMsg.id)) return prev;
+                  return [...prev, newMsg];
+                });
+                // Mark as read since user is viewing
+                apiFetch(`/api/portal-chat/conversations/${convId}/read`, {
+                  method: "PUT",
+                  credentials: "include",
+                }).catch(() => {});
+              }
 
-            // Fire notification if not in the active conversation or tab hidden
-            const activeId = activeConvRef.current?.id;
-            if (convId !== activeId || document.hidden) {
-              const senderName =
-                newMsg.senderId === 0
-                  ? isRtl
-                    ? "الإدارة"
-                    : "Management"
-                  : senders[newMsg.senderId]
-                    ? `${senders[newMsg.senderId].firstName} ${senders[newMsg.senderId].lastName}`
-                    : isRtl
-                      ? "رسالة جديدة"
-                      : "New message";
-              showNotification(
-                senderName,
-                getNotificationMessagePreview(
-                  newMsg.content,
-                  newMsg.contentType,
-                  isRtl,
-                ),
-              );
-            }
+              // Fire notification if not in the active conversation or tab hidden
+              const activeId = activeConvRef.current?.id;
+              if (convId !== activeId || document.hidden) {
+                const senderName =
+                  newMsg.senderId === 0
+                    ? isRtl
+                      ? "الإدارة"
+                      : "Management"
+                    : senders[newMsg.senderId]
+                      ? `${senders[newMsg.senderId].firstName} ${senders[newMsg.senderId].lastName}`
+                      : isRtl
+                        ? "رسالة جديدة"
+                        : "New message";
+                showNotification(
+                  senderName,
+                  getNotificationMessagePreview(
+                    newMsg.content,
+                    newMsg.contentType,
+                    isRtl,
+                  ),
+                );
+              }
 
-            // Reload conversations list to update last message & unread
-            loadConversations(true);
-          } else if (parsed.action === "read_receipt") {
-            if (activeConvRef.current?.id === parsed.data?.conversationId) {
-              loadMessages(parsed.data.conversationId, true);
-            }
-            loadConversations(true);
-          } else if (parsed.action === "typing_start") {
-            const convId = parsed.data?.conversationId;
-            const empId = parsed.data?.employeeId ?? parsed.data?.profileId;
-            if (convId && empId && empId !== effectiveMyId) {
-              setTypingUsers((prev) => {
-                const current = new Set(prev[convId] || []);
-                current.add(empId);
-                return { ...prev, [convId]: current };
-              });
-              // Auto-clear typing after 3s
-              const key = `${convId}_${empId}`;
-              clearTimeout(typingTimeoutRef.current[key]);
-              typingTimeoutRef.current[key] = setTimeout(() => {
+              // Reload conversations list to update last message & unread
+              loadConversations(true);
+            } else if (parsed.action === "read_receipt") {
+              if (activeConvRef.current?.id === parsed.data?.conversationId) {
+                loadMessages(parsed.data.conversationId, true);
+              }
+              loadConversations(true);
+            } else if (parsed.action === "typing_start") {
+              const convId = parsed.data?.conversationId;
+              const empId = parsed.data?.employeeId ?? parsed.data?.profileId;
+              if (convId && empId && empId !== effectiveMyId) {
                 setTypingUsers((prev) => {
                   const current = new Set(prev[convId] || []);
-                  current.delete(empId);
+                  current.add(empId);
                   return { ...prev, [convId]: current };
                 });
-              }, 3000);
-            }
-          } else if (parsed.action === "presence") {
-            const empId = Number(parsed.data?.employeeId);
-            const isOnline = Boolean(parsed.data?.isOnline);
-            const lastSeen = parsed.data?.lastSeen as string | undefined;
-            if (empId) {
-              setOnlineEmployees((prev) => {
-                const next = new Set(prev);
-                if (isOnline) {
-                  next.add(empId);
-                } else {
-                  next.delete(empId);
+                // Auto-clear typing after 3s
+                const key = `${convId}_${empId}`;
+                clearTimeout(typingTimeoutRef.current[key]);
+                typingTimeoutRef.current[key] = setTimeout(() => {
+                  setTypingUsers((prev) => {
+                    const current = new Set(prev[convId] || []);
+                    current.delete(empId);
+                    return { ...prev, [convId]: current };
+                  });
+                }, 3000);
+              }
+            } else if (parsed.action === "presence") {
+              const empId = Number(parsed.data?.employeeId);
+              const isOnline = Boolean(parsed.data?.isOnline);
+              const lastSeen = parsed.data?.lastSeen as string | undefined;
+              if (empId) {
+                setOnlineEmployees((prev) => {
+                  const next = new Set(prev);
+                  if (isOnline) {
+                    next.add(empId);
+                  } else {
+                    next.delete(empId);
+                  }
+                  return next;
+                });
+                if (lastSeen) {
+                  setLastSeenMap((prev) => ({ ...prev, [empId]: lastSeen }));
                 }
-                return next;
-              });
-              if (lastSeen) {
-                setLastSeenMap((prev) => ({ ...prev, [empId]: lastSeen }));
               }
             }
           }
-        }
         } catch {
           // ignore handler errors
         }

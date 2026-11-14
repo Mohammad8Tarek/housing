@@ -13,7 +13,11 @@ import {
 } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
-import { useMyActivities, useCatalog, usePortalInvalidate } from "../lib/portal-queries";
+import {
+  useMyActivities,
+  useCatalog,
+  usePortalInvalidate,
+} from "../lib/portal-queries";
 
 interface Activity {
   id: number;

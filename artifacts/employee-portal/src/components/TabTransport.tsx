@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import { Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
-import { useTransportSchedules, useMyBookings, usePortalInvalidate } from "../lib/portal-queries";
+import {
+  useTransportSchedules,
+  useMyBookings,
+  usePortalInvalidate,
+} from "../lib/portal-queries";
 import MaterialIcon from "./MaterialIcon";
 import PortalDateInput from "./PortalDateInput";
 
@@ -36,7 +40,8 @@ export default function TabTransport() {
   const schedules = (schedulesQuery.data ?? []) as Schedule[];
   const bookings = (bookingsQuery.data ?? []) as Booking[];
   const loading =
-    (schedulesQuery.isLoading && !schedulesQuery.data) || (bookingsQuery.isLoading && !bookingsQuery.data);
+    (schedulesQuery.isLoading && !schedulesQuery.data) ||
+    (bookingsQuery.isLoading && !bookingsQuery.data);
   const [bookingDate, setBookingDate] = useState(
     new Date().toISOString().split("T")[0],
   );
@@ -46,7 +51,6 @@ export default function TabTransport() {
   >("idle");
   const [msg, setMsg] = useState("");
   const [tab, setTab] = useState<"schedules" | "bookings">("schedules");
-
 
   const handleBook = async () => {
     if (!selected) return;
@@ -89,7 +93,10 @@ export default function TabTransport() {
         </h2>
       </div>
 
-      <div className="flex gap-1 bg-surface rounded-xl p-1 border border-border2" role="tablist">
+      <div
+        className="flex gap-1 bg-surface rounded-xl p-1 border border-border2"
+        role="tablist"
+      >
         {[
           { id: "schedules", label: isRtl ? "المواعيد" : "Schedules" },
           { id: "bookings", label: isRtl ? "حجوزاتي" : "My bookings" },
@@ -101,7 +108,9 @@ export default function TabTransport() {
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id as typeof tab)}
             className={`flex-1 py-2 rounded-lg text-[12px] font-bold transition-colors ${
-              tab === t.id ? "bg-accent2 text-accent2-foreground shadow-sm" : "text-muted2 hover:text-foreground"
+              tab === t.id
+                ? "bg-accent2 text-accent2-foreground shadow-sm"
+                : "text-muted2 hover:text-foreground"
             }`}
           >
             {t.label}
@@ -138,7 +147,9 @@ export default function TabTransport() {
                 />
               </div>
               <p className="text-[13px] text-foreground font-bold">
-                {isRtl ? "لا توجد مواعيد باصات منشورة" : "No shuttle schedules published"}
+                {isRtl
+                  ? "لا توجد مواعيد باصات منشورة"
+                  : "No shuttle schedules published"}
               </p>
               <p className="text-[11px] text-muted2 mt-1 leading-relaxed">
                 {isRtl

@@ -28,15 +28,51 @@ interface Props {
 }
 
 const ROOM_STATUS: Record<string, { ar: string; en: string; cls: string }> = {
-  available: { ar: "جاهزة", en: "Ready", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
-  occupied: { ar: "مشغولة", en: "Occupied", cls: "bg-blue-500/15 text-blue-500 border-blue-500/30" },
-  occupied_vacation: { ar: "مشغولة · إجازة", en: "Occupied · On leave", cls: "bg-indigo-500/15 text-indigo-500 border-indigo-500/30" },
-  dirty: { ar: "بانتظار التنظيف", en: "Awaiting cleaning", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
-  occupied_dirty: { ar: "بانتظار التنظيف", en: "Awaiting cleaning", cls: "bg-amber-500/15 text-amber-500 border-amber-500/30" },
-  in_cleaning: { ar: "جاري التنظيف", en: "Being cleaned", cls: "bg-sky-500/15 text-sky-500 border-sky-500/30" },
-  inspected: { ar: "تم التفتيش", en: "Inspected", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" },
-  out_of_service: { ar: "خارج الخدمة", en: "Out of service", cls: "bg-rose-500/15 text-rose-500 border-rose-500/30" },
-  out_of_order: { ar: "عطل", en: "Out of order", cls: "bg-rose-500/15 text-rose-500 border-rose-500/30" },
+  available: {
+    ar: "جاهزة",
+    en: "Ready",
+    cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
+  },
+  occupied: {
+    ar: "مشغولة",
+    en: "Occupied",
+    cls: "bg-blue-500/15 text-blue-500 border-blue-500/30",
+  },
+  occupied_vacation: {
+    ar: "مشغولة · إجازة",
+    en: "Occupied · On leave",
+    cls: "bg-indigo-500/15 text-indigo-500 border-indigo-500/30",
+  },
+  dirty: {
+    ar: "بانتظار التنظيف",
+    en: "Awaiting cleaning",
+    cls: "bg-amber-500/15 text-amber-500 border-amber-500/30",
+  },
+  occupied_dirty: {
+    ar: "بانتظار التنظيف",
+    en: "Awaiting cleaning",
+    cls: "bg-amber-500/15 text-amber-500 border-amber-500/30",
+  },
+  in_cleaning: {
+    ar: "جاري التنظيف",
+    en: "Being cleaned",
+    cls: "bg-sky-500/15 text-sky-500 border-sky-500/30",
+  },
+  inspected: {
+    ar: "تم التفتيش",
+    en: "Inspected",
+    cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
+  },
+  out_of_service: {
+    ar: "خارج الخدمة",
+    en: "Out of service",
+    cls: "bg-rose-500/15 text-rose-500 border-rose-500/30",
+  },
+  out_of_order: {
+    ar: "عطل",
+    en: "Out of order",
+    cls: "bg-rose-500/15 text-rose-500 border-rose-500/30",
+  },
 };
 
 function nightsSince(dateStr?: string | null): number | null {
@@ -46,13 +82,29 @@ function nightsSince(dateStr?: string | null): number | null {
   return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86_400_000));
 }
 
-function Stat({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: React.ReactNode; sub?: string }) {
+function Stat({
+  icon,
+  label,
+  value,
+  sub,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  sub?: string;
+}) {
   return (
     <div className="bg-card border border-border2 rounded-2xl p-3.5 flex items-start gap-3 min-w-0">
-      <div className="w-9 h-9 rounded-xl bg-accent2/10 text-accent2 flex items-center justify-center shrink-0">{icon}</div>
+      <div className="w-9 h-9 rounded-xl bg-accent2/10 text-accent2 flex items-center justify-center shrink-0">
+        {icon}
+      </div>
       <div className="min-w-0">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-muted2">{label}</div>
-        <div className="text-sm font-bold text-foreground truncate">{value}</div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-muted2">
+          {label}
+        </div>
+        <div className="text-sm font-bold text-foreground truncate">
+          {value}
+        </div>
         {sub && <div className="text-[11px] text-muted2 truncate">{sub}</div>}
       </div>
     </div>
@@ -89,7 +141,11 @@ export default function TabMyRoom({ onRequestTab, onRoommatesTab }: Props) {
   if (!data?.assigned || !room) {
     return (
       <div className="px-4 pt-4 pb-6 space-y-4">
-        <Header isRtl={isRtl} onRefresh={refresh} refreshing={roomQuery.isFetching} />
+        <Header
+          isRtl={isRtl}
+          onRefresh={refresh}
+          refreshing={roomQuery.isFetching}
+        />
         <div className="bg-card border border-border2 rounded-3xl p-8 text-center space-y-3">
           <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
             <BedDouble className="w-8 h-8" />
@@ -112,11 +168,18 @@ export default function TabMyRoom({ onRequestTab, onRoommatesTab }: Props) {
   const occupancy = Number(room.currentOccupancy || 0);
   const nights = nightsSince(room.checkInDate);
   const building = room.building as { name?: string; location?: string } | null;
-  const floor = room.floor as { floorNumber?: string; description?: string } | null;
+  const floor = room.floor as {
+    floorNumber?: string;
+    description?: string;
+  } | null;
 
   return (
     <div className="px-4 pt-4 pb-6 space-y-4">
-      <Header isRtl={isRtl} onRefresh={refresh} refreshing={roomQuery.isFetching} />
+      <Header
+        isRtl={isRtl}
+        onRefresh={refresh}
+        refreshing={roomQuery.isFetching}
+      />
 
       {/* Hero card */}
       <div className="relative overflow-hidden rounded-3xl p-5 text-white bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] border border-white/10 shadow-lg">
@@ -124,20 +187,31 @@ export default function TabMyRoom({ onRequestTab, onRoommatesTab }: Props) {
         <div className="flex items-start justify-between gap-3 relative">
           <div className="min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E0C070]">
-              {room.property?.name || (isRtl ? "سكن الموظفين" : "Staff Housing")}
+              {room.property?.name ||
+                (isRtl ? "سكن الموظفين" : "Staff Housing")}
             </div>
             <div className="mt-1 text-3xl font-black font-mono tracking-tight">
-              <span className="text-white/60 text-base font-bold me-2">{isRtl ? "غرفة" : "Room"}</span>
+              <span className="text-white/60 text-base font-bold me-2">
+                {isRtl ? "غرفة" : "Room"}
+              </span>
               {room.roomNumber}
             </div>
             <div className="text-xs text-white/70 mt-1 truncate">
-              {[building?.name, floor?.floorNumber ? `${isRtl ? "الدور" : "Floor"} ${floor.floorNumber}` : null, room.roomType]
+              {[
+                building?.name,
+                floor?.floorNumber
+                  ? `${isRtl ? "الدور" : "Floor"} ${floor.floorNumber}`
+                  : null,
+                room.roomType,
+              ]
                 .filter(Boolean)
                 .join(" · ")}
             </div>
           </div>
           {status && (
-            <span className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${status.cls}`}>
+            <span
+              className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${status.cls}`}
+            >
               {isRtl ? status.ar : status.en}
             </span>
           )}
@@ -168,13 +242,23 @@ export default function TabMyRoom({ onRequestTab, onRoommatesTab }: Props) {
           icon={<Users className="w-4 h-4" />}
           label={isRtl ? "الإشغال" : "Occupancy"}
           value={capacity ? `${occupancy} / ${capacity}` : String(occupancy)}
-          sub={isRtl ? `${Math.max(0, capacity - occupancy)} سرير شاغر` : `${Math.max(0, capacity - occupancy)} free bed(s)`}
+          sub={
+            isRtl
+              ? `${Math.max(0, capacity - occupancy)} سرير شاغر`
+              : `${Math.max(0, capacity - occupancy)} free bed(s)`
+          }
         />
         <Stat
           icon={<CalendarDays className="w-4 h-4" />}
           label={isRtl ? "تاريخ التسكين" : "Check-in"}
           value={room.checkInDate ? formatDMY(room.checkInDate, "—") : "—"}
-          sub={nights !== null ? (isRtl ? `${nights} ليلة` : `${nights} night(s)`) : undefined}
+          sub={
+            nights !== null
+              ? isRtl
+                ? `${nights} ليلة`
+                : `${nights} night(s)`
+              : undefined
+          }
         />
         {room.expectedCheckOutDate && (
           <Stat
@@ -195,7 +279,9 @@ export default function TabMyRoom({ onRequestTab, onRoommatesTab }: Props) {
           <Users className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-foreground">{isRtl ? "زملاء الغرفة" : "Roommates"}</div>
+          <div className="text-sm font-bold text-foreground">
+            {isRtl ? "زملاء الغرفة" : "Roommates"}
+          </div>
           <div className="text-[11px] text-muted2 truncate">
             {roommates.length === 0
               ? isRtl
@@ -203,8 +289,11 @@ export default function TabMyRoom({ onRequestTab, onRoommatesTab }: Props) {
                 : "No roommates right now"
               : roommates
                   .slice(0, 3)
-                  .map((r: any) => `${r.firstName || ""} ${r.lastName || ""}`.trim())
-                  .join(" · ") + (roommates.length > 3 ? ` +${roommates.length - 3}` : "")}
+                  .map((r: any) =>
+                    `${r.firstName || ""} ${r.lastName || ""}`.trim(),
+                  )
+                  .join(" · ") +
+                (roommates.length > 3 ? ` +${roommates.length - 3}` : "")}
           </div>
         </div>
         <Chevron className="w-4 h-4 text-muted2 shrink-0" />
@@ -219,16 +308,28 @@ export default function TabMyRoom({ onRequestTab, onRoommatesTab }: Props) {
           <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
             <Wrench className="w-4 h-4" />
           </div>
-          <div className="text-xs font-bold text-foreground">{isRtl ? "بلّغ عن عطل بالغرفة" : "Report a room issue"}</div>
-          <div className="text-[10px] text-muted2">{isRtl ? "صيانة أو نظافة" : "Maintenance or cleaning"}</div>
+          <div className="text-xs font-bold text-foreground">
+            {isRtl ? "بلّغ عن عطل بالغرفة" : "Report a room issue"}
+          </div>
+          <div className="text-[10px] text-muted2">
+            {isRtl ? "صيانة أو نظافة" : "Maintenance or cleaning"}
+          </div>
         </button>
         <div className="bg-card border border-border2 rounded-2xl p-4 flex flex-col items-start gap-2">
           <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
             <Sparkles className="w-4 h-4" />
           </div>
-          <div className="text-xs font-bold text-foreground">{isRtl ? "حالة النظافة" : "Housekeeping"}</div>
+          <div className="text-xs font-bold text-foreground">
+            {isRtl ? "حالة النظافة" : "Housekeeping"}
+          </div>
           <div className="text-[10px] text-muted2">
-            {status ? (isRtl ? status.ar : status.en) : isRtl ? "غير معروفة" : "Unknown"}
+            {status
+              ? isRtl
+                ? status.ar
+                : status.en
+              : isRtl
+                ? "غير معروفة"
+                : "Unknown"}
           </div>
         </div>
       </div>
@@ -245,11 +346,22 @@ export default function TabMyRoom({ onRequestTab, onRoommatesTab }: Props) {
   );
 }
 
-function Header({ isRtl, onRefresh, refreshing }: { isRtl: boolean; onRefresh: () => void; refreshing: boolean }) {
+function Header({
+  isRtl,
+  onRefresh,
+  refreshing,
+}: {
+  isRtl: boolean;
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
   return (
     <div className="flex items-center justify-between">
       <div>
-        <h2 className="text-xl font-bold text-foreground" style={{ fontFamily: "'Playfair Display', serif" }}>
+        <h2
+          className="text-xl font-bold text-foreground"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
           {isRtl ? "غرفتي" : "My Room"}
         </h2>
         <p className="text-muted2 text-xs mt-0.5">

@@ -3,7 +3,11 @@ import { Camera, CheckCircle2, AlertCircle, Loader2, Save } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { formatDMY } from "@workspace/dates";
 import { apiFetch, clearSessionCache } from "../lib/api";
-import { useMe, useMyProfile, usePortalInvalidate } from "../lib/portal-queries";
+import {
+  useMe,
+  useMyProfile,
+  usePortalInvalidate,
+} from "../lib/portal-queries";
 import { useLocation } from "wouter";
 import { Preferences } from "@capacitor/preferences";
 import { Capacitor } from "@capacitor/core";
@@ -95,7 +99,8 @@ export default function TabProfile({
   const meQuery = useMe();
   const myProfileQuery = useMyProfile();
   useEffect(() => {
-    const emp = (meQuery.data as any)?.employee || (meQuery.data as any)?.profile;
+    const emp =
+      (meQuery.data as any)?.employee || (meQuery.data as any)?.profile;
     if (emp) setEmployee((prev: any) => ({ ...prev, ...emp }));
   }, [meQuery.data]);
   useEffect(() => {
@@ -127,7 +132,11 @@ export default function TabProfile({
       setStatus("success");
       setMsg(isRtl ? "تم الحفظ بنجاح" : "Saved successfully");
       setEditing(false);
-      invalidate.keys(["portal", "my-profile"], ["portal", "me"], ["portal", "roommates"]);
+      invalidate.keys(
+        ["portal", "my-profile"],
+        ["portal", "me"],
+        ["portal", "roommates"],
+      );
       setEmployee((prev: any) => {
         const next = { ...prev, ...dataToSave };
         try {
