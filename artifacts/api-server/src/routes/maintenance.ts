@@ -1660,8 +1660,12 @@ router.patch(
         hasPermission(user, "maintenance", "view_housekeeping");
 
       if (!isSysAdmin) {
+        // Housekeeping requests sit inside the maintenance queue, so a user who
+        // can act on maintenance tickets may also act on them (mirrors the
+        // frontend gate in maintenance/details.tsx & index.tsx). A user with
+        // neither maintenance nor housekeeping edit rights is still refused.
         if (existingRecord.category === "housekeeping") {
-          if (!userHasHskEdit) {
+          if (!userHasHskEdit && !userHasMntEdit) {
             res
               .status(403)
               .json({ error: "Permission denied to edit housekeeping orders" });

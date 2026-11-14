@@ -130,9 +130,16 @@ export default function MaintenanceDetails() {
     can("housekeeping", "edit") ||
     can("housekeeping", "view") ||
     can("maintenance", "view_housekeeping");
+  // Housekeeping-category requests live inside the maintenance queue, so anyone
+  // who can act on maintenance tickets can also act on them (and vice-versa for
+  // dedicated housekeeping staff). Keeps the per-ticket gate consistent with the
+  // list/scope gate in index.tsx and avoids a dead-end "Read-Only" for managers.
   const canEditTicket =
     isSuperAdmin ||
-    (ticket?.category === "housekeeping" ? canEditHsk : canEditMnt);
+    isAdmin ||
+    (ticket?.category === "housekeeping"
+      ? canEditHsk || canEditMnt
+      : canEditMnt);
 
   // Direct fetch for single ticket by ID to guarantee resolution regardless of pagination
   const {
