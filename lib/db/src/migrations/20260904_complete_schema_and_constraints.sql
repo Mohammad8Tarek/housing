@@ -1837,6 +1837,14 @@ BEGIN
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "maintenance_report_emails" TEXT;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_report_enabled" BOOLEAN NOT NULL DEFAULT false;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_report_emails" TEXT;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "maintenance_report_lang" TEXT NOT NULL DEFAULT 'en';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "maintenance_report_hour" INTEGER NOT NULL DEFAULT 22;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "maintenance_report_minute" INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "maintenance_report_last_sent" TEXT;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_report_lang" TEXT NOT NULL DEFAULT 'en';
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_report_hour" INTEGER NOT NULL DEFAULT 21;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_report_minute" INTEGER NOT NULL DEFAULT 30;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_report_last_sent" TEXT;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ DEFAULT now();
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "portal_contact_email" TEXT;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "portal_contact_phone" TEXT;

@@ -995,16 +995,17 @@ router.get(
         return;
       }
       const date = (req.query.date as string) || cairoToday();
+      const lang = req.query.lang === "ar" ? "ar" : "en";
       const report = await buildDailyReport(propertyId, date);
       const format = (req.query.format as string) || "json";
       if (format === "html") {
-        res.type("html").send(renderDailyReportHtml(report));
+        res.type("html").send(renderDailyReportHtml(report, lang));
       } else if (format === "csv") {
         const [y, m, d] = date.split("-");
         res
           .type("text/csv; charset=utf-8")
           .attachment(`Maintenance_Daily_${d}-${m}-${y}.csv`)
-          .send(renderDailyReportCsv(report));
+          .send(renderDailyReportCsv(report, lang));
       } else {
         res.json({ success: true, ...report });
       }
@@ -1058,6 +1059,7 @@ router.post(
         propertyId,
         date,
         req.body.recipients,
+        req.body.lang,
       );
       if (!result.sent) {
         res.status(400).json({
