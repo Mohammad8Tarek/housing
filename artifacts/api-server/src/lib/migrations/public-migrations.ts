@@ -490,6 +490,10 @@ export const MIGRATIONS: Migration[] = [
     name: "maintenance.photo_url",
     q: "ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS photo_url TEXT",
   },
+  {
+    name: "maintenance.photo_urls",
+    q: "ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS photo_urls JSONB",
+  },
 
   // ===== PERFORMANCE INDEXES =====
   {
