@@ -36,13 +36,22 @@ export function getPortalWsEndpoint(): string {
     httpUrl.replace(/^https/, "wss").replace(/^http/, "ws") + "/ws";
 
   if (Capacitor.isNativePlatform()) {
-    return toWs(import.meta.env.VITE_API_URL?.trim() || "https://resident.sunrise-resorts.com");
+    return toWs(
+      import.meta.env.VITE_API_URL?.trim() ||
+        "https://resident.sunrise-resorts.com",
+    );
   }
   if (typeof window !== "undefined") {
     if (window.location.hostname.endsWith(".vercel.app")) {
-      return toWs(import.meta.env.VITE_API_URL?.trim() || "https://resident.sunrise-resorts.com");
+      return toWs(
+        import.meta.env.VITE_API_URL?.trim() ||
+          "https://resident.sunrise-resorts.com",
+      );
     }
-    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    if (
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
+    ) {
       return "ws://localhost:4000/ws";
     }
     const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -53,7 +62,9 @@ export function getPortalWsEndpoint(): string {
 
 function readSessionId(): string | null {
   try {
-    return sessionStorage.getItem("session_id") || localStorage.getItem("session_id");
+    return (
+      sessionStorage.getItem("session_id") || localStorage.getItem("session_id")
+    );
   } catch {
     return null;
   }
@@ -83,7 +94,11 @@ function scheduleReconnect() {
 
 function connect() {
   if (subscribers.size === 0) return;
-  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+  if (
+    ws &&
+    (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)
+  )
+    return;
 
   const sid = readSessionId();
   if (!sid && !Capacitor.isNativePlatform()) {
@@ -91,7 +106,9 @@ function connect() {
     return;
   }
   const base = getPortalWsEndpoint();
-  const url = sid ? `${base}${base.includes("?") ? "&" : "?"}sessionId=${encodeURIComponent(sid)}` : base;
+  const url = sid
+    ? `${base}${base.includes("?") ? "&" : "?"}sessionId=${encodeURIComponent(sid)}`
+    : base;
 
   setStatus("connecting");
   let socket: WebSocket;
@@ -106,7 +123,8 @@ function connect() {
   socket.onopen = () => {
     clearInterval(pingTimer);
     pingTimer = setInterval(() => {
-      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "ping" }));
+      if (socket.readyState === WebSocket.OPEN)
+        socket.send(JSON.stringify({ type: "ping" }));
     }, 20_000);
   };
 

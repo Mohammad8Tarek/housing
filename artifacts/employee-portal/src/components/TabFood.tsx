@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
-import { useFoodMenu, useMyOrders, usePortalInvalidate } from "../lib/portal-queries";
+import {
+  useFoodMenu,
+  useMyOrders,
+  usePortalInvalidate,
+} from "../lib/portal-queries";
 import MaterialIcon from "./MaterialIcon";
 import PortalDateInput from "./PortalDateInput";
 
@@ -39,7 +43,9 @@ export default function TabFood() {
   const ordersQuery = useMyOrders();
   const menu = (menuQuery.data ?? []) as MenuItem[];
   const orders = (ordersQuery.data ?? []) as MealOrder[];
-  const loading = (menuQuery.isLoading && !menuQuery.data) || (ordersQuery.isLoading && !ordersQuery.data);
+  const loading =
+    (menuQuery.isLoading && !menuQuery.data) ||
+    (ordersQuery.isLoading && !ordersQuery.data);
   const [selected, setSelected] = useState<MenuItem | null>(null);
   const [orderDate, setOrderDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -49,7 +55,6 @@ export default function TabFood() {
   >("idle");
   const [msg, setMsg] = useState("");
   const [tab, setTab] = useState<"menu" | "orders">("menu");
-
 
   const handleOrder = async () => {
     if (!selected) return;
@@ -110,7 +115,10 @@ export default function TabFood() {
         </h2>
       </div>
 
-      <div className="flex gap-1 bg-surface rounded-xl p-1 border border-border2" role="tablist">
+      <div
+        className="flex gap-1 bg-surface rounded-xl p-1 border border-border2"
+        role="tablist"
+      >
         {[
           { id: "menu", label: isRtl ? "قائمة اليوم" : "Today's menu" },
           { id: "orders", label: isRtl ? "طلباتي" : "My orders" },
@@ -122,7 +130,9 @@ export default function TabFood() {
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id as typeof tab)}
             className={`flex-1 py-2 rounded-lg text-[12px] font-bold transition-colors ${
-              tab === t.id ? "bg-accent2 text-accent2-foreground shadow-sm" : "text-muted2 hover:text-foreground"
+              tab === t.id
+                ? "bg-accent2 text-accent2-foreground shadow-sm"
+                : "text-muted2 hover:text-foreground"
             }`}
           >
             {t.label}
@@ -159,7 +169,9 @@ export default function TabFood() {
                 />
               </div>
               <p className="text-[13px] text-foreground font-bold">
-                {isRtl ? "لم تُنشر قائمة اليوم بعد" : "Today's menu isn't published yet"}
+                {isRtl
+                  ? "لم تُنشر قائمة اليوم بعد"
+                  : "Today's menu isn't published yet"}
               </p>
               <p className="text-[11px] text-muted2 mt-1 leading-relaxed">
                 {isRtl

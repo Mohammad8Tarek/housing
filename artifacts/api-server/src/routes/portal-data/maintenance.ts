@@ -1,7 +1,12 @@
 import { recordTicketEvents } from "../../lib/maintenance-tickets.js";
 import { Router } from "express";
 import { withTenant } from "@workspace/db";
-import { assignmentsTable, maintenanceTable, workersTable, profilesTable } from "@workspace/db";
+import {
+  assignmentsTable,
+  maintenanceTable,
+  workersTable,
+  profilesTable,
+} from "@workspace/db";
 import { eq, and, desc, or, sql, inArray } from "drizzle-orm";
 import { portalSession } from "../portal-auth/shared.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
@@ -64,29 +69,47 @@ router.get(
         .orderBy(desc(maintenanceTable.id));
 
       // Resolve technician names for the resident timeline (worker or assigned staff profile)
-      const workerIds = Array.from(new Set(rows.map((r) => r.workerId).filter((v): v is number => !!v)));
-      const assigneeIds = Array.from(new Set(rows.map((r) => r.assignedTo).filter((v): v is number => !!v)));
+      const workerIds = Array.from(
+        new Set(rows.map((r) => r.workerId).filter((v): v is number => !!v)),
+      );
+      const assigneeIds = Array.from(
+        new Set(rows.map((r) => r.assignedTo).filter((v): v is number => !!v)),
+      );
       const [workers, assignees] = await Promise.all([
         workerIds.length
-          ? tenantDb.select({ id: workersTable.id, name: workersTable.name }).from(workersTable).where(inArray(workersTable.id, workerIds))
+          ? tenantDb
+              .select({ id: workersTable.id, name: workersTable.name })
+              .from(workersTable)
+              .where(inArray(workersTable.id, workerIds))
           : Promise.resolve([] as { id: number; name: string }[]),
         assigneeIds.length
           ? tenantDb
-              .select({ id: profilesTable.id, firstName: profilesTable.firstName, lastName: profilesTable.lastName })
+              .select({
+                id: profilesTable.id,
+                firstName: profilesTable.firstName,
+                lastName: profilesTable.lastName,
+              })
               .from(profilesTable)
               .where(inArray(profilesTable.id, assigneeIds))
-          : Promise.resolve([] as { id: number; firstName: string; lastName: string }[]),
+          : Promise.resolve(
+              [] as { id: number; firstName: string; lastName: string }[],
+            ),
       ]);
       const workerName = new Map(workers.map((w) => [w.id, w.name]));
-      const assigneeName = new Map(assignees.map((a) => [a.id, `${a.firstName} ${a.lastName}`.trim()]));
+      const assigneeName = new Map(
+        assignees.map((a) => [a.id, `${a.firstName} ${a.lastName}`.trim()]),
+      );
       return rows.map((r) => ({
         ...r,
         technicianName:
-          (r.workerId && workerName.get(r.workerId)) || (r.assignedTo && assigneeName.get(r.assignedTo)) || null,
+          (r.workerId && workerName.get(r.workerId)) ||
+          (r.assignedTo && assigneeName.get(r.assignedTo)) ||
+          null,
       }));
     });
 
-    const iso = (v: Date | string | null | undefined) => (v instanceof Date ? v.toISOString() : (v ?? null));
+    const iso = (v: Date | string | null | undefined) =>
+      v instanceof Date ? v.toISOString() : (v ?? null);
 
     res.json({
       success: true,

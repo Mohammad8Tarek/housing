@@ -284,7 +284,9 @@ function getSessionId(cookieHeader: string | undefined): string | null {
   return sid || null;
 }
 
-type SessionLike = { get(sid: string, cb: (err: unknown, sess?: any) => void): void };
+type SessionLike = {
+  get(sid: string, cb: (err: unknown, sess?: any) => void): void;
+};
 let wsSessionStore: SessionLike | null = null;
 
 /**
@@ -299,7 +301,9 @@ export function setWsSessionStore(store: SessionLike | null): void {
 async function readSession(sid: string): Promise<any | null> {
   if (wsSessionStore) {
     return new Promise((resolve) => {
-      wsSessionStore!.get(sid, (err, sess) => resolve(err || !sess ? null : sess));
+      wsSessionStore!.get(sid, (err, sess) =>
+        resolve(err || !sess ? null : sess),
+      );
     });
   }
   const result = await pool.query(
@@ -344,7 +348,9 @@ function authFromSession(sess: any): SessionAuth | null {
   return null;
 }
 
-async function loadSessionAuth(cookieHeader: string | undefined): Promise<SessionAuth | null> {
+async function loadSessionAuth(
+  cookieHeader: string | undefined,
+): Promise<SessionAuth | null> {
   const sid = getSessionId(cookieHeader);
   if (!sid) return null;
   return authFromSession(await readSession(sid));

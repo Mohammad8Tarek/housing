@@ -4,7 +4,11 @@ import { useTheme } from "../lib/theme";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { apiFetch } from "../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNotifications, portalKeys, type NotificationsPayload } from "../lib/portal-queries";
+import {
+  useNotifications,
+  portalKeys,
+  type NotificationsPayload,
+} from "../lib/portal-queries";
 import MaterialIcon from "./MaterialIcon";
 
 interface Notification {
@@ -74,12 +78,16 @@ export default function TabNotifications({ onChangeTab }: Props) {
 
   const queryClient = useQueryClient();
   const notificationsQuery = useNotifications();
-  const notifications = (notificationsQuery.data?.notifications ?? []) as unknown as Notification[];
+  const notifications = (notificationsQuery.data?.notifications ??
+    []) as unknown as Notification[];
   const unreadCount = notificationsQuery.data?.unreadCount ?? 0;
   const isLoading = notificationsQuery.isLoading && !notificationsQuery.data;
-  const patchCache = (fn: (prev: NotificationsPayload) => NotificationsPayload) =>
-    queryClient.setQueryData<NotificationsPayload>(portalKeys.notifications, (prev) =>
-      fn(prev ?? { notifications: [], unreadCount: 0 }),
+  const patchCache = (
+    fn: (prev: NotificationsPayload) => NotificationsPayload,
+  ) =>
+    queryClient.setQueryData<NotificationsPayload>(
+      portalKeys.notifications,
+      (prev) => fn(prev ?? { notifications: [], unreadCount: 0 }),
     );
   const [markingAll, setMarkingAll] = useState(false);
 
@@ -87,10 +95,11 @@ export default function TabNotifications({ onChangeTab }: Props) {
     queryClient.invalidateQueries({ queryKey: portalKeys.notifications });
   };
 
-
   const markAsRead = async (id: number) => {
     patchCache((prev) => ({
-      notifications: prev.notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+      notifications: prev.notifications.map((n) =>
+        n.id === id ? { ...n, isRead: true } : n,
+      ),
       unreadCount: Math.max(0, prev.unreadCount - 1),
     }));
     try {

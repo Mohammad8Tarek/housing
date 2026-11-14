@@ -30,7 +30,8 @@ export const portalKeys = {
   myContacts: ["portal", "my-contacts"] as const,
   supportContacts: ["portal", "support-contacts"] as const,
   housingRatingStatus: ["portal", "housing-rating-status"] as const,
-  gatePass: (code: string | number | undefined) => ["portal", "gate-pass", code ?? "me"] as const,
+  gatePass: (code: string | number | undefined) =>
+    ["portal", "gate-pass", code ?? "me"] as const,
   foodMenu: (date: string) => ["portal", "food-menu", date] as const,
   myOrders: ["portal", "my-orders"] as const,
   transportSchedules: ["portal", "transport-schedules"] as const,
@@ -72,7 +73,8 @@ export async function portalSend<T = any>(
   const res = await apiFetch(path, {
     method,
     credentials: "include",
-    headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    headers:
+      body !== undefined ? { "Content-Type": "application/json" } : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   let data: any = null;
@@ -82,20 +84,31 @@ export async function portalSend<T = any>(
     /* empty body */
   }
   if (!res.ok) {
-    throw new PortalApiError(res.status, data?.message || data?.error || `HTTP ${res.status}`);
+    throw new PortalApiError(
+      res.status,
+      data?.message || data?.error || `HTTP ${res.status}`,
+    );
   }
   return data as T;
 }
 
 /** Never retry auth failures; otherwise retry once (mobile networks flake). */
 function retryPolicy(failureCount: number, error: unknown): boolean {
-  if (error instanceof PortalApiError && (error.status === 401 || error.status === 403)) return false;
+  if (
+    error instanceof PortalApiError &&
+    (error.status === 401 || error.status === 403)
+  )
+    return false;
   return failureCount < 1;
 }
 
 type Opts<T> = Omit<UseQueryOptions<T, Error, T, any>, "queryKey" | "queryFn">;
 
-function usePortalQuery<T>(key: readonly unknown[], fetcher: () => Promise<T>, opts?: Opts<T>) {
+function usePortalQuery<T>(
+  key: readonly unknown[],
+  fetcher: () => Promise<T>,
+  opts?: Opts<T>,
+) {
   return useQuery<T, Error, T, any>({
     queryKey: key,
     queryFn: fetcher,
@@ -156,15 +169,26 @@ export interface MyRoomPayload {
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 export function useMe(enabled = true) {
-  return usePortalQuery(portalKeys.me, () => portalGet("/api/portal-auth/me"), { enabled, staleTime: 60_000 });
+  return usePortalQuery(portalKeys.me, () => portalGet("/api/portal-auth/me"), {
+    enabled,
+    staleTime: 60_000,
+  });
 }
 
 export function useMyProfile(enabled = true) {
-  return usePortalQuery(portalKeys.myProfile, () => portalGet("/api/portal-data/my-profile"), { enabled });
+  return usePortalQuery(
+    portalKeys.myProfile,
+    () => portalGet("/api/portal-data/my-profile"),
+    { enabled },
+  );
 }
 
 export function useMyRoom(enabled = true) {
-  return usePortalQuery<MyRoomPayload>(portalKeys.myRoom, () => portalGet("/api/portal-data/my-room"), { enabled });
+  return usePortalQuery<MyRoomPayload>(
+    portalKeys.myRoom,
+    () => portalGet("/api/portal-data/my-room"),
+    { enabled },
+  );
 }
 
 export function useRoommates(enabled = true) {
@@ -250,10 +274,14 @@ export function useMyActivities(enabled = true) {
 }
 
 export function useCatalog(enabled = true) {
-  return usePortalQuery(portalKeys.catalog, () => portalGet("/api/portal-data/catalog"), {
-    enabled,
-    staleTime: 30 * 60_000,
-  });
+  return usePortalQuery(
+    portalKeys.catalog,
+    () => portalGet("/api/portal-data/catalog"),
+    {
+      enabled,
+      staleTime: 30 * 60_000,
+    },
+  );
 }
 
 export function useMyContacts(enabled = true) {
@@ -272,23 +300,34 @@ export function useSupportContacts(enabled = true) {
     portalKeys.supportContacts,
     async () => {
       const d = await portalGet("/api/portal-data/support-contacts");
-      return ((d?.contacts || []) as Record<string, any>[]).filter((c) => c.name || c.phone || c.email);
+      return ((d?.contacts || []) as Record<string, any>[]).filter(
+        (c) => c.name || c.phone || c.email,
+      );
     },
     { enabled, staleTime: 10 * 60_000 },
   );
 }
 
 export function useHousingRatingStatus(enabled = true) {
-  return usePortalQuery(portalKeys.housingRatingStatus, () => portalGet("/api/portal-data/housing-rating-status"), {
-    enabled,
-  });
+  return usePortalQuery(
+    portalKeys.housingRatingStatus,
+    () => portalGet("/api/portal-data/housing-rating-status"),
+    {
+      enabled,
+    },
+  );
 }
 
-export function useGatePass(empCode: string | number | undefined, enabled = true) {
+export function useGatePass(
+  empCode: string | number | undefined,
+  enabled = true,
+) {
   return usePortalQuery(
     portalKeys.gatePass(empCode),
     async () => {
-      const d = await portalGet(empCode ? `/api/gate/pass/${empCode}` : "/api/gate/pass/me");
+      const d = await portalGet(
+        empCode ? `/api/gate/pass/${empCode}` : "/api/gate/pass/me",
+      );
       return d?.gatePass ?? null;
     },
     { enabled, staleTime: 5 * 60_000 },
@@ -299,7 +338,9 @@ export function useFoodMenu(date: string, enabled = true) {
   return usePortalQuery<Record<string, any>[]>(
     portalKeys.foodMenu(date),
     async () => {
-      const d = await portalGet(`/api/portal-food/menu?date=${date}&type=daily`);
+      const d = await portalGet(
+        `/api/portal-food/menu?date=${date}&type=daily`,
+      );
       return d?.items || [];
     },
     { enabled },
@@ -317,7 +358,8 @@ export function useMyOrders(enabled = true) {
 export function useTransportSchedules(enabled = true) {
   return usePortalQuery<Record<string, any>[]>(
     portalKeys.transportSchedules,
-    async () => (await portalGet("/api/portal-food/schedules"))?.schedules || [],
+    async () =>
+      (await portalGet("/api/portal-food/schedules"))?.schedules || [],
     { enabled },
   );
 }
@@ -325,7 +367,8 @@ export function useTransportSchedules(enabled = true) {
 export function useMyBookings(enabled = true) {
   return usePortalQuery<Record<string, any>[]>(
     portalKeys.myBookings,
-    async () => (await portalGet("/api/portal-food/my-bookings"))?.bookings || [],
+    async () =>
+      (await portalGet("/api/portal-food/my-bookings"))?.bookings || [],
     { enabled },
   );
 }
@@ -339,11 +382,19 @@ export const MODULE_TO_KEYS: Record<string, readonly (readonly unknown[])[]> = {
   activities: [portalKeys.activities],
   evaluations: [portalKeys.evaluations],
   rooms: [portalKeys.myRoom, portalKeys.roommates],
-  assignments: [portalKeys.myRoom, portalKeys.roommates, portalKeys.gatePass(undefined)],
+  assignments: [
+    portalKeys.myRoom,
+    portalKeys.roommates,
+    portalKeys.gatePass(undefined),
+  ],
   profiles: [portalKeys.myProfile, portalKeys.me, portalKeys.roommates],
   food: [portalKeys.myOrders],
   transport: [portalKeys.transportSchedules, portalKeys.myBookings],
-  settings: [portalKeys.supportContacts, portalKeys.myContacts, portalKeys.housingRatingStatus],
+  settings: [
+    portalKeys.supportContacts,
+    portalKeys.myContacts,
+    portalKeys.housingRatingStatus,
+  ],
   dashboard: [portalKeys.maintenance, portalKeys.notifications],
 };
 
@@ -367,6 +418,8 @@ export function usePortalInvalidate() {
     module: (m: string) => invalidateForModule(qc, m),
     all: () => invalidateAllPortal(qc),
     keys: (...keys: readonly (readonly unknown[])[]) =>
-      Promise.all(keys.map((k) => qc.invalidateQueries({ queryKey: k as unknown[] }))),
+      Promise.all(
+        keys.map((k) => qc.invalidateQueries({ queryKey: k as unknown[] })),
+      ),
   };
 }

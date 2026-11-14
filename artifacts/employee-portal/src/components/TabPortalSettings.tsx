@@ -61,7 +61,9 @@ export default function TabPortalSettings() {
     setActivityLoading(true);
     try {
       const d = meQuery.data ?? (await meQuery.refetch()).data;
-      setLastLoginAt((d as { lastLoginAt?: string } | undefined)?.lastLoginAt ?? null);
+      setLastLoginAt(
+        (d as { lastLoginAt?: string } | undefined)?.lastLoginAt ?? null,
+      );
     } catch {
       setLastLoginAt(null);
     } finally {
@@ -529,7 +531,9 @@ export default function TabPortalSettings() {
                 onClick={handleBiometricToggle}
                 role="switch"
                 aria-checked={bioEnabled}
-                aria-label={isRtl ? "تفعيل الدخول بالبصمة" : "Biometric sign-in"}
+                aria-label={
+                  isRtl ? "تفعيل الدخول بالبصمة" : "Biometric sign-in"
+                }
                 className={`relative w-10 h-6 rounded-full transition-all ${bioEnabled ? "bg-accent2" : "bg-border2"}`}
               >
                 <span

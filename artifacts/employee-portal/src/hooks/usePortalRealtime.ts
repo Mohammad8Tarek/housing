@@ -8,7 +8,10 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { invalidateAllPortal, invalidateForModule } from "../lib/portal-queries";
+import {
+  invalidateAllPortal,
+  invalidateForModule,
+} from "../lib/portal-queries";
 import {
   subscribePortalSocket,
   getPortalSocketStatus,
@@ -25,11 +28,17 @@ interface Options {
   onEvent?: (event: { module: string; action?: string; data?: any }) => void;
 }
 
-export function usePortalRealtime({ enabled, onEvent }: Options): RealtimeStatus {
+export function usePortalRealtime({
+  enabled,
+  onEvent,
+}: Options): RealtimeStatus {
   const qc = useQueryClient();
   const [status, setStatus] = useState<RealtimeStatus>(getPortalSocketStatus());
+  // Latest-callback ref, updated in an effect (refs must not be written during render).
   const onEventRef = useRef(onEvent);
-  onEventRef.current = onEvent;
+  useEffect(() => {
+    onEventRef.current = onEvent;
+  }, [onEvent]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -52,11 +61,19 @@ export function usePortalRealtime({ enabled, onEvent }: Options): RealtimeStatus
         // chat has its own handler (useTabChat); everything else maps to queries
         if (msg.module && msg.module !== "chat") {
           invalidateForModule(qc, String(msg.module));
-          onEventRef.current?.({ module: String(msg.module), action: msg.action, data: msg.data });
+          onEventRef.current?.({
+            module: String(msg.module),
+            action: msg.action,
+            data: msg.data,
+          });
         }
         if (msg.type === "notification") {
           invalidateForModule(qc, "notifications");
-          onEventRef.current?.({ module: "notifications", action: "push", data: msg.data });
+          onEventRef.current?.({
+            module: "notifications",
+            action: "push",
+            data: msg.data,
+          });
         }
       },
     });
