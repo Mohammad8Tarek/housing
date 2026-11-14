@@ -18,6 +18,9 @@ import { ClipboardList, Eye, Send } from "lucide-react";
 import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { resolveApiUrl } from "@/lib/api-origin";
+import { ReportDeliveryControls } from "./ReportDeliveryControls";
+
+const pad = (n: number) => String(n).padStart(2, "0");
 
 export function MaintenanceReportCard({
   propertyId,
@@ -35,10 +38,16 @@ export function MaintenanceReportCard({
   });
   const [enabled, setEnabled] = useState(false);
   const [emails, setEmails] = useState("");
+  const [lang, setLang] = useState<"ar" | "en">("en");
+  const [hour, setHour] = useState(22);
+  const [minute, setMinute] = useState(0);
   useEffect(() => {
     if (settings) {
       setEnabled(Boolean(settings.maintenanceReportEnabled));
       setEmails(settings.maintenanceReportEmails || "");
+      setLang(settings.maintenanceReportLang === "ar" ? "ar" : "en");
+      setHour(Number(settings.maintenanceReportHour ?? 22));
+      setMinute(Number(settings.maintenanceReportMinute ?? 0));
     }
   }, [settings]);
 
@@ -51,6 +60,9 @@ export function MaintenanceReportCard({
           propertyId,
           maintenanceReportEnabled: enabled,
           maintenanceReportEmails: emails.trim(),
+          maintenanceReportLang: lang,
+          maintenanceReportHour: hour,
+          maintenanceReportMinute: minute,
         }),
       }),
     onSuccess: () => {
@@ -70,7 +82,7 @@ export function MaintenanceReportCard({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
+          body: JSON.stringify({ lang }),
         },
       ),
     onSuccess: (r: any) =>
@@ -102,8 +114,8 @@ export function MaintenanceReportCard({
         </CardTitle>
         <CardDescription className="text-xs">
           {ar
-            ? "يُرسل كل يوم الساعة 10 مساءً (توقيت القاهرة): ملخص حسب القسم وكل بلاغ بوقت البداية والنهاية والمدة، مع ملف Excel (CSV). يستخدم إعدادات البريد أعلاه."
-            : "Sent every day at 10 PM (Cairo): a summary by department and every ticket with start, end and duration, plus an Excel (CSV) file. Uses the email settings above."}
+            ? "يُرسل كل يوم في الوقت اللي تحدده (توقيت القاهرة): ملخص حسب القسم وكل بلاغ بوقت البداية والنهاية والمدة، مع ملف Excel (CSV). يستخدم إعدادات البريد أعلاه."
+            : "Sent daily at the time you choose (Cairo): a summary by department and every ticket with start, end and duration, plus an Excel (CSV) file. Uses the email settings above."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -132,10 +144,25 @@ export function MaintenanceReportCard({
           />
           <p className="text-[11px] text-muted-foreground">
             {ar
-              ? `افصل بين الإيميلات بفاصلة. عدد الإيميلات الصحيحة: ${count}`
-              : `Separate emails with commas. Valid emails: ${count}`}
+              ? `افصل بين الإيميلات بفاصلة (أكتر من إيميل). عدد الإيميلات الصحيحة: ${count}`
+              : `Separate emails with commas (more than one allowed). Valid emails: ${count}`}
           </p>
         </div>
+        <ReportDeliveryControls
+          ar={ar}
+          lang={lang}
+          hour={hour}
+          minute={minute}
+          onLang={setLang}
+          onHour={setHour}
+          onMinute={setMinute}
+          idPrefix="mnt-report"
+        />
+        <p className="text-[11px] text-muted-foreground">
+          {ar
+            ? `هيتبعت يومياً الساعة ${pad(hour)}:${pad(minute)} بتوقيت القاهرة.`
+            : `Sends daily at ${pad(hour)}:${pad(minute)} Cairo time.`}
+        </p>
         <div className="flex flex-wrap gap-2 justify-end">
           <Button
             type="button"
@@ -146,7 +173,7 @@ export function MaintenanceReportCard({
             onClick={() =>
               window.open(
                 resolveApiUrl(
-                  `/api/maintenance/daily-report?propertyId=${propertyId}&format=html`,
+                  `/api/maintenance/daily-report?propertyId=${propertyId}&format=html&lang=${lang}`,
                 ),
                 "_blank",
                 "noopener",

@@ -1351,6 +1351,17 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_report_emails TEXT;`,
   },
   {
+    name: "settings.report_language_and_time",
+    q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_lang TEXT NOT NULL DEFAULT 'en';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_hour INTEGER NOT NULL DEFAULT 22;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_minute INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_last_sent TEXT;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_report_lang TEXT NOT NULL DEFAULT 'en';
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_report_hour INTEGER NOT NULL DEFAULT 21;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_report_minute INTEGER NOT NULL DEFAULT 30;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_report_last_sent TEXT;`,
+  },
+  {
     name: "maintenance_services.catalogue",
     q: `CREATE TABLE IF NOT EXISTS maintenance_services (
         id SERIAL PRIMARY KEY,

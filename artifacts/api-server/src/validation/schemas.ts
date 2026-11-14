@@ -37,8 +37,14 @@ export const UpdateSettingsBody = z
     reportFooter: optText(2000),
     maintenanceReportEnabled: optBool,
     maintenanceReportEmails: optText(2000),
+    maintenanceReportLang: z.enum(["ar", "en"]).optional(),
+    maintenanceReportHour: optInt(0, 23),
+    maintenanceReportMinute: optInt(0, 59),
     housingReportEnabled: optBool,
     housingReportEmails: optText(2000),
+    housingReportLang: z.enum(["ar", "en"]).optional(),
+    housingReportHour: optInt(0, 23),
+    housingReportMinute: optInt(0, 59),
     portalContactEmail: optText(200),
     portalContactPhone: optText(50),
     portalContactExt: optText(20),
@@ -605,6 +611,8 @@ export const MaintenanceDailyReportQuery = z
     propertyId: o(bId),
     date: ymd.optional(),
     format: z.enum(["html", "json", "csv"]).optional(),
+    // Override the configured report language for this preview/download.
+    lang: z.enum(["ar", "en"]).optional(),
   })
   .passthrough();
 export const MaintenanceDailyReportSendBody = z.object({
@@ -612,6 +620,8 @@ export const MaintenanceDailyReportSendBody = z.object({
   date: ymd.optional(),
   // Send to these addresses instead of the configured list (e.g. a test).
   recipients: z.array(z.string().email().max(200)).max(20).optional(),
+  // Override the configured report language for this send.
+  lang: z.enum(["ar", "en"]).optional(),
 });
 // Maintenance service catalogue
 export const MaintenanceServiceCreateBody = z.object({

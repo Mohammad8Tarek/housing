@@ -18,6 +18,9 @@ import { Building2, Eye, Send } from "lucide-react";
 import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { resolveApiUrl } from "@/lib/api-origin";
+import { ReportDeliveryControls } from "./ReportDeliveryControls";
+
+const pad = (n: number) => String(n).padStart(2, "0");
 
 export function HousingReportCard({
   propertyId,
@@ -35,10 +38,16 @@ export function HousingReportCard({
   });
   const [enabled, setEnabled] = useState(false);
   const [emails, setEmails] = useState("");
+  const [lang, setLang] = useState<"ar" | "en">("en");
+  const [hour, setHour] = useState(21);
+  const [minute, setMinute] = useState(30);
   useEffect(() => {
     if (settings) {
       setEnabled(Boolean(settings.housingReportEnabled));
       setEmails(settings.housingReportEmails || "");
+      setLang(settings.housingReportLang === "ar" ? "ar" : "en");
+      setHour(Number(settings.housingReportHour ?? 21));
+      setMinute(Number(settings.housingReportMinute ?? 30));
     }
   }, [settings]);
 
@@ -51,6 +60,9 @@ export function HousingReportCard({
           propertyId,
           housingReportEnabled: enabled,
           housingReportEmails: emails.trim(),
+          housingReportLang: lang,
+          housingReportHour: hour,
+          housingReportMinute: minute,
         }),
       }),
     onSuccess: () => {
@@ -70,7 +82,7 @@ export function HousingReportCard({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
+          body: JSON.stringify({ lang }),
         },
       ),
     onSuccess: (r: any) =>
@@ -100,8 +112,8 @@ export function HousingReportCard({
         </CardTitle>
         <CardDescription className="text-xs">
           {ar
-            ? "يُرسل كل يوم الساعة 9:30 مساءً (توقيت القاهرة): مين سكن اليوم ومين اتنقل ومين غادر، ومين مخالف لسياسة السكن حالياً (ومعتمد ولا لأ)، مع ملف Excel (CSV). يستخدم إعدادات البريد أعلاه."
-            : "Sent daily at 9:30 PM (Cairo): today's check-ins, transfers and check-outs, and who currently breaks the housing policy (approved or not), plus an Excel (CSV) file. Uses the email settings above."}
+            ? "يُرسل كل يوم في الوقت اللي تحدده (توقيت القاهرة): مين سكن اليوم ومين اتنقل ومين غادر، ومين مخالف لسياسة السكن حالياً (ومعتمد ولا لأ)، مع ملف Excel (CSV). يستخدم إعدادات البريد أعلاه."
+            : "Sent daily at the time you choose (Cairo): today's check-ins, transfers and check-outs, and who currently breaks the housing policy (approved or not), plus an Excel (CSV) file. Uses the email settings above."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -130,10 +142,25 @@ export function HousingReportCard({
           />
           <p className="text-[11px] text-muted-foreground">
             {ar
-              ? `افصل بين الإيميلات بفاصلة. عدد الإيميلات الصحيحة: ${count}`
-              : `Separate emails with commas. Valid emails: ${count}`}
+              ? `افصل بين الإيميلات بفاصلة (أكتر من إيميل). عدد الإيميلات الصحيحة: ${count}`
+              : `Separate emails with commas (more than one allowed). Valid emails: ${count}`}
           </p>
         </div>
+        <ReportDeliveryControls
+          ar={ar}
+          lang={lang}
+          hour={hour}
+          minute={minute}
+          onLang={setLang}
+          onHour={setHour}
+          onMinute={setMinute}
+          idPrefix="housing-report"
+        />
+        <p className="text-[11px] text-muted-foreground">
+          {ar
+            ? `هيتبعت يومياً الساعة ${pad(hour)}:${pad(minute)} بتوقيت القاهرة.`
+            : `Sends daily at ${pad(hour)}:${pad(minute)} Cairo time.`}
+        </p>
         <div className="flex flex-wrap gap-2 justify-end">
           <Button
             type="button"
@@ -144,7 +171,7 @@ export function HousingReportCard({
             onClick={() =>
               window.open(
                 resolveApiUrl(
-                  `/api/housing/daily-report?propertyId=${propertyId}&format=html`,
+                  `/api/housing/daily-report?propertyId=${propertyId}&format=html&lang=${lang}`,
                 ),
                 "_blank",
                 "noopener",
