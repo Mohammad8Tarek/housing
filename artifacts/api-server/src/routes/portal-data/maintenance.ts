@@ -131,6 +131,7 @@ router.get(
         notes: r.notes ?? null,
         assignedTo: r.assignedTo ?? null,
         photoUrl: r.photoUrl ?? null,
+        photoUrls: (r.photoUrls as string[] | null) ?? (r.photoUrl ? [r.photoUrl] : []),
         rating: r.rating ?? null,
         ratingComment: r.ratingComment ?? null,
         ratedAt:
@@ -179,7 +180,15 @@ router.post("/my-maintenance", async (req, res): Promise<void> => {
         priority: parsed.data.priority,
         status: "open",
         reportedBy: sess.fullName,
-        photoUrl: parsed.data.photoUrl ?? null,
+        // Keep photoUrl (the legacy single-photo column the admin reads) as the
+        // first image, and store the full set in photoUrls.
+        photoUrl: parsed.data.photoUrls?.[0] ?? parsed.data.photoUrl ?? null,
+        photoUrls:
+          parsed.data.photoUrls && parsed.data.photoUrls.length
+            ? parsed.data.photoUrls
+            : parsed.data.photoUrl
+              ? [parsed.data.photoUrl]
+              : null,
         source: "portal",
       } as any)
       .returning();

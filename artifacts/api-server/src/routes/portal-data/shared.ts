@@ -11,6 +11,7 @@ export const CreateMaintenanceSchema = z.object({
     .min(5, "Please describe the issue (min 5 characters)"),
   priority: z.enum(["low", "medium", "high"]).default("medium"),
   photoUrl: z.string().optional(),
+  photoUrls: z.array(z.string()).max(6).optional(),
 });
 
 export const RateMaintenanceSchema = z.object({

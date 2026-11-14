@@ -35,6 +35,7 @@ interface Request {
   resolvedAt: string | null;
   notes: string | null;
   photoUrl?: string | null;
+  photoUrls?: string[] | null;
   rating?: number | null;
   ratingComment?: string | null;
   ratedAt?: string | null;
@@ -656,17 +657,57 @@ export default function RequestDetails() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          {request.photoUrl && (
-            <div className="bg-card border border-border2 rounded-3xl overflow-hidden">
-              <div className="relative">
-                <img
-                  src={request.photoUrl}
-                  alt=""
-                  className="w-full h-96 object-cover"
-                />
+          {(() => {
+            const photos =
+              request.photoUrls && request.photoUrls.length
+                ? request.photoUrls
+                : request.photoUrl
+                  ? [request.photoUrl]
+                  : [];
+            if (photos.length === 0) return null;
+            if (photos.length === 1) {
+              return (
+                <div className="bg-card border border-border2 rounded-3xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedImage(photos[0])}
+                    className="relative block w-full"
+                  >
+                    <img
+                      src={photos[0]}
+                      alt=""
+                      className="w-full h-96 object-cover"
+                    />
+                  </button>
+                </div>
+              );
+            }
+            return (
+              <div className="bg-card border border-border2 rounded-3xl p-4">
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted2 mb-3">
+                  {isRtl
+                    ? `الصور المرفقة (${photos.length})`
+                    : `Attached Photos (${photos.length})`}
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {photos.map((url, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setSelectedImage(url)}
+                      className="relative aspect-square rounded-2xl overflow-hidden border border-border2 hover:border-accent2/50 transition-colors group"
+                    >
+                      <img
+                        src={url}
+                        alt=""
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <div className="bg-card border border-border2 rounded-3xl p-6">
             <h3 className="text-sm font-bold uppercase text-muted2 mb-3">
