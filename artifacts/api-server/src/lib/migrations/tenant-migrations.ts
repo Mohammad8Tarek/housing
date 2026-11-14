@@ -1346,6 +1346,11 @@ We wish you a safe trip and a pleasant stay! ✨';`,
         ALTER TABLE settings ADD COLUMN IF NOT EXISTS maintenance_report_emails TEXT;`,
   },
   {
+    name: "settings.housing_report",
+    q: `ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_report_enabled BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE settings ADD COLUMN IF NOT EXISTS housing_report_emails TEXT;`,
+  },
+  {
     name: "maintenance_services.catalogue",
     q: `CREATE TABLE IF NOT EXISTS maintenance_services (
         id SERIAL PRIMARY KEY,

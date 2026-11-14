@@ -85,6 +85,8 @@ router.patch(
         "reportFooter",
         "maintenanceReportEnabled",
         "maintenanceReportEmails",
+        "housingReportEnabled",
+        "housingReportEmails",
         "portalContactEmail",
         "portalContactPhone",
         "portalContactExt",
