@@ -131,7 +131,8 @@ router.get(
         notes: r.notes ?? null,
         assignedTo: r.assignedTo ?? null,
         photoUrl: r.photoUrl ?? null,
-        photoUrls: (r.photoUrls as string[] | null) ?? (r.photoUrl ? [r.photoUrl] : []),
+        photoUrls:
+          (r.photoUrls as string[] | null) ?? (r.photoUrl ? [r.photoUrl] : []),
         rating: r.rating ?? null,
         ratingComment: r.ratingComment ?? null,
         ratedAt:

@@ -31,10 +31,7 @@ const PREFS_KEY = "portal_notif_muted_v1";
 const ARCHIVED_KEY = "portal_notif_archived_v1";
 
 // Known categories (type -> icon + bilingual label). Unknown types fall back to "other".
-const CATEGORIES: Record<
-  string,
-  { icon: string; en: string; ar: string }
-> = {
+const CATEGORIES: Record<string, { icon: string; en: string; ar: string }> = {
   payroll: { icon: "payments", en: "Payroll", ar: "الرواتب" },
   schedule: { icon: "schedule", en: "Schedule", ar: "الجدول" },
   document: { icon: "verified_user", en: "Documents", ar: "المستندات" },
@@ -59,7 +56,9 @@ function readJsonArray(key: string): number[] {
   try {
     const raw = localStorage.getItem(key);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((n) => typeof n === "number") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((n) => typeof n === "number")
+      : [];
   } catch {
     return [];
   }
@@ -69,7 +68,9 @@ function readMuted(): string[] {
   try {
     const raw = localStorage.getItem(PREFS_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((s) => typeof s === "string") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((s) => typeof s === "string")
+      : [];
   } catch {
     return [];
   }
@@ -236,7 +237,8 @@ export default function TabNotifications({ onChangeTab }: Props) {
       }
     }
     if (filter === "unread") list = list.filter((n) => !n.isRead);
-    else if (filter !== "all") list = list.filter((n) => (n.type || "other") === filter);
+    else if (filter !== "all")
+      list = list.filter((n) => (n.type || "other") === filter);
     return list;
   }, [notifications, view, filter, muted, archivedSet]);
 
@@ -460,7 +462,11 @@ export default function TabNotifications({ onChangeTab }: Props) {
                 aria-label={isRtl ? "تحديث الإشعارات" : "Refresh notifications"}
                 className="p-1.5 rounded-lg hover:bg-surface transition-colors"
               >
-                <MaterialIcon icon="refresh" size={18} className="text-muted2" />
+                <MaterialIcon
+                  icon="refresh"
+                  size={18}
+                  className="text-muted2"
+                />
               </button>
             </div>
           </>
@@ -574,7 +580,9 @@ export default function TabNotifications({ onChangeTab }: Props) {
                               >
                                 <MaterialIcon
                                   icon={
-                                    view === "archived" ? "unarchive" : "archive"
+                                    view === "archived"
+                                      ? "unarchive"
+                                      : "archive"
                                   }
                                   size={15}
                                 />
