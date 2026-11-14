@@ -486,6 +486,7 @@ export async function sendDailyReport(
   sent: boolean;
   recipients: string[];
   reason?: string;
+  error?: string;
   tickets: number;
 }> {
   const settings = await withTenant(propertyId, async (tenantDb) => {
@@ -521,26 +522,36 @@ export async function sendDailyReport(
     };
   }
   const [y, m, d] = date.split("-");
-  const transporter = createTransporter(smtp);
-  await transporter.sendMail({
-    from:
-      smtp.smtpFrom ||
-      process.env.SMTP_FROM ||
-      `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
-    to: recipients.join(", "),
-    subject:
-      lang === "ar"
-        ? `تقرير الصيانة والنظافة ${d}-${m}-${y} — ${report.propertyName}`
-        : `Maintenance Daily ${d}-${m}-${y} — ${report.propertyName}`,
-    html: renderDailyReportHtml(report, lang),
-    attachments: [
-      {
-        filename: `Maintenance_Daily_${d}-${m}-${y}.csv`,
-        content: renderDailyReportCsv(report, lang),
-        contentType: "text/csv; charset=utf-8",
-      },
-    ],
-  });
+  try {
+    const transporter = createTransporter(smtp);
+    await transporter.sendMail({
+      from:
+        smtp.smtpFrom ||
+        process.env.SMTP_FROM ||
+        `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
+      to: recipients.join(", "),
+      subject:
+        lang === "ar"
+          ? `تقرير الصيانة والنظافة ${d}-${m}-${y} — ${report.propertyName}`
+          : `Maintenance Daily ${d}-${m}-${y} — ${report.propertyName}`,
+      html: renderDailyReportHtml(report, lang),
+      attachments: [
+        {
+          filename: `Maintenance_Daily_${d}-${m}-${y}.csv`,
+          content: renderDailyReportCsv(report, lang),
+          contentType: "text/csv; charset=utf-8",
+        },
+      ],
+    });
+  } catch (err: any) {
+    return {
+      sent: false,
+      recipients,
+      reason: "SMTP send failed",
+      error: String(err?.message ?? err).slice(0, 300),
+      tickets: report.rows.length,
+    };
+  }
   return { sent: true, recipients, tickets: report.rows.length };
 }
 

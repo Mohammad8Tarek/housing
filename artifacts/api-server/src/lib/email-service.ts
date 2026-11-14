@@ -60,6 +60,11 @@ export function createTransporter(config?: SmtpConfig) {
     tls: {
       rejectUnauthorized: false,
     },
+    // Fail fast instead of hanging the request when the mail server is
+    // unreachable (e.g. the outbound SMTP port is blocked by the host).
+    connectionTimeout: 15000, // TCP connect
+    greetingTimeout: 10000, // wait for the server banner
+    socketTimeout: 20000, // inactivity once connected
   });
 }
 
