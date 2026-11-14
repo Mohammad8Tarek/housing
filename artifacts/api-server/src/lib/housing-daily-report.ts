@@ -516,6 +516,7 @@ export async function sendHousingDailyReport(
   sent: boolean;
   recipients: string[];
   reason?: string;
+  error?: string;
   violations: number;
 }> {
   const settings = await withTenant(propertyId, async (tenantDb) => {
@@ -551,25 +552,35 @@ export async function sendHousingDailyReport(
     };
   }
   const [y, m, d] = date.split("-");
-  await createTransporter(smtp).sendMail({
-    from:
-      smtp.smtpFrom ||
-      process.env.SMTP_FROM ||
-      `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
-    to: recipients.join(", "),
-    subject:
-      lang === "ar"
-        ? `تقرير عمليات السكن ${d}-${m}-${y} — ${report.propertyName}`
-        : `Housing Daily ${d}-${m}-${y} — ${report.propertyName}`,
-    html: renderHousingDailyHtml(report, lang),
-    attachments: [
-      {
-        filename: `Housing_Daily_${d}-${m}-${y}.csv`,
-        content: renderHousingDailyCsv(report, lang),
-        contentType: "text/csv; charset=utf-8",
-      },
-    ],
-  });
+  try {
+    await createTransporter(smtp).sendMail({
+      from:
+        smtp.smtpFrom ||
+        process.env.SMTP_FROM ||
+        `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
+      to: recipients.join(", "),
+      subject:
+        lang === "ar"
+          ? `تقرير عمليات السكن ${d}-${m}-${y} — ${report.propertyName}`
+          : `Housing Daily ${d}-${m}-${y} — ${report.propertyName}`,
+      html: renderHousingDailyHtml(report, lang),
+      attachments: [
+        {
+          filename: `Housing_Daily_${d}-${m}-${y}.csv`,
+          content: renderHousingDailyCsv(report, lang),
+          contentType: "text/csv; charset=utf-8",
+        },
+      ],
+    });
+  } catch (err: any) {
+    return {
+      sent: false,
+      recipients,
+      reason: "SMTP send failed",
+      error: String(err?.message ?? err).slice(0, 300),
+      violations: report.violations.length,
+    };
+  }
   return { sent: true, recipients, violations: report.violations.length };
 }
 

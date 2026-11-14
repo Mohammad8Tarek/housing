@@ -1062,12 +1062,15 @@ router.post(
         req.body.lang,
       );
       if (!result.sent) {
-        res.status(400).json({
+        const message =
+          result.reason === "SMTP not configured"
+            ? "إعدادات البريد (SMTP) غير مكتملة / Email (SMTP) is not configured"
+            : result.reason === "SMTP send failed"
+              ? `تعذّر الاتصال بخادم البريد (SMTP) — راجع المضيف والمنفذ وبيانات الدخول / Could not reach the mail server (SMTP) — check host, port and credentials${result.error ? ` (${result.error})` : ""}`
+              : "لا توجد إيميلات مستلمين / No recipient emails configured";
+        res.status(result.reason === "SMTP send failed" ? 502 : 400).json({
           success: false,
-          message:
-            result.reason === "SMTP not configured"
-              ? "إعدادات البريد (SMTP) غير مكتملة / Email (SMTP) is not configured"
-              : "لا توجد إيميلات مستلمين / No recipient emails configured",
+          message,
           ...result,
         });
         return;
