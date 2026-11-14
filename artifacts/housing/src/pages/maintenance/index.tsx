@@ -1159,7 +1159,7 @@ export default function Tickets() {
           isSuperAdmin ||
           isAdmin ||
           (selectedTicket?.category === "housekeeping"
-            ? canEditHsk
+            ? canEditHsk || canEditMnt
             : canEditMnt);
         return (
           <TicketDetailModal
