@@ -13,6 +13,9 @@ import {
   REPORT_TIME_ZONE,
   cairoToday,
   parseRecipients,
+  reportDueNow,
+  reportLang,
+  type ReportLang,
 } from "./maintenance-daily-report.js";
 import { logger } from "./logger.js";
 
@@ -296,18 +299,67 @@ const esc = (s: unknown) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-export function renderHousingDailyHtml(r: HousingDailyReport): string {
+// Static labels for the housing report, in both languages.
+const HSG_T = {
+  reportTitle: {
+    ar: "تقرير عمليات السكن اليومي",
+    en: "Daily Housing Operations Report",
+  },
+  checkedIn: { ar: "تسكين اليوم", en: "Checked in" },
+  transfers: { ar: "نقل اليوم", en: "Transfers" },
+  checkedOut: { ar: "مغادرة اليوم", en: "Checked out" },
+  inHouse: { ar: "المقيمون حالياً", en: "Currently in-house" },
+  violations: { ar: "مخالفات حالية", en: "Policy violations" },
+  notApproved: { ar: "مخالفات بدون اعتماد", en: "Not approved" },
+  name: { ar: "الاسم", en: "Name" },
+  code: { ar: "الكود", en: "Code" },
+  room: { ar: "الغرفة", en: "Room" },
+  building: { ar: "المبنى", en: "Building" },
+  by: { ar: "بواسطة", en: "By" },
+  bed: { ar: "السرير", en: "Bed" },
+  reason: { ar: "السبب", en: "Reason" },
+  violation: { ar: "المخالفة", en: "Violation" },
+  exception: { ar: "الاعتماد", en: "Exception" },
+  checkedInToday: { ar: "تسكين اليوم", en: "Checked in today" },
+  transfersToday: { ar: "عمليات النقل", en: "Room transfers today" },
+  checkedOutToday: { ar: "المغادرة", en: "Checked out today" },
+  currentViolations: {
+    ar: "مخالفات سياسة السكن الحالية",
+    en: "Current policy violations",
+  },
+  noCheckIns: { ar: "لا يوجد تسكين اليوم", en: "No check-ins today" },
+  noTransfers: { ar: "لا يوجد نقل اليوم", en: "No transfers today" },
+  noCheckOuts: { ar: "لا توجد مغادرة اليوم", en: "No check-outs today" },
+  noViolations: {
+    ar: "لا توجد مخالفات حالية 🎉",
+    en: "No current violations 🎉",
+  },
+  approved: { ar: "معتمد", en: "Approved" },
+  notApprovedVal: { ar: "بدون اعتماد", en: "Not approved" },
+  footer: {
+    ar: "المخالفات غير المعتمدة بالأحمر — تحتاج اعتماد استثناء أو تصحيح. Sunrise Staff Housing.",
+    en: "Not-approved violations are shown in red — they need an approved exception or a fix. Sunrise Staff Housing.",
+  },
+} as const;
+
+export function renderHousingDailyHtml(
+  r: HousingDailyReport,
+  lang: ReportLang = "en",
+): string {
+  const ar = lang === "ar";
+  const tl = (k: keyof typeof HSG_T) => esc(HSG_T[k][lang]);
+  const dir = ar ? "rtl" : "ltr";
   const [y, m, d] = r.date.split("-");
   const dmy = `${d}/${m}/${y}`;
+  const nameOf = (x: MovementRow | ViolationRow) => (ar ? x.name : x.nameEn);
   const card = (
-    labelAr: string,
-    labelEn: string,
+    label: keyof typeof HSG_T,
     value: string | number,
     color = "#0F2A44",
   ) =>
     `<td style="padding:10px 14px;border:1px solid #e5e7eb;border-radius:8px;text-align:center;background:#fff">
        <div style="font-size:22px;font-weight:bold;color:${color}">${esc(value)}</div>
-       <div style="font-size:12px;color:#6b7280">${labelAr}<br/>${labelEn}</div></td>`;
+       <div style="font-size:12px;color:#6b7280">${tl(label)}</div></td>`;
   const th = (t: string) =>
     `<th style="padding:6px 8px;text-align:start;background:#f9fafb">${t}</th>`;
   const td = (t: unknown) =>
@@ -315,22 +367,21 @@ export function renderHousingDailyHtml(r: HousingDailyReport): string {
 
   const moveTable = (
     list: MovementRow[],
-    detailAr: string,
-    detailEn: string,
+    detail: keyof typeof HSG_T,
     showBy: boolean,
-    emptyAr: string,
+    empty: keyof typeof HSG_T,
   ) =>
     `<table style="border-collapse:collapse;font-size:12px;width:100%;margin-bottom:8px">
-      <tr>${th("الاسم<br/>Name")}${th("الكود<br/>Code")}${th("الغرفة<br/>Room")}${th("المبنى<br/>Building")}${th(`${detailAr}<br/>${detailEn}`)}${showBy ? th("بواسطة<br/>By") : ""}</tr>
+      <tr>${th(tl("name"))}${th(tl("code"))}${th(tl("room"))}${th(tl("building"))}${th(tl(detail))}${showBy ? th(tl("by")) : ""}</tr>
       ${
         list.length
           ? list
               .map(
                 (x) =>
-                  `<tr>${td(x.name)}${td(x.code)}${td(x.room)}${td(x.building)}${td(x.detail || "—")}${showBy ? td(x.by || "—") : ""}</tr>`,
+                  `<tr>${td(nameOf(x))}${td(x.code)}${td(x.room)}${td(x.building)}${td(x.detail || "—")}${showBy ? td(x.by || "—") : ""}</tr>`,
               )
               .join("")
-          : `<tr><td colspan="${showBy ? 6 : 5}" style="padding:10px;color:#6b7280">${emptyAr}</td></tr>`
+          : `<tr><td colspan="${showBy ? 6 : 5}" style="padding:10px;color:#6b7280">${tl(empty)}</td></tr>`
       }
     </table>`;
 
@@ -338,94 +389,115 @@ export function renderHousingDailyHtml(r: HousingDailyReport): string {
     ? r.violations
         .map(
           (v) => `<tr style="${v.approved ? "" : "background:#fef2f2"}">
-        ${td(v.name)}${td(v.code)}${td(v.room)}${td(v.building)}
-        <td style="padding:5px 8px;border-bottom:1px solid #eee">${v.violations.map((x) => esc(x.messageAr)).join("<br/>")}</td>
+        ${td(nameOf(v))}${td(v.code)}${td(v.room)}${td(v.building)}
+        <td style="padding:5px 8px;border-bottom:1px solid #eee">${v.violations.map((x) => esc(ar ? x.messageAr : x.messageEn)).join("<br/>")}</td>
         <td style="padding:5px 8px;border-bottom:1px solid #eee">${
           v.approved
-            ? `<span style="color:#059669">معتمد / Approved${v.approvedBy ? ` — ${esc(v.approvedBy)}` : ""}</span>`
-            : '<b style="color:#dc2626">بدون اعتماد / Not approved</b>'
+            ? `<span style="color:#059669">${tl("approved")}${v.approvedBy ? ` — ${esc(v.approvedBy)}` : ""}</span>`
+            : `<b style="color:#dc2626">${tl("notApprovedVal")}</b>`
         }</td></tr>`,
         )
         .join("")
-    : `<tr><td colspan="6" style="padding:10px;color:#6b7280">لا توجد مخالفات حالية / No current violations 🎉</td></tr>`;
+    : `<tr><td colspan="6" style="padding:10px;color:#6b7280">${tl("noViolations")}</td></tr>`;
 
-  return `<!doctype html><html><body style="margin:0;background:#f3f4f6;font-family:Tahoma,Arial,sans-serif;color:#111827">
+  return `<!doctype html><html dir="${dir}"><body style="margin:0;background:#f3f4f6;font-family:Tahoma,Arial,sans-serif;color:#111827;direction:${dir}">
   <div style="max-width:1100px;margin:0 auto;padding:20px">
     <div style="background:#0F2A44;color:#fff;padding:16px 20px;border-radius:10px 10px 0 0">
-      <div style="font-size:18px;font-weight:bold">تقرير عمليات السكن اليومي — Daily Housing Operations Report</div>
+      <div style="font-size:18px;font-weight:bold">${tl("reportTitle")}</div>
       <div style="font-size:14px;margin-top:4px">${esc(r.propertyName)} · ${dmy}</div>
     </div>
     <div style="background:#fff;padding:16px 20px;border-radius:0 0 10px 10px">
       <table style="border-collapse:separate;border-spacing:8px;width:100%"><tr>
-        ${card("تسكين اليوم", "Checked in", r.summary.checkIns, "#059669")}
-        ${card("نقل اليوم", "Transfers", r.summary.transfers)}
-        ${card("مغادرة اليوم", "Checked out", r.summary.checkOuts, "#d97706")}
-        ${card("المقيمون حالياً", "Currently in-house", r.summary.occupied)}
-        ${card("مخالفات حالية", "Policy violations", r.summary.violations, r.summary.violations ? "#dc2626" : "#059669")}
-        ${card("مخالفات بدون اعتماد", "Not approved", r.summary.unapprovedViolations, r.summary.unapprovedViolations ? "#dc2626" : "#059669")}
+        ${card("checkedIn", r.summary.checkIns, "#059669")}
+        ${card("transfers", r.summary.transfers)}
+        ${card("checkedOut", r.summary.checkOuts, "#d97706")}
+        ${card("inHouse", r.summary.occupied)}
+        ${card("violations", r.summary.violations, r.summary.violations ? "#dc2626" : "#059669")}
+        ${card("notApproved", r.summary.unapprovedViolations, r.summary.unapprovedViolations ? "#dc2626" : "#059669")}
       </tr></table>
 
-      <h3 style="font-size:14px;margin:18px 0 6px">🟢 تسكين اليوم — Checked in today</h3>
-      ${moveTable(r.checkIns, "السرير", "Bed", false, "لا يوجد تسكين اليوم / No check-ins today")}
+      <h3 style="font-size:14px;margin:18px 0 6px">🟢 ${tl("checkedInToday")}</h3>
+      ${moveTable(r.checkIns, "bed", false, "noCheckIns")}
 
-      <h3 style="font-size:14px;margin:18px 0 6px">🔄 عمليات النقل — Room transfers today</h3>
-      ${moveTable(r.transfers, "السبب", "Reason", true, "لا يوجد نقل اليوم / No transfers today")}
+      <h3 style="font-size:14px;margin:18px 0 6px">🔄 ${tl("transfersToday")}</h3>
+      ${moveTable(r.transfers, "reason", true, "noTransfers")}
 
-      <h3 style="font-size:14px;margin:18px 0 6px">🟠 المغادرة — Checked out today</h3>
-      ${moveTable(r.checkOuts, "السبب", "Reason", false, "لا توجد مغادرة اليوم / No check-outs today")}
+      <h3 style="font-size:14px;margin:18px 0 6px">🟠 ${tl("checkedOutToday")}</h3>
+      ${moveTable(r.checkOuts, "reason", false, "noCheckOuts")}
 
-      <h3 style="font-size:14px;margin:18px 0 6px">⚠ مخالفات سياسة السكن الحالية — Current policy violations</h3>
+      <h3 style="font-size:14px;margin:18px 0 6px">⚠ ${tl("currentViolations")}</h3>
       <table style="border-collapse:collapse;font-size:12px;width:100%">
-        <tr>${th("الاسم<br/>Name")}${th("الكود<br/>Code")}${th("الغرفة<br/>Room")}${th("المبنى<br/>Building")}${th("المخالفة<br/>Violation")}${th("الاعتماد<br/>Exception")}</tr>
+        <tr>${th(tl("name"))}${th(tl("code"))}${th(tl("room"))}${th(tl("building"))}${th(tl("violation"))}${th(tl("exception"))}</tr>
         ${violRows}
       </table>
-      <p style="font-size:11px;color:#9ca3af;margin-top:16px">المخالفات غير المعتمدة بالأحمر — تحتاج اعتماد استثناء أو تصحيح. Sunrise Staff Housing.</p>
+      <p style="font-size:11px;color:#9ca3af;margin-top:16px">${tl("footer")}</p>
     </div>
   </div></body></html>`;
 }
 
-export function renderHousingDailyCsv(r: HousingDailyReport): string {
+export function renderHousingDailyCsv(
+  r: HousingDailyReport,
+  lang: ReportLang = "en",
+): string {
+  const ar = lang === "ar";
   const cell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const C = {
+    type: ar ? "النوع" : "Type",
+    name: HSG_T.name[lang],
+    code: HSG_T.code[lang],
+    room: HSG_T.room[lang],
+    building: HSG_T.building[lang],
+    detail: ar ? "التفاصيل" : "Detail",
+    byApproval: ar ? "بواسطة / الاعتماد" : "By / Approval",
+    checkIn: ar ? "تسكين" : "Check-in",
+    transfer: ar ? "نقل" : "Transfer",
+    checkOut: ar ? "مغادرة" : "Check-out",
+    violation: HSG_T.violation[lang],
+    approved: HSG_T.approved[lang],
+    notApproved: ar ? "بدون اعتماد" : "NOT APPROVED",
+    byWord: ar ? "بواسطة" : "by",
+  };
   const header = [
-    "Type",
-    "Name",
-    "Code",
-    "Room",
-    "Building",
-    "Detail",
-    "By / Approval",
+    C.type,
+    C.name,
+    C.code,
+    C.room,
+    C.building,
+    C.detail,
+    C.byApproval,
   ];
+  const nm = (x: MovementRow | ViolationRow) => (ar ? x.name : x.nameEn);
   const lines: string[] = [];
   for (const x of r.checkIns)
     lines.push(
-      ["Check-in", x.nameEn, x.code, x.room, x.building, x.detail, ""]
+      [C.checkIn, nm(x), x.code, x.room, x.building, x.detail, ""]
         .map(cell)
         .join(","),
     );
   for (const x of r.transfers)
     lines.push(
-      ["Transfer", x.nameEn, x.code, x.room, x.building, x.detail, x.by]
+      [C.transfer, nm(x), x.code, x.room, x.building, x.detail, x.by]
         .map(cell)
         .join(","),
     );
   for (const x of r.checkOuts)
     lines.push(
-      ["Check-out", x.nameEn, x.code, x.room, x.building, x.detail, ""]
+      [C.checkOut, nm(x), x.code, x.room, x.building, x.detail, ""]
         .map(cell)
         .join(","),
     );
   for (const v of r.violations)
     lines.push(
       [
-        "Violation",
-        v.nameEn,
+        C.violation,
+        nm(v),
         v.code,
         v.room,
         v.building,
-        v.violations.map((x) => x.messageEn).join("; "),
+        v.violations.map((x) => (ar ? x.messageAr : x.messageEn)).join("; "),
         v.approved
-          ? `Approved${v.approvedBy ? ` by ${v.approvedBy}` : ""}`
-          : "NOT APPROVED",
+          ? `${C.approved}${v.approvedBy ? ` ${C.byWord} ${v.approvedBy}` : ""}`
+          : C.notApproved,
       ]
         .map(cell)
         .join(","),
@@ -439,6 +511,7 @@ export async function sendHousingDailyReport(
   propertyId: number,
   date: string,
   recipientsOverride?: string[],
+  langOverride?: ReportLang,
 ): Promise<{
   sent: boolean;
   recipients: string[];
@@ -449,6 +522,7 @@ export async function sendHousingDailyReport(
     const [s] = await tenantDb.select().from(settingsTable).limit(1);
     return s as any;
   });
+  const lang = langOverride ?? reportLang(settings?.housingReportLang);
   const recipients =
     recipientsOverride ?? parseRecipients(settings?.housingReportEmails);
   const report = await buildHousingDailyReport(propertyId, date);
@@ -483,12 +557,15 @@ export async function sendHousingDailyReport(
       process.env.SMTP_FROM ||
       `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
     to: recipients.join(", "),
-    subject: `Housing Daily ${d}-${m}-${y} — ${report.propertyName}`,
-    html: renderHousingDailyHtml(report),
+    subject:
+      lang === "ar"
+        ? `تقرير عمليات السكن ${d}-${m}-${y} — ${report.propertyName}`
+        : `Housing Daily ${d}-${m}-${y} — ${report.propertyName}`,
+    html: renderHousingDailyHtml(report, lang),
     attachments: [
       {
         filename: `Housing_Daily_${d}-${m}-${y}.csv`,
-        content: renderHousingDailyCsv(report),
+        content: renderHousingDailyCsv(report, lang),
         contentType: "text/csv; charset=utf-8",
       },
     ],
@@ -496,25 +573,46 @@ export async function sendHousingDailyReport(
   return { sent: true, recipients, violations: report.violations.length };
 }
 
-/** Every night at 21:30 Cairo, for properties that enabled the housing report. */
+/**
+ * Checked every few minutes (Cairo): each property that enabled the report and
+ * has reached its configured send time, and hasn't been sent today, gets it.
+ */
 export function initHousingReportCron(): void {
   cron.schedule(
-    "30 21 * * *",
+    "*/5 * * * *",
     async () => {
-      const date = cairoToday();
+      const now = new Date();
+      const today = cairoToday(now);
       const props = await db
         .select({ id: propertiesTable.id })
         .from(propertiesTable);
       for (const p of props) {
         try {
-          const enabled = await withTenant(p.id, async (tenantDb) => {
-            const [s] = await tenantDb.select().from(settingsTable).limit(1);
-            return !!(s as any)?.housingReportEnabled;
+          const s: any = await withTenant(p.id, async (tenantDb) => {
+            const [row] = await tenantDb.select().from(settingsTable).limit(1);
+            return row;
           });
-          if (!enabled) continue;
-          const r = await sendHousingDailyReport(p.id, date);
+          if (!s?.housingReportEnabled) continue;
+          if (
+            !reportDueNow(
+              {
+                hour: s.housingReportHour ?? 21,
+                minute: s.housingReportMinute ?? 30,
+                lastSent: s.housingReportLastSent,
+              },
+              now,
+            )
+          )
+            continue;
+          // Stamp first so a slow send can't double-fire on the next tick.
+          await withTenant(p.id, (tenantDb) =>
+            tenantDb
+              .update(settingsTable)
+              .set({ housingReportLastSent: today } as any),
+          );
+          const r = await sendHousingDailyReport(p.id, today);
           logger.info(
-            { propertyId: p.id, date, sent: r.sent, reason: r.reason },
+            { propertyId: p.id, date: today, sent: r.sent, reason: r.reason },
             "housing daily report",
           );
         } catch (err: any) {
@@ -527,5 +625,5 @@ export function initHousingReportCron(): void {
     },
     { timezone: REPORT_TIME_ZONE },
   );
-  logger.info("Housing daily report scheduled for 21:30 Africa/Cairo");
+  logger.info("Housing daily report dispatcher active (checks every 5 min)");
 }
