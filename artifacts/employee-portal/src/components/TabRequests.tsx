@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Loader2, X, Star } from "lucide-react";
 import { useLocation } from "wouter";
 import { useTheme } from "../lib/theme";
@@ -25,6 +25,7 @@ interface Request {
   resolvedAt: string | null;
   notes: string | null;
   photoUrl?: string | null;
+  photoUrls?: string[] | null;
   rating?: number | null;
   ratingComment?: string | null;
   ratedAt?: string | null;
@@ -35,8 +36,10 @@ interface RequestForm {
   problemType: string;
   description: string;
   priority: string;
-  photoUrl: string;
+  photos: string[];
 }
+
+const MAX_PHOTOS = 4;
 
 const categoryConfig: Record<
   string,
@@ -157,7 +160,7 @@ export default function TabRequests() {
     problemType: "",
     description: "",
     priority: "medium",
-    photoUrl: "",
+    photos: [],
   });
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
@@ -183,7 +186,13 @@ export default function TabRequests() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          category: form.category,
+          problemType: form.problemType,
+          description: form.description,
+          priority: form.priority,
+          photoUrls: form.photos,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed");
@@ -206,7 +215,7 @@ export default function TabRequests() {
         problemType: "",
         description: "",
         priority: "medium",
-        photoUrl: "",
+        photos: [],
       });
       setShowForm(false);
       setTimeout(() => {
@@ -249,7 +258,28 @@ export default function TabRequests() {
     },
   ];
 
-  const displayedRequests = showAll ? requests : requests.slice(0, 4);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "open" | "in_progress" | "done"
+  >("all");
+  const [search, setSearch] = useState("");
+
+  const filteredRequests = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return requests.filter((r) => {
+      const st = (r.status || "").toLowerCase();
+      if (statusFilter === "open" && st !== "open") return false;
+      if (statusFilter === "in_progress" && st !== "in_progress") return false;
+      if (statusFilter === "done" && !isRequestCompleted(r.status)) return false;
+      if (!q) return true;
+      return [r.problemType, r.description, r.category, `#${r.id}`]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q));
+    });
+  }, [requests, statusFilter, search]);
+
+  const displayedRequests = showAll
+    ? filteredRequests
+    : filteredRequests.slice(0, 4);
   const pendingCount = requests.filter((r) =>
     ["open", "in_progress"].includes((r.status || "").toLowerCase()),
   ).length;
@@ -459,52 +489,70 @@ export default function TabRequests() {
                 <label className="text-[10px] font-semibold uppercase tracking-wider text-muted2 block mb-2">
                   {isRtl ? "المرفقات" : "Attachments"}
                 </label>
-                <div className="flex items-center gap-3">
-                  {form.photoUrl ? (
-                    <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-border2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {form.photos.map((src, i) => (
+                    <div
+                      key={i}
+                      className="relative w-20 h-20 rounded-xl overflow-hidden border border-border2 flex-shrink-0"
+                    >
                       <img
-                        src={form.photoUrl}
+                        src={src}
                         alt=""
                         className="w-full h-full object-cover"
                       />
                       <MotionButton
                         type="button"
-                        onClick={() => setForm((f) => ({ ...f, photoUrl: "" }))}
+                        aria-label={isRtl ? "حذف الصورة" : "Remove photo"}
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            photos: f.photos.filter((_, j) => j !== i),
+                          }))
+                        }
                         className="absolute top-1 end-1 p-0.5 rounded-full bg-black/60 text-white hover:bg-white/30 transition-colors"
                       >
                         <X className="w-3 h-3" />
                       </MotionButton>
                     </div>
-                  ) : (
-                    <label className="flex items-center gap-2 px-4 py-3 rounded-xl bg-surface border border-border2 cursor-pointer hover:border-accent2/40 transition-colors">
+                  ))}
+                  {form.photos.length < MAX_PHOTOS && (
+                    <label className="flex flex-col items-center justify-center gap-1 w-20 h-20 rounded-xl bg-surface border border-dashed border-border2 cursor-pointer hover:border-accent2/40 transition-colors">
                       <MaterialIcon
-                        icon="photo_camera"
-                        size={18}
+                        icon="add_a_photo"
+                        size={20}
                         className="text-accent2"
                       />
-                      <span className="text-[11px] text-muted2">
-                        {isRtl ? "إرفاق صورة" : "Attach Photo"}
+                      <span className="text-[9px] text-muted2">
+                        {isRtl ? "صورة" : "Photo"}
                       </span>
                       <input
                         type="file"
                         accept="image/*"
-                        capture="environment"
+                        multiple
                         className="hidden"
                         onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (!f) return;
-                          const r = new FileReader();
-                          r.onload = () =>
-                            setForm((p) => ({
-                              ...p,
-                              photoUrl: r.result as string,
-                            }));
-                          r.readAsDataURL(f);
+                          const files = Array.from(e.target.files ?? []);
+                          e.currentTarget.value = "";
+                          files.forEach((file) => {
+                            const r = new FileReader();
+                            r.onload = () =>
+                              setForm((p) =>
+                                p.photos.length >= MAX_PHOTOS
+                                  ? p
+                                  : { ...p, photos: [...p.photos, r.result as string] },
+                              );
+                            r.readAsDataURL(file);
+                          });
                         }}
                       />
                     </label>
                   )}
                 </div>
+                <p className="text-[10px] text-muted2 mt-1.5">
+                  {isRtl
+                    ? `يمكنك إرفاق حتى ${MAX_PHOTOS} صور`
+                    : `Attach up to ${MAX_PHOTOS} photos`}
+                </p>
               </div>
             </StaggerItem>
 
@@ -538,7 +586,7 @@ export default function TabRequests() {
             <MaterialIcon icon="list_alt" size={18} className="text-accent2" />
             {isRtl ? "طلباتي" : "My Requests"}
           </h3>
-          {requests.length > 4 && (
+          {filteredRequests.length > 4 && (
             <MotionButton
               onClick={() => setShowAll(!showAll)}
               className="text-xs font-semibold text-accent2 hover:text-accent2/80 transition-colors bg-accent2/5 px-2 py-1 rounded-md"
@@ -553,6 +601,48 @@ export default function TabRequests() {
             </MotionButton>
           )}
         </div>
+
+        {requests.length > 0 && (
+          <div className="mb-3 space-y-2">
+            <div className="relative">
+              <MaterialIcon
+                icon="search"
+                size={16}
+                className="absolute top-1/2 -translate-y-1/2 start-3 text-muted2"
+              />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={isRtl ? "ابحث في طلباتي..." : "Search my requests..."}
+                aria-label={isRtl ? "بحث" : "Search"}
+                className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-surface border border-border2 text-[13px] text-foreground placeholder:text-muted2 focus:outline-none focus:border-accent2/50"
+              />
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
+              {(
+                [
+                  ["all", isRtl ? "الكل" : "All"],
+                  ["open", isRtl ? "مفتوح" : "Open"],
+                  ["in_progress", isRtl ? "جاري" : "In Progress"],
+                  ["done", isRtl ? "منجز" : "Done"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => setStatusFilter(id)}
+                  aria-pressed={statusFilter === id}
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${
+                    statusFilter === id
+                      ? "bg-accent2 text-accent2-foreground"
+                      : "bg-surface border border-border2 text-muted2 hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Unrated Completed Requests Attention Banner */}
         {unratedRequests.length > 0 && !loadingHistory && (
@@ -599,12 +689,22 @@ export default function TabRequests() {
               />
             </div>
             <p className="text-[13px] text-muted2 font-medium">
-              {isRtl ? "لا توجد طلبات" : "No requests yet"}
+              {requests.length > 0
+                ? isRtl
+                  ? "لا توجد نتائج مطابقة"
+                  : "No matching requests"
+                : isRtl
+                  ? "لا توجد طلبات"
+                  : "No requests yet"}
             </p>
             <p className="text-[11px] text-muted2/60 mt-1">
-              {isRtl
-                ? "أنشئ طلبك الأول من الأعلى"
-                : "Create your first request above"}
+              {requests.length > 0
+                ? isRtl
+                  ? "جرّب تغيير الفلتر أو البحث"
+                  : "Try a different filter or search"
+                : isRtl
+                  ? "أنشئ طلبك الأول من الأعلى"
+                  : "Create your first request above"}
             </p>
           </div>
         ) : (

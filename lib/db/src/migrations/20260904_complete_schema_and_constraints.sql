@@ -544,6 +544,7 @@ BEGIN
       "category" TEXT DEFAULT 'maintenance'::text,
       "assigned_to" INTEGER,
       "photo_url" TEXT,
+      "photo_urls" JSONB,
       "parent_id" INTEGER,
       "rating" INTEGER,
       "rating_comment" TEXT,
@@ -628,6 +629,7 @@ BEGIN
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "category" TEXT DEFAULT 'maintenance'::text;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "assigned_to" INTEGER;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "photo_url" TEXT;
+    ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "photo_urls" JSONB;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "parent_id" INTEGER;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "rating" INTEGER;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "rating_comment" TEXT;
