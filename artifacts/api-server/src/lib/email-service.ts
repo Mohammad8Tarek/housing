@@ -1,4 +1,6 @@
 import nodemailer from "nodemailer";
+import net from "node:net";
+import { lookup } from "node:dns/promises";
 
 export interface SmtpConfig {
   smtpHost?: string | null;
@@ -38,9 +40,28 @@ export function isSmtpConfigured(config?: SmtpConfig): boolean {
 }
 
 /**
- * Creates a Nodemailer transporter from config or environment variables.
+ * Resolve a hostname to an IPv4 address.
+ *
+ * Some hosts (e.g. Railway containers) have an IPv6 interface but no public
+ * IPv6 egress, so connecting to a host that resolves to IPv6 (Office 365 does)
+ * fails with ENETUNREACH. Nodemailer does its own DNS, so we resolve to IPv4
+ * ourselves, connect by the IPv4 literal, and keep `tls.servername` as the real
+ * hostname so certificate validation still matches.
  */
-export function createTransporter(config?: SmtpConfig) {
+async function resolveIpv4(host: string): Promise<string> {
+  try {
+    const { address } = await lookup(host, { family: 4 });
+    return address;
+  } catch {
+    throw new Error(`SMTP host has no IPv4 address: ${host}`);
+  }
+}
+
+/**
+ * Creates a Nodemailer transporter from config or environment variables,
+ * forcing an IPv4 connection. Async because it may resolve DNS.
+ */
+export async function createTransporter(config?: SmtpConfig) {
   const host = config?.smtpHost || process.env.SMTP_HOST;
   const port = Number(config?.smtpPort || process.env.SMTP_PORT || "587");
   const secure =
@@ -52,21 +73,51 @@ export function createTransporter(config?: SmtpConfig) {
   const pass =
     config?.smtpPass || process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
 
+  // Connect over IPv4. If the host is already an IP literal, use it as-is;
+  // otherwise resolve it to an IPv4 address and verify the cert against the
+  // original hostname via SNI.
+  const tls: Record<string, unknown> = { rejectUnauthorized: true };
+  let connectHost = host || undefined;
+  if (host && net.isIP(host) === 0) {
+    connectHost = await resolveIpv4(host);
+    tls.servername = host;
+  }
+
   return nodemailer.createTransport({
-    host: host || undefined,
+    host: connectHost,
     port,
     secure,
     auth: user && pass ? { user, pass } : undefined,
-    tls: {
-      rejectUnauthorized: false,
-    },
+    tls,
     // Fail fast instead of hanging the request when the mail server is
     // unreachable (e.g. the outbound SMTP port is blocked by the host).
     // Kept well under the web client's 30s abort and any gateway timeout.
     connectionTimeout: 10000, // TCP connect
-    greetingTimeout: 8000, // wait for the server banner
-    socketTimeout: 12000, // inactivity once connected
+    greetingTimeout: 10000, // wait for the server banner
+    socketTimeout: 15000, // inactivity once connected
   });
+}
+
+/** Map a raw SMTP/connection error to a human-readable bilingual reason. */
+export function describeSmtpError(err: unknown): string {
+  const e = err as { code?: string; responseCode?: number; message?: string };
+  const code = String(e?.code ?? "");
+  const resp = e?.responseCode;
+  const msg = String(e?.message ?? err ?? "");
+  if (code === "EAUTH" || resp === 535 || /\b535\b|authenticat/i.test(msg)) {
+    return "فشل تسجيل الدخول لخادم البريد (SMTP) — راجع البيانات، وتأكد إن SMTP AUTH مفعّل للميلبوكس، واستخدم App Password لو فيه MFA / SMTP authentication failed (check credentials, enable SMTP AUTH for the mailbox, use an app password if MFA is on)";
+  }
+  if (
+    /ENETUNREACH|ECONNREFUSED|ETIMEDOUT|EHOSTUNREACH|ENOTFOUND|EAI_AGAIN|EDNS|timed out/i.test(
+      `${code} ${msg}`,
+    )
+  ) {
+    return "تعذّر الوصول لخادم البريد (SMTP) — المنفذ محجوب أو الخادم غير قابل للوصول / Cannot reach SMTP server (port blocked or host unreachable)";
+  }
+  if (/no IPv4 address/i.test(msg)) {
+    return `خادم البريد ليس له عنوان IPv4 / ${msg}`;
+  }
+  return msg;
 }
 
 /**
@@ -93,7 +144,7 @@ export async function sendMailWithTimeout(
   }
 }
 
-function getTransporter(config?: SmtpConfig) {
+async function getTransporter(config?: SmtpConfig) {
   return createTransporter(config);
 }
 
@@ -248,7 +299,7 @@ export async function sendOtpEmail({
   }
 
   try {
-    const transporter = getTransporter(config);
+    const transporter = await getTransporter(config);
     const fromAddress =
       config?.smtpFrom ||
       process.env.SMTP_FROM ||
@@ -294,7 +345,7 @@ export async function sendTestEmail({
   config?: SmtpConfig;
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const transporter = getTransporter(config);
+    const transporter = await getTransporter(config);
     // Verify connection first
     await transporter.verify();
 
@@ -345,6 +396,6 @@ export async function sendTestEmail({
       `[SMTP TEST ERROR] Failed to send test email to ${toEmail}:`,
       err?.message || err,
     );
-    return { success: false, error: err?.message || String(err) };
+    return { success: false, error: describeSmtpError(err) };
   }
 }

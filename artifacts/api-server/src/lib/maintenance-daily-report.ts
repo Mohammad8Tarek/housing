@@ -9,6 +9,7 @@ import { db, propertiesTable, settingsTable, withTenant } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import {
   createTransporter,
+  describeSmtpError,
   isSmtpConfigured,
   sendMailWithTimeout,
 } from "./email-service.js";
@@ -527,7 +528,7 @@ export async function sendDailyReport(
   }
   const [y, m, d] = date.split("-");
   try {
-    await sendMailWithTimeout(createTransporter(smtp), {
+    await sendMailWithTimeout(await createTransporter(smtp), {
       from:
         smtp.smtpFrom ||
         process.env.SMTP_FROM ||
@@ -551,7 +552,7 @@ export async function sendDailyReport(
       sent: false,
       recipients,
       reason: "SMTP send failed",
-      error: String(err?.message ?? err).slice(0, 300),
+      error: describeSmtpError(err),
       tickets: report.rows.length,
     };
   }

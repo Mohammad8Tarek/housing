@@ -10,6 +10,7 @@ import { db, propertiesTable, settingsTable, withTenant } from "@workspace/db";
 import { checkPolicyCompliance } from "@workspace/report-rows";
 import {
   createTransporter,
+  describeSmtpError,
   isSmtpConfigured,
   sendMailWithTimeout,
 } from "./email-service.js";
@@ -557,7 +558,7 @@ export async function sendHousingDailyReport(
   }
   const [y, m, d] = date.split("-");
   try {
-    await sendMailWithTimeout(createTransporter(smtp), {
+    await sendMailWithTimeout(await createTransporter(smtp), {
       from:
         smtp.smtpFrom ||
         process.env.SMTP_FROM ||
@@ -581,7 +582,7 @@ export async function sendHousingDailyReport(
       sent: false,
       recipients,
       reason: "SMTP send failed",
-      error: String(err?.message ?? err).slice(0, 300),
+      error: describeSmtpError(err),
       violations: report.violations.length,
     };
   }
