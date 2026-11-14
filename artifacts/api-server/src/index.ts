@@ -370,6 +370,15 @@ async function start(): Promise<void> {
       logger.error({ err }, "Failed to schedule maintenance daily report");
     }
 
+    // Nightly housing operations report email (21:30 Cairo)
+    try {
+      const { initHousingReportCron } =
+        await import("./lib/housing-daily-report.js");
+      initHousingReportCron();
+    } catch (err) {
+      logger.error({ err }, "Failed to schedule housing daily report");
+    }
+
     // Scheduled report emails (checked every 10 minutes)
     try {
       const { initReportScheduleCron } =

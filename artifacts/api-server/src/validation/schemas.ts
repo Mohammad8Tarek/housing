@@ -37,6 +37,8 @@ export const UpdateSettingsBody = z
     reportFooter: optText(2000),
     maintenanceReportEnabled: optBool,
     maintenanceReportEmails: optText(2000),
+    housingReportEnabled: optBool,
+    housingReportEmails: optText(2000),
     portalContactEmail: optText(200),
     portalContactPhone: optText(50),
     portalContactExt: optText(20),
