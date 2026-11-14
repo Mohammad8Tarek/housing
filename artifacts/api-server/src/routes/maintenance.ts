@@ -1068,7 +1068,7 @@ router.post(
             : result.reason === "SMTP send failed"
               ? `تعذّر الاتصال بخادم البريد (SMTP) — راجع المضيف والمنفذ وبيانات الدخول / Could not reach the mail server (SMTP) — check host, port and credentials${result.error ? ` (${result.error})` : ""}`
               : "لا توجد إيميلات مستلمين / No recipient emails configured";
-        res.status(result.reason === "SMTP send failed" ? 502 : 400).json({
+        res.status(result.reason === "SMTP send failed" ? 422 : 400).json({
           success: false,
           message,
           ...result,

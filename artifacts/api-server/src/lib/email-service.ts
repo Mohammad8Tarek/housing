@@ -62,10 +62,35 @@ export function createTransporter(config?: SmtpConfig) {
     },
     // Fail fast instead of hanging the request when the mail server is
     // unreachable (e.g. the outbound SMTP port is blocked by the host).
-    connectionTimeout: 15000, // TCP connect
-    greetingTimeout: 10000, // wait for the server banner
-    socketTimeout: 20000, // inactivity once connected
+    // Kept well under the web client's 30s abort and any gateway timeout.
+    connectionTimeout: 10000, // TCP connect
+    greetingTimeout: 8000, // wait for the server banner
+    socketTimeout: 12000, // inactivity once connected
   });
+}
+
+/**
+ * Send an email but never let it block longer than `ms` — a hard ceiling on
+ * top of the transporter's own timeouts, so a misbehaving SMTP server can't
+ * hang the HTTP request past the client's limit.
+ */
+export async function sendMailWithTimeout(
+  transporter: { sendMail: (msg: any) => Promise<any> },
+  message: any,
+  ms = 15000,
+): Promise<any> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`SMTP send timed out after ${ms}ms`)),
+      ms,
+    );
+  });
+  try {
+    return await Promise.race([transporter.sendMail(message), timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 function getTransporter(config?: SmtpConfig) {

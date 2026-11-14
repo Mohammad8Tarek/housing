@@ -7,7 +7,11 @@ import cron from "node-cron";
 import { sql } from "drizzle-orm";
 import { db, propertiesTable, settingsTable, withTenant } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { createTransporter, isSmtpConfigured } from "./email-service.js";
+import {
+  createTransporter,
+  isSmtpConfigured,
+  sendMailWithTimeout,
+} from "./email-service.js";
 import { ticketNumber, ticketSla } from "./maintenance-tickets.js";
 import { logger } from "./logger.js";
 import { loadServiceCatalogue } from "./maintenance-services.js";
@@ -523,8 +527,7 @@ export async function sendDailyReport(
   }
   const [y, m, d] = date.split("-");
   try {
-    const transporter = createTransporter(smtp);
-    await transporter.sendMail({
+    await sendMailWithTimeout(createTransporter(smtp), {
       from:
         smtp.smtpFrom ||
         process.env.SMTP_FROM ||

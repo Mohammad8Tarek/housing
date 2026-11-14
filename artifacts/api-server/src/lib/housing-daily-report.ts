@@ -8,7 +8,11 @@ import cron from "node-cron";
 import { sql } from "drizzle-orm";
 import { db, propertiesTable, settingsTable, withTenant } from "@workspace/db";
 import { checkPolicyCompliance } from "@workspace/report-rows";
-import { createTransporter, isSmtpConfigured } from "./email-service.js";
+import {
+  createTransporter,
+  isSmtpConfigured,
+  sendMailWithTimeout,
+} from "./email-service.js";
 import {
   REPORT_TIME_ZONE,
   cairoToday,
@@ -553,7 +557,7 @@ export async function sendHousingDailyReport(
   }
   const [y, m, d] = date.split("-");
   try {
-    await createTransporter(smtp).sendMail({
+    await sendMailWithTimeout(createTransporter(smtp), {
       from:
         smtp.smtpFrom ||
         process.env.SMTP_FROM ||
