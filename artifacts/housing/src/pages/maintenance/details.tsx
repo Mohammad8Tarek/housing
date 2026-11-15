@@ -745,9 +745,6 @@ export default function MaintenanceDetails() {
                         <SelectItem value="resolved">
                           {ar ? "محلول" : "Resolved"}
                         </SelectItem>
-                        <SelectItem value="closed">
-                          {ar ? "مغلق" : "Closed"}
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
