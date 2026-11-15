@@ -562,13 +562,21 @@ const bText = (max = 500) => z.string().max(max);
 const bScalar = (max = 500) =>
   z.union([z.string().max(max), z.number(), z.boolean()]);
 const bDate = z.string().max(40);
-// Timestamps the server coerces with new Date() and re-stamps itself (started/
-// resolved times). Accept an ISO/date string or an epoch number from any client
-// version; the route drops anything unparseable. Kept permissive on purpose.
-const bDateInput = z
-  .union([z.string().max(64), z.number()])
-  .nullable()
-  .optional();
+// Timestamps the server owns: the route re-stamps started/resolved times on
+// status changes and coerces whatever it keeps with new Date(), dropping any
+// unparseable value. So accept an ISO/date string, an epoch number or null from
+// any client version, and quietly ignore anything else (object/bool) instead of
+// failing the whole request — the server fills in the correct time regardless.
+const bDateInput = z.preprocess(
+  (v) =>
+    typeof v === "string" || typeof v === "number" || v === null
+      ? v
+      : undefined,
+  z
+    .union([z.string().max(64), z.number()])
+    .nullable()
+    .optional(),
+);
 const bBool = z.union([
   z.boolean(),
   z.enum(["true", "false"]),
