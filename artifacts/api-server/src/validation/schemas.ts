@@ -45,6 +45,8 @@ export const UpdateSettingsBody = z
     housingReportLang: z.enum(["ar", "en"]).optional(),
     housingReportHour: optInt(0, 23),
     housingReportMinute: optInt(0, 59),
+    maintenanceEscalationEnabled: optBool,
+    maintenanceEscalationHours: optInt(1, 168),
     portalContactEmail: optText(200),
     portalContactPhone: optText(50),
     portalContactExt: optText(20),
