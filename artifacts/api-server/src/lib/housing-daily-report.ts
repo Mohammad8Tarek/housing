@@ -8,7 +8,11 @@ import cron from "node-cron";
 import { sql } from "drizzle-orm";
 import { db, propertiesTable, settingsTable, withTenant } from "@workspace/db";
 import { checkPolicyCompliance } from "@workspace/report-rows";
-import { createTransporter, isSmtpConfigured } from "./email-service.js";
+import {
+  createTransporter,
+  isSmtpConfigured,
+  sendMailWithRetry,
+} from "./email-service.js";
 import {
   REPORT_TIME_ZONE,
   cairoToday,
@@ -477,22 +481,26 @@ export async function sendHousingDailyReport(
     };
   }
   const [y, m, d] = date.split("-");
-  await createTransporter(smtp).sendMail({
-    from:
-      smtp.smtpFrom ||
-      process.env.SMTP_FROM ||
-      `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
-    to: recipients.join(", "),
-    subject: `Housing Daily ${d}-${m}-${y} — ${report.propertyName}`,
-    html: renderHousingDailyHtml(report),
-    attachments: [
-      {
-        filename: `Housing_Daily_${d}-${m}-${y}.csv`,
-        content: renderHousingDailyCsv(report),
-        contentType: "text/csv; charset=utf-8",
-      },
-    ],
-  });
+  await sendMailWithRetry(
+    createTransporter(smtp),
+    {
+      from:
+        smtp.smtpFrom ||
+        process.env.SMTP_FROM ||
+        `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
+      to: recipients.join(", "),
+      subject: `Housing Daily ${d}-${m}-${y} — ${report.propertyName}`,
+      html: renderHousingDailyHtml(report),
+      attachments: [
+        {
+          filename: `Housing_Daily_${d}-${m}-${y}.csv`,
+          content: renderHousingDailyCsv(report),
+          contentType: "text/csv; charset=utf-8",
+        },
+      ],
+    },
+    { label: `housing-daily p${propertyId} ${date}` },
+  );
   return { sent: true, recipients, violations: report.violations.length };
 }
 

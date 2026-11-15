@@ -7,7 +7,11 @@ import cron from "node-cron";
 import { sql } from "drizzle-orm";
 import { db, propertiesTable, settingsTable, withTenant } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { createTransporter, isSmtpConfigured } from "./email-service.js";
+import {
+  createTransporter,
+  isSmtpConfigured,
+  sendMailWithRetry,
+} from "./email-service.js";
 import { ticketNumber, ticketSla } from "./maintenance-tickets.js";
 import { logger } from "./logger.js";
 import { loadServiceCatalogue } from "./maintenance-services.js";
@@ -409,22 +413,26 @@ export async function sendDailyReport(
   }
   const [y, m, d] = date.split("-");
   const transporter = createTransporter(smtp);
-  await transporter.sendMail({
-    from:
-      smtp.smtpFrom ||
-      process.env.SMTP_FROM ||
-      `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
-    to: recipients.join(", "),
-    subject: `Maintenance Daily ${d}-${m}-${y} — ${report.propertyName}`,
-    html: renderDailyReportHtml(report),
-    attachments: [
-      {
-        filename: `Maintenance_Daily_${d}-${m}-${y}.csv`,
-        content: renderDailyReportCsv(report),
-        contentType: "text/csv; charset=utf-8",
-      },
-    ],
-  });
+  await sendMailWithRetry(
+    transporter,
+    {
+      from:
+        smtp.smtpFrom ||
+        process.env.SMTP_FROM ||
+        `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
+      to: recipients.join(", "),
+      subject: `Maintenance Daily ${d}-${m}-${y} — ${report.propertyName}`,
+      html: renderDailyReportHtml(report),
+      attachments: [
+        {
+          filename: `Maintenance_Daily_${d}-${m}-${y}.csv`,
+          content: renderDailyReportCsv(report),
+          contentType: "text/csv; charset=utf-8",
+        },
+      ],
+    },
+    { label: `maintenance-daily p${propertyId} ${date}` },
+  );
   return { sent: true, recipients, tickets: report.rows.length };
 }
 
