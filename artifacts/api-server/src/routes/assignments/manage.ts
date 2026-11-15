@@ -19,6 +19,34 @@ import { IdParams, BulkIdsBody } from "../../validation/schemas.js";
 
 const router: Router = Router();
 
+/**
+ * Block a non-system-admin from acting on an assignment that lives in a hotel
+ * they are not a member of. getTenantId falls back to the caller's own property,
+ * but these handlers also auto-resolve the owning property from the assignment
+ * id — which would otherwise let a user reach across hotels. Mirrors the guard
+ * in checkout.ts / transfer.ts. Returns false (and sends 403) when denied.
+ */
+function assertPropertyAccess(
+  req: any,
+  res: any,
+  propertyId: number,
+): boolean {
+  const authUser = req.authUser;
+  if (
+    authUser &&
+    !authUser.isSystemAdmin &&
+    Array.isArray(authUser.propertyIds) &&
+    authUser.propertyIds.length > 0 &&
+    !authUser.propertyIds.includes(propertyId)
+  ) {
+    res.status(403).json({
+      error: "Access denied to the hotel where this resident is housed",
+    });
+    return false;
+  }
+  return true;
+}
+
 // ─── PATCH /assignments/:id ───────────────────────────────────────────────
 router.patch(
   "/assignments/:id",
@@ -38,6 +66,8 @@ router.patch(
       propertyId = (await findPropertyByAssignmentId(params.data.id)) || 0;
     }
 
+    if (propertyId && !assertPropertyAccess(req, res, propertyId)) return;
+
     let updated: any = null;
     if (propertyId) {
       try {
@@ -56,6 +86,7 @@ router.patch(
     if (!updated) {
       const autoPid = await findPropertyByAssignmentId(params.data.id);
       if (autoPid && autoPid !== propertyId) {
+        if (!assertPropertyAccess(req, res, autoPid)) return;
         propertyId = autoPid;
         [updated] = await withTenant(propertyId, async (tenantDb) => {
           return await tenantDb
@@ -121,6 +152,8 @@ router.delete(
       res.status(400).json({ error: "propertyId is required" });
       return;
     }
+
+    if (!assertPropertyAccess(req, res, propertyId)) return;
 
     try {
       const result = await withTenant(propertyId, async (tenantDb) => {
@@ -218,6 +251,8 @@ router.post(
       res.status(400).json({ error: "propertyId is required" });
       return;
     }
+
+    if (!assertPropertyAccess(req, res, propertyId)) return;
 
     try {
       const result = await withTenant(propertyId, async (tenantDb) => {

@@ -12,7 +12,7 @@ import {
   createTransporter,
   describeSmtpError,
   isSmtpConfigured,
-  sendMailWithTimeout,
+  sendMailWithRetry,
 } from "./email-service.js";
 import {
   REPORT_TIME_ZONE,
@@ -558,25 +558,31 @@ export async function sendHousingDailyReport(
   }
   const [y, m, d] = date.split("-");
   try {
-    await sendMailWithTimeout(await createTransporter(smtp), {
-      from:
-        smtp.smtpFrom ||
-        process.env.SMTP_FROM ||
-        `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
-      to: recipients.join(", "),
-      subject:
-        lang === "ar"
-          ? `تقرير عمليات السكن ${d}-${m}-${y} — ${report.propertyName}`
-          : `Housing Daily ${d}-${m}-${y} — ${report.propertyName}`,
-      html: renderHousingDailyHtml(report, lang),
-      attachments: [
-        {
-          filename: `Housing_Daily_${d}-${m}-${y}.csv`,
-          content: renderHousingDailyCsv(report, lang),
-          contentType: "text/csv; charset=utf-8",
-        },
-      ],
-    });
+    // Retry transient SMTP failures (each attempt is timeout-bounded) so a
+    // single network blip does not drop that day's report.
+    await sendMailWithRetry(
+      await createTransporter(smtp),
+      {
+        from:
+          smtp.smtpFrom ||
+          process.env.SMTP_FROM ||
+          `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
+        to: recipients.join(", "),
+        subject:
+          lang === "ar"
+            ? `تقرير عمليات السكن ${d}-${m}-${y} — ${report.propertyName}`
+            : `Housing Daily ${d}-${m}-${y} — ${report.propertyName}`,
+        html: renderHousingDailyHtml(report, lang),
+        attachments: [
+          {
+            filename: `Housing_Daily_${d}-${m}-${y}.csv`,
+            content: renderHousingDailyCsv(report, lang),
+            contentType: "text/csv; charset=utf-8",
+          },
+        ],
+      },
+      { label: `housing-daily p${propertyId} ${date}` },
+    );
   } catch (err: any) {
     return {
       sent: false,

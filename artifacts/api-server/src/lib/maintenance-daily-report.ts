@@ -11,7 +11,7 @@ import {
   createTransporter,
   describeSmtpError,
   isSmtpConfigured,
-  sendMailWithTimeout,
+  sendMailWithRetry,
 } from "./email-service.js";
 import { ticketNumber, ticketSla } from "./maintenance-tickets.js";
 import { logger } from "./logger.js";
@@ -528,25 +528,31 @@ export async function sendDailyReport(
   }
   const [y, m, d] = date.split("-");
   try {
-    await sendMailWithTimeout(await createTransporter(smtp), {
-      from:
-        smtp.smtpFrom ||
-        process.env.SMTP_FROM ||
-        `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
-      to: recipients.join(", "),
-      subject:
-        lang === "ar"
-          ? `تقرير الصيانة والنظافة ${d}-${m}-${y} — ${report.propertyName}`
-          : `Maintenance Daily ${d}-${m}-${y} — ${report.propertyName}`,
-      html: renderDailyReportHtml(report, lang),
-      attachments: [
-        {
-          filename: `Maintenance_Daily_${d}-${m}-${y}.csv`,
-          content: renderDailyReportCsv(report, lang),
-          contentType: "text/csv; charset=utf-8",
-        },
-      ],
-    });
+    // Retry transient SMTP failures (each attempt is timeout-bounded) so a
+    // single network blip does not drop that day's report.
+    await sendMailWithRetry(
+      await createTransporter(smtp),
+      {
+        from:
+          smtp.smtpFrom ||
+          process.env.SMTP_FROM ||
+          `"SUNRISE Housing" <${smtp.smtpUser || process.env.SMTP_USER || "noreply@sunrise-resorts.com"}>`,
+        to: recipients.join(", "),
+        subject:
+          lang === "ar"
+            ? `تقرير الصيانة والنظافة ${d}-${m}-${y} — ${report.propertyName}`
+            : `Maintenance Daily ${d}-${m}-${y} — ${report.propertyName}`,
+        html: renderDailyReportHtml(report, lang),
+        attachments: [
+          {
+            filename: `Maintenance_Daily_${d}-${m}-${y}.csv`,
+            content: renderDailyReportCsv(report, lang),
+            contentType: "text/csv; charset=utf-8",
+          },
+        ],
+      },
+      { label: `maintenance-daily p${propertyId} ${date}` },
+    );
   } catch (err: any) {
     return {
       sent: false,

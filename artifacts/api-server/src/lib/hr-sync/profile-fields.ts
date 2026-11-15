@@ -2,6 +2,7 @@
  * hr-sync/profile-fields.ts — HR payload normalisation: status mapping and field extraction.
  */
 import { splitCompoundName } from "../bilingual-translator.js";
+import { egyptianNidToDob } from "../national-id.js";
 
 // ============================================================================
 // Helper: Status Normalization
@@ -365,13 +366,20 @@ export function extractProfileFields(
       "hired_at",
       "تاريخ_التعيين",
     ]) ?? new Date().toISOString().split("T")[0];
-  const dateOfBirth =
+  let dateOfBirth =
     getVal("dateOfBirth", [
       "date_of_birth",
       "birth_date",
       "dob",
       "تاريخ_الميلاد",
     ]) ?? "";
+  // If HR did not send a date of birth, derive it from the Egyptian national ID
+  // (which encodes it). This keeps portal password recovery — which matches on
+  // date of birth — working without asking HR to re-key every record.
+  if (!String(dateOfBirth).trim()) {
+    const derived = egyptianNidToDob(nationalId);
+    if (derived) dateOfBirth = derived;
+  }
   const email = getVal("email", ["mail", "email_address"]) ?? "";
   const emergencyContact =
     getVal("emergencyContact", [

@@ -337,6 +337,20 @@ export const TENANT_MIGRATIONS: Migration[] = [
     name: "maintenance.photo_urls",
     q: "ALTER TABLE maintenance ADD COLUMN IF NOT EXISTS photo_urls JSONB",
   },
+  {
+    name: "maintenance.escalation",
+    q: `ALTER TABLE maintenance
+          ADD COLUMN IF NOT EXISTS escalation_level INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE maintenance
+          ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMPTZ;`,
+  },
+  {
+    name: "settings.maintenance_escalation",
+    q: `ALTER TABLE settings
+          ADD COLUMN IF NOT EXISTS maintenance_escalation_enabled BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE settings
+          ADD COLUMN IF NOT EXISTS maintenance_escalation_hours INTEGER NOT NULL DEFAULT 12;`,
+  },
 
   // === Maintenance Parent (Sub-tickets) ===
   {

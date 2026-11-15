@@ -93,6 +93,8 @@ router.patch(
         "housingReportLang",
         "housingReportHour",
         "housingReportMinute",
+        "maintenanceEscalationEnabled",
+        "maintenanceEscalationHours",
         "portalContactEmail",
         "portalContactPhone",
         "portalContactExt",

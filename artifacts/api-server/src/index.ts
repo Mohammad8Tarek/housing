@@ -379,6 +379,16 @@ async function start(): Promise<void> {
       logger.error({ err }, "Failed to schedule housing daily report");
     }
 
+    // Auto-escalation of overdue maintenance tickets (every 15 min, opt-in)
+    try {
+      const { initMaintenanceEscalationCron } = await import(
+        "./lib/maintenance-escalation.js"
+      );
+      initMaintenanceEscalationCron();
+    } catch (err) {
+      logger.error({ err }, "Failed to schedule maintenance escalation");
+    }
+
     // Scheduled report emails (checked every 10 minutes)
     try {
       const { initReportScheduleCron } =

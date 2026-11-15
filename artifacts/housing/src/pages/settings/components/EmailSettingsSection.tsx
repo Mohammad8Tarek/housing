@@ -28,6 +28,7 @@ import {
 import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { MaintenanceReportCard } from "./MaintenanceReportCard";
+import { MaintenanceEscalationCard } from "./MaintenanceEscalationCard";
 import { HousingReportCard } from "./HousingReportCard";
 
 interface EmailSettingsSectionProps {
@@ -586,6 +587,7 @@ export function EmailSettingsSection({
 
       <MaintenanceReportCard propertyId={propertyId} ar={ar} />
       <HousingReportCard propertyId={propertyId} ar={ar} />
+      <MaintenanceEscalationCard propertyId={propertyId} ar={ar} />
     </div>
   );
 }
