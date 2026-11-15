@@ -67,9 +67,16 @@ export async function processOutboxQueue(
        FROM public.property_whatsapp_configs WHERE property_id = $1`,
       [propertyId],
     );
-    const isMetaCloud = configRes.rows[0]?.provider === "meta_cloud";
+    const provider = configRes.rows[0]?.provider;
+    // HTTP-based providers (Meta Cloud, UltraMsg, Custom Gateway) send over a REST
+    // call and need no Baileys QR session, quota throttling or anti-ban pacing.
+    const isHttpProvider =
+      provider === "meta_cloud" ||
+      provider === "ultramsg" ||
+      provider === "custom_gateway";
+    const isMetaCloud = provider === "meta_cloud";
 
-    if (!isMetaCloud) {
+    if (!isHttpProvider) {
       const session = await getWhatsAppSession(propertyId);
       if (session.status !== "connected" || !session.sock) {
         // Offline: messages stay PENDING until the connection is back.
@@ -102,8 +109,8 @@ export async function processOutboxQueue(
       const item = rows[0];
       if (!item) break;
 
-      // Per-message quota (Baileys only; Meta Cloud has its own limits).
-      if (!isMetaCloud) {
+      // Per-message quota (Baileys only; HTTP providers have their own limits).
+      if (!isHttpProvider) {
         const quota = await checkSendQuota(propertyId, item.message_type);
         if (!quota.allowed) {
           console.warn(`[WhatsApp Anti-Ban] 🛡️ ${quota.reason}`);
@@ -137,7 +144,7 @@ export async function processOutboxQueue(
       }
 
       // Re-verify the session (Baileys)
-      if (!isMetaCloud) {
+      if (!isHttpProvider) {
         const currentSession = await getWhatsAppSession(propertyId);
         if (currentSession.status !== "connected" || !currentSession.sock) {
           console.warn(
@@ -177,7 +184,7 @@ export async function processOutboxQueue(
           )
           .catch(() => {});
 
-        if (isMetaCloud) {
+        if (isHttpProvider) {
           await sleep(600);
         } else if (batchTotal % 8 === 0) {
           // Longer break every 8 messages, like a person pausing.
@@ -447,6 +454,257 @@ export async function sendMetaCloudMessage(params: {
 }
 
 /**
+ * UltraMsg sender (https://ultramsg.com) — simple HTTP API, no Baileys session.
+ */
+export async function sendUltraMsgMessage(params: {
+  propertyId: number;
+  instanceId?: string | null;
+  token?: string | null;
+  recipientPhone: string;
+  recipientName?: string;
+  messageType?: string;
+  text: string;
+}): Promise<{ success: boolean; reason?: string; messageId?: string }> {
+  const {
+    propertyId,
+    instanceId,
+    token,
+    recipientPhone,
+    recipientName,
+    messageType = "CHECKIN_WELCOME",
+    text,
+  } = params;
+
+  if (!instanceId || !token) {
+    const reason =
+      "بيانات UltraMsg غير مكتملة (يرجى إدخال Instance ID و Token في الإعدادات)";
+    await logDelivery(
+      propertyId,
+      recipientPhone,
+      recipientName,
+      messageType,
+      text,
+      "FAILED",
+      reason,
+    );
+    return { success: false, reason };
+  }
+
+  const cleanPhone = normalizePhoneNumber(recipientPhone);
+  if (!cleanPhone || cleanPhone.length < 8) {
+    await logDelivery(
+      propertyId,
+      recipientPhone,
+      recipientName,
+      messageType,
+      text,
+      "FAILED",
+      "Invalid phone number format",
+    );
+    return { success: false, reason: "INVALID_PHONE" };
+  }
+
+  try {
+    const url = `https://api.ultramsg.com/${instanceId.trim()}/messages/chat`;
+    const form = new URLSearchParams();
+    form.set("token", token.trim());
+    form.set("to", cleanPhone);
+    form.set("body", text);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: form.toString(),
+    });
+    const data: any = await response.json().catch(() => ({}));
+    // UltraMsg returns { sent: "true", id } on success, or { error }.
+    const sentOk =
+      response.ok &&
+      (data?.sent === true ||
+        data?.sent === "true" ||
+        data?.message === "ok" ||
+        Boolean(data?.id));
+    if (!sentOk) {
+      const errMsg = String(
+        data?.error ||
+          data?.message ||
+          `UltraMsg API error (${response.status})`,
+      );
+      await logDelivery(
+        propertyId,
+        recipientPhone,
+        recipientName,
+        messageType,
+        text,
+        "FAILED",
+        errMsg,
+      );
+      return { success: false, reason: errMsg };
+    }
+    await logDelivery(
+      propertyId,
+      recipientPhone,
+      recipientName,
+      messageType,
+      text,
+      "SENT",
+    );
+    return { success: true, messageId: String(data?.id ?? "ultramsg-ok") };
+  } catch (err: any) {
+    await logDelivery(
+      propertyId,
+      recipientPhone,
+      recipientName,
+      messageType,
+      text,
+      "FAILED",
+      err?.message || "UltraMsg Network Error",
+    );
+    return { success: false, reason: err?.message };
+  }
+}
+
+/**
+ * Custom HTTP gateway sender — posts to an operator-configured endpoint. The
+ * phone/message field names, HTTP method, body encoding and extra headers are
+ * all configurable so it can target most self-hosted WhatsApp gateways.
+ */
+export async function sendCustomGatewayMessage(params: {
+  propertyId: number;
+  gatewayUrl?: string | null;
+  gatewayToken?: string | null;
+  method?: string | null;
+  payloadType?: string | null;
+  phoneField?: string | null;
+  messageField?: string | null;
+  headers?: string | null;
+  recipientPhone: string;
+  recipientName?: string;
+  messageType?: string;
+  text: string;
+}): Promise<{ success: boolean; reason?: string; messageId?: string }> {
+  const {
+    propertyId,
+    gatewayUrl,
+    gatewayToken,
+    recipientPhone,
+    recipientName,
+    messageType = "CHECKIN_WELCOME",
+    text,
+  } = params;
+
+  if (!gatewayUrl || !gatewayUrl.trim()) {
+    const reason =
+      "رابط البوابة المخصصة غير مُعرّف (يرجى إدخال Gateway URL في الإعدادات)";
+    await logDelivery(
+      propertyId,
+      recipientPhone,
+      recipientName,
+      messageType,
+      text,
+      "FAILED",
+      reason,
+    );
+    return { success: false, reason };
+  }
+
+  const cleanPhone = normalizePhoneNumber(recipientPhone);
+  if (!cleanPhone || cleanPhone.length < 8) {
+    await logDelivery(
+      propertyId,
+      recipientPhone,
+      recipientName,
+      messageType,
+      text,
+      "FAILED",
+      "Invalid phone number format",
+    );
+    return { success: false, reason: "INVALID_PHONE" };
+  }
+
+  const method = (params.method || "POST").toUpperCase() === "GET" ? "GET" : "POST";
+  const payloadType = (params.payloadType || "json").toLowerCase();
+  const phoneField = (params.phoneField || "to").trim() || "to";
+  const messageField = (params.messageField || "body").trim() || "body";
+
+  // Extra headers are stored as a JSON object string; ignore if malformed.
+  const headers: Record<string, string> = {};
+  if (params.headers && params.headers.trim()) {
+    try {
+      const parsed = JSON.parse(params.headers);
+      if (parsed && typeof parsed === "object") {
+        for (const [k, v] of Object.entries(parsed)) headers[k] = String(v);
+      }
+    } catch {
+      /* ignore malformed custom headers */
+    }
+  }
+  if (gatewayToken && gatewayToken.trim() && !headers.Authorization) {
+    headers.Authorization = `Bearer ${gatewayToken.trim()}`;
+  }
+
+  try {
+    let response: Response;
+    if (method === "GET") {
+      const u = new URL(gatewayUrl.trim());
+      u.searchParams.set(phoneField, cleanPhone);
+      u.searchParams.set(messageField, text);
+      response = await fetch(u.toString(), { method: "GET", headers });
+    } else if (payloadType === "form") {
+      const form = new URLSearchParams();
+      form.set(phoneField, cleanPhone);
+      form.set(messageField, text);
+      response = await fetch(gatewayUrl.trim(), {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" },
+        body: form.toString(),
+      });
+    } else {
+      response = await fetch(gatewayUrl.trim(), {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ [phoneField]: cleanPhone, [messageField]: text }),
+      });
+    }
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      const errMsg = `Custom gateway error (${response.status})${body ? `: ${body.slice(0, 200)}` : ""}`;
+      await logDelivery(
+        propertyId,
+        recipientPhone,
+        recipientName,
+        messageType,
+        text,
+        "FAILED",
+        errMsg,
+      );
+      return { success: false, reason: errMsg };
+    }
+    await logDelivery(
+      propertyId,
+      recipientPhone,
+      recipientName,
+      messageType,
+      text,
+      "SENT",
+    );
+    return { success: true, messageId: "custom-gateway-ok" };
+  } catch (err: any) {
+    await logDelivery(
+      propertyId,
+      recipientPhone,
+      recipientName,
+      messageType,
+      text,
+      "FAILED",
+      err?.message || "Custom Gateway Network Error",
+    );
+    return { success: false, reason: err?.message };
+  }
+}
+
+/**
  * Actual execution of sending message with anti-ban human behavior
  */
 export async function executeSendHumanLike(
@@ -460,7 +718,11 @@ export async function executeSendHumanLike(
   // 1. Check if property is configured with official Meta WhatsApp Cloud API (Zero ban risk)
   try {
     const configRes = await pool.query(
-      `SELECT provider, meta_access_token, meta_phone_number_id, meta_waba_id 
+      `SELECT provider, meta_access_token, meta_phone_number_id, meta_waba_id,
+              ultramsg_instance_id, ultramsg_token,
+              custom_gateway_url, custom_gateway_token, custom_gateway_method,
+              custom_gateway_payload_type, custom_gateway_phone_field,
+              custom_gateway_message_field, custom_gateway_headers
        FROM public.property_whatsapp_configs WHERE property_id = $1`,
       [propertyId],
     );
@@ -470,6 +732,33 @@ export async function executeSendHumanLike(
         propertyId,
         phoneNumberId: config.meta_phone_number_id,
         accessToken: config.meta_access_token,
+        recipientPhone: rawPhone,
+        recipientName,
+        messageType,
+        text,
+      });
+    }
+    if (config?.provider === "ultramsg") {
+      return await sendUltraMsgMessage({
+        propertyId,
+        instanceId: config.ultramsg_instance_id,
+        token: config.ultramsg_token,
+        recipientPhone: rawPhone,
+        recipientName,
+        messageType,
+        text,
+      });
+    }
+    if (config?.provider === "custom_gateway") {
+      return await sendCustomGatewayMessage({
+        propertyId,
+        gatewayUrl: config.custom_gateway_url,
+        gatewayToken: config.custom_gateway_token,
+        method: config.custom_gateway_method,
+        payloadType: config.custom_gateway_payload_type,
+        phoneField: config.custom_gateway_phone_field,
+        messageField: config.custom_gateway_message_field,
+        headers: config.custom_gateway_headers,
         recipientPhone: rawPhone,
         recipientName,
         messageType,

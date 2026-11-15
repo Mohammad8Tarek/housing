@@ -415,10 +415,23 @@ export const CreateInventoryTicketBody = z.object({
 
 // ─── whatsapp.ts ─────────────────────────────────────────────────────────────
 export const WhatsAppConfigBody = z.object({
-  provider: z.enum(["meta_cloud", "baileys"]).optional(),
+  provider: z
+    .enum(["meta_cloud", "baileys", "ultramsg", "custom_gateway"])
+    .optional(),
   metaAccessToken: z.string().max(4096).optional(),
   metaPhoneNumberId: zText(64).optional(),
   metaWabaId: zText(64).optional(),
+  // UltraMsg
+  ultramsgInstanceId: zText(64).optional(),
+  ultramsgToken: z.string().max(4096).optional(),
+  // Custom HTTP gateway
+  customGatewayUrl: z.string().max(2048).optional(),
+  customGatewayToken: z.string().max(4096).optional(),
+  customGatewayMethod: z.enum(["GET", "POST"]).optional(),
+  customGatewayPayloadType: z.enum(["json", "form"]).optional(),
+  customGatewayPhoneField: zText(64).optional(),
+  customGatewayMessageField: zText(64).optional(),
+  customGatewayHeaders: z.string().max(4096).optional(),
   isAutoSendEnabled: optBool,
   welcomeTemplateAr: z.string().max(5000).optional(),
   welcomeTemplateEn: z.string().max(5000).optional(),
