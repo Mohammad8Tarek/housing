@@ -37,7 +37,6 @@ import {
   Paperclip,
   Plus,
   RotateCcw,
-  Handshake,
   ChevronDown,
   X,
   Eye,
@@ -290,7 +289,6 @@ export default function TicketDetailModal({
   const status = (ticket.status || "").toLowerCase();
   const canStart = status === "open";
   const canResolve = status === "in_progress";
-  const canDone = status === "resolved";
   const canReopen = status !== "open";
 
   const serviceLabel =
@@ -1014,21 +1012,6 @@ export default function TicketDetailModal({
                                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                                   <span>
                                     {ar ? "تم الحل والإنجاز" : "Resolve Ticket"}
-                                  </span>
-                                </DropdownMenuItem>
-                              )}
-                              {canDone && (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    onStatusChange(ticket.id, {
-                                      status: "closed",
-                                    })
-                                  }
-                                  className="gap-2 cursor-pointer font-medium text-slate-700 dark:text-slate-300"
-                                >
-                                  <Handshake className="w-3.5 h-3.5 text-blue-500" />
-                                  <span>
-                                    {ar ? "إغلاق التذكرة" : "Close Ticket"}
                                   </span>
                                 </DropdownMenuItem>
                               )}

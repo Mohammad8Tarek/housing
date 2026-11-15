@@ -317,7 +317,8 @@ export async function runSchedule(
     const today = cairoParts(new Date()).date;
     const [y, m, d] = today.split("-");
     const propertyName = prop?.displayName || prop?.name || "";
-    await createTransporter(smtp).sendMail({
+    const transporter = await createTransporter(smtp);
+    await transporter.sendMail({
       from:
         smtp.smtpFrom ||
         process.env.SMTP_FROM ||

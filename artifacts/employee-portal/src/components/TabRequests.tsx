@@ -269,7 +269,8 @@ export default function TabRequests() {
       const st = (r.status || "").toLowerCase();
       if (statusFilter === "open" && st !== "open") return false;
       if (statusFilter === "in_progress" && st !== "in_progress") return false;
-      if (statusFilter === "done" && !isRequestCompleted(r.status)) return false;
+      if (statusFilter === "done" && !isRequestCompleted(r.status))
+        return false;
       if (!q) return true;
       return [r.problemType, r.description, r.category, `#${r.id}`]
         .filter(Boolean)
@@ -539,7 +540,10 @@ export default function TabRequests() {
                               setForm((p) =>
                                 p.photos.length >= MAX_PHOTOS
                                   ? p
-                                  : { ...p, photos: [...p.photos, r.result as string] },
+                                  : {
+                                      ...p,
+                                      photos: [...p.photos, r.result as string],
+                                    },
                               );
                             r.readAsDataURL(file);
                           });
@@ -613,7 +617,9 @@ export default function TabRequests() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={isRtl ? "ابحث في طلباتي..." : "Search my requests..."}
+                placeholder={
+                  isRtl ? "ابحث في طلباتي..." : "Search my requests..."
+                }
                 aria-label={isRtl ? "بحث" : "Search"}
                 className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-surface border border-border2 text-[13px] text-foreground placeholder:text-muted2 focus:outline-none focus:border-accent2/50"
               />

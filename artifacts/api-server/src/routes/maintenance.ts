@@ -81,6 +81,105 @@ import {
 const router: Router = Router();
 const assignedProfile = aliasedTable(profilesTable, "assigned_profile");
 
+// ── Room status driven by tickets ────────────────────────────────────────────
+// Shared so create, status-change and delete all move the room the same way and
+// never clobber a manually set out_of_order room.
+
+/** A room's still-open tickets of one category (open / in_progress). */
+async function countOpenRoomTickets(
+  tenantDb: any,
+  roomId: number,
+  category: string,
+): Promise<number> {
+  const [row] = await tenantDb
+    .select({ count: sql<number>`count(*)` })
+    .from(maintenanceTable)
+    .where(
+      and(
+        eq(maintenanceTable.roomId, roomId),
+        eq(maintenanceTable.category, category),
+        or(
+          eq(maintenanceTable.status, "open"),
+          eq(maintenanceTable.status, "in_progress"),
+        ),
+      ),
+    );
+  return Number(row?.count || 0);
+}
+
+/**
+ * A room just gained an open ticket: reflect it in the room status.
+ * Maintenance -> out_of_service; housekeeping -> dirty/occupied_dirty.
+ * A manually out_of_order room is never overwritten.
+ */
+async function applyRoomStatusForOpenTicket(
+  tenantDb: any,
+  roomId: number,
+  category: string,
+): Promise<void> {
+  const [room] = await tenantDb
+    .select({
+      currentOccupancy: roomsTable.currentOccupancy,
+      status: roomsTable.status,
+    })
+    .from(roomsTable)
+    .where(eq(roomsTable.id, roomId))
+    .limit(1);
+  if (!room || room.status === "out_of_order") return;
+  const occupied = (room.currentOccupancy || 0) > 0;
+  if (category === "maintenance") {
+    if (room.status === "out_of_service") return;
+    await tenantDb
+      .update(roomsTable)
+      .set({ status: "out_of_service" })
+      .where(eq(roomsTable.id, roomId));
+  } else if (category === "housekeeping") {
+    if (room.status === "out_of_service") return;
+    await tenantDb
+      .update(roomsTable)
+      .set({ status: occupied ? "occupied_dirty" : "dirty" })
+      .where(eq(roomsTable.id, roomId));
+  }
+}
+
+/**
+ * A room's ticket was resolved, closed or deleted: once no open ticket of that
+ * category remains, return the room to the right state. Maintenance done leaves
+ * the room needing cleaning (dirty/occupied_dirty); housekeeping done makes it
+ * available/occupied. A manually out_of_order room (and, for housekeeping, an
+ * out_of_service room) is left untouched.
+ */
+async function applyRoomStatusAfterTicketDone(
+  tenantDb: any,
+  roomId: number,
+  category: string,
+): Promise<void> {
+  if (category !== "maintenance" && category !== "housekeeping") return;
+  if ((await countOpenRoomTickets(tenantDb, roomId, category)) > 0) return;
+  const [room] = await tenantDb
+    .select({
+      currentOccupancy: roomsTable.currentOccupancy,
+      status: roomsTable.status,
+    })
+    .from(roomsTable)
+    .where(eq(roomsTable.id, roomId))
+    .limit(1);
+  if (!room || room.status === "out_of_order") return;
+  const occupied = (room.currentOccupancy || 0) > 0;
+  if (category === "maintenance") {
+    await tenantDb
+      .update(roomsTable)
+      .set({ status: occupied ? "occupied_dirty" : "dirty" })
+      .where(eq(roomsTable.id, roomId));
+  } else {
+    if (room.status === "out_of_service") return;
+    await tenantDb
+      .update(roomsTable)
+      .set({ status: occupied ? "occupied" : "available" })
+      .where(eq(roomsTable.id, roomId));
+  }
+}
+
 /**
  * جلب العقارات المصرح للمستخدم الوصول إليها
  */
@@ -995,16 +1094,17 @@ router.get(
         return;
       }
       const date = (req.query.date as string) || cairoToday();
+      const lang = req.query.lang === "ar" ? "ar" : "en";
       const report = await buildDailyReport(propertyId, date);
       const format = (req.query.format as string) || "json";
       if (format === "html") {
-        res.type("html").send(renderDailyReportHtml(report));
+        res.type("html").send(renderDailyReportHtml(report, lang));
       } else if (format === "csv") {
         const [y, m, d] = date.split("-");
         res
           .type("text/csv; charset=utf-8")
           .attachment(`Maintenance_Daily_${d}-${m}-${y}.csv`)
-          .send(renderDailyReportCsv(report));
+          .send(renderDailyReportCsv(report, lang));
       } else {
         res.json({ success: true, ...report });
       }
@@ -1058,14 +1158,19 @@ router.post(
         propertyId,
         date,
         req.body.recipients,
+        req.body.lang,
       );
       if (!result.sent) {
-        res.status(400).json({
+        const message =
+          result.reason === "SMTP not configured"
+            ? "إعدادات البريد (SMTP) غير مكتملة / Email (SMTP) is not configured"
+            : result.reason === "SMTP send failed"
+              ? result.error ||
+                "تعذّر الاتصال بخادم البريد (SMTP) / Could not reach the mail server (SMTP)"
+              : "لا توجد إيميلات مستلمين / No recipient emails configured";
+        res.status(result.reason === "SMTP send failed" ? 422 : 400).json({
           success: false,
-          message:
-            result.reason === "SMTP not configured"
-              ? "إعدادات البريد (SMTP) غير مكتملة / Email (SMTP) is not configured"
-              : "لا توجد إيميلات مستلمين / No recipient emails configured",
+          message,
           ...result,
         });
         return;
@@ -1322,12 +1427,8 @@ router.post(
   requireAnyPermission(
     ["maintenance", "create"],
     ["maintenance", "edit"],
-    ["maintenance", "view"],
-    ["maintenance", "view_maintenance"],
     ["housekeeping", "create"],
     ["housekeeping", "edit"],
-    ["housekeeping", "view"],
-    ["maintenance", "view_housekeeping"],
   ),
   validate({ query: CommonListQuery }),
   async (req, res, next) => {
@@ -1341,15 +1442,11 @@ router.post(
       const userHasMntCreate =
         isSysAdmin ||
         hasPermission(user, "maintenance", "create") ||
-        hasPermission(user, "maintenance", "edit") ||
-        hasPermission(user, "maintenance", "view") ||
-        hasPermission(user, "maintenance", "view_maintenance");
+        hasPermission(user, "maintenance", "edit");
       const userHasHskCreate =
         isSysAdmin ||
         hasPermission(user, "housekeeping", "create") ||
-        hasPermission(user, "housekeeping", "edit") ||
-        hasPermission(user, "housekeeping", "view") ||
-        hasPermission(user, "maintenance", "view_housekeeping");
+        hasPermission(user, "housekeeping", "edit");
 
       const parsed = CreateMaintenanceBody.safeParse(req.body);
       if (!parsed.success) {
@@ -1458,33 +1555,12 @@ router.post(
               .limit(1);
             roomNum = rm?.roomNumber;
 
-            // إذا كان الطلب صيانة، نضع حالة الغرفة out_of_service
-            if (category === "maintenance") {
-              await tenantDb
-                .update(roomsTable)
-                .set({ status: "out_of_service" })
-                .where(eq(roomsTable.id, inserted[0].roomId));
-            } else if (category === "housekeeping") {
-              const [roomData] = await tenantDb
-                .select({
-                  currentOccupancy: roomsTable.currentOccupancy,
-                  status: roomsTable.status,
-                })
-                .from(roomsTable)
-                .where(eq(roomsTable.id, inserted[0].roomId))
-                .limit(1);
-              if (
-                roomData &&
-                roomData.status !== "out_of_service" &&
-                roomData.status !== "out_of_order"
-              ) {
-                const isOccupied = (roomData.currentOccupancy || 0) > 0;
-                await tenantDb
-                  .update(roomsTable)
-                  .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
-                  .where(eq(roomsTable.id, inserted[0].roomId));
-              }
-            }
+            // A new open ticket moves the room (never clobbers out_of_order).
+            await applyRoomStatusForOpenTicket(
+              tenantDb,
+              inserted[0].roomId,
+              category,
+            );
           }
 
           return { record: inserted[0], roomNumber: roomNum };
@@ -1563,12 +1639,8 @@ router.patch(
   "/maintenance/:id",
   requireAnyPermission(
     ["maintenance", "edit"],
-    ["maintenance", "view"],
-    ["maintenance", "view_maintenance"],
     ["housekeeping", "edit"],
-    ["housekeeping", "view"],
     ["housekeeping", "assign"],
-    ["maintenance", "view_housekeeping"],
   ),
   validate({
     params: IdParams,
@@ -1642,16 +1714,11 @@ router.patch(
 
       // التحقق من الصلاحيات حسب الفئة (تشمل صلاحيات العرض والتعامل)
       const userHasMntEdit =
-        isSysAdmin ||
-        hasPermission(user, "maintenance", "edit") ||
-        hasPermission(user, "maintenance", "view") ||
-        hasPermission(user, "maintenance", "view_maintenance");
+        isSysAdmin || hasPermission(user, "maintenance", "edit");
       const userHasHskEdit =
         isSysAdmin ||
         hasPermission(user, "housekeeping", "edit") ||
-        hasPermission(user, "housekeeping", "view") ||
-        hasPermission(user, "housekeeping", "assign") ||
-        hasPermission(user, "maintenance", "view_housekeeping");
+        hasPermission(user, "housekeeping", "assign");
 
       if (!isSysAdmin) {
         // Housekeeping requests sit inside the maintenance queue, so a user who
@@ -1679,7 +1746,7 @@ router.patch(
       // req.body is UpdateMaintenanceTicketBody: only editable fields remain.
       const updateData: Record<string, any> = { ...req.body };
       delete updateData.propertyId;
-      for (const k of ["startedAt", "resolvedAt"] as const) {
+      for (const k of ["startedAt", "resolvedAt", "dueDate"] as const) {
         if (k in updateData) {
           updateData[k] = updateData[k] ? new Date(updateData[k]) : null;
           if (updateData[k] && Number.isNaN(updateData[k].getTime())) {
@@ -1803,110 +1870,23 @@ router.patch(
             roomNum = rm?.roomNumber;
           }
 
-          // معالجة تغيير حالة الغرفة للصيانة والهاوس كيبنج
+          // A status change drives the room status, the same way for every
+          // path, guarding a manually out_of_order room.
           if (result[0]?.roomId && req.body.status) {
             const newStatus = req.body.status;
-            const isResolvedOrClosed =
-              newStatus === "resolved" || newStatus === "closed";
-            const isOpenOrProgress =
-              newStatus === "open" || newStatus === "in_progress";
-
-            if (result[0].category === "maintenance") {
-              if (isResolvedOrClosed) {
-                const [openTickets] = await tenantDb
-                  .select({ count: sql<number>`count(*)` })
-                  .from(maintenanceTable)
-                  .where(
-                    and(
-                      eq(maintenanceTable.roomId, result[0].roomId),
-                      or(
-                        eq(maintenanceTable.status, "open"),
-                        eq(maintenanceTable.status, "in_progress"),
-                      ),
-                      eq(maintenanceTable.category, "maintenance"),
-                    ),
-                  );
-
-                if (Number(openTickets?.count || 0) === 0) {
-                  const roomData = await tenantDb
-                    .select({ currentOccupancy: roomsTable.currentOccupancy })
-                    .from(roomsTable)
-                    .where(eq(roomsTable.id, result[0].roomId))
-                    .limit(1);
-
-                  const isOccupied = (roomData[0]?.currentOccupancy || 0) > 0;
-                  await tenantDb
-                    .update(roomsTable)
-                    .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
-                    .where(eq(roomsTable.id, result[0].roomId));
-                }
-              } else if (isOpenOrProgress) {
-                await tenantDb
-                  .update(roomsTable)
-                  .set({ status: "out_of_service" })
-                  .where(eq(roomsTable.id, result[0].roomId));
-              }
-            } else if (result[0].category === "housekeeping") {
-              if (isResolvedOrClosed) {
-                // عند إنجاز طلب النظافة والتأكد من عدم وجود طلبات نظافة أخرى مفتوحة للغرفة
-                const [openHsk] = await tenantDb
-                  .select({ count: sql<number>`count(*)` })
-                  .from(maintenanceTable)
-                  .where(
-                    and(
-                      eq(maintenanceTable.roomId, result[0].roomId),
-                      or(
-                        eq(maintenanceTable.status, "open"),
-                        eq(maintenanceTable.status, "in_progress"),
-                      ),
-                      eq(maintenanceTable.category, "housekeeping"),
-                    ),
-                  );
-
-                if (Number(openHsk?.count || 0) === 0) {
-                  const [roomData] = await tenantDb
-                    .select({
-                      currentOccupancy: roomsTable.currentOccupancy,
-                      status: roomsTable.status,
-                    })
-                    .from(roomsTable)
-                    .where(eq(roomsTable.id, result[0].roomId))
-                    .limit(1);
-
-                  if (
-                    roomData &&
-                    roomData.status !== "out_of_service" &&
-                    roomData.status !== "out_of_order"
-                  ) {
-                    const isOccupied = (roomData.currentOccupancy || 0) > 0;
-                    await tenantDb
-                      .update(roomsTable)
-                      .set({ status: isOccupied ? "occupied" : "available" })
-                      .where(eq(roomsTable.id, result[0].roomId));
-                  }
-                }
-              } else if (isOpenOrProgress) {
-                const [roomData] = await tenantDb
-                  .select({
-                    currentOccupancy: roomsTable.currentOccupancy,
-                    status: roomsTable.status,
-                  })
-                  .from(roomsTable)
-                  .where(eq(roomsTable.id, result[0].roomId))
-                  .limit(1);
-
-                if (
-                  roomData &&
-                  roomData.status !== "out_of_service" &&
-                  roomData.status !== "out_of_order"
-                ) {
-                  const isOccupied = (roomData.currentOccupancy || 0) > 0;
-                  await tenantDb
-                    .update(roomsTable)
-                    .set({ status: isOccupied ? "occupied_dirty" : "dirty" })
-                    .where(eq(roomsTable.id, result[0].roomId));
-                }
-              }
+            const cat = result[0].category;
+            if (newStatus === "resolved" || newStatus === "closed") {
+              await applyRoomStatusAfterTicketDone(
+                tenantDb,
+                result[0].roomId,
+                cat,
+              );
+            } else if (newStatus === "open" || newStatus === "in_progress") {
+              await applyRoomStatusForOpenTicket(
+                tenantDb,
+                result[0].roomId,
+                cat,
+              );
             }
           }
 
@@ -1923,9 +1903,15 @@ router.patch(
       const newlyAssigned = historyEvents.some(
         (e) => e.type === "assigned" && e.toValue,
       );
+      // A ticket reaching a "done" state (resolved or closed) asks the resident
+      // to rate it — closing directly should notify just like resolving.
+      const wasDone = ["resolved", "closed"].includes(
+        String(existingRecord.status ?? "").toLowerCase(),
+      );
       const nowResolved =
-        updateData.status === "resolved" &&
-        existingRecord.status !== "resolved";
+        ["resolved", "closed"].includes(
+          String(updateData.status ?? "").toLowerCase(),
+        ) && !wasDone;
       if (newlyAssigned || nowResolved) {
         void withTenant(targetPropertyId, async (tenantDb) => {
           if (newlyAssigned) {
@@ -2115,6 +2101,16 @@ router.delete(
           await tenantDb
             .delete(maintenanceTable)
             .where(eq(maintenanceTable.id, p.data.id));
+
+          // The deleted ticket may have held the room out_of_service / dirty;
+          // once no open ticket of its category remains, release the room.
+          if (existingRecord.roomId) {
+            await applyRoomStatusAfterTicketDone(
+              tenantDb,
+              existingRecord.roomId,
+              existingRecord.category,
+            );
+          }
 
           return { row: existingRecord, roomNumber: roomNum };
         },

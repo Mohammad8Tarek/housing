@@ -37,8 +37,14 @@ export const UpdateSettingsBody = z
     reportFooter: optText(2000),
     maintenanceReportEnabled: optBool,
     maintenanceReportEmails: optText(2000),
+    maintenanceReportLang: z.enum(["ar", "en"]).optional(),
+    maintenanceReportHour: optInt(0, 23),
+    maintenanceReportMinute: optInt(0, 59),
     housingReportEnabled: optBool,
     housingReportEmails: optText(2000),
+    housingReportLang: z.enum(["ar", "en"]).optional(),
+    housingReportHour: optInt(0, 23),
+    housingReportMinute: optInt(0, 59),
     portalContactEmail: optText(200),
     portalContactPhone: optText(50),
     portalContactExt: optText(20),
@@ -569,6 +575,21 @@ const bText = (max = 500) => z.string().max(max);
 const bScalar = (max = 500) =>
   z.union([z.string().max(max), z.number(), z.boolean()]);
 const bDate = z.string().max(40);
+// Timestamps the server owns: the route re-stamps started/resolved times on
+// status changes and coerces whatever it keeps with new Date(), dropping any
+// unparseable value. So accept an ISO/date string, an epoch number or null from
+// any client version, and quietly ignore anything else (object/bool) instead of
+// failing the whole request — the server fills in the correct time regardless.
+const bDateInput = z.preprocess(
+  (v) =>
+    typeof v === "string" || typeof v === "number" || v === null
+      ? v
+      : undefined,
+  z
+    .union([z.string().max(64), z.number()])
+    .nullable()
+    .optional(),
+);
 const bBool = z.union([
   z.boolean(),
   z.enum(["true", "false"]),
@@ -602,9 +623,9 @@ export const UpdateMaintenanceTicketBody = z.object({
   photoUrl: o(bDataUrl),
   workerId: o(bId),
   assignedTo: o(bId),
-  startedAt: o(bDate),
-  resolvedAt: o(bDate),
-  dueDate: o(bDate),
+  startedAt: bDateInput,
+  resolvedAt: bDateInput,
+  dueDate: bDateInput,
 });
 // POST /maintenance/:id/comments
 export const MaintenanceCommentBody = z.object({
@@ -618,6 +639,8 @@ export const MaintenanceDailyReportQuery = z
     propertyId: o(bId),
     date: ymd.optional(),
     format: z.enum(["html", "json", "csv"]).optional(),
+    // Override the configured report language for this preview/download.
+    lang: z.enum(["ar", "en"]).optional(),
   })
   .passthrough();
 export const MaintenanceDailyReportSendBody = z.object({
@@ -625,6 +648,8 @@ export const MaintenanceDailyReportSendBody = z.object({
   date: ymd.optional(),
   // Send to these addresses instead of the configured list (e.g. a test).
   recipients: z.array(z.string().email().max(200)).max(20).optional(),
+  // Override the configured report language for this send.
+  lang: z.enum(["ar", "en"]).optional(),
 });
 // Maintenance service catalogue
 export const MaintenanceServiceCreateBody = z.object({
