@@ -562,6 +562,13 @@ const bText = (max = 500) => z.string().max(max);
 const bScalar = (max = 500) =>
   z.union([z.string().max(max), z.number(), z.boolean()]);
 const bDate = z.string().max(40);
+// Timestamps the server coerces with new Date() and re-stamps itself (started/
+// resolved times). Accept an ISO/date string or an epoch number from any client
+// version; the route drops anything unparseable. Kept permissive on purpose.
+const bDateInput = z
+  .union([z.string().max(64), z.number()])
+  .nullable()
+  .optional();
 const bBool = z.union([
   z.boolean(),
   z.enum(["true", "false"]),
@@ -595,9 +602,9 @@ export const UpdateMaintenanceTicketBody = z.object({
   photoUrl: o(bDataUrl),
   workerId: o(bId),
   assignedTo: o(bId),
-  startedAt: o(bDate),
-  resolvedAt: o(bDate),
-  dueDate: o(bDate),
+  startedAt: bDateInput,
+  resolvedAt: bDateInput,
+  dueDate: bDateInput,
 });
 // POST /maintenance/:id/comments
 export const MaintenanceCommentBody = z.object({

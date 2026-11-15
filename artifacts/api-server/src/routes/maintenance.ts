@@ -1746,7 +1746,7 @@ router.patch(
       // req.body is UpdateMaintenanceTicketBody: only editable fields remain.
       const updateData: Record<string, any> = { ...req.body };
       delete updateData.propertyId;
-      for (const k of ["startedAt", "resolvedAt"] as const) {
+      for (const k of ["startedAt", "resolvedAt", "dueDate"] as const) {
         if (k in updateData) {
           updateData[k] = updateData[k] ? new Date(updateData[k]) : null;
           if (updateData[k] && Number.isNaN(updateData[k].getTime())) {
