@@ -71,12 +71,6 @@ export function TicketsBulkActions({
                       <span>{ar ? "تم الحل" : "Resolved"}</span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="closed">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                      <span>{ar ? "مغلقة" : "Closed"}</span>
-                    </div>
-                  </SelectItem>
                 </SelectContent>
               </Select>
             )}
