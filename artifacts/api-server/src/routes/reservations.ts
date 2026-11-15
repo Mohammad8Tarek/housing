@@ -49,6 +49,34 @@ import {
 
 const router: Router = Router();
 
+/**
+ * Block a non-system-admin from acting on a reservation that lives in a hotel
+ * they are not a member of. These handlers resolve the owning property from the
+ * reservation id (findReservationAcrossAllProperties) when it is not in the
+ * caller's own property, which would otherwise allow cross-hotel reads/writes.
+ * Returns false (and sends 403) when denied.
+ */
+function assertResvPropertyAccess(
+  req: any,
+  res: any,
+  propertyId: number,
+): boolean {
+  const authUser = req.authUser;
+  if (
+    authUser &&
+    !authUser.isSystemAdmin &&
+    Array.isArray(authUser.propertyIds) &&
+    authUser.propertyIds.length > 0 &&
+    !authUser.propertyIds.includes(propertyId)
+  ) {
+    res
+      .status(403)
+      .json({ error: "Access denied to this reservation's hotel" });
+    return false;
+  }
+  return true;
+}
+
 function toCamel(row: Record<string, any>): Record<string, any> {
   const out: Record<string, any> = {};
   for (const [k, v] of Object.entries(row)) {
@@ -548,6 +576,9 @@ router.get(
         res.status(404).json({ error: "Reservation not found" });
         return;
       }
+
+      if (!assertResvPropertyAccess(req, res, propertyId)) return;
+
       res.json({
         ...fmtReservation(reservation),
         propertyId,
@@ -596,6 +627,8 @@ router.patch(
         res.status(404).json({ error: "Reservation not found" });
         return;
       }
+
+      if (!assertResvPropertyAccess(req, res, propertyId)) return;
 
       const body = req.body as any;
       const updateData: Record<string, any> = { ...parsed.data };
@@ -719,6 +752,8 @@ router.delete(
         return;
       }
 
+      if (!assertResvPropertyAccess(req, res, propertyId)) return;
+
       await withTenant(propertyId, async (tenantDb) => {
         await tenantDb
           .delete(reservationsTable)
@@ -807,6 +842,8 @@ router.post(
         res.status(404).json({ error: "Reservation not found" });
         return;
       }
+
+      if (!assertResvPropertyAccess(req, res, propertyId)) return;
 
       const result = await withTenant(propertyId, async (tenantDb) => {
         const [current] = await tenantDb
@@ -1284,6 +1321,8 @@ router.patch(
       return;
     }
 
+    if (!assertResvPropertyAccess(req, res, propertyId)) return;
+
     const result = await withTenant(propertyId, async (tenantDb) => {
       const [reservation] = await tenantDb
         .select()
@@ -1415,6 +1454,8 @@ const handleCancelReservation = async (req: any, res: any): Promise<void> => {
       res.status(404).json({ error: "Reservation not found" });
       return;
     }
+
+    if (!assertResvPropertyAccess(req, res, propertyId)) return;
 
     const [updated] = await withTenant(propertyId, async (tenantDb) => {
       return await tenantDb
