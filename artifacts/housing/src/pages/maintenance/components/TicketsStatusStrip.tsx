@@ -184,7 +184,6 @@ export function TicketsStatusStrip({
                   : "text-muted-foreground hover:text-foreground"
               } ${isOnlyHousekeeping ? "cursor-default opacity-90" : ""}`}
             >
-              
               <span>{ar ? "أوردرات الهاوس كيبنج" : "Housekeeping"}</span>
               {isOnlyHousekeeping && (
                 <Badge

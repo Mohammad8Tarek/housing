@@ -231,7 +231,6 @@ export function renderAllocationTab(s: PoliciesSectionState) {
                 <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card">
                   <div className="space-y-0.5 pe-4">
                     <FormLabel className="text-xs font-bold flex items-center gap-1.5">
-                      
                       {ar
                         ? "التجميع التلقائي حسب القسم (Department Clustering)"
                         : "Auto Department Clustering"}

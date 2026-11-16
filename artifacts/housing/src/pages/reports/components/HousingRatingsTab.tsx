@@ -353,7 +353,6 @@ export function HousingRatingsTab({
               {stats.commentsCount}
             </div>
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
-              
               <span>
                 {ar
                   ? "ملاحظات سرية لتحسين الخدمات"

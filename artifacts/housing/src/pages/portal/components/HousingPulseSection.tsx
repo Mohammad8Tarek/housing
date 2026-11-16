@@ -1023,9 +1023,7 @@ export function HousingPulseSection() {
                     <span>{ar ? "نجوم (1 إلى 5)" : "5-Star Scale"}</span>
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    {ar
-                      ? "تقييم رقمي تدريجي"
-                      : "1 to 5 numeric stars"}
+                    {ar ? "تقييم رقمي تدريجي" : "1 to 5 numeric stars"}
                   </p>
                 </button>
               </div>
@@ -1204,7 +1202,6 @@ export function HousingPulseSection() {
 
           <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-foreground space-y-1.5">
             <div className="font-semibold flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
-              
               <span>
                 {ar ? "ماذا يحدث عند التأكيد؟" : "What happens next?"}
               </span>

@@ -601,7 +601,7 @@ export function RoomModals({
             {/* -- Section 4: Room Features -- */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-               {" "}
+                {" "}
                 {ar
                   ? "مزايا ومرافق الغرفة (Room Features)"
                   : "Room Features & Amenities"}

@@ -69,7 +69,7 @@ function Shell({
     >
       <div className="max-w-xl mx-auto">
         <div className="flex items-center justify-between mb-4">
-          <div className="text-[#C9A24D] font-extrabold text-xl tracking-wide">
+          <div className="text-[#2AA8AB] font-extrabold text-xl tracking-wide">
             SUNRISE
           </div>
           <button
@@ -230,7 +230,7 @@ export default function PublicSurvey() {
     return (
       <Shell ar={ar} onToggleLang={toggleLang}>
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="w-7 h-7 animate-spin text-[#C9A24D]" />
+          <Loader2 className="w-7 h-7 animate-spin text-[#2AA8AB]" />
         </div>
       </Shell>
     );
@@ -329,7 +329,7 @@ export default function PublicSurvey() {
       {sections.map((sec) => (
         <div key={sec.key} className="mb-5">
           {sec.key !== "__none__" && (
-            <div className="text-[#E2C37A] font-bold text-sm mb-2 px-1">
+            <div className="text-[#7FD0C4] font-bold text-sm mb-2 px-1">
               {ar ? sec.ar : sec.en}
             </div>
           )}
@@ -359,7 +359,7 @@ export default function PublicSurvey() {
                           }
                           className={`px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${
                             a.rating === s.v && !a.na
-                              ? "bg-[#C9A24D] text-[#0F2A44]"
+                              ? "bg-[#2AA8AB] text-[#0F2A44]"
                               : "bg-white/10 border border-white/15 text-white/80"
                           }`}
                         >
@@ -396,7 +396,7 @@ export default function PublicSurvey() {
                           }
                           className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${
                             a.rating === o.v
-                              ? "bg-[#C9A24D] text-[#0F2A44]"
+                              ? "bg-[#2AA8AB] text-[#0F2A44]"
                               : "bg-white/10 border border-white/15"
                           }`}
                         >
@@ -433,7 +433,7 @@ export default function PublicSurvey() {
       <button
         onClick={submit}
         disabled={submitting}
-        className="w-full bg-[#C9A24D] hover:bg-[#E2C37A] text-[#0F2A44] font-bold rounded-2xl py-4 flex items-center justify-center gap-2 disabled:opacity-60 mb-10"
+        className="w-full bg-[#2AA8AB] hover:bg-[#7FD0C4] text-[#0F2A44] font-bold rounded-2xl py-4 flex items-center justify-center gap-2 disabled:opacity-60 mb-10"
       >
         {submitting ? (
           <Loader2 className="w-5 h-5 animate-spin" />

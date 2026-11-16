@@ -18,7 +18,7 @@ export default defineConfig({
         short_name: "Sunrise Portal",
         description: "Manage your housing, requests, and documents",
         id: "/",
-        theme_color: "#f0a500",
+        theme_color: "#2AA8AB",
         background_color: "#0d0f14",
         display: "standalone",
         orientation: "portrait",

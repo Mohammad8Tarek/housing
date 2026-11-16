@@ -462,7 +462,6 @@ export default function Dashboard() {
       {!isAll && dashboardViewMode !== "comprehensive" && (
         <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-primary/5 border border-primary/20 text-xs text-primary font-medium">
           <div className="flex items-center gap-2">
-            
             <span>
               {dashboardViewMode === "operations"
                 ? ar

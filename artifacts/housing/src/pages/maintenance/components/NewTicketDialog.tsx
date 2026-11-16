@@ -221,7 +221,6 @@ export function NewTicketDialog({
                       : "bg-background hover:bg-muted/50 text-muted-foreground"
                   }`}
                 >
-                  
                   <span>{ar ? "هاوس كيبنج" : "Housekeeping"}</span>
                 </button>
                 {allowedCreateCategories.includes("general") && (
@@ -249,7 +248,6 @@ export function NewTicketDialog({
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/60 border text-xs font-semibold">
                 {form.category === "housekeeping" ? (
                   <>
-                    
                     <span>
                       {ar ? "طلب هاوس كيبنج ونظافة" : "Housekeeping Order"}
                     </span>
