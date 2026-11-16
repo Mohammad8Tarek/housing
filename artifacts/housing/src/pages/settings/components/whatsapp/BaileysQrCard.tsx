@@ -458,8 +458,8 @@ export function renderBaileysQrCard(s: WhatsAppSettingsSectionState) {
             <span className="font-bold text-foreground flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               {ar
-                ? "منظومة الحماية الذكية المتقدمة ضد الحظر (Anti-Ban Engine)"
-                : "Smart Anti-Ban Protection Suite"}
+                ? "نظام الحماية ضد الحظر (Anti-Ban Engine)"
+                : "Anti-Ban Protection Suite"}
             </span>
             <Badge
               variant="outline"

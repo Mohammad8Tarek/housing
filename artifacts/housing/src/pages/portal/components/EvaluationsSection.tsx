@@ -751,9 +751,9 @@ export function EvaluationsSection({
                                   </span>
                                   {item.ratingValue != null ? (
                                     <span className="flex items-center gap-0.5">
-                                      {"★".repeat(item.ratingValue)}
+                                      {"".repeat(item.ratingValue)}
                                       <span className="text-muted-foreground/30">
-                                        {"★".repeat(5 - item.ratingValue)}
+                                        {"".repeat(5 - item.ratingValue)}
                                       </span>{" "}
                                       <span className="font-bold">
                                         {item.ratingValue}/5

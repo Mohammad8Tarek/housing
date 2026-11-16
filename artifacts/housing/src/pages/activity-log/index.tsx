@@ -945,7 +945,7 @@ export default function ActivityLog() {
                                           : `Room: ${p.roomNumber}`
                                       }
                                     >
-                                      🚪 {p.roomNumber}
+                                      {p.roomNumber}
                                     </Badge>
                                   )}
                                   <p
@@ -1055,7 +1055,7 @@ export default function ActivityLog() {
                                     variant="outline"
                                     className="text-xs bg-muted/40 font-medium"
                                   >
-                                    🏨 {(selectedLog as any).propertyName}
+                                    {(selectedLog as any).propertyName}
                                   </Badge>
                                 )}
                               </div>
@@ -1121,7 +1121,7 @@ export default function ActivityLog() {
                                   {ar ? "رقم الغرفة:" : "Room Number:"}
                                 </p>
                                 <p className="font-mono font-bold text-blue-950 dark:text-blue-100 text-sm">
-                                  🚪 {detailsParsed.roomNumber}
+                                  {detailsParsed.roomNumber}
                                 </p>
                               </div>
                             ) : (

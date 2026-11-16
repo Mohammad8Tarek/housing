@@ -95,7 +95,7 @@ export function CheckinDialog({
                         </p>
                         {rec?.badgeLabelAr && (
                           <Badge className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 text-[10px] px-1.5 py-0 font-medium">
-                            🤖 {ar ? rec.badgeLabelAr : rec.badgeLabelEn}
+                            {ar ? rec.badgeLabelAr : rec.badgeLabelEn}
                           </Badge>
                         )}
                       </div>

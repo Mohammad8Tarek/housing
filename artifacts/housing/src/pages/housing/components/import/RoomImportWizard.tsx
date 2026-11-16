@@ -956,7 +956,7 @@ export function RoomImportWizard({
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-black text-sm text-foreground flex items-center gap-1.5">
-                      🆕 {ar ? "إنشاء جديد فقط" : "Create Only"}
+                      {ar ? "إنشاء جديد فقط" : "Create Only"}
                     </span>
                     {importMode === "create_only" && (
                       <CheckCircle2 className="w-5 h-5 text-primary" />

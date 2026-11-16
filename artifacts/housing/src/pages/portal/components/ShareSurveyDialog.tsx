@@ -1,6 +1,5 @@
 // Admin: make a survey template public and show its shareable link + QR code.
 import { useState } from "react";
-import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -37,14 +36,9 @@ export function ShareSurveyDialog({
       const data = await r.json();
       if (!r.ok || !data.success)
         throw new Error(data.message || "Failed to share");
-      const fullUrl = `${window.location.origin}${data.path}`;
-      setUrl(fullUrl);
-      const dataUrl = await QRCode.toDataURL(fullUrl, {
-        width: 320,
-        margin: 2,
-        color: { dark: "#0F2A44", light: "#ffffff" },
-      });
-      setQr(dataUrl);
+      // The server builds the URL against the resident portal and renders the QR.
+      setUrl(data.url || `${window.location.origin}${data.path}`);
+      if (data.qr) setQr(data.qr);
     } catch (e: any) {
       toast.error(
         e?.message || (ar ? "تعذّر إنشاء الرابط" : "Could not create link"),

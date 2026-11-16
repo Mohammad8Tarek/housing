@@ -538,18 +538,18 @@ export default function RequestDetails() {
                 <div className="text-sm font-bold text-foreground">
                   {ratingScore === 5 &&
                     (isRtl
-                      ? "⭐⭐⭐⭐⭐ ممتاز ومثالي"
-                      : "⭐⭐⭐⭐⭐ Excellent Service")}
+                      ? "ممتاز ومثالي"
+                      : "Excellent Service")}
                   {ratingScore === 4 &&
-                    (isRtl ? "⭐⭐⭐⭐ جيد جداً ومحترف" : "⭐⭐⭐⭐ Very Good")}
+                    (isRtl ? "جيد جداً ومحترف" : "Very Good")}
                   {ratingScore === 3 &&
                     (isRtl
-                      ? "⭐⭐⭐ مقبول وبحاجة لبعض التحسين"
-                      : "⭐⭐⭐ Average")}
+                      ? "مقبول وبحاجة لبعض التحسين"
+                      : "Average")}
                   {ratingScore === 2 &&
-                    (isRtl ? "⭐⭐ ضعيف وتأخر في الحل" : "⭐⭐ Poor / Delayed")}
+                    (isRtl ? "ضعيف وتأخر في الحل" : "Poor / Delayed")}
                   {ratingScore === 1 &&
-                    (isRtl ? "⭐ غير مرضٍ تماماً" : "⭐ Very Unsatisfactory")}
+                    (isRtl ? "غير مرضٍ تماماً" : "Very Unsatisfactory")}
                 </div>
               </div>
 

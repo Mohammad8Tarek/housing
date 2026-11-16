@@ -241,7 +241,7 @@ export function MaintenanceDualTrackReportRibbon({
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            <Sparkles className="w-3.5 h-3.5 ltr:mr-1.5 rtl:ml-1.5" />
+            
             {ar ? "الهاوس كيبنج" : "Housekeeping"}
           </Button>
         </div>
@@ -373,7 +373,7 @@ export function MaintenanceDualTrackReportRibbon({
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400">
-                  <Sparkles className="w-4 h-4" />
+                  
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-foreground">

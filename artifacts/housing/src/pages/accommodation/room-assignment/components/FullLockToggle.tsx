@@ -47,14 +47,14 @@ export function FullLockToggle({
               </span>
               {isEntireRoom && (
                 <Badge className="bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-extrabold px-2 py-0.5 shadow-2xs">
-                  {ar ? "🔒 Full Lock مفعل" : "🔒 Full Lock Active"}
+                  {ar ? "Full Lock مفعل" : "Full Lock Active"}
                 </Badge>
               )}
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
               {selectedRoom.currentOccupancy > 0
                 ? ar
-                  ? "⚠️ لا يمكن عمل Full Lock لوجود نزلاء حاليين بالغرفة. الغرفة متاحة فقط للتسكين المشترك على الأسِرّة الشاغرة."
+                  ? "لا يمكن عمل Full Lock لوجود نزلاء حاليين بالغرفة. الغرفة متاحة فقط للتسكين المشترك على الأسِرّة الشاغرة."
                   : "Cannot apply Full Lock: room already has active occupants."
                 : isEntireRoom
                   ? ar

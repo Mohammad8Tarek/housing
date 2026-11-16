@@ -1007,7 +1007,7 @@ export default function Dashboard() {
                           fontSize: "13px",
                         }}
                       >
-                        📞 {c.phone}
+                        {c.phone}
                         {c.extension ? ` (${c.extension})` : ""}
                       </a>
                     )}
@@ -1023,7 +1023,7 @@ export default function Dashboard() {
                           fontSize: "13px",
                         }}
                       >
-                        📧 {c.email}
+                        {c.email}
                       </a>
                     )}
                   </div>

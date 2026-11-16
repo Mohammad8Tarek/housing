@@ -321,7 +321,7 @@ export function JobTitlesImportDialog({
                   variant="outline"
                   className="text-[10px] bg-primary/10 text-primary border-primary/20"
                 >
-                  {ar ? "ثنائي اللغة بدون تكرار" : "Bilingual Smart Import"}
+                  {ar ? "ثنائي اللغة بدون تكرار" : "Bilingual Import"}
                 </Badge>
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">

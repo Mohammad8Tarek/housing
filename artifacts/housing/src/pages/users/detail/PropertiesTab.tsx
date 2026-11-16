@@ -172,7 +172,7 @@ export function renderPropertiesTab(s: UserDetailPageState) {
                         variant="outline"
                         className="text-[10px] border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold"
                       >
-                        ★ {ar ? "الفرع الأساسي" : "Primary"}
+                        {ar ? "الفرع الأساسي" : "Primary"}
                       </Badge>
                     )}
                   </div>

@@ -358,7 +358,7 @@ export function RoomDetailsDialog({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {/* 🔒 Status editing is restricted to the Housekeeping page */}
+              {/* Status editing is restricted to the Housekeeping page */}
             </div>
           </div>
           {statusNorm(room.status) === "occupied_vacation" && (
@@ -562,7 +562,7 @@ export function RoomDetailsDialog({
                     key={fIdx}
                     className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 flex items-center gap-1"
                   >
-                    <Sparkles className="w-3 h-3 text-primary/70" />
+                    
                     {String(feat).trim()}
                   </span>
                 ),

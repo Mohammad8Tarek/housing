@@ -620,7 +620,7 @@ export default function RoomServiceLandingPage() {
                           onClick={() => setPriority("urgent")}
                           className="h-7 text-[11px] px-2.5 font-semibold"
                         >
-                          {ar ? "طارئ ⚡" : "Urgent ⚡"}
+                          {ar ? "طارئ" : "Urgent"}
                         </Button>
                       </div>
                     </div>

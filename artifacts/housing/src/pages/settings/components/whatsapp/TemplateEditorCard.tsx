@@ -72,7 +72,7 @@ export function renderTemplateEditorCard(s: WhatsAppSettingsSectionState) {
               <Globe className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
               <span>
                 {ar
-                  ? "تحديد اللغة ذكي وتلقائي: ترسل الرسالة بالعربية للجنسيات المصرية والعربية، وبالإنجليزية للجنسيات الأجنبية"
+                  ? "تحديد اللغة تلقائي: ترسل الرسالة بالعربية للجنسيات المصرية والعربية، وبالإنجليزية للجنسيات الأجنبية"
                   : "Auto-Language: Dispatched in Arabic for Egyptian & Arab nationalities, and in English for foreign nationalities"}
               </span>
             </div>
@@ -149,7 +149,7 @@ export function renderTemplateEditorCard(s: WhatsAppSettingsSectionState) {
         {/* Quick Variable Insert Chips */}
         <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border">
           <div className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            
             <span>
               {ar
                 ? `انقر على أي متغير لإدراجه في موضع المؤشر (${templateCategory === "checkin" ? "قالب التسكين" : "قالب الحجز"}):`
@@ -187,10 +187,10 @@ export function renderTemplateEditorCard(s: WhatsAppSettingsSectionState) {
         >
           <TabsList className="w-full max-w-xs mb-3">
             <TabsTrigger value="ar" className="flex-1">
-              🇪🇬 {ar ? "القالب العربي" : "Arabic Template"}
+              {ar ? "القالب العربي" : "Arabic Template"}
             </TabsTrigger>
             <TabsTrigger value="en" className="flex-1">
-              🇬🇧 {ar ? "القالب الإنجليزي" : "English Template"}
+              {ar ? "القالب الإنجليزي" : "English Template"}
             </TabsTrigger>
           </TabsList>
 
@@ -317,11 +317,11 @@ export function renderTemplateEditorCard(s: WhatsAppSettingsSectionState) {
               <span className="text-[11px] text-muted-foreground mt-2">
                 {ar
                   ? templateCategory === "checkin"
-                    ? "📱 معاينة حية لشاشة هاتف الموظف فور التسكين"
-                    : "📱 معاينة حية لرسالة تأكيد الحجز المسبق"
+                    ? "معاينة حية لشاشة هاتف الموظف فور التسكين"
+                    : "معاينة حية لرسالة تأكيد الحجز المسبق"
                   : templateCategory === "checkin"
-                    ? "📱 Live mobile preview upon check-in"
-                    : "📱 Live mobile preview upon reservation confirmation"}
+                    ? "Live mobile preview upon check-in"
+                    : "Live mobile preview upon reservation confirmation"}
               </span>
             </div>
           </div>

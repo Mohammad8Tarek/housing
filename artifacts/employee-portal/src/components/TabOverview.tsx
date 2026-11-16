@@ -331,30 +331,30 @@ export default function TabOverview({
                     {selectedHousingScore === 5 && (
                       <span className="text-emerald-600 dark:text-emerald-400">
                         {isRtl
-                          ? "⭐⭐⭐⭐⭐ ممتاز جداً"
-                          : "⭐⭐⭐⭐⭐ Excellent"}
+                          ? "ممتاز جداً"
+                          : "Excellent"}
                       </span>
                     )}
                     {selectedHousingScore === 4 && (
                       <span className="text-emerald-500">
-                        {isRtl ? "⭐⭐⭐⭐ جيد جداً" : "⭐⭐⭐⭐ Very Good"}
+                        {isRtl ? "جيد جداً" : "Very Good"}
                       </span>
                     )}
                     {selectedHousingScore === 3 && (
                       <span className="text-amber-500">
                         {isRtl
-                          ? "⭐⭐⭐ مقبول / متوسط"
-                          : "⭐⭐⭐ Average / Fair"}
+                          ? "مقبول / متوسط"
+                          : "Average / Fair"}
                       </span>
                     )}
                     {selectedHousingScore === 2 && (
                       <span className="text-rose-400">
-                        {isRtl ? "⭐⭐ ضعيف" : "⭐⭐ Poor"}
+                        {isRtl ? "ضعيف" : "Poor"}
                       </span>
                     )}
                     {selectedHousingScore === 1 && (
                       <span className="text-rose-600 dark:text-rose-400">
-                        {isRtl ? "⭐ سيء جداً" : "⭐ Very Poor"}
+                        {isRtl ? "سيء جداً" : "Very Poor"}
                       </span>
                     )}
                     {!selectedHousingScore && (

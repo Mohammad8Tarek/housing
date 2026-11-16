@@ -422,7 +422,7 @@ export function ManagerFlashTab({
               <span className="text-xs font-medium text-muted-foreground">
                 {ar ? "غرف بانتظار النظافة" : "Dirty Rooms"}
               </span>
-              <Sparkles className="w-4 h-4 text-rose-500" />
+              
             </div>
             <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
               {metrics.vacantDirty + metrics.occupiedDirty}

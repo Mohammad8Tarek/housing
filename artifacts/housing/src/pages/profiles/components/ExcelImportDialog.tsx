@@ -1316,8 +1316,8 @@ export function ExcelImportDialog({
                   </p>
                   <p className="text-xs text-blue-600 dark:text-blue-400">
                     {ar
-                      ? "يدعم النظام الاستيراد الذكي (Smart Upsert): الموظفون الجدد يضافون تلقائياً، والمسجلون مسبقاً يتم تحديث بياناتهم، والسجلات المتطابقة يتم تخطيها تلقائياً."
-                      : "Supports Smart Upsert: New profiles are inserted, existing profiles updated, and duplicate records safely skipped."}
+                      ? "يدعم النظام الاستيراد الموحّد (Upsert): الموظفون الجدد يضافون تلقائياً، والمسجلون مسبقاً يتم تحديث بياناتهم، والسجلات المتطابقة يتم تخطيها تلقائياً."
+                      : "Supports Upsert import: New profiles are inserted, existing profiles updated, and duplicate records safely skipped."}
                   </p>
                 </div>
                 <Button

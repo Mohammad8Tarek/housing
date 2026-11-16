@@ -274,9 +274,9 @@ export function RoomQrModal({
               <div class="inst-ar">امسح الرمز بكاميرا الجوال لطلب الصيانة أو النظافة</div>
               <div class="inst-en">Scan with phone camera to request Maintenance or Housekeeping</div>
               <div class="service-tags">
-                <span>🔧 صيانة (Maintenance)</span>
+                <span>صيانة (Maintenance)</span>
                 <span>•</span>
-                <span>🧹 نظافة (Housekeeping)</span>
+                <span>نظافة (Housekeeping)</span>
               </div>
             </div>
           </div>
@@ -309,8 +309,8 @@ export function RoomQrModal({
           </DialogTitle>
           <DialogDescription className="text-xs">
             {ar
-              ? "رمز مسح ذكي يوضع على باب الغرفة لتمكين النزلاء والمشرفين من طلب الصيانة والنظافة فورياً"
-              : "Smart QR code placed on the room door for instant maintenance and housekeeping requests"}
+              ? "رمز QR يوضع على باب الغرفة لتمكين النزلاء والمشرفين من طلب الصيانة والنظافة فورياً"
+              : "QR code placed on the room door for instant maintenance and housekeeping requests"}
           </DialogDescription>
         </DialogHeader>
 

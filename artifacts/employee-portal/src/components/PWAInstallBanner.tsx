@@ -204,8 +204,8 @@ export default function PWAInstallBanner({
                 <Share className="w-3.5 h-3.5 text-[#DFBF70] shrink-0" />
                 <span>
                   {isRtl
-                    ? "1. اضغط على زر المشاركة (⬆) أسفل شاشة المتصفح"
-                    : "1. Tap the Share button (⬆) at the bottom"}
+                    ? "1. اضغط على زر المشاركة () أسفل شاشة المتصفح"
+                    : "1. Tap the Share button () at the bottom"}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-white/70 ps-1">

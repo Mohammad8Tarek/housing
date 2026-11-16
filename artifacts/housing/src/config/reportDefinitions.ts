@@ -764,7 +764,7 @@ export const GATE_SECURITY_COLUMNS: ReportColumnDef[] = [
 ];
 
 // 16. TOURISM POLICE MANIFEST
-// ⚠ OFFICIAL GOVERNMENT DOCUMENT — Egyptian Tourism Police format
+// OFFICIAL GOVERNMENT DOCUMENT — Egyptian Tourism Police format
 // Orientation: PORTRAIT — matches standard A4 form layout
 // DO NOT change column order — this matches the official paper form sequence
 // Print header must include: Property name, license number, date, report period
@@ -990,7 +990,7 @@ export const MAINTENANCE_COLUMNS: ReportColumnDef[] = [
     headerAr: "التقييم",
     type: "text-short",
     format: (v) =>
-      v ? (String(v).includes("★") ? String(v) : `${v}/5 ★`) : "—",
+      v ? (String(v).includes("") ? String(v) : `${v}/5`) : "—",
   },
   { key: "status", header: "Status", headerAr: "الحالة", type: "status" },
 ];
@@ -1116,18 +1116,18 @@ export const SERVICE_QUALITY_COLUMNS: ReportColumnDef[] = [
   },
   {
     key: "excellent",
-    header: "⭐⭐⭐⭐⭐ Exc.",
+    header: "Exc.",
     headerAr: "ممتاز",
     type: "number",
   },
   {
     key: "good",
-    header: "⭐⭐⭐⭐ Good",
+    header: "Good",
     headerAr: "جيد جداً",
     type: "number",
   },
-  { key: "fair", header: "⭐⭐⭐ Fair", headerAr: "مقبول", type: "number" },
-  { key: "poor", header: "⭐⭐ Poor", headerAr: "ضعيف", type: "number" },
+  { key: "fair", header: "Fair", headerAr: "مقبول", type: "number" },
+  { key: "poor", header: "Poor", headerAr: "ضعيف", type: "number" },
   {
     key: "satisfactionPct",
     header: "Satisfaction",
@@ -1194,7 +1194,7 @@ export const GUEST_HOSTINGS_COLUMNS: ReportColumnDef[] = [
 
 // 23. HOUSING MAP & STRUCTURE
 // 23. HOUSING MAP & STRUCTURE
-// ⚠ HYBRID EXPORT — visual map + tabular inventory with resident bed allocations
+// HYBRID EXPORT — visual map + tabular inventory with resident bed allocations
 // Orientation: LANDSCAPE for the table section
 // Use html2canvas to capture the visual map, then append this table below it in PDF
 export const HOUSING_MAP_COLUMNS: ReportColumnDef[] = [

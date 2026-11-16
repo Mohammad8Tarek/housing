@@ -39,7 +39,7 @@ export function StarBar({ distribution }: { distribution: number[] }) {
     <div className="space-y-1">
       {[5, 4, 3, 2, 1].map((star) => (
         <div key={star} className="flex items-center gap-1.5 text-xs">
-          <span className="w-3 text-amber-500">★</span>
+          <span className="w-3 text-amber-500"></span>
           <span className="w-3 text-muted-foreground">{star}</span>
           <div className="flex-1 h-3 bg-muted/30 rounded overflow-hidden">
             <div

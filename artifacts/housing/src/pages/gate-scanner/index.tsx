@@ -350,8 +350,8 @@ export default function GateScannerPage() {
               </h1>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {isAr
-                  ? "فحص وتصريح الدخول الذكي عبر الـ QR Code وتسجيل حركات النزلاء"
-                  : "Smart QR access control, pass verification and resident movement logging"}
+                  ? "فحص وتصريح الدخول عبر الـ QR Code وتسجيل حركات النزلاء"
+                  : "QR access control, pass verification and resident movement logging"}
               </p>
             </div>
           </div>

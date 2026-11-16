@@ -376,7 +376,7 @@ export function WizardStepRoomSelection({
                       </span>
                     ) : isSingleOccRoom ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 truncate max-w-full">
-                        <span>⚠️</span>
+                        <span></span>
                         <span className="truncate">
                           {ar
                             ? "شخص بمفرده (مسموح بالصلاحية)"

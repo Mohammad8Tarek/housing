@@ -241,7 +241,7 @@ export default function PublicSurvey() {
         <div className="bg-white/10 border border-white/15 rounded-3xl p-8 text-center mt-10">
           <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
           <h2 className="text-xl font-bold mb-2">
-            {ar ? "شكراً لمشاركتك! 🎉" : "Thank you for your feedback! 🎉"}
+            {ar ? "شكراً لمشاركتك!" : "Thank you for your feedback!"}
           </h2>
           <p className="text-white/70 text-sm">
             {ar

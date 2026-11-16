@@ -281,7 +281,7 @@ export function RoomMovesTab({
     if (c === "REQUEST") {
       return (
         <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[11px] gap-1 font-medium">
-          <Sparkles className="w-3 h-3" />
+          
           <span>{ar ? "طلب شخصي" : "Personal Request"}</span>
         </Badge>
       );

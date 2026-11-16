@@ -416,8 +416,8 @@ export function renderProfileTab(s: UserDetailPageState) {
                     onClick={handleGeneratePassword}
                     className="text-xs text-[#C9A24D] hover:text-[#b08e40] font-bold p-0 h-auto"
                   >
-                    <Sparkles className="w-3.5 h-3.5 me-1" />
-                    {ar ? "توليد ذكي عشوائي" : "Generate Strong"}
+                    
+                    {ar ? "توليد عشوائي قوي" : "Generate Strong"}
                   </Button>
                 </div>
 

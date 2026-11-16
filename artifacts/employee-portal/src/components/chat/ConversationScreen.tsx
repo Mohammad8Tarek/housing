@@ -396,8 +396,8 @@ export function renderConversationScreen(
                   ? "لا توجد رسائل مطابقة للبحث"
                   : "No matching messages"
                 : isRtl
-                  ? "🔒 الرسائل مشفرة داخل نظام السكن. ابدأ المحادثة الآن!"
-                  : "🔒 Messages are encrypted inside housing system. Start chatting!"}
+                  ? "الرسائل مشفرة داخل نظام السكن. ابدأ المحادثة الآن!"
+                  : "Messages are encrypted inside housing system. Start chatting!"}
             </span>
           </div>
         ) : (
@@ -428,7 +428,7 @@ export function renderConversationScreen(
                     }}
                   >
                     {isAdmin
-                      ? "⚙️"
+                      ? ""
                       : getParticipantName(msg.senderId, activeConv)
                           .charAt(0)
                           .toUpperCase()}
@@ -1070,8 +1070,8 @@ export function renderConversationScreen(
                   if ("vibrate" in navigator) navigator.vibrate(60);
                   toast.success(
                     isRtl
-                      ? "🎙️ تم بدء تسجيل صوتي تجريبي"
-                      : "🎙️ Voice recording simulated",
+                      ? "تم بدء تسجيل صوتي تجريبي"
+                      : "Voice recording simulated",
                   );
                 }}
                 className="w-11 h-11 rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all flex-shrink-0"

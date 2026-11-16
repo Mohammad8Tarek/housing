@@ -220,7 +220,7 @@ export function renderMatrixHeader(
               <div className="flex items-center gap-1.5 flex-wrap">
                 {diffStats.customGranted > 0 && (
                   <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-xs py-0.5 px-2 font-bold gap-1">
-                    <Sparkles className="w-3 h-3" />+{diffStats.customGranted}{" "}
+                    +{diffStats.customGranted}{" "}
                     {ar ? "منح مخصص" : "custom"}
                   </Badge>
                 )}

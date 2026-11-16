@@ -56,7 +56,7 @@ export function renderUsersFilters(s: UsersPageState) {
                 : "bg-muted/50 text-muted-foreground border-border hover:bg-muted hover:text-foreground"
             }`}
           >
-            <Sparkles className="w-3 h-3 text-[#C9A24D]" />
+            
             <span>
               {stats.customPermissionTotal}{" "}
               {ar ? "صلاحية مخصصة" : "custom permissions"}

@@ -564,7 +564,7 @@ export function HousekeepingTab({
     <div className="space-y-6">
       {/* ── 1. STATS ROW (5 INTERACTIVE CARDS) ── */}
       <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-        {/* 🏢 Total Rooms */}
+        {/* Total Rooms */}
         <div
           onClick={() => setStatusFilter("all")}
           className={`cursor-pointer p-4 rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:shadow-md ${
@@ -589,7 +589,7 @@ export function HousekeepingTab({
           </p>
         </div>
 
-        {/* 🟢 Clean & Ready */}
+        {/* Clean & Ready */}
         <div
           onClick={() => setStatusFilter("clean")}
           className={`cursor-pointer p-4 rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:shadow-md border-emerald-200/80 dark:border-emerald-900/40 bg-gradient-to-br from-emerald-50/40 to-background dark:from-emerald-950/10 ${
@@ -614,7 +614,7 @@ export function HousekeepingTab({
           </p>
         </div>
 
-        {/* 🔵 Occupied Clean */}
+        {/* Occupied Clean */}
         <div
           onClick={() => setStatusFilter("occupied")}
           className={`cursor-pointer p-4 rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:shadow-md border-blue-200/80 dark:border-blue-900/40 bg-gradient-to-br from-blue-50/40 to-background dark:from-blue-950/10 ${
@@ -639,7 +639,7 @@ export function HousekeepingTab({
           </p>
         </div>
 
-        {/* 🟠 Needs Cleaning (Dirty Vacant + Occupied Dirty) */}
+        {/* Needs Cleaning (Dirty Vacant + Occupied Dirty) */}
         <div
           onClick={() => setStatusFilter("needs_cleaning")}
           className={`cursor-pointer p-4 rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:shadow-md border-orange-200/80 dark:border-orange-900/40 bg-gradient-to-br from-orange-50/40 to-background dark:from-orange-950/10 ${
@@ -667,7 +667,7 @@ export function HousekeepingTab({
           </p>
         </div>
 
-        {/* ⚪ Out of Service / Order */}
+        {/* Out of Service / Order */}
         <div
           onClick={() => setStatusFilter("out_of_service")}
           className={`cursor-pointer p-4 rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:shadow-md border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50/50 to-background dark:from-slate-900/20 ${
@@ -1052,7 +1052,7 @@ export function HousekeepingTab({
                               }
                             >
                               <span className="flex items-center gap-1">
-                                <Sparkles className="w-3 h-3 text-teal-500" />
+                                
                                 {ar ? "فحص" : "Inspect"}
                               </span>
                             </Button>
@@ -1097,7 +1097,7 @@ export function HousekeepingTab({
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               ) : (
                                 <span className="flex items-center gap-1">
-                                  <Sparkles className="w-3.5 h-3.5" />
+                                  
                                   {ar ? "إتمام وفحص" : "Done & Inspect"}
                                 </span>
                               )}

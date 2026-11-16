@@ -47,7 +47,7 @@ export function renderRolePresetsBar(
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b pb-4">
         <div className="space-y-1.5 flex-1">
           <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#C9A24D]" />
+            
             <span>
               {ar
                 ? "قوالب الأدوار السريعة (تطبيق بنقرة واحدة)"

@@ -180,14 +180,14 @@ export function useWebSocket(): { isConnected: boolean } {
       ws.onopen = () => {
         setIsConnected(true);
         attemptsRef.current = 0;
-        console.info("[WS] ✅ Connected successfully");
+        console.info("[WS] Connected successfully");
       };
 
       ws.onmessage = ({ data }) => {
         try {
           const msg = JSON.parse(data as string);
           console.info(
-            "[WS] 📩 Message received:",
+            "[WS] Message received:",
             msg.type,
             "| module:",
             msg.module,
@@ -196,7 +196,7 @@ export function useWebSocket(): { isConnected: boolean } {
           );
 
           if (msg.type === "SYNC_DATA") {
-            console.info("[WS] 🔄 SYNC_DATA — invalidating all queries");
+            console.info("[WS] SYNC_DATA — invalidating all queries");
             invalidateAll();
           } else if (msg.type === "notification" && msg.data) {
             const targetUserId = Number(msg.data.targetUserId);
@@ -204,7 +204,7 @@ export function useWebSocket(): { isConnected: boolean } {
 
             if (!isForCurrentUser) {
               console.info(
-                "[WS] 🔕 Notification filtered out for another user",
+                "[WS] Notification filtered out for another user",
                 {
                   targetUserId,
                   currentUserId: user?.id,
@@ -213,7 +213,7 @@ export function useWebSocket(): { isConnected: boolean } {
               return;
             }
 
-            console.info("[WS] 🔔 New Custom Notification Received");
+            console.info("[WS] New Custom Notification Received");
             toastRef.current(
               arRef.current
                 ? msg.data.titleAr || msg.data.title
@@ -227,7 +227,7 @@ export function useWebSocket(): { isConnected: boolean } {
             invalidateModule("notifications");
           } else if (msg.module || msg.type === "data_updated") {
             const targetMod = msg.module || "all";
-            console.info(`[WS] 🔔 ${targetMod}/${msg.action} — invalidating`);
+            console.info(`[WS] ${targetMod}/${msg.action} — invalidating`);
             if (msg.module) {
               invalidateModule(msg.module as string);
             } else {

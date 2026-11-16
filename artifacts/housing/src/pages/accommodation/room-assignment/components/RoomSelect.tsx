@@ -100,7 +100,7 @@ export function RoomSelect({
                     </span>
                     {recommendation?.recommendedMap[r.id]?.levelMatch && (
                       <span className="text-[10px] px-1.5 py-0.2 rounded font-extrabold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-400 flex items-center gap-1">
-                        <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                        
                         {ar
                           ? recommendation.recommendedMap[r.id].badgeLabelAr
                           : recommendation.recommendedMap[r.id].badgeLabelEn}

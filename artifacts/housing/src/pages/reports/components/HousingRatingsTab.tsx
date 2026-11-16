@@ -341,7 +341,7 @@ export function HousingRatingsTab({
               {stats.commentsCount}
             </div>
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+              
               <span>
                 {ar
                   ? "ملاحظات سرية لتحسين الخدمات"

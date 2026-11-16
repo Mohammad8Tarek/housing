@@ -50,39 +50,39 @@ interface BroadcastWhatsAppDialogProps {
 
 const PRESET_MESSAGES = [
   {
-    titleAr: "تنبيه صيانة دورية 🔧",
-    titleEn: "Maintenance Notice 🔧",
-    textAr: `عزيزي الزميل/ {name} 🌴
+    titleAr: "تنبيه صيانة دورية",
+    titleEn: "Maintenance Notice",
+    textAr: `عزيزي الزميل/ {name}
 نود إحاطتك علماً بوجود أعمال صيانة دورية مجدولة في {building}، غرفة {room}.
 نرجو التكرم بالتعاون وتسهيل مهمة فريق الصيانة.
 شاكرين لكم حسن تعاونكم.
 إدارة سكن {property}`,
-    textEn: `Dear {name} 🌴
+    textEn: `Dear {name}
 Please be advised that scheduled maintenance will take place in {building}, Room {room}.
 Thank you for your kind cooperation.
 {property} Housing Management`,
   },
   {
-    titleAr: "تعليمات الهاوس كيبنج 🧹",
-    titleEn: "Housekeeping Alert 🧹",
-    textAr: `عزيزي الزميل/ {name} 🌴
+    titleAr: "تعليمات الهاوس كيبنج",
+    titleEn: "Housekeeping Alert",
+    textAr: `عزيزي الزميل/ {name}
 تذكير بموعد النظافة الدورية الأسبوعية لغرفة {room} غداً.
 يُرجى ترتيب المتعلقات الشخصية لتسهيل عمل فريق الهاوس كيبنج.
-نتمنى لك إقامة طيبة! ✨
+نتمنى لك إقامة طيبة!
 إدارة سكن {property}`,
-    textEn: `Dear {name} 🌴
+    textEn: `Dear {name}
 Reminder of the scheduled weekly room cleaning for Room {room} tomorrow.
 Please organize personal belongings to facilitate the housekeeping team's task.
 {property} Housing Management`,
   },
   {
-    titleAr: "إشعار إداري عام 📢",
-    titleEn: "General Notice 📢",
-    textAr: `عزيزي الزميل/ {name} 🌴
+    titleAr: "إشعار إداري عام",
+    titleEn: "General Notice",
+    textAr: `عزيزي الزميل/ {name}
 نحيطكم علماً بضرورة الالتزام بالتعليمات والهدوء داخل {building} للحفاظ على راحة جميع الزملاء.
 شاكرين لكم تفهمكم وحسن تعاونكم الدائم.
 إدارة سكن {property}`,
-    textEn: `Dear {name} 🌴
+    textEn: `Dear {name}
 Please adhere to housing regulations and quiet hours in {building} for everyone's comfort.
 Thank you for your cooperation.
 {property} Housing Management`,
@@ -345,8 +345,8 @@ export function BroadcastWhatsAppDialog({
         );
       toast.success(
         ar
-          ? `🚀 تم جدولة إرسال ${st.queued ?? 0} رسالة جماعية في الخلفية بأمان!`
-          : `🚀 Broadcast queued for ${st.queued ?? 0} recipients!`,
+          ? `تم جدولة إرسال ${st.queued ?? 0} رسالة جماعية في الخلفية بأمان!`
+          : `Broadcast queued for ${st.queued ?? 0} recipients!`,
         skipped.length
           ? {
               description:
@@ -794,7 +794,7 @@ export function BroadcastWhatsAppDialog({
                     }
                     className="h-7 text-xs gap-1 border-dashed hover:border-emerald-500 hover:text-emerald-700"
                   >
-                    <Sparkles className="w-3 h-3 text-emerald-500" />
+                    
                     {ar ? preset.titleAr : preset.titleEn}
                   </Button>
                 ))}

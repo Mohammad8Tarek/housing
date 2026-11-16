@@ -104,7 +104,7 @@ export function ProfileSearchCard({
               <SelectTrigger className="h-8 w-full sm:w-64 text-xs font-semibold">
                 <SelectValue
                   placeholder={
-                    ar ? "🌐 كل الفنادق والفروع (بحث شامل)" : "All Properties"
+                    ar ? "كل الفنادق والفروع (بحث شامل)" : "All Properties"
                   }
                 />
               </SelectTrigger>
@@ -114,7 +114,7 @@ export function ProfileSearchCard({
                   className="text-xs font-bold text-primary"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span>🌐</span>
+                    <span></span>
                     <span>
                       {ar
                         ? "كل الفنادق والفروع (بحث شامل)"

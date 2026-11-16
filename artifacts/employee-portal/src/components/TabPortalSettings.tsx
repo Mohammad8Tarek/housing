@@ -180,8 +180,8 @@ export default function TabPortalSettings() {
       const title = isRtl ? "صن رايز لإدارة السكن" : "Sunrise Staff Housing";
       const options = {
         body: isRtl
-          ? "تم تأكيد وصول الإشعارات بنجاح إلى هاتفك! 🎉"
-          : "Push notifications are working perfectly on your phone! 🎉",
+          ? "تم تأكيد وصول الإشعارات بنجاح إلى هاتفك!"
+          : "Push notifications are working perfectly on your phone!",
         icon: "/pwa-192x192.png",
         badge: "/pwa-192x192.png",
         tag: "test-alert-" + Date.now(),

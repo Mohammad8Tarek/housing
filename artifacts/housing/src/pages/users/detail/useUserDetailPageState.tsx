@@ -411,7 +411,7 @@ export function useUserDetailPageState() {
       return {
         allowed: false,
         reason: ar
-          ? "محظور صراحةً 🚫 - مسلوب بقائمة المنع الصريح (يتجاوز أي منح أو دور)"
+          ? "محظور صراحةً - مسلوب بقائمة المنع الصريح (يتجاوز أي منح أو دور)"
           : "Explicitly denied - blocked by the deny list (overrides any grant or role)",
         type: "explicit_deny",
       };
@@ -423,10 +423,10 @@ export function useUserDetailPageState() {
         allowed: true,
         reason: hasPerm
           ? ar
-            ? "مسموح ✅ - ممنوح في صلاحيات المستخدم"
+            ? "مسموح - ممنوح في صلاحيات المستخدم"
             : "Allowed - explicitly granted in permissions"
           : ar
-            ? "مسموح ✅ - عبر صلاحية الدور المرتفع (أدمن)"
+            ? "مسموح - عبر صلاحية الدور المرتفع (أدمن)"
             : "Allowed - via elevated admin role",
         type: hasPerm ? "custom" : "elevated",
       };
