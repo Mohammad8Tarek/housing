@@ -117,10 +117,10 @@ export default function PWAInstallBanner({
   // Compact Variant (e.g. For Header or Inside Cards)
   if (compact) {
     return (
-      <div className="w-full bg-[#12131C] border border-[#C9A24D]/30 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-md">
+      <div className="w-full bg-[#12131C] border border-[#2AA8AB]/30 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-md">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#C9A24D]/20 flex items-center justify-center shrink-0">
-            <Smartphone className="w-4 h-4 text-[#C9A24D]" />
+          <div className="w-7 h-7 rounded-lg bg-[#2AA8AB]/20 flex items-center justify-center shrink-0">
+            <Smartphone className="w-4 h-4 text-[#2AA8AB]" />
           </div>
           <span className="text-xs font-semibold text-white/90">
             {isRtl
@@ -131,7 +131,7 @@ export default function PWAInstallBanner({
         <button
           type="button"
           onClick={handleInstallClick}
-          className="px-3 py-1 bg-[#C9A24D] hover:bg-[#DFBF70] text-black font-bold rounded-lg text-xs transition-colors shrink-0 shadow-sm cursor-pointer"
+          className="px-3 py-1 bg-[#2AA8AB] hover:bg-[#59B7A8] text-black font-bold rounded-lg text-xs transition-colors shrink-0 shadow-sm cursor-pointer"
         >
           {isRtl ? "تثبيت" : "Install"}
         </button>
@@ -140,9 +140,9 @@ export default function PWAInstallBanner({
   }
 
   return (
-    <div className="mt-4 p-4 bg-[#12131A] border border-[#C9A24D]/30 rounded-2xl relative animate-[fadeIn_0.3s_ease] overflow-hidden text-start shadow-xl shadow-black/50">
+    <div className="mt-4 p-4 bg-[#12131A] border border-[#2AA8AB]/30 rounded-2xl relative animate-[fadeIn_0.3s_ease] overflow-hidden text-start shadow-xl shadow-black/50">
       {/* Glow effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#C9A24D]/10 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#2AA8AB]/10 to-transparent pointer-events-none" />
 
       <button
         type="button"
@@ -154,7 +154,7 @@ export default function PWAInstallBanner({
       </button>
 
       <div className="flex items-center gap-3 relative">
-        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#C9A24D] to-[#997A30] flex items-center justify-center shrink-0 shadow-lg shadow-[#C9A24D]/25">
+        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#2AA8AB] to-[#1E8385] flex items-center justify-center shrink-0 shadow-lg shadow-[#2AA8AB]/25">
           <Smartphone className="w-6 h-6 text-[#12131C]" />
         </div>
         <div className="flex-1 min-w-0 pe-6">
@@ -164,7 +164,7 @@ export default function PWAInstallBanner({
                 ? "تثبيت تطبيق بوابة المقيمين"
                 : "Install Resident Portal App"}
             </h4>
-            <span className="px-1.5 py-0.5 rounded bg-[#C9A24D]/20 text-[#DFBF70] font-mono text-[10px] font-bold">
+            <span className="px-1.5 py-0.5 rounded bg-[#2AA8AB]/20 text-[#59B7A8] font-mono text-[10px] font-bold">
               PWA
             </span>
           </div>
@@ -180,7 +180,7 @@ export default function PWAInstallBanner({
         <button
           type="button"
           onClick={handleInstallClick}
-          className="w-full mt-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#C9A24D] via-[#DFBF70] to-[#C9A24D] text-[#12131C] text-xs sm:text-sm font-bold hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-[#C9A24D]/25 cursor-pointer"
+          className="w-full mt-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#2AA8AB] via-[#59B7A8] to-[#2AA8AB] text-[#12131C] text-xs sm:text-sm font-bold hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md shadow-[#2AA8AB]/25 cursor-pointer"
         >
           <Download className="w-4 h-4 text-[#12131C]" />
           <span>{isRtl ? "تثبيت التطبيق الآن" : "Install App Now"}</span>
@@ -192,7 +192,7 @@ export default function PWAInstallBanner({
         <div className="mt-3 pt-3 border-t border-white/10 space-y-2 text-xs text-white/85">
           {ios ? (
             <>
-              <div className="flex items-center gap-1.5 font-semibold text-[#DFBF70]">
+              <div className="flex items-center gap-1.5 font-semibold text-[#59B7A8]">
                 <Smartphone className="w-4 h-4 shrink-0" />
                 <span>
                   {isRtl
@@ -201,7 +201,7 @@ export default function PWAInstallBanner({
                 </span>
               </div>
               <div className="flex items-center gap-2 text-white/70 ps-1">
-                <Share className="w-3.5 h-3.5 text-[#DFBF70] shrink-0" />
+                <Share className="w-3.5 h-3.5 text-[#59B7A8] shrink-0" />
                 <span>
                   {isRtl
                     ? "1. اضغط على زر المشاركة () أسفل شاشة المتصفح"
@@ -209,7 +209,7 @@ export default function PWAInstallBanner({
                 </span>
               </div>
               <div className="flex items-center gap-2 text-white/70 ps-1">
-                <PlusSquare className="w-3.5 h-3.5 text-[#DFBF70] shrink-0" />
+                <PlusSquare className="w-3.5 h-3.5 text-[#59B7A8] shrink-0" />
                 <span>
                   {isRtl
                     ? "2. اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen)"
@@ -227,7 +227,7 @@ export default function PWAInstallBanner({
             </>
           ) : (
             <>
-              <div className="flex items-center gap-1.5 font-semibold text-[#DFBF70]">
+              <div className="flex items-center gap-1.5 font-semibold text-[#59B7A8]">
                 <HelpCircle className="w-4 h-4 shrink-0" />
                 <span>
                   {isRtl
