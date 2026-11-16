@@ -137,6 +137,42 @@ router.post(
   },
 );
 
+// POST /api/whatsapp/queue/cancel - إلغاء الرسائل المعلّقة في الطابور حتى لا
+// تُرسَل عند عودة الاتصال. Optionally by ids; otherwise all PENDING for the property.
+router.post(
+  "/queue/cancel",
+  requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]),
+  async (req, res) => {
+    try {
+      const propertyId = getTenantId(req) || 1;
+      const rawIds = (req.body as any)?.ids;
+      const ids = Array.isArray(rawIds)
+        ? rawIds.map((x: any) => Number(x)).filter((n: number) => n > 0)
+        : null;
+
+      const result = ids && ids.length
+        ? await pool.query(
+            `UPDATE public.whatsapp_outbox_queue
+               SET status = 'CANCELLED', processed_at = NOW(),
+                   last_error = 'Cancelled by operator'
+             WHERE property_id = $1 AND status = 'PENDING' AND id = ANY($2::int[])`,
+            [propertyId, ids],
+          )
+        : await pool.query(
+            `UPDATE public.whatsapp_outbox_queue
+               SET status = 'CANCELLED', processed_at = NOW(),
+                   last_error = 'Cancelled by operator'
+             WHERE property_id = $1 AND status = 'PENDING'`,
+            [propertyId],
+          );
+
+      res.json({ success: true, cancelled: result.rowCount ?? 0 });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
 // POST /api/whatsapp/connect - بدء عملية الربط وتوليد رمز QR أو كود الاقتران
 router.post(
   "/connect",
@@ -233,6 +269,15 @@ router.get(
             metaPhoneNumberId: "",
             metaWabaId: "",
             hasMetaToken: false,
+            ultramsgInstanceId: "",
+            hasUltramsgToken: false,
+            customGatewayUrl: "",
+            hasCustomGatewayToken: false,
+            customGatewayMethod: "POST",
+            customGatewayPayloadType: "json",
+            customGatewayPhoneField: "to",
+            customGatewayMessageField: "body",
+            customGatewayHeaders: "",
           },
         });
       }
@@ -267,6 +312,15 @@ router.get(
           metaPhoneNumberId: row.meta_phone_number_id || "",
           metaWabaId: row.meta_waba_id || "",
           hasMetaToken: Boolean(row.meta_access_token),
+          ultramsgInstanceId: row.ultramsg_instance_id || "",
+          hasUltramsgToken: Boolean(row.ultramsg_token),
+          customGatewayUrl: row.custom_gateway_url || "",
+          hasCustomGatewayToken: Boolean(row.custom_gateway_token),
+          customGatewayMethod: row.custom_gateway_method || "POST",
+          customGatewayPayloadType: row.custom_gateway_payload_type || "json",
+          customGatewayPhoneField: row.custom_gateway_phone_field || "to",
+          customGatewayMessageField: row.custom_gateway_message_field || "body",
+          customGatewayHeaders: row.custom_gateway_headers || "",
         },
       });
     } catch (err: any) {
@@ -288,6 +342,15 @@ router.put(
         metaAccessToken,
         metaPhoneNumberId,
         metaWabaId,
+        ultramsgInstanceId,
+        ultramsgToken,
+        customGatewayUrl,
+        customGatewayToken,
+        customGatewayMethod,
+        customGatewayPayloadType,
+        customGatewayPhoneField,
+        customGatewayMessageField,
+        customGatewayHeaders,
         isAutoSendEnabled,
         welcomeTemplateAr,
         welcomeTemplateEn,
@@ -298,31 +361,69 @@ router.put(
       } = req.body;
 
       const existingRes = await pool.query(
-        `SELECT meta_access_token FROM public.property_whatsapp_configs WHERE property_id = $1`,
+        `SELECT meta_access_token, ultramsg_token, custom_gateway_token
+         FROM public.property_whatsapp_configs WHERE property_id = $1`,
         [propertyId],
       );
-      const existingToken = existingRes.rows[0]?.meta_access_token || null;
-      let finalToken = existingToken;
-      if (
-        typeof metaAccessToken === "string" &&
-        metaAccessToken.trim() &&
-        !metaAccessToken.includes("•")
-      ) {
-        finalToken = metaAccessToken.trim();
-      }
+      const existing = existingRes.rows[0] || {};
+      // A secret the UI shows masked (contains •) must never overwrite the stored
+      // value; only a freshly-typed token replaces it.
+      const keepSecret = (incoming: unknown, stored: unknown): string | null => {
+        if (
+          typeof incoming === "string" &&
+          incoming.trim() &&
+          !incoming.includes("•")
+        ) {
+          return incoming.trim();
+        }
+        return (stored as string) || null;
+      };
+      const finalToken = keepSecret(metaAccessToken, existing.meta_access_token);
+      const finalUltramsgToken = keepSecret(
+        ultramsgToken,
+        existing.ultramsg_token,
+      );
+      const finalCustomToken = keepSecret(
+        customGatewayToken,
+        existing.custom_gateway_token,
+      );
+
+      const allowedProviders = [
+        "meta_cloud",
+        "baileys",
+        "ultramsg",
+        "custom_gateway",
+      ];
+      const finalProvider = allowedProviders.includes(provider)
+        ? provider
+        : "baileys";
 
       const query = `
       INSERT INTO public.property_whatsapp_configs
         (property_id, provider, meta_access_token, meta_phone_number_id, meta_waba_id,
+         ultramsg_instance_id, ultramsg_token,
+         custom_gateway_url, custom_gateway_token, custom_gateway_method,
+         custom_gateway_payload_type, custom_gateway_phone_field,
+         custom_gateway_message_field, custom_gateway_headers,
          is_auto_send_enabled, welcome_template_ar, welcome_template_en,
          is_reservation_send_enabled, reservation_template_ar, reservation_template_en,
          supervisor_contact, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+              $16, $17, $18, $19, $20, $21, NOW())
       ON CONFLICT (property_id) DO UPDATE
       SET provider = EXCLUDED.provider,
           meta_access_token = COALESCE(EXCLUDED.meta_access_token, property_whatsapp_configs.meta_access_token),
           meta_phone_number_id = EXCLUDED.meta_phone_number_id,
           meta_waba_id = EXCLUDED.meta_waba_id,
+          ultramsg_instance_id = EXCLUDED.ultramsg_instance_id,
+          ultramsg_token = COALESCE(EXCLUDED.ultramsg_token, property_whatsapp_configs.ultramsg_token),
+          custom_gateway_url = EXCLUDED.custom_gateway_url,
+          custom_gateway_token = COALESCE(EXCLUDED.custom_gateway_token, property_whatsapp_configs.custom_gateway_token),
+          custom_gateway_method = EXCLUDED.custom_gateway_method,
+          custom_gateway_payload_type = EXCLUDED.custom_gateway_payload_type,
+          custom_gateway_phone_field = EXCLUDED.custom_gateway_phone_field,
+          custom_gateway_message_field = EXCLUDED.custom_gateway_message_field,
+          custom_gateway_headers = EXCLUDED.custom_gateway_headers,
           is_auto_send_enabled = EXCLUDED.is_auto_send_enabled,
           welcome_template_ar = EXCLUDED.welcome_template_ar,
           welcome_template_en = EXCLUDED.welcome_template_en,
@@ -336,10 +437,21 @@ router.put(
 
       const result = await pool.query(query, [
         propertyId,
-        provider === "meta_cloud" ? "meta_cloud" : "baileys",
+        finalProvider,
         finalToken,
         metaPhoneNumberId ? String(metaPhoneNumberId).trim() : null,
         metaWabaId ? String(metaWabaId).trim() : null,
+        ultramsgInstanceId ? String(ultramsgInstanceId).trim() : null,
+        finalUltramsgToken,
+        customGatewayUrl ? String(customGatewayUrl).trim() : null,
+        finalCustomToken,
+        customGatewayMethod === "GET" ? "GET" : "POST",
+        customGatewayPayloadType === "form" ? "form" : "json",
+        customGatewayPhoneField ? String(customGatewayPhoneField).trim() : "to",
+        customGatewayMessageField
+          ? String(customGatewayMessageField).trim()
+          : "body",
+        customGatewayHeaders ? String(customGatewayHeaders).trim() : null,
         isAutoSendEnabled !== undefined ? Boolean(isAutoSendEnabled) : true,
         welcomeTemplateAr || DEFAULT_WELCOME_AR,
         welcomeTemplateEn || DEFAULT_WELCOME_EN,

@@ -545,6 +545,8 @@ BEGIN
       "assigned_to" INTEGER,
       "photo_url" TEXT,
       "photo_urls" JSONB,
+      "escalation_level" INTEGER NOT NULL DEFAULT 0,
+      "escalated_at" TIMESTAMPTZ,
       "parent_id" INTEGER,
       "rating" INTEGER,
       "rating_comment" TEXT,
@@ -630,6 +632,8 @@ BEGIN
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "assigned_to" INTEGER;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "photo_url" TEXT;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "photo_urls" JSONB;
+    ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "escalation_level" INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "escalated_at" TIMESTAMPTZ;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "parent_id" INTEGER;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "rating" INTEGER;
     ALTER TABLE "maintenance" ADD COLUMN IF NOT EXISTS "rating_comment" TEXT;
@@ -1845,6 +1849,9 @@ BEGIN
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_report_hour" INTEGER NOT NULL DEFAULT 21;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_report_minute" INTEGER NOT NULL DEFAULT 30;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_report_last_sent" TEXT;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "maintenance_escalation_enabled" BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "maintenance_escalation_hours" INTEGER NOT NULL DEFAULT 12;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "whatsapp_safety_level" TEXT NOT NULL DEFAULT 'balanced';
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ DEFAULT now();
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "portal_contact_email" TEXT;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "portal_contact_phone" TEXT;

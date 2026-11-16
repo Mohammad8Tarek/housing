@@ -6,6 +6,7 @@ import { renderCustomGatewayCard } from "./whatsapp/CustomGatewayCard";
 import { renderMetaCloudCard } from "./whatsapp/MetaCloudCard";
 import { renderBaileysQrCard } from "./whatsapp/BaileysQrCard";
 import { renderOutboxQueueCard } from "./whatsapp/OutboxQueueCard";
+import { WhatsAppSafetyCard } from "./whatsapp/WhatsAppSafetyCard";
 import { renderAutoDispatchCard } from "./whatsapp/AutoDispatchCard";
 import { renderTemplateEditorCard } from "./whatsapp/TemplateEditorCard";
 import { renderTestMessageCard } from "./whatsapp/TestMessageCard";
@@ -54,6 +55,11 @@ export function WhatsAppSettingsSection(props: WhatsAppSettingsSectionProps) {
 
       {/* ── PERSISTENT OUTBOX QUEUE STATUS CARD ── */}
       {renderOutboxQueueCard(s)}
+
+      {/* ── ANTI-BAN SAFETY LEVEL (QR/Baileys only) ── */}
+      {provider !== "meta_cloud" && provider !== "custom_gateway" && (
+        <WhatsAppSafetyCard propertyId={propertyId} ar={ar} />
+      )}
 
       {/* ── CARD 2: AUTOMATION TOGGLE & SUPERVISOR CONTACT ── */}
       {renderAutoDispatchCard(s)}

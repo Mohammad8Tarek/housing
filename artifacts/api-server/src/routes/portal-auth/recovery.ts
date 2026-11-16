@@ -112,7 +112,10 @@ router.post(
         });
       }
 
-      if (account?.resetLockedUntil && account.resetLockedUntil > new Date()) {
+      // Enforce the reset-attempt lockout set below. The column is `lockedUntil`
+      // (the previous code read a non-existent `resetLockedUntil`, so the lockout
+      // never actually triggered).
+      if (account?.lockedUntil && account.lockedUntil > new Date()) {
         res.status(429).json({
           success: false,
           message: "لقد تجاوزت الحد المسموح للمحاولات، يرجى المحاولة لاحقاً",

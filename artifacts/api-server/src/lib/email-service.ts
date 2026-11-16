@@ -149,6 +149,48 @@ async function getTransporter(config?: SmtpConfig) {
 }
 
 /**
+ * Send a message, retrying on transient failures (network blips, timeouts,
+ * greylisting, 4xx/5xx SMTP). Without this a single hiccup drops that night's
+ * daily report entirely. Waits with exponential backoff between attempts.
+ *
+ * @returns the nodemailer send info on success; throws the last error if every
+ *          attempt fails.
+ */
+export async function sendMailWithRetry(
+  transporter: { sendMail: (msg: any) => Promise<any> },
+  message: any,
+  options: {
+    attempts?: number;
+    baseDelayMs?: number;
+    timeoutMs?: number;
+    label?: string;
+  } = {},
+): Promise<any> {
+  const attempts = Math.max(1, options.attempts ?? 3);
+  const baseDelayMs = options.baseDelayMs ?? 15_000;
+  const timeoutMs = options.timeoutMs ?? 15_000;
+  const label = options.label ?? "email";
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      // Each attempt is bounded by its own timeout so a hung connection does
+      // not stall the whole retry budget.
+      return await sendMailWithTimeout(transporter, message, timeoutMs);
+    } catch (err: any) {
+      lastErr = err;
+      if (attempt < attempts) {
+        const delay = baseDelayMs * Math.pow(2, attempt - 1);
+        console.warn(
+          `[email-retry] ${label} send attempt ${attempt}/${attempts} failed (${err?.message || err}); retrying in ${Math.round(delay / 1000)}s`,
+        );
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * Generates the bilingual Sunrise branded HTML email template for password reset OTP.
  */
 function generateOtpEmailHtml(

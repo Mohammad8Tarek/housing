@@ -53,6 +53,10 @@ export const maintenanceTable = pgTable(
     source: text("source"),
     // First time a technician / staff member was assigned
     assignedAt: timestamp("assigned_at", { withTimezone: true }),
+    // Auto-escalation of overdue tickets: how many times it has been escalated
+    // (0 = never) and when it last was. Driven by the escalation cron.
+    escalationLevel: integer("escalation_level").notNull().default(0),
+    escalatedAt: timestamp("escalated_at", { withTimezone: true }),
     ratedByProfileId: integer("rated_by_profile_id").references(
       () => profilesTable.id,
       {
