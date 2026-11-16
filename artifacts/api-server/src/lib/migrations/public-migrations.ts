@@ -242,6 +242,10 @@ export const MIGRATIONS: Migration[] = [
     q: "ALTER TABLE users ADD COLUMN IF NOT EXISTS denied_permissions text[] NOT NULL DEFAULT '{}'",
   },
   {
+    name: "users.permission_scopes",
+    q: "ALTER TABLE users ADD COLUMN IF NOT EXISTS permission_scopes jsonb NOT NULL DEFAULT '{}'::jsonb",
+  },
+  {
     name: "users.email",
     q: "ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT",
   },

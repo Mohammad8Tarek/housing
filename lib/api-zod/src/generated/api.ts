@@ -1367,6 +1367,9 @@ export const CreateUserBody = zod.object({
   roles: zod.array(zod.string()),
   permissions: zod.array(zod.string()).optional(),
   deniedPermissions: zod.array(zod.string()).optional(),
+  permissionScopes: zod
+    .record(zod.string(), zod.array(zod.number()))
+    .optional(),
   status: zod.string().optional(),
   jobTitle: zod.string().nullish(),
   email: zod.string().nullish(),
@@ -1405,6 +1408,9 @@ export const UpdateUserBody = zod.object({
   roles: zod.array(zod.string()).optional(),
   permissions: zod.array(zod.string()).optional(),
   deniedPermissions: zod.array(zod.string()).optional(),
+  permissionScopes: zod
+    .record(zod.string(), zod.array(zod.number()))
+    .optional(),
   status: zod.string().optional(),
   password: zod.string().nullish(),
   jobTitle: zod.string().nullish(),

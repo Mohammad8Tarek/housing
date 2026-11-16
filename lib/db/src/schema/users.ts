@@ -7,6 +7,7 @@ import {
   index,
   uniqueIndex,
   boolean,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { propertiesTable } from "./properties";
@@ -34,6 +35,15 @@ export const usersTable = pgTable(
     // stored list would grant them (deny wins). Does not affect super/system
     // admins, so a root account can never be locked out.
     deniedPermissions: text("denied_permissions").array().notNull().default([]),
+    // Per-permission property scope: maps a "module.action" key to the list of
+    // property ids where that permission applies. A key that is absent (or an
+    // empty list) is unrestricted — the permission applies in every property
+    // the user belongs to. Scopes only narrow access, never widen it, and are
+    // ignored for super/system admins.
+    permissionScopes: jsonb("permission_scopes")
+      .$type<Record<string, number[]>>()
+      .notNull()
+      .default({}),
     // Linked role template: editing the template updates this user's
     // permissions. Null = permissions managed individually.
     roleTemplateId: integer("role_template_id"),
