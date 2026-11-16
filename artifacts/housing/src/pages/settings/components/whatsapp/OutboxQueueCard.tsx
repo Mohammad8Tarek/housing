@@ -2,12 +2,18 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Send, Loader2, Layers } from "lucide-react";
+import { Send, Loader2, Layers, XCircle } from "lucide-react";
 import type { WhatsAppSettingsSectionState } from "./useWhatsAppSettingsSectionState";
 
 export function renderOutboxQueueCard(s: WhatsAppSettingsSectionState) {
-  const { ar, status, pendingQueueCount, processingQueue, handleProcessQueue } =
-    s;
+  const {
+    ar,
+    status,
+    pendingQueueCount,
+    processingQueue,
+    handleProcessQueue,
+    handleCancelQueue,
+  } = s;
   return (
     <Card
       className={`border-border/60 shadow-sm transition-all ${
@@ -63,22 +69,35 @@ export function renderOutboxQueueCard(s: WhatsAppSettingsSectionState) {
           </div>
 
           {pendingQueueCount > 0 && (
-            <Button
-              size="sm"
-              onClick={handleProcessQueue}
-              disabled={processingQueue || status !== "connected"}
-              className="gap-1.5 text-xs font-semibold self-end sm:self-auto text-white shadow-sm flex-shrink-0"
-              style={{
-                backgroundColor: status === "connected" ? "#00a884" : undefined,
-              }}
-            >
-              {processingQueue ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Send className="w-3.5 h-3.5" />
-              )}
-              {ar ? "معالجة وإرسال الطابور الآن" : "Process Queue Now"}
-            </Button>
+            <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCancelQueue}
+                disabled={processingQueue}
+                className="gap-1.5 text-xs font-semibold text-red-600 border-red-500/30 hover:bg-red-500/10"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                {ar ? "إلغاء المعلّق" : "Cancel pending"}
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleProcessQueue}
+                disabled={processingQueue || status !== "connected"}
+                className="gap-1.5 text-xs font-semibold text-white shadow-sm"
+                style={{
+                  backgroundColor:
+                    status === "connected" ? "#00a884" : undefined,
+                }}
+              >
+                {processingQueue ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5" />
+                )}
+                {ar ? "إرسال الآن" : "Send now"}
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>

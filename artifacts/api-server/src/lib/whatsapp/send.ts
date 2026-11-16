@@ -1,10 +1,26 @@
-import { pool } from "@workspace/db";
+import { pool, withTenant, settingsTable } from "@workspace/db";
 import {
   checkSendQuota,
   isQuietHoursNow,
   TRANSACTIONAL_TYPES,
   isTransactionalType,
+  normalizeSafetyLevel,
+  safetyFactors,
+  type SafetyLevel,
 } from "./quota.js";
+
+/** Read a property's WhatsApp anti-ban safety level from its settings. */
+async function getSafetyLevel(propertyId: number): Promise<SafetyLevel> {
+  try {
+    const level = await withTenant(propertyId, async (tenantDb) => {
+      const [s] = await tenantDb.select().from(settingsTable).limit(1);
+      return (s as any)?.whatsappSafetyLevel;
+    });
+    return normalizeSafetyLevel(level);
+  } catch {
+    return "balanced";
+  }
+}
 import { injectAntiBanFingerprint, normalizePhoneNumber } from "./templates.js";
 import { getWhatsAppSession } from "./session.js";
 import { isOptedOut } from "./opt-out.js";
@@ -76,6 +92,12 @@ export async function processOutboxQueue(
       provider === "custom_gateway";
     const isMetaCloud = provider === "meta_cloud";
 
+    // Anti-ban posture for this property (scales caps and the gaps below).
+    const safetyLevel = isHttpProvider
+      ? "balanced"
+      : await getSafetyLevel(propertyId);
+    const gapFactor = safetyFactors(safetyLevel).gap;
+
     if (!isHttpProvider) {
       const session = await getWhatsAppSession(propertyId);
       if (session.status !== "connected" || !session.sock) {
@@ -111,7 +133,11 @@ export async function processOutboxQueue(
 
       // Per-message quota (Baileys only; HTTP providers have their own limits).
       if (!isHttpProvider) {
-        const quota = await checkSendQuota(propertyId, item.message_type);
+        const quota = await checkSendQuota(
+          propertyId,
+          item.message_type,
+          safetyLevel,
+        );
         if (!quota.allowed) {
           console.warn(`[WhatsApp Anti-Ban] 🛡️ ${quota.reason}`);
           break;
@@ -188,13 +214,17 @@ export async function processOutboxQueue(
           await sleep(600);
         } else if (batchTotal % 8 === 0) {
           // Longer break every 8 messages, like a person pausing.
-          const coolDownMs = 70000 + Math.floor(Math.random() * 40000);
+          const coolDownMs = Math.round(
+            (70000 + Math.floor(Math.random() * 40000)) * gapFactor,
+          );
           console.log(
-            `[WhatsApp Anti-Ban] 🛡️ 8 messages sent for property ${propertyId}; pausing ${Math.round(coolDownMs / 1000)}s.`,
+            `[WhatsApp Anti-Ban] 🛡️ 8 messages sent for property ${propertyId} (level=${safetyLevel}); pausing ${Math.round(coolDownMs / 1000)}s.`,
           );
           await sleep(coolDownMs);
         } else {
-          await sleep(10000 + Math.floor(Math.random() * 8000));
+          await sleep(
+            Math.round((10000 + Math.floor(Math.random() * 8000)) * gapFactor),
+          );
         }
       } else if (result.reason === "NOT_REGISTERED") {
         failed++;

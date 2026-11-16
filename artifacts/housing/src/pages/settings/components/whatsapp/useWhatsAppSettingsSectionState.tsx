@@ -293,6 +293,45 @@ export function useWhatsAppSettingsSectionState({
     }
   };
 
+  // Cancel every pending message in the queue so stale notifications don't
+  // flood out when WhatsApp reconnects.
+  const handleCancelQueue = async () => {
+    if (!propertyId) return;
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(
+        ar
+          ? "إلغاء كل الرسائل المعلّقة في الطابور؟ لن تُرسَل عند عودة الاتصال."
+          : "Cancel all pending messages in the queue? They will not be sent when WhatsApp reconnects.",
+      )
+    )
+      return;
+    setProcessingQueue(true);
+    try {
+      const res = await fetch(
+        `/api/whatsapp/queue/cancel?propertyId=${propertyId}`,
+        { method: "POST", credentials: "include" },
+      );
+      const data = await res.json();
+      if (data.success) {
+        toast.success(
+          ar
+            ? `تم إلغاء ${data.cancelled ?? 0} رسالة معلّقة`
+            : `Cancelled ${data.cancelled ?? 0} pending message(s)`,
+        );
+        fetchStatusAndConfig();
+      } else {
+        toast.error(
+          data.error || (ar ? "فشل إلغاء الطابور" : "Failed to cancel queue"),
+        );
+      }
+    } catch {
+      toast.error(ar ? "خطأ في الاتصال بالخادم" : "Server error");
+    } finally {
+      setProcessingQueue(false);
+    }
+  };
+
   useEffect(() => {
     fetchStatusAndConfig();
     const interval = setInterval(() => {
@@ -683,6 +722,7 @@ export function useWhatsAppSettingsSectionState({
     textareaEnRef,
     fetchStatusAndConfig,
     handleProcessQueue,
+    handleCancelQueue,
     handleConnect,
     handleRequestPairingCode,
     handleDisconnect,
