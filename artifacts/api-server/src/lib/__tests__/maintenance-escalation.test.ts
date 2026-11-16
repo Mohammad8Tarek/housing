@@ -22,7 +22,12 @@ describe("decideEscalation", () => {
   it("does nothing for tickets that are not overdue", () => {
     expect(
       decideEscalation(
-        { priority: "medium", escalationLevel: 0, escalatedAt: null, isOverdue: false },
+        {
+          priority: "medium",
+          escalationLevel: 0,
+          escalatedAt: null,
+          isOverdue: false,
+        },
         12,
         now,
       ),
@@ -31,7 +36,12 @@ describe("decideEscalation", () => {
 
   it("escalates a fresh overdue ticket to level 1 / high", () => {
     const d = decideEscalation(
-      { priority: "medium", escalationLevel: 0, escalatedAt: null, isOverdue: true },
+      {
+        priority: "medium",
+        escalationLevel: 0,
+        escalatedAt: null,
+        isOverdue: true,
+      },
       12,
       now,
     );
@@ -42,7 +52,12 @@ describe("decideEscalation", () => {
     const twoHoursAgo = new Date(now.getTime() - 2 * 3_600_000).toISOString();
     expect(
       decideEscalation(
-        { priority: "high", escalationLevel: 1, escalatedAt: twoHoursAgo, isOverdue: true },
+        {
+          priority: "high",
+          escalationLevel: 1,
+          escalatedAt: twoHoursAgo,
+          isOverdue: true,
+        },
         12,
         now,
       ),
@@ -54,7 +69,12 @@ describe("decideEscalation", () => {
       now.getTime() - 13 * 3_600_000,
     ).toISOString();
     const d = decideEscalation(
-      { priority: "high", escalationLevel: 1, escalatedAt: thirteenHoursAgo, isOverdue: true },
+      {
+        priority: "high",
+        escalationLevel: 1,
+        escalatedAt: thirteenHoursAgo,
+        isOverdue: true,
+      },
       12,
       now,
     );

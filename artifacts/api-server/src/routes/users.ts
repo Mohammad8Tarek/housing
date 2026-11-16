@@ -9,8 +9,9 @@ import {
   passwordHistoryTable,
   familyVisitApprovalStepsTable,
   familyVisitRequestsTable,
+  activityLogsTable,
 } from "@workspace/db";
-import { eq, and, sql, or, not, ilike, inArray } from "drizzle-orm";
+import { eq, and, sql, or, not, ilike, inArray, desc } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import {
   CreateUserBody,
@@ -802,27 +803,44 @@ router.patch(
     const rolesChanged = JSON.stringify(oldRoles) !== JSON.stringify(newRoles);
     const permsChanged = JSON.stringify(oldPerms) !== JSON.stringify(newPerms);
 
+    const addedPerms = newPerms.filter((p) => !oldPerms.includes(p));
+    const removedPerms = oldPerms.filter((p) => !newPerms.includes(p));
+
     let actionDetail = `Updated user '${targetUser.username}'`;
     if (rolesChanged)
       actionDetail += ` | Roles: [${oldRoles.join(",")}] → [${newRoles.join(",")}]`;
     if (permsChanged) {
-      const added = newPerms.filter((p) => !oldPerms.includes(p));
-      const removed = oldPerms.filter((p) => !newPerms.includes(p));
-      if (added.length) actionDetail += ` | Perms added: [${added.join(",")}]`;
-      if (removed.length)
-        actionDetail += ` | Perms removed: [${removed.join(",")}]`;
+      if (addedPerms.length)
+        actionDetail += ` | Perms added: [${addedPerms.join(",")}]`;
+      if (removedPerms.length)
+        actionDetail += ` | Perms removed: [${removedPerms.join(",")}]`;
     }
 
+    // Access-governance changes get their own actionType so the per-user
+    // permission history can filter them, with a structured before/after.
+    const accessChanged = rolesChanged || permsChanged;
     await logActivity({
       req,
       propertyId: updated.property_id ?? 0,
       username: actorUsername2,
       action: actionDetail,
-      actionType: "UPDATE",
+      actionType: accessChanged ? "PERMISSIONS" : "UPDATE",
       module: "users",
-      severity: rolesChanged || permsChanged ? "warning" : "info",
+      severity: accessChanged ? "warning" : "info",
       entityType: "user",
       entityId: params.data.id,
+      details: accessChanged
+        ? {
+            targetUserId: params.data.id,
+            targetUsername: targetUser.username,
+            rolesChanged,
+            permsChanged,
+            oldRoles,
+            newRoles,
+            addedPerms,
+            removedPerms,
+          }
+        : undefined,
     });
 
     // إرجاع البيانات المعدلة مع التأكد من تسمية الحقول كما يتوقعها الفرونت إند
@@ -839,6 +857,56 @@ router.patch(
       permissions: updated.permissions,
       status: updated.status,
     });
+  },
+);
+
+// GET /users/:id/permission-history — who changed this user's roles or
+// permissions and when, newest first, with a structured before/after.
+router.get(
+  "/users/:id/permission-history",
+  requirePermission("users", "view"),
+  validate({ params: IdParams }),
+  async (req, res): Promise<void> => {
+    try {
+      const parsed = IdParams.safeParse(req.params);
+      if (!parsed.success) {
+        res.status(400).json({ error: parsed.error.message });
+        return;
+      }
+      const targetId = Number((parsed.data as any).id);
+      const limit = Math.min(Math.max(1, Number(req.query.limit) || 50), 200);
+      const rows = await db
+        .select({
+          id: activityLogsTable.id,
+          username: activityLogsTable.username,
+          userRole: activityLogsTable.userRole,
+          action: activityLogsTable.action,
+          details: activityLogsTable.details,
+          createdAt: activityLogsTable.timestamp,
+        })
+        .from(activityLogsTable)
+        .where(
+          and(
+            eq(activityLogsTable.module, "users"),
+            eq(activityLogsTable.actionType, "PERMISSIONS"),
+            eq(activityLogsTable.entityId, targetId),
+          ),
+        )
+        .orderBy(desc(activityLogsTable.timestamp))
+        .limit(limit);
+      const data = rows.map((r) => {
+        let details: any = null;
+        try {
+          details = r.details ? JSON.parse(String(r.details)) : null;
+        } catch {
+          details = null;
+        }
+        return { ...r, details };
+      });
+      res.json({ success: true, data });
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message ?? "Internal error" });
+    }
   },
 );
 

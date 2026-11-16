@@ -150,21 +150,22 @@ router.post(
         ? rawIds.map((x: any) => Number(x)).filter((n: number) => n > 0)
         : null;
 
-      const result = ids && ids.length
-        ? await pool.query(
-            `UPDATE public.whatsapp_outbox_queue
+      const result =
+        ids && ids.length
+          ? await pool.query(
+              `UPDATE public.whatsapp_outbox_queue
                SET status = 'CANCELLED', processed_at = NOW(),
                    last_error = 'Cancelled by operator'
              WHERE property_id = $1 AND status = 'PENDING' AND id = ANY($2::int[])`,
-            [propertyId, ids],
-          )
-        : await pool.query(
-            `UPDATE public.whatsapp_outbox_queue
+              [propertyId, ids],
+            )
+          : await pool.query(
+              `UPDATE public.whatsapp_outbox_queue
                SET status = 'CANCELLED', processed_at = NOW(),
                    last_error = 'Cancelled by operator'
              WHERE property_id = $1 AND status = 'PENDING'`,
-            [propertyId],
-          );
+              [propertyId],
+            );
 
       res.json({ success: true, cancelled: result.rowCount ?? 0 });
     } catch (err: any) {
@@ -368,7 +369,10 @@ router.put(
       const existing = existingRes.rows[0] || {};
       // A secret the UI shows masked (contains •) must never overwrite the stored
       // value; only a freshly-typed token replaces it.
-      const keepSecret = (incoming: unknown, stored: unknown): string | null => {
+      const keepSecret = (
+        incoming: unknown,
+        stored: unknown,
+      ): string | null => {
         if (
           typeof incoming === "string" &&
           incoming.trim() &&
@@ -378,7 +382,10 @@ router.put(
         }
         return (stored as string) || null;
       };
-      const finalToken = keepSecret(metaAccessToken, existing.meta_access_token);
+      const finalToken = keepSecret(
+        metaAccessToken,
+        existing.meta_access_token,
+      );
       const finalUltramsgToken = keepSecret(
         ultramsgToken,
         existing.ultramsg_token,

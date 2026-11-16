@@ -381,9 +381,8 @@ async function start(): Promise<void> {
 
     // Auto-escalation of overdue maintenance tickets (every 15 min, opt-in)
     try {
-      const { initMaintenanceEscalationCron } = await import(
-        "./lib/maintenance-escalation.js"
-      );
+      const { initMaintenanceEscalationCron } =
+        await import("./lib/maintenance-escalation.js");
       initMaintenanceEscalationCron();
     } catch (err) {
       logger.error({ err }, "Failed to schedule maintenance escalation");

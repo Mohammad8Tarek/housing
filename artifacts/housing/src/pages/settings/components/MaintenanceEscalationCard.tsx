@@ -56,7 +56,9 @@ export function MaintenanceEscalationCard({
       queryClient.invalidateQueries({
         queryKey: ["/api/settings", propertyId],
       });
-      toast.success(ar ? "تم حفظ إعدادات التصعيد" : "Escalation settings saved");
+      toast.success(
+        ar ? "تم حفظ إعدادات التصعيد" : "Escalation settings saved",
+      );
     },
     onError: (e: any) =>
       toast.error(e?.message || (ar ? "تعذّر الحفظ" : "Could not save")),

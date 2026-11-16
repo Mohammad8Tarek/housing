@@ -26,11 +26,7 @@ const router: Router = Router();
  * id — which would otherwise let a user reach across hotels. Mirrors the guard
  * in checkout.ts / transfer.ts. Returns false (and sends 403) when denied.
  */
-function assertPropertyAccess(
-  req: any,
-  res: any,
-  propertyId: number,
-): boolean {
+function assertPropertyAccess(req: any, res: any, propertyId: number): boolean {
   const authUser = req.authUser;
   if (
     authUser &&

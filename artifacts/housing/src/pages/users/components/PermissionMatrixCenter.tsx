@@ -9,6 +9,7 @@ import { renderCardsView } from "./permission-matrix/CardsView";
 import { renderTableView } from "./permission-matrix/TableView";
 import { renderMatrixLegend } from "./permission-matrix/MatrixLegend";
 import { PermissionMatrixCenterProps } from "./permission-matrix/PermissionMatrixCenter.constants";
+import { ElevatedRoleBanner } from "./ElevatedRoleBanner";
 
 export function PermissionMatrixCenter(props: PermissionMatrixCenterProps) {
   const s = usePermissionMatrixCenterState(props);
@@ -28,6 +29,9 @@ export function PermissionMatrixCenter(props: PermissionMatrixCenterProps) {
       <div className="space-y-6">
         {/* ── Executive Header: User Combobox Selector & Diff Dashboard ── */}
         {renderMatrixHeader(s, v)}
+
+        {/* Elevated role: editing the matrix below won't restrict this user. */}
+        <ElevatedRoleBanner roles={(activeUser as any)?.roles} ar={ar} />
 
         {/* ── Toolbar: Presets, Bulk Controls, View Mode Toggle & Search ── */}
         {renderRolePresetsBar(s, v)}
