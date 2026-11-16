@@ -241,7 +241,6 @@ export function MaintenanceDualTrackReportRibbon({
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            
             {ar ? "الهاوس كيبنج" : "Housekeeping"}
           </Button>
         </div>
@@ -372,9 +371,7 @@ export function MaintenanceDualTrackReportRibbon({
           <CardContent className="p-4 space-y-3.5">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400">
-                  
-                </div>
+                <div className="p-2 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400"></div>
                 <div>
                   <h4 className="font-bold text-sm text-foreground">
                     {ar

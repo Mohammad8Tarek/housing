@@ -100,7 +100,6 @@ export function renderCustomGatewayCard(s: WhatsAppSettingsSectionState) {
         <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/25 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              
               {ar ? "قوالب سريعة مسبقة الإعداد (Presets):" : "Quick Presets:"}
             </span>
             <span className="text-[11px] text-muted-foreground">

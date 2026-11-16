@@ -330,9 +330,7 @@ export default function TabOverview({
                   <div className="text-center text-xs font-semibold">
                     {selectedHousingScore === 5 && (
                       <span className="text-emerald-600 dark:text-emerald-400">
-                        {isRtl
-                          ? "ممتاز جداً"
-                          : "Excellent"}
+                        {isRtl ? "ممتاز جداً" : "Excellent"}
                       </span>
                     )}
                     {selectedHousingScore === 4 && (
@@ -342,9 +340,7 @@ export default function TabOverview({
                     )}
                     {selectedHousingScore === 3 && (
                       <span className="text-amber-500">
-                        {isRtl
-                          ? "مقبول / متوسط"
-                          : "Average / Fair"}
+                        {isRtl ? "مقبول / متوسط" : "Average / Fair"}
                       </span>
                     )}
                     {selectedHousingScore === 2 && (

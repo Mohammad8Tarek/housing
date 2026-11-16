@@ -138,7 +138,6 @@ export function renderPermissionsTab(s: UserDetailPageState) {
             }}
             className="text-xs h-8 px-3"
           >
-            
             {ar ? "تطبيق قالب الدور الافتراضي" : "Apply Role Template"}
           </Button>
         </div>

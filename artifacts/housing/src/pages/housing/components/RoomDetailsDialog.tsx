@@ -562,7 +562,6 @@ export function RoomDetailsDialog({
                     key={fIdx}
                     className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 flex items-center gap-1"
                   >
-                    
                     {String(feat).trim()}
                   </span>
                 ),

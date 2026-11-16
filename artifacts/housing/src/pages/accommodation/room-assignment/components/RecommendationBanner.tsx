@@ -15,9 +15,7 @@ export function RecommendationBanner({
   return (
     <div className="p-4 rounded-2xl border-2 border-amber-400 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm animate-in fade-in">
       <div className="flex items-start gap-3.5">
-        <div className="p-3 rounded-xl bg-amber-500 text-white shadow-md">
-          
-        </div>
+        <div className="p-3 rounded-xl bg-amber-500 text-white shadow-md"></div>
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-extrabold text-sm text-foreground">
@@ -54,7 +52,6 @@ export function RecommendationBanner({
         onClick={onSelectBest}
         className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 shadow-md flex-shrink-0"
       >
-        
         {ar ? "اختيار هذه الغرفة وتسكينه فوراً" : "Select Recommended Room"}
       </Button>
     </div>

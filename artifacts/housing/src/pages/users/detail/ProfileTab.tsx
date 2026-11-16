@@ -416,7 +416,6 @@ export function renderProfileTab(s: UserDetailPageState) {
                     onClick={handleGeneratePassword}
                     className="text-xs text-[#C9A24D] hover:text-[#b08e40] font-bold p-0 h-auto"
                   >
-                    
                     {ar ? "توليد عشوائي قوي" : "Generate Strong"}
                   </Button>
                 </div>

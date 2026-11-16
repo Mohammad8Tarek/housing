@@ -794,7 +794,6 @@ export function BroadcastWhatsAppDialog({
                     }
                     className="h-7 text-xs gap-1 border-dashed hover:border-emerald-500 hover:text-emerald-700"
                   >
-                    
                     {ar ? preset.titleAr : preset.titleEn}
                   </Button>
                 ))}

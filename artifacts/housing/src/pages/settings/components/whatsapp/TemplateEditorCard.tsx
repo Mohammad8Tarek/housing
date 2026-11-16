@@ -149,7 +149,6 @@ export function renderTemplateEditorCard(s: WhatsAppSettingsSectionState) {
         {/* Quick Variable Insert Chips */}
         <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border">
           <div className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground">
-            
             <span>
               {ar
                 ? `انقر على أي متغير لإدراجه في موضع المؤشر (${templateCategory === "checkin" ? "قالب التسكين" : "قالب الحجز"}):`

@@ -48,12 +48,15 @@ export function processGateLogs(ctx: ReportProcessorContext): any[] {
               day: "2-digit",
               month: "2-digit",
               year: "numeric",
-            })} ${new Date(g.scannedAt).toLocaleTimeString(ar ? "ar-EG" : "en-GB", {
-              timeZone: ctx.timeZone,
-              hour12: true,
-              hour: "2-digit",
-              minute: "2-digit",
-            })}`
+            })} ${new Date(g.scannedAt).toLocaleTimeString(
+              ar ? "ar-EG" : "en-GB",
+              {
+                timeZone: ctx.timeZone,
+                hour12: true,
+                hour: "2-digit",
+                minute: "2-digit",
+              },
+            )}`
           : "—",
         rawDate,
         action: isExit ? (ar ? "خروج" : "Exit") : ar ? "دخول" : "Entry",

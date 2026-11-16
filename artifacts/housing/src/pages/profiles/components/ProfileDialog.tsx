@@ -825,7 +825,6 @@ export function ProfileDialog({
                     onClick={handleAutoTranslateNames}
                     className="h-7 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
                   >
-                    
                     {ar ? "تعريب وترجمة تلقائية" : "Auto-Transliterate"}
                   </Button>
                 </div>
@@ -834,7 +833,6 @@ export function ProfileDialog({
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-bold text-primary flex items-center gap-1.5">
-                      
                       {ar
                         ? "إدخال الاسم الرباعي كاملاً بالعربية (ترجمة وتوزيع فوري للإنجليزية)"
                         : "Full Arabic Name (Instant Auto-Translate to English)"}
@@ -1173,7 +1171,7 @@ export function ProfileDialog({
                     </div>
                     <div className="flex items-center text-xs text-muted-foreground pt-3 sm:pt-0">
                       <p className="leading-relaxed">
-                       {" "}
+                        {" "}
                         {ar
                           ? "يُستخدم تلقائياً كتاريخ مغادرة الغرفة وانتهاء صلاحية كارت المفتاح عند التسكين."
                           : "Auto-populates room check-out date & smart key card expiry date upon assignment."}

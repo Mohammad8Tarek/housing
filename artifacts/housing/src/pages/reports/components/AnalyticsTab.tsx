@@ -189,9 +189,7 @@ export function AnalyticsTab({
       {/* Top Header Card */}
       <div className="bg-card border border-border/70 shadow-xs rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-            
-          </div>
+          <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0"></div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-foreground">

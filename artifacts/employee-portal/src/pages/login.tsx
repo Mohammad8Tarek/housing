@@ -325,9 +325,7 @@ export default function Login() {
       <div className="min-h-dvh bg-[#0d0f14] flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#C9A24D] to-[#F3DE9A] p-0.5 shadow-[0_0_30px_rgba(201,162,77,0.3)] animate-pulse">
-            <div className="w-full h-full bg-[#0d0f14] rounded-[14px] flex items-center justify-center">
-              
-            </div>
+            <div className="w-full h-full bg-[#0d0f14] rounded-[14px] flex items-center justify-center"></div>
           </div>
           <div className="space-y-1">
             <h3 className="font-bold text-white text-lg tracking-wider">
@@ -413,7 +411,6 @@ export default function Login() {
         <section className="hidden lg:flex lg:col-span-7 flex-col justify-center pe-12 space-y-8 animate-[fadeIn_0.8s_ease]">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-[#E5CA85] backdrop-blur-md">
-              
               <span>
                 {isRtl
                   ? "المنظومة السكنية الذكية الموحدة"

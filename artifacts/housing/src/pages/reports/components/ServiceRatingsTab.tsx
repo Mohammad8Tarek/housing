@@ -479,9 +479,7 @@ export function ServiceRatingsTab({
             <span className="text-xs font-semibold text-muted-foreground">
               {ar ? "متوسط تقييم النظافة" : "Housekeeping Avg"}
             </span>
-            <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500">
-              
-            </div>
+            <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500"></div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-3xl font-extrabold text-sky-600 dark:text-sky-400">

@@ -203,13 +203,10 @@ export function useWebSocket(): { isConnected: boolean } {
             const isForCurrentUser = !targetUserId || targetUserId === user?.id;
 
             if (!isForCurrentUser) {
-              console.info(
-                "[WS] Notification filtered out for another user",
-                {
-                  targetUserId,
-                  currentUserId: user?.id,
-                },
-              );
+              console.info("[WS] Notification filtered out for another user", {
+                targetUserId,
+                currentUserId: user?.id,
+              });
               return;
             }
 
