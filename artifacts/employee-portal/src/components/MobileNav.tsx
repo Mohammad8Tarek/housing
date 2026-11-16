@@ -52,8 +52,8 @@ const MORE_ITEMS: NavItem[] = [
     labelEn: "My Room",
     descAr: "المبنى، الدور، السرير والإشغال",
     descEn: "Building, floor, bed & occupancy",
-    color: "text-[#E0C070]",
-    bgColor: "bg-[#E0C070]/10",
+    color: "text-[#59B7A8]",
+    bgColor: "bg-[#59B7A8]/10",
   },
   {
     id: "roommates",

@@ -646,7 +646,7 @@ export default function TabNotifications({ onChangeTab }: Props) {
             <MaterialIcon
               icon="support_agent"
               size={24}
-              className="text-[#E0C070]"
+              className="text-[#59B7A8]"
             />
           </div>
         </div>
@@ -663,7 +663,7 @@ export default function TabNotifications({ onChangeTab }: Props) {
         </p>
         <button
           onClick={() => onChangeTab?.("chat")}
-          className="px-4 py-2 rounded-lg bg-[#C9A24D] text-white text-[11px] font-bold hover:bg-[#B8922E] transition-all"
+          className="px-4 py-2 rounded-lg bg-[#2AA8AB] text-white text-[11px] font-bold hover:bg-[#1E8385] transition-all"
         >
           {isRtl ? "تواصل مع الموارد البشرية" : "Contact HR Concierge"}
         </button>

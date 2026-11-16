@@ -504,17 +504,17 @@ export default function TabOverview({
       {/* ── 1. DIGITAL RESIDENT WALLET PASS (Apple Wallet / Luxury Fintech Style) ── */}
       <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-[#121E36] via-[#1A2B4C] to-[#20365D] text-white p-5 shadow-2xl border border-white/10">
         {/* Ambient background glows */}
-        <div className="absolute -end-10 -top-10 w-44 h-44 bg-[#C9A24D] opacity-[0.12] blur-[80px] rounded-full pointer-events-none" />
+        <div className="absolute -end-10 -top-10 w-44 h-44 bg-[#2AA8AB] opacity-[0.12] blur-[80px] rounded-full pointer-events-none" />
         <div className="absolute -start-10 -bottom-10 w-36 h-36 bg-blue-500 opacity-[0.08] blur-[70px] rounded-full pointer-events-none" />
 
         {/* Pass Top Bar */}
         <div className="relative z-10 flex items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center backdrop-blur-md">
-              <ShieldCheck className="w-4 h-4 text-[#E0C070]" />
+              <ShieldCheck className="w-4 h-4 text-[#59B7A8]" />
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold tracking-[0.15em] text-[#E0C070]">
+              <span className="text-[10px] uppercase font-bold tracking-[0.15em] text-[#59B7A8]">
                 SUNRISE RESIDENT PASS
               </span>
               <div className="text-[11px] font-mono text-white/60">
@@ -529,7 +529,7 @@ export default function TabOverview({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white backdrop-blur-md transition-all cursor-pointer shadow-xs active:scale-95"
             title={isRtl ? "إظهار رمز QR السكني" : "Show Resident QR"}
           >
-            <QrCode className="w-3.5 h-3.5 text-[#E0C070]" />
+            <QrCode className="w-3.5 h-3.5 text-[#59B7A8]" />
             <span>{isRtl ? "رمز الدخول" : "Gate QR"}</span>
           </button>
         </div>
@@ -549,7 +549,7 @@ export default function TabOverview({
             {employee?.fullName || firstName}
           </h2>
           {employee?.jobTitle && (
-            <p className="text-xs text-[#E0C070]/90 font-medium mt-0.5">
+            <p className="text-xs text-[#59B7A8]/90 font-medium mt-0.5">
               {employee.jobTitle}
             </p>
           )}
@@ -586,7 +586,7 @@ export default function TabOverview({
                 {isAssigned && room ? (
                   <>
                     <span>{isRtl ? "غرفة " : "Room "}</span>
-                    <span className="text-[#E0C070] font-mono">
+                    <span className="text-[#59B7A8] font-mono">
                       {room.roomNumber}
                     </span>
                     {room.building && (
@@ -893,7 +893,7 @@ export default function TabOverview({
             className="w-full max-w-xs bg-card border border-border rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center gap-4 animate-in fade-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-12 h-12 rounded-2xl bg-[#1A2B4C] text-[#E0C070] flex items-center justify-center border border-white/10 shadow-md">
+            <div className="w-12 h-12 rounded-2xl bg-[#1A2B4C] text-[#59B7A8] flex items-center justify-center border border-white/10 shadow-md">
               <ShieldCheck className="w-6 h-6" />
             </div>
 

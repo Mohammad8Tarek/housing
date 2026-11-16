@@ -13,7 +13,7 @@ export function AppToaster() {
       closeButton
       toastOptions={{
         style: {
-          "--normal-bg": "var(--accent2, #f0a500)",
+          "--normal-bg": "var(--accent2, #2AA8AB)",
         } as React.CSSProperties,
         duration: 3000,
       }}
