@@ -1029,11 +1029,21 @@ router.post(
           .json({ success: false, message: "Survey template not found" });
 
       const token = (updated as any).publicToken;
-      // Build the link against the resident PORTAL (where /s/:token lives), not
-      // the admin origin. QR is rendered server-side so it never depends on a
-      // browser library.
+      // Where the public /s/:token page lives. For the common single-origin
+      // deployment (admin + portal on one domain), the admin request's own
+      // Origin is correct. SURVEY_PUBLIC_BASE_URL (or PORTAL_URL) overrides it
+      // for split deployments. QR is rendered server-side so it never depends
+      // on a browser library.
+      const reqOrigin =
+        (req.headers.origin as string | undefined) ||
+        (req.get("host")
+          ? `${req.protocol === "http" ? "http" : "https"}://${req.get("host")}`
+          : "");
       const portalBase = (
-        process.env.PORTAL_URL || "https://resident.sunrise-resorts.com/portal/"
+        process.env.SURVEY_PUBLIC_BASE_URL ||
+        reqOrigin ||
+        process.env.PORTAL_URL ||
+        "https://resident.sunrise-resorts.com/portal/"
       ).replace(/\/+$/, "");
       const url = `${portalBase}/s/${token}`;
       let qr: string | null = null;
