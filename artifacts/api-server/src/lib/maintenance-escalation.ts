@@ -161,7 +161,10 @@ export async function runEscalationForProperty(
   }
 
   if (escalated > 0) {
-    broadcastToProperty(propertyId, { module: "maintenance", action: "updated" });
+    broadcastToProperty(propertyId, {
+      module: "maintenance",
+      action: "updated",
+    });
     broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
     logger.info({ propertyId, escalated }, "maintenance auto-escalation");
   }

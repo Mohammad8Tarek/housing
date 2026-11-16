@@ -77,7 +77,10 @@ async function run() {
     for (const schema of targetSchemas) {
       let candidates: { id: number; national_id: string | null }[];
       try {
-        const res = await client.query<{ id: number; national_id: string | null }>(
+        const res = await client.query<{
+          id: number;
+          national_id: string | null;
+        }>(
           `SELECT id, national_id FROM "${schema}".profiles
              WHERE (date_of_birth IS NULL OR date_of_birth = '')
                AND national_id IS NOT NULL AND national_id <> ''`,

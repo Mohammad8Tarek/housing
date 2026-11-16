@@ -21,9 +21,13 @@ describe("normalizeSafetyLevel", () => {
 describe("safetyFactors", () => {
   it("safe sends fewer, slower; fast sends more, quicker", () => {
     expect(SAFETY_FACTORS.safe.cap).toBeLessThan(SAFETY_FACTORS.balanced.cap);
-    expect(SAFETY_FACTORS.fast.cap).toBeGreaterThan(SAFETY_FACTORS.balanced.cap);
+    expect(SAFETY_FACTORS.fast.cap).toBeGreaterThan(
+      SAFETY_FACTORS.balanced.cap,
+    );
     // Gap is inverse: safe waits longer, fast waits less.
-    expect(SAFETY_FACTORS.safe.gap).toBeGreaterThan(SAFETY_FACTORS.balanced.gap);
+    expect(SAFETY_FACTORS.safe.gap).toBeGreaterThan(
+      SAFETY_FACTORS.balanced.gap,
+    );
     expect(SAFETY_FACTORS.fast.gap).toBeLessThan(SAFETY_FACTORS.balanced.gap);
   });
   it("resolves via safetyFactors()", () => {

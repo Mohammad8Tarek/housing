@@ -50,6 +50,41 @@ function getRespondentKey(token: string): string {
   }
 }
 
+// Branded page wrapper. Declared at module scope (not inside PublicSurvey) so
+// it keeps a stable identity across renders — satisfies
+// react-hooks/static-components and avoids remounting its subtree.
+function Shell({
+  ar,
+  onToggleLang,
+  children,
+}: {
+  ar: boolean;
+  onToggleLang: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      dir={ar ? "rtl" : "ltr"}
+      className="min-h-[100dvh] bg-gradient-to-br from-[#0F2A44] via-[#1a365d] to-[#0d2238] text-white px-4 py-6"
+    >
+      <div className="max-w-xl mx-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-[#C9A24D] font-extrabold text-xl tracking-wide">
+            SUNRISE
+          </div>
+          <button
+            onClick={onToggleLang}
+            className="text-xs px-3 py-1.5 rounded-lg bg-white/10 border border-white/15"
+          >
+            {ar ? "English" : "العربية"}
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function PublicSurvey() {
   const params = useParams();
   const token = String((params as any).token || "");
@@ -72,7 +107,9 @@ export default function PublicSurvey() {
     let alive = true;
     (async () => {
       try {
-        const res = await fetch(`/api/public/surveys/${encodeURIComponent(token)}`);
+        const res = await fetch(
+          `/api/public/surveys/${encodeURIComponent(token)}`,
+        );
         const data = await res.json();
         if (!alive) return;
         if (!res.ok || !data.success) {
@@ -170,7 +207,11 @@ export default function PublicSurvey() {
       if (res.ok && data.success) {
         setDone(true);
       } else if (data.code === "ALREADY_SUBMITTED") {
-        setError(ar ? "لقد أرسلت هذا الاستبيان من قبل" : "You already submitted this survey");
+        setError(
+          ar
+            ? "لقد أرسلت هذا الاستبيان من قبل"
+            : "You already submitted this survey",
+        );
       } else if (data.code === "SURVEY_CLOSED") {
         setState("closed");
       } else {
@@ -183,31 +224,11 @@ export default function PublicSurvey() {
     }
   };
 
-  const Shell = ({ children }: { children: React.ReactNode }) => (
-    <div
-      dir={ar ? "rtl" : "ltr"}
-      className="min-h-[100dvh] bg-gradient-to-br from-[#0F2A44] via-[#1a365d] to-[#0d2238] text-white px-4 py-6"
-    >
-      <div className="max-w-xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-[#C9A24D] font-extrabold text-xl tracking-wide">
-            SUNRISE
-          </div>
-          <button
-            onClick={() => setAr((v) => !v)}
-            className="text-xs px-3 py-1.5 rounded-lg bg-white/10 border border-white/15"
-          >
-            {ar ? "English" : "العربية"}
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
+  const toggleLang = () => setAr((v) => !v);
 
   if (loading)
     return (
-      <Shell>
+      <Shell ar={ar} onToggleLang={toggleLang}>
         <div className="flex items-center justify-center py-24">
           <Loader2 className="w-7 h-7 animate-spin text-[#C9A24D]" />
         </div>
@@ -216,7 +237,7 @@ export default function PublicSurvey() {
 
   if (done)
     return (
-      <Shell>
+      <Shell ar={ar} onToggleLang={toggleLang}>
         <div className="bg-white/10 border border-white/15 rounded-3xl p-8 text-center mt-10">
           <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
           <h2 className="text-xl font-bold mb-2">
@@ -233,7 +254,7 @@ export default function PublicSurvey() {
 
   if (state === "not_found" || state === "error")
     return (
-      <Shell>
+      <Shell ar={ar} onToggleLang={toggleLang}>
         <div className="bg-white/10 border border-white/15 rounded-3xl p-8 text-center mt-10">
           <AlertCircle className="w-14 h-14 text-red-400 mx-auto mb-3" />
           <p className="text-white/80">
@@ -245,7 +266,7 @@ export default function PublicSurvey() {
 
   if (state === "not_started" || state === "closed")
     return (
-      <Shell>
+      <Shell ar={ar} onToggleLang={toggleLang}>
         <div className="bg-white/10 border border-white/15 rounded-3xl p-8 text-center mt-10">
           <Clock className="w-14 h-14 text-amber-400 mx-auto mb-3" />
           <p className="text-white/85 font-semibold">
@@ -261,14 +282,20 @@ export default function PublicSurvey() {
       </Shell>
     );
 
-  const title = (ar ? survey?.titleAr : survey?.titleEn) || survey?.titleEn || survey?.titleAr || "";
+  const title =
+    (ar ? survey?.titleAr : survey?.titleEn) ||
+    survey?.titleEn ||
+    survey?.titleAr ||
+    "";
   const desc = (ar ? survey?.descriptionAr : survey?.descriptionEn) || "";
 
   return (
-    <Shell>
+    <Shell ar={ar} onToggleLang={toggleLang}>
       <div className="bg-white/10 border border-white/15 rounded-3xl p-5 mb-4">
         <h1 className="text-lg font-bold mb-1">{title}</h1>
-        {desc && <p className="text-white/70 text-[13px] leading-relaxed">{desc}</p>}
+        {desc && (
+          <p className="text-white/70 text-[13px] leading-relaxed">{desc}</p>
+        )}
         <p className="text-[11px] text-white/50 mt-2">
           {ar
             ? "إجاباتك سرية تماماً — لا نطلب أي بيانات تعريفية."
@@ -309,7 +336,8 @@ export default function PublicSurvey() {
           <div className="space-y-3">
             {sec.items.map((it, i) => {
               const a = answers[it.id] || {};
-              const qText = (ar ? it.titleAr : it.titleEn) || it.titleEn || it.titleAr;
+              const qText =
+                (ar ? it.titleAr : it.titleEn) || it.titleEn || it.titleAr;
               return (
                 <div
                   key={it.id}
@@ -326,7 +354,9 @@ export default function PublicSurvey() {
                       {SCALE.map((s) => (
                         <button
                           key={s.v}
-                          onClick={() => setAns(it.id, { rating: s.v, na: false })}
+                          onClick={() =>
+                            setAns(it.id, { rating: s.v, na: false })
+                          }
                           className={`px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${
                             a.rating === s.v && !a.na
                               ? "bg-[#C9A24D] text-[#0F2A44]"
@@ -338,7 +368,9 @@ export default function PublicSurvey() {
                       ))}
                       {it.allowNa && (
                         <button
-                          onClick={() => setAns(it.id, { na: true, rating: undefined })}
+                          onClick={() =>
+                            setAns(it.id, { na: true, rating: undefined })
+                          }
                           className={`px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${
                             a.na
                               ? "bg-white/80 text-[#0F2A44]"
@@ -359,7 +391,9 @@ export default function PublicSurvey() {
                       ].map((o) => (
                         <button
                           key={o.v}
-                          onClick={() => setAns(it.id, { rating: o.v, na: false })}
+                          onClick={() =>
+                            setAns(it.id, { rating: o.v, na: false })
+                          }
                           className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold ${
                             a.rating === o.v
                               ? "bg-[#C9A24D] text-[#0F2A44]"
@@ -377,7 +411,9 @@ export default function PublicSurvey() {
                       value={a.text || ""}
                       onChange={(e) => setAns(it.id, { text: e.target.value })}
                       rows={3}
-                      placeholder={ar ? "اكتب إجابتك..." : "Type your answer..."}
+                      placeholder={
+                        ar ? "اكتب إجابتك..." : "Type your answer..."
+                      }
                       className="w-full bg-[#0F2A44] border border-white/20 rounded-xl py-2.5 px-3 text-white text-sm outline-none placeholder:text-white/30"
                     />
                   )}
