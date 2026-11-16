@@ -451,18 +451,24 @@ router.get(
         },
         propertyBreakdown,
         comments: paginatedComments,
-        allComments: rowsWithComments.map((r) => ({
-          id: r.id,
-          propertyId: r.propertyId,
-          propertyName:
-            r.propertyDisplayName ||
-            r.propertyName ||
-            `Property #${r.propertyId}`,
-          rating: r.rating,
-          score: r.score,
-          comment: r.comment,
-          createdAt: r.createdAt,
-        })),
+        // Full comment set is only needed for export; omit it on routine
+        // paging and send it solely on `all=1`.
+        ...(req.query.all === "1"
+          ? {
+              allComments: rowsWithComments.map((r) => ({
+                id: r.id,
+                propertyId: r.propertyId,
+                propertyName:
+                  r.propertyDisplayName ||
+                  r.propertyName ||
+                  `Property #${r.propertyId}`,
+                rating: r.rating,
+                score: r.score,
+                comment: r.comment,
+                createdAt: r.createdAt,
+              })),
+            }
+          : {}),
         pagination: {
           page,
           limit,

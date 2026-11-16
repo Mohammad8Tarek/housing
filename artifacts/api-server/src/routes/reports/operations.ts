@@ -161,6 +161,10 @@ router.get(
       }
 
       const paginatedMoves = filteredRows.slice(offset, offset + limit);
+      // The full set is only needed for Excel/PDF export; the table uses the
+      // paginated slice. Send it solely on `all=1` so routine page navigation
+      // does not serialize and ship the entire move history each time.
+      const exportAll = req.query.all === "1";
 
       res.json({
         success: true,
@@ -171,7 +175,7 @@ router.get(
           usersBreakdown: usersMap,
         },
         moves: paginatedMoves,
-        allMoves: filteredRows,
+        ...(exportAll ? { allMoves: filteredRows } : {}),
         pagination: {
           page,
           limit,
