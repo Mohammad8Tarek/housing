@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuditLog, useListActivityLogs } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -258,6 +259,9 @@ export default function ActivityLog() {
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
   const [moduleFilter, setModuleFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
+  const [actionTypeFilter, setActionTypeFilter] = useState("all");
+  const [entityTypeFilter, setEntityTypeFilter] = useState("all");
+  const [entityIdFilter, setEntityIdFilter] = useState<number | null>(null);
   const [severityFilter, setSeverityFilter] = useState("all");
   const [activityDateFrom, setActivityDateFrom] = useState("");
   const [activityDateTo, setActivityDateTo] = useState("");
@@ -297,12 +301,38 @@ export default function ActivityLog() {
       search: debouncedSearch || undefined,
       module: moduleFilter === "all" ? undefined : moduleFilter,
       action: actionFilter === "all" ? undefined : actionFilter,
+      actionType: actionTypeFilter === "all" ? undefined : actionTypeFilter,
+      entityType: entityTypeFilter === "all" ? undefined : entityTypeFilter,
+      entityId: entityIdFilter ?? undefined,
       severity: severityFilter === "all" ? undefined : severityFilter,
       dateFrom: activityDateFrom || undefined,
       dateTo: activityDateTo || undefined,
     } as any,
     { query: { enabled: true } as any },
   );
+
+  // Distinct filter values present in the current scope (for precise dropdowns).
+  const { data: facets } = useQuery<{
+    modules: string[];
+    actionTypes: string[];
+    entityTypes: string[];
+    severities: string[];
+  }>({
+    queryKey: ["activity-log-facets", activePropertyId],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/activity-logs/facets?propertyId=${activePropertyId}`,
+      );
+      if (!res.ok)
+        return {
+          modules: [],
+          actionTypes: [],
+          entityTypes: [],
+          severities: [],
+        };
+      return res.json();
+    },
+  });
 
   const paginated: any[] = Array.isArray(logsResponse)
     ? logsResponse
@@ -688,6 +718,54 @@ export default function ActivityLog() {
                 </SelectItem>
               </SelectContent>
             </Select>
+            {(facets?.actionTypes?.length ?? 0) > 0 && (
+              <Select
+                value={actionTypeFilter}
+                onValueChange={(v) => {
+                  setActionTypeFilter(v);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue
+                    placeholder={ar ? "نوع العملية" : "Action type"}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    {ar ? "كل أنواع العمليات" : "All action types"}
+                  </SelectItem>
+                  {facets!.actionTypes.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {(facets?.entityTypes?.length ?? 0) > 0 && (
+              <Select
+                value={entityTypeFilter}
+                onValueChange={(v) => {
+                  setEntityTypeFilter(v);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder={ar ? "نوع الكيان" : "Entity"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    {ar ? "كل الكيانات" : "All entities"}
+                  </SelectItem>
+                  {facets!.entityTypes.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <DateInput
               value={activityDateFrom}
               onChange={(iso) => {
@@ -706,9 +784,30 @@ export default function ActivityLog() {
               className="w-36"
               placeholder={ar ? "إلى تاريخ..." : "To date..."}
             />
+            {entityIdFilter != null && (
+              <Badge
+                variant="outline"
+                className="h-9 px-2 gap-1 border-sky-500/40 text-sky-700 dark:text-sky-400 bg-sky-50/60 dark:bg-sky-950/20"
+              >
+                {ar ? "كيان" : "Entity"} #{entityIdFilter}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEntityIdFilter(null);
+                    setCurrentPage(1);
+                  }}
+                  className="hover:text-rose-600"
+                >
+                  ✕
+                </button>
+              </Badge>
+            )}
             {(search ||
               moduleFilter !== "all" ||
               actionFilter !== "all" ||
+              actionTypeFilter !== "all" ||
+              entityTypeFilter !== "all" ||
+              entityIdFilter != null ||
               severityFilter !== "all" ||
               activityDateFrom ||
               activityDateTo) && (
@@ -719,6 +818,9 @@ export default function ActivityLog() {
                   setSearch("");
                   setModuleFilter("all");
                   setActionFilter("all");
+                  setActionTypeFilter("all");
+                  setEntityTypeFilter("all");
+                  setEntityIdFilter(null);
                   setSeverityFilter("all");
                   setActivityDateFrom("");
                   setActivityDateTo("");
@@ -896,11 +998,30 @@ export default function ActivityLog() {
                                 : log.module}
                             </Badge>
                           )}
-                          {log.entityType && (
-                            <span className="ml-1 text-[10px] text-muted-foreground">
-                              {log.entityType} #{log.entityId}
-                            </span>
-                          )}
+                          {log.entityType &&
+                            (log.entityId ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEntityTypeFilter(log.entityType);
+                                  setEntityIdFilter(Number(log.entityId));
+                                  setCurrentPage(1);
+                                }}
+                                title={
+                                  ar
+                                    ? "عرض كل ما جرى على هذا الكيان"
+                                    : "Show everything for this entity"
+                                }
+                                className="ml-1 text-[10px] text-sky-600 dark:text-sky-400 hover:underline"
+                              >
+                                {log.entityType} #{log.entityId}
+                              </button>
+                            ) : (
+                              <span className="ml-1 text-[10px] text-muted-foreground">
+                                {log.entityType}
+                              </span>
+                            ))}
                         </TableCell>
                       )}
                       {isVisible("ip") && (
@@ -1145,6 +1266,114 @@ export default function ActivityLog() {
                               </p>
                             </div>
                           </div>
+
+                          {(() => {
+                            const d: any =
+                              detailsParsed.isJson &&
+                              detailsParsed.data &&
+                              typeof detailsParsed.data === "object"
+                                ? detailsParsed.data
+                                : null;
+                            if (!d) return null;
+                            const hasAccess =
+                              d.rolesChanged ||
+                              d.permsChanged ||
+                              d.deniedChanged ||
+                              d.scopesChanged ||
+                              d.addedPerms?.length ||
+                              d.removedPerms?.length ||
+                              d.addedDenied?.length ||
+                              d.removedDenied?.length ||
+                              d.changedScopeKeys?.length;
+                            if (!hasAccess) return null;
+                            const Chips = ({
+                              items,
+                              cls,
+                              prefix,
+                            }: {
+                              items?: string[];
+                              cls: string;
+                              prefix: string;
+                            }) =>
+                              items && items.length ? (
+                                <div className="flex flex-wrap gap-1" dir="ltr">
+                                  {items.map((it) => (
+                                    <span
+                                      key={it}
+                                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${cls}`}
+                                    >
+                                      {prefix}
+                                      {it}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null;
+                            return (
+                              <div className="rounded-xl border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-3.5 space-y-2.5">
+                                <p className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                                  <ShieldAlert className="w-3.5 h-3.5" />
+                                  {ar
+                                    ? "تغيير الصلاحيات (قبل / بعد)"
+                                    : "Access change (before / after)"}
+                                </p>
+                                {d.rolesChanged && (
+                                  <div
+                                    className="flex items-center gap-1.5 flex-wrap text-xs"
+                                    dir="ltr"
+                                  >
+                                    <span className="font-medium">Role:</span>
+                                    <span className="text-muted-foreground">
+                                      [{(d.oldRoles ?? []).join(", ") || "—"}]
+                                    </span>
+                                    <span>→</span>
+                                    <span className="font-semibold">
+                                      [{(d.newRoles ?? []).join(", ") || "—"}]
+                                    </span>
+                                  </div>
+                                )}
+                                <Chips
+                                  items={d.addedPerms}
+                                  prefix="+ "
+                                  cls="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                                />
+                                <Chips
+                                  items={d.removedPerms}
+                                  prefix="− "
+                                  cls="bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                                />
+                                {(d.addedDenied?.length ||
+                                  d.removedDenied?.length) && (
+                                  <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-rose-700 dark:text-rose-300">
+                                      {ar ? "المنع الصريح:" : "Explicit deny:"}
+                                    </p>
+                                    <Chips
+                                      items={d.addedDenied}
+                                      prefix="⛔ "
+                                      cls="bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                                    />
+                                    <Chips
+                                      items={d.removedDenied}
+                                      prefix="✓ "
+                                      cls="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                                    />
+                                  </div>
+                                )}
+                                {d.changedScopeKeys?.length ? (
+                                  <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-sky-700 dark:text-sky-300">
+                                      {ar ? "نطاق الفنادق:" : "Property scope:"}
+                                    </p>
+                                    <Chips
+                                      items={d.changedScopeKeys}
+                                      prefix="📍 "
+                                      cls="bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300"
+                                    />
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          })()}
 
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">

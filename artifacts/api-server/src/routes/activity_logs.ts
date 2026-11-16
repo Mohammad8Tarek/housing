@@ -34,10 +34,14 @@ router.get(
 
       const moduleFilter = req.query.module as string | undefined;
       const actionFilter = req.query.action as string | undefined;
+      const actionTypeFilter = req.query.actionType as string | undefined;
       const severityFilter = req.query.severity as string | undefined;
       const searchFilter = req.query.search as string | undefined;
       const dateFrom = req.query.dateFrom as string | undefined;
       const dateTo = req.query.dateTo as string | undefined;
+      const entityTypeFilter = req.query.entityType as string | undefined;
+      const entityIdFilter = Number(req.query.entityId) || undefined;
+      const userIdFilter = Number(req.query.userId) || undefined;
 
       // Get property map for friendly names
       const allProps = await db.select().from(propertiesTable);
@@ -65,10 +69,29 @@ router.get(
           );
         }
 
+        if (actionTypeFilter && actionTypeFilter !== "all") {
+          // actionType is stored uppercase (CREATE, UPDATE, PERMISSIONS…).
+          conditions.push(
+            sql`UPPER(${activityLogsTable.actionType}) = ${actionTypeFilter.toUpperCase()}`,
+          );
+        }
+
         if (severityFilter && severityFilter !== "all") {
           conditions.push(
             eq(activityLogsTable.severity, severityFilter.toLowerCase()),
           );
+        }
+
+        if (entityTypeFilter && entityTypeFilter !== "all") {
+          conditions.push(eq(activityLogsTable.entityType, entityTypeFilter));
+        }
+
+        if (entityIdFilter && entityIdFilter > 0) {
+          conditions.push(eq(activityLogsTable.entityId, entityIdFilter));
+        }
+
+        if (userIdFilter && userIdFilter > 0) {
+          conditions.push(eq(activityLogsTable.userId, userIdFilter));
         }
 
         if (dateFrom) {
@@ -249,6 +272,65 @@ router.get(
         error: "Failed to fetch activity logs",
         details: err?.message,
       });
+    }
+  },
+);
+
+// ─── GET /activity-logs/facets ────────────────────────────────────────────
+// Distinct filter values (modules, action types, entity types, severities)
+// present in the current scope, so the audit page's dropdowns stay precise
+// and only offer values that actually occur.
+router.get(
+  "/activity-logs/facets",
+  requirePermission("activity_log", "view"),
+  validate({ query: CommonListQuery }),
+  async (req, res): Promise<void> => {
+    try {
+      const rawPropertyId = req.query.propertyId as string | undefined;
+      const isAll =
+        !rawPropertyId ||
+        rawPropertyId === "all" ||
+        rawPropertyId === "-1" ||
+        rawPropertyId === "0";
+      const numericPropertyId = isAll ? null : Number(rawPropertyId);
+
+      const collect = async (dbx: any) => {
+        const rows = await dbx
+          .select({
+            module: activityLogsTable.module,
+            actionType: activityLogsTable.actionType,
+            entityType: activityLogsTable.entityType,
+            severity: activityLogsTable.severity,
+          })
+          .from(activityLogsTable)
+          .limit(5000);
+        const modules = new Set<string>();
+        const actionTypes = new Set<string>();
+        const entityTypes = new Set<string>();
+        const severities = new Set<string>();
+        for (const r of rows as any[]) {
+          if (r.module) modules.add(String(r.module));
+          if (r.actionType) actionTypes.add(String(r.actionType).toUpperCase());
+          if (r.entityType) entityTypes.add(String(r.entityType));
+          if (r.severity) severities.add(String(r.severity).toLowerCase());
+        }
+        return {
+          modules: [...modules].sort(),
+          actionTypes: [...actionTypes].sort(),
+          entityTypes: [...entityTypes].sort(),
+          severities: [...severities].sort(),
+        };
+      };
+
+      const facets =
+        numericPropertyId && numericPropertyId > 0
+          ? await withTenant(numericPropertyId, (tenantDb) => collect(tenantDb))
+          : await collect(db);
+
+      res.json(facets);
+    } catch (err: any) {
+      console.error("[ActivityLogs] facets error:", err);
+      res.status(500).json({ error: "Failed to load facets" });
     }
   },
 );
