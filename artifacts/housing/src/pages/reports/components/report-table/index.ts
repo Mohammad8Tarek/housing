@@ -38,10 +38,14 @@ import {
   HostingsCells,
   VacationsHeader,
   VacationsCells,
+  BirthdaysHeader,
+  BirthdaysCells,
 } from "./residents";
 import {
   MaintenanceHeader,
   MaintenanceCells,
+  MaintenanceSlaHeader,
+  MaintenanceSlaCells,
   HousekeepingHeader,
   HousekeepingCells,
   EquipmentInventoryHeader,
@@ -108,7 +112,12 @@ export const REPORT_TABLE_COLUMNS: Partial<
   reservations: { header: ReservationsHeader, cells: ReservationsCells },
   hostings: { header: HostingsHeader, cells: HostingsCells },
   vacations: { header: VacationsHeader, cells: VacationsCells },
+  birthdays: { header: BirthdaysHeader, cells: BirthdaysCells },
   maintenance: { header: MaintenanceHeader, cells: MaintenanceCells },
+  maintenance_sla: {
+    header: MaintenanceSlaHeader,
+    cells: MaintenanceSlaCells,
+  },
   housekeeping: { header: HousekeepingHeader, cells: HousekeepingCells },
   equipment_inventory: {
     header: EquipmentInventoryHeader,

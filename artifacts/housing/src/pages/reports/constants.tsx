@@ -23,6 +23,8 @@ import {
   Scale,
   Palmtree,
   HeartHandshake,
+  Cake,
+  Timer,
 } from "lucide-react";
 import { Tab, TabConfig } from "./types";
 
@@ -142,6 +144,18 @@ export const TABS: TabConfig[] = [
     icon: <Wrench className="w-4 h-4 text-rose-500" />,
   },
   {
+    id: "maintenance_sla",
+    label: "Maintenance Response & SLA",
+    labelAr: "زمن استجابة الصيانة (SLA)",
+    icon: <Timer className="w-4 h-4 text-orange-500" />,
+  },
+  {
+    id: "birthdays",
+    label: "Employee Birthdays",
+    labelAr: "أعياد ميلاد الموظفين",
+    icon: <Cake className="w-4 h-4 text-pink-500" />,
+  },
+  {
     id: "service_ratings",
     label: "Service Quality & Ratings",
     labelAr: "تقييمات جودة الصيانة والنظافة",
@@ -225,7 +239,13 @@ export const REPORT_GROUPS: ReportGroup[] = [
     id: "people",
     label: "Residents & HR",
     labelAr: "المقيمون والموارد البشرية",
-    tabs: ["profiles", "expiring_contracts", "vacations", "hostings"],
+    tabs: [
+      "profiles",
+      "expiring_contracts",
+      "vacations",
+      "hostings",
+      "birthdays",
+    ],
   },
   {
     id: "compliance",
@@ -237,7 +257,12 @@ export const REPORT_GROUPS: ReportGroup[] = [
     id: "services",
     label: "Services & Assets",
     labelAr: "الخدمات والعهد",
-    tabs: ["maintenance", "equipment_inventory", "water_distribution"],
+    tabs: [
+      "maintenance",
+      "maintenance_sla",
+      "equipment_inventory",
+      "water_distribution",
+    ],
   },
   {
     id: "quality",

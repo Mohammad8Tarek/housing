@@ -721,3 +721,134 @@ export function processWaterDistribution(ctx: ReportProcessorContext): any[] {
     i.floorName,
   ]);
 }
+
+// 10. MAINTENANCE SLA / RESPONSE TIME (زمن استجابة الصيانة)
+const SLA_TARGET_HOURS: Record<string, number> = {
+  emergency: 4,
+  urgent: 8,
+  high: 24,
+  medium: 48,
+  normal: 72,
+  low: 120,
+};
+
+export function processMaintenanceSla(ctx: ReportProcessorContext): any[] {
+  const {
+    ar,
+    filterBuilding,
+    filterFloor,
+    filterStatus,
+    filterCategory,
+    maintenance,
+    buildingMap,
+    roomMap,
+    filteredBuildingIds,
+    filteredFloorIds,
+    applySearchAndDate,
+  } = ctx;
+
+  const nowMs = Date.now();
+  const fmtDur = (h: number | null): string => {
+    if (h == null) return "—";
+    const days = Math.floor(h / 24);
+    const hrs = Math.round(h % 24);
+    if (ar) return `${days ? `${days} يوم ` : ""}${hrs} ساعة`;
+    return `${days ? `${days}d ` : ""}${hrs}h`;
+  };
+
+  const list = maintenance
+    .filter((m: any) => {
+      const room = roomMap[m.roomId];
+      if (
+        filterBuilding !== "all" &&
+        room &&
+        !filteredBuildingIds.has(room.buildingId)
+      )
+        return false;
+      if (filterFloor !== "all" && room && !filteredFloorIds.has(room.floorId))
+        return false;
+      if (
+        filterStatus !== "all" &&
+        m.status?.toLowerCase() !== filterStatus.toLowerCase()
+      )
+        return false;
+      if (
+        filterCategory !== "all" &&
+        m.category?.toLowerCase() !== filterCategory.toLowerCase()
+      )
+        return false;
+      return true;
+    })
+    .map((m: any) => {
+      const room = roomMap[m.roomId] || {};
+      const bName = m.buildingName || buildingMap[room.buildingId] || "—";
+      const reportedMs = m.reportedAt ? new Date(m.reportedAt).getTime() : null;
+      const isResolved = ["resolved", "closed", "completed"].includes(
+        (m.status || "").toLowerCase(),
+      );
+      const resolvedMs = m.resolvedAt
+        ? new Date(m.resolvedAt).getTime()
+        : isResolved
+          ? new Date(m.updatedAt || m.reportedAt).getTime()
+          : null;
+
+      const priorityKey = String(m.priority || "normal").toLowerCase();
+      const targetHours = SLA_TARGET_HOURS[priorityKey] ?? 72;
+
+      let elapsedHours: number | null = null;
+      if (reportedMs != null && !isNaN(reportedMs)) {
+        const end = resolvedMs != null && !isNaN(resolvedMs) ? resolvedMs : nowMs;
+        elapsedHours = Math.max(0, (end - reportedMs) / (1000 * 60 * 60));
+      }
+      const breached = elapsedHours != null && elapsedHours > targetHours;
+      const isOpen = resolvedMs == null || isNaN(resolvedMs);
+
+      return {
+        id: m.id,
+        roomNumber: m.roomNumber || room.roomNumber || `#${m.roomId}`,
+        buildingName: bName,
+        category: ar
+          ? translateMaintenanceCategory(m.category, true)
+          : m.category || "General",
+        priority: ar
+          ? translateMaintenancePriority(m.priority, true)
+          : m.priority || "Normal",
+        assignedTo: m.workerName || m.assignedTo || (ar ? "—" : "—"),
+        reportedAt: formatDate(m.reportedAt, "—"),
+        rawReportedAt: m.reportedAt,
+        resolvedAt:
+          resolvedMs != null && !isNaN(resolvedMs)
+            ? formatDate(new Date(resolvedMs).toISOString(), "—")
+            : "—",
+        resolutionTime: fmtDur(elapsedHours),
+        elapsedHours: elapsedHours != null ? Math.round(elapsedHours) : null,
+        slaTargetText: ar ? `${targetHours} ساعة` : `${targetHours}h`,
+        slaBreached: breached,
+        isOpen,
+        slaStatus: isOpen
+          ? breached
+            ? ar
+              ? "مفتوح — متأخر"
+              : "Open — Overdue"
+            : ar
+              ? "مفتوح — ضمن المهلة"
+              : "Open — Within SLA"
+          : breached
+            ? ar
+              ? "تم الإنجاز — تجاوز المهلة"
+              : "Resolved — Breached"
+            : ar
+              ? "تم الإنجاز — ضمن المهلة"
+              : "Resolved — On Time",
+      };
+    });
+
+  return applySearchAndDate(list, "reportedAt", (m) => [
+    m.roomNumber,
+    m.buildingName,
+    m.category,
+    m.priority,
+    m.assignedTo,
+    m.slaStatus,
+  ]);
+}

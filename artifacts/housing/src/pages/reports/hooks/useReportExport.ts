@@ -633,6 +633,34 @@ export function useReportExport({
             r.occupantsSummary ?? r.residentsSummary ?? "—",
         }));
 
+      case "birthdays":
+        return data.map((b: any) => ({
+          [ar ? "كود الموظف" : "Employee Code"]: b.profileCode,
+          [ar ? "الاسم بالكامل" : "Full Name"]: b.fullName,
+          [ar ? "القسم" : "Department"]: b.department,
+          [ar ? "الوظيفة" : "Job Title"]: b.jobTitle,
+          [ar ? "الهاتف" : "Phone"]: b.phone,
+          [ar ? "تاريخ الميلاد" : "Date of Birth"]: b.dateOfBirth,
+          [ar ? "يوم الميلاد" : "Birthday"]: b.birthday,
+          [ar ? "العمر القادم" : "Turning Age"]: b.ageTurning,
+          [ar ? "الأيام المتبقية" : "Days Until"]: b.daysUntil,
+          [ar ? "السكن الحالي" : "Current Housing"]: b.assignedRoom,
+        }));
+
+      case "maintenance_sla":
+        return data.map((s: any) => ({
+          [ar ? "رقم الغرفة" : "Room No"]: s.roomNumber,
+          [ar ? "المبنى" : "Building"]: s.buildingName,
+          [ar ? "الفئة" : "Category"]: s.category,
+          [ar ? "الأولوية" : "Priority"]: s.priority,
+          [ar ? "الفني المعيّن" : "Assigned To"]: s.assignedTo,
+          [ar ? "تاريخ البلاغ" : "Reported Date"]: s.reportedAt,
+          [ar ? "تاريخ الإنجاز" : "Resolved Date"]: s.resolvedAt,
+          [ar ? "زمن الاستجابة" : "Response Time"]: s.resolutionTime,
+          [ar ? "المهلة المستهدفة" : "SLA Target"]: s.slaTargetText,
+          [ar ? "حالة المهلة" : "SLA Status"]: s.slaStatus,
+        }));
+
       default: {
         if (!Array.isArray(data)) return data;
         // Defensive fallback for any tab without an explicit mapper: translate

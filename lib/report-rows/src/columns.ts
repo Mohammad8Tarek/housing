@@ -644,6 +644,14 @@ export const REPORT_TITLES: Record<string, { ar: string; en: string }> = {
     ar: "سجل أوامر وبلاغات صيانة الغرف",
     en: "Engineering Maintenance Work Orders",
   },
+  maintenance_sla: {
+    ar: "تقرير زمن استجابة الصيانة ومهلة الإنجاز",
+    en: "Maintenance Response Time & SLA Report",
+  },
+  birthdays: {
+    ar: "تقرير أعياد ميلاد الموظفين القادمة",
+    en: "Upcoming Employee Birthdays",
+  },
   housekeeping: {
     ar: "سجل جاهزية ونظافة الغرف",
     en: "Housekeeping Cleanliness Turnover Log",
