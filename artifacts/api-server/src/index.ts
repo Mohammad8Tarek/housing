@@ -73,9 +73,11 @@ import { createServer } from "node:http";
 import app from "./app.js";
 import { logger } from "./lib/logger.js";
 import { initWebSocket, closeWebSocket } from "./lib/websocket.js";
-import { runMigrations } from "./lib/migrations/index.js";
+import {
+  runSchemaMigrations,
+  runPostMigrationTasks,
+} from "./lib/migrations/index.js";
 import { runAutoSeeder } from "./lib/seeder.js";
-import { backfillBilingualProfiles } from "./lib/bilingual-backfill.js";
 import {
   pool,
   healthCheck,
@@ -311,32 +313,42 @@ async function start(): Promise<void> {
 
   try {
     if (dbCheck.ok) {
+      // Schema migrations MUST finish before serving traffic so every route
+      // finds its columns/constraints. They are idempotent and safe on
+      // existing data; the generous ceiling lets a busy DB with many
+      // properties complete rather than being cut off mid-way.
       await Promise.race([
-        runMigrations(),
+        runSchemaMigrations(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Migrations timeout")), 60000),
+          setTimeout(
+            () => reject(new Error("Schema migrations timeout")),
+            300000,
+          ),
         ),
       ]);
+      // Seeder only acts on an empty DB (guarded) — a no-op on live installs.
       await Promise.race([
         runAutoSeeder(),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Seeder timeout")), 60000),
         ),
       ]);
-      await Promise.race([
-        backfillBilingualProfiles(),
-        new Promise((_, reject) =>
-          setTimeout(
-            () => reject(new Error("Bilingual backfill timeout")),
-            60000,
-          ),
-        ),
-      ]);
     }
   } catch (err) {
     logger.error(
       { err },
-      "Startup DB task failed/timed out, continuing boot...",
+      "Startup schema migration failed/timed out, continuing boot...",
+    );
+  }
+
+  // Slow, best-effort per-property backfills (room inventory, orphan heal,
+  // bilingual). They loop over every tenant, so on installs with many
+  // properties they run in the BACKGROUND: boot never waits on them and they
+  // cannot threaten the schema migrations above. Each swallows its own errors
+  // and simply re-runs on the next boot.
+  if (dbCheck.ok) {
+    void runPostMigrationTasks().catch((err) =>
+      logger.error({ err }, "Post-migration backfill tasks failed (ignored)"),
     );
   }
 
