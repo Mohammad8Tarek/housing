@@ -1851,6 +1851,7 @@ BEGIN
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "housing_report_last_sent" TEXT;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "maintenance_escalation_enabled" BOOLEAN NOT NULL DEFAULT false;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "maintenance_escalation_hours" INTEGER NOT NULL DEFAULT 12;
+    ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "whatsapp_safety_level" TEXT NOT NULL DEFAULT 'balanced';
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ DEFAULT now();
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "portal_contact_email" TEXT;
     ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "portal_contact_phone" TEXT;

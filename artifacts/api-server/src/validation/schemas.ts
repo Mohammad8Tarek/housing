@@ -47,6 +47,7 @@ export const UpdateSettingsBody = z
     housingReportMinute: optInt(0, 59),
     maintenanceEscalationEnabled: optBool,
     maintenanceEscalationHours: optInt(1, 168),
+    whatsappSafetyLevel: z.enum(["safe", "balanced", "fast"]).optional(),
     portalContactEmail: optText(200),
     portalContactPhone: optText(50),
     portalContactExt: optText(20),

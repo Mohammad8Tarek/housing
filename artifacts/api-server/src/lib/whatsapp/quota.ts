@@ -28,6 +28,28 @@ export const WARMUP_DAYS = 14;
 /** Transactional messages may go up to this multiple of the limits. */
 export const TRANSACTIONAL_FACTOR = 1.5;
 
+export type SafetyLevel = "safe" | "balanced" | "fast";
+
+/**
+ * Per-property anti-ban posture. `cap` scales the hourly/daily send limits;
+ * `gap` scales the human-like pause between messages (higher = slower = safer).
+ */
+export const SAFETY_FACTORS: Record<SafetyLevel, { cap: number; gap: number }> =
+  {
+    safe: { cap: 0.6, gap: 1.6 },
+    balanced: { cap: 1, gap: 1 },
+    fast: { cap: 1.5, gap: 0.6 },
+  };
+
+export function normalizeSafetyLevel(raw: unknown): SafetyLevel {
+  const v = String(raw ?? "").toLowerCase();
+  return v === "safe" || v === "fast" ? v : "balanced";
+}
+
+export function safetyFactors(level: unknown) {
+  return SAFETY_FACTORS[normalizeSafetyLevel(level)];
+}
+
 export interface QuotaStatus {
   sentLastHour: number;
   sentLast24h: number;
@@ -38,7 +60,10 @@ export interface QuotaStatus {
   broadcastRemaining: number;
 }
 
-export async function getQuotaStatus(propertyId: number): Promise<QuotaStatus> {
+export async function getQuotaStatus(
+  propertyId: number,
+  safetyLevel?: SafetyLevel,
+): Promise<QuotaStatus> {
   const { rows } = await pool.query(
     `SELECT
        count(*) FILTER (WHERE created_at > NOW() - INTERVAL '1 hour')::int AS h,
@@ -53,15 +78,18 @@ export async function getQuotaStatus(propertyId: number): Promise<QuotaStatus> {
   const warmup =
     firstSent === null || Date.now() - firstSent < WARMUP_DAYS * 86_400_000;
   const lim = warmup ? LIMITS.warmup : LIMITS.established;
+  const cap = safetyFactors(safetyLevel).cap;
+  const hourLimit = Math.max(1, Math.floor(lim.hour * cap));
+  const dayLimit = Math.max(1, Math.floor(lim.day * cap));
   const sentLastHour = Number(r.h || 0);
   const sentLast24h = Number(r.d || 0);
   return {
     sentLastHour,
     sentLast24h,
-    hourLimit: lim.hour,
-    dayLimit: lim.day,
+    hourLimit,
+    dayLimit,
     warmup,
-    broadcastRemaining: Math.max(0, lim.day - sentLast24h),
+    broadcastRemaining: Math.max(0, dayLimit - sentLast24h),
   };
 }
 
@@ -72,9 +100,10 @@ export async function getQuotaStatus(propertyId: number): Promise<QuotaStatus> {
 export async function checkSendQuota(
   propertyId: number,
   messageType: string,
+  safetyLevel?: SafetyLevel,
 ): Promise<{ allowed: boolean; reason?: string }> {
   if (messageType === "TEST") return { allowed: true };
-  const q = await getQuotaStatus(propertyId);
+  const q = await getQuotaStatus(propertyId, safetyLevel);
   const factor = isTransactionalType(messageType) ? TRANSACTIONAL_FACTOR : 1;
   const hourCap = Math.floor(q.hourLimit * factor);
   const dayCap = Math.floor(q.dayLimit * factor);

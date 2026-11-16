@@ -95,6 +95,7 @@ router.patch(
         "housingReportMinute",
         "maintenanceEscalationEnabled",
         "maintenanceEscalationHours",
+        "whatsappSafetyLevel",
         "portalContactEmail",
         "portalContactPhone",
         "portalContactExt",

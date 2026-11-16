@@ -137,6 +137,42 @@ router.post(
   },
 );
 
+// POST /api/whatsapp/queue/cancel - إلغاء الرسائل المعلّقة في الطابور حتى لا
+// تُرسَل عند عودة الاتصال. Optionally by ids; otherwise all PENDING for the property.
+router.post(
+  "/queue/cancel",
+  requireAnyPermission(["whatsapp", "edit"], ["settings", "edit"]),
+  async (req, res) => {
+    try {
+      const propertyId = getTenantId(req) || 1;
+      const rawIds = (req.body as any)?.ids;
+      const ids = Array.isArray(rawIds)
+        ? rawIds.map((x: any) => Number(x)).filter((n: number) => n > 0)
+        : null;
+
+      const result = ids && ids.length
+        ? await pool.query(
+            `UPDATE public.whatsapp_outbox_queue
+               SET status = 'CANCELLED', processed_at = NOW(),
+                   last_error = 'Cancelled by operator'
+             WHERE property_id = $1 AND status = 'PENDING' AND id = ANY($2::int[])`,
+            [propertyId, ids],
+          )
+        : await pool.query(
+            `UPDATE public.whatsapp_outbox_queue
+               SET status = 'CANCELLED', processed_at = NOW(),
+                   last_error = 'Cancelled by operator'
+             WHERE property_id = $1 AND status = 'PENDING'`,
+            [propertyId],
+          );
+
+      res.json({ success: true, cancelled: result.rowCount ?? 0 });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
 // POST /api/whatsapp/connect - بدء عملية الربط وتوليد رمز QR أو كود الاقتران
 router.post(
   "/connect",

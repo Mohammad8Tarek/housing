@@ -351,6 +351,11 @@ export const TENANT_MIGRATIONS: Migration[] = [
         ALTER TABLE settings
           ADD COLUMN IF NOT EXISTS maintenance_escalation_hours INTEGER NOT NULL DEFAULT 12;`,
   },
+  {
+    name: "settings.whatsapp_safety_level",
+    q: `ALTER TABLE settings
+          ADD COLUMN IF NOT EXISTS whatsapp_safety_level TEXT NOT NULL DEFAULT 'balanced';`,
+  },
 
   // === Maintenance Parent (Sub-tickets) ===
   {
