@@ -641,7 +641,7 @@ export const printArabicAnalyticsReport = async (opts: {
     </div>
     <div style="display:flex; gap:8px;">
       <button class="btn btn-primary" onclick="window.print()">${isAr ? "طباعة / حفظ كـ PDF (تقرير تنفيذي شامل)" : "Print / Save PDF (Executive Report)"}</button>
-      <button class="btn btn-outline" onclick="window.close()">❌ ${isAr ? "إغلاق" : "Close"}</button>
+      <button class="btn btn-outline" onclick="window.close()">${isAr ? "إغلاق" : "Close"}</button>
     </div>
   </div>
 

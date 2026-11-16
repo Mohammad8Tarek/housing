@@ -633,17 +633,30 @@ export function useReportExport({
             r.occupantsSummary ?? r.residentsSummary ?? "—",
         }));
 
-      default:
-        if (ar && Array.isArray(data)) {
-          return data.map((item: any) => {
-            const trItem: Record<string, any> = {};
-            for (const [key, val] of Object.entries(item)) {
-              trItem[translateReportHeader(key, true)] = val;
-            }
-            return trItem;
-          });
-        }
-        return data;
+      default: {
+        if (!Array.isArray(data)) return data;
+        // Defensive fallback for any tab without an explicit mapper: translate
+        // headers (Arabic) and flatten non-scalar cells so Excel/PDF never
+        // print "[object Object]" or a raw array.
+        const flattenCell = (v: any): any => {
+          if (v === null || v === undefined) return "";
+          if (Array.isArray(v))
+            return v
+              .map((x) => (x && typeof x === "object" ? "" : String(x)))
+              .filter(Boolean)
+              .join(ar ? "، " : ", ");
+          if (typeof v === "object") return "";
+          return v;
+        };
+        return data.map((item: any) => {
+          const outItem: Record<string, any> = {};
+          for (const [key, val] of Object.entries(item)) {
+            const header = ar ? translateReportHeader(key, true) : key;
+            outItem[header] = flattenCell(val);
+          }
+          return outItem;
+        });
+      }
     }
   };
 
