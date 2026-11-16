@@ -192,6 +192,7 @@ function requireUserUpdatePermission(req: any, res: any, next: any): void {
   if (
     Object.prototype.hasOwnProperty.call(req.body ?? {}, "permissions") ||
     Object.prototype.hasOwnProperty.call(req.body ?? {}, "deniedPermissions") ||
+    Object.prototype.hasOwnProperty.call(req.body ?? {}, "permissionScopes") ||
     Object.prototype.hasOwnProperty.call(req.body ?? {}, "roles")
   ) {
     guards.push(requirePermission("users", "manage_permissions"));
@@ -484,6 +485,7 @@ router.get(
         roles: usersTable.roles,
         permissions: usersTable.permissions,
         deniedPermissions: usersTable.deniedPermissions,
+        permissionScopes: usersTable.permissionScopes,
         roleTemplateId: usersTable.roleTemplateId,
         status: usersTable.status,
         createdAt: usersTable.createdAt,
@@ -519,6 +521,7 @@ router.get(
       roles: user.roles ?? [],
       permissions: user.permissions ?? [],
       deniedPermissions: user.deniedPermissions ?? [],
+      permissionScopes: user.permissionScopes ?? {},
       roleTemplateId: user.roleTemplateId ?? null,
       hasSignature: !!user.hasSignature,
       signatureImageUrl: user.signatureImageUrl ?? null,
@@ -670,6 +673,31 @@ router.patch(
 
     const { password, propertyIds, ...updateData } = parsed.data as any;
 
+    // Sanitize permission scopes: normalize keys, coerce values to a deduped
+    // list of positive property ids, drop empty lists (empty = unrestricted).
+    if (
+      Object.prototype.hasOwnProperty.call(updateData, "permissionScopes") &&
+      updateData.permissionScopes &&
+      typeof updateData.permissionScopes === "object"
+    ) {
+      const clean: Record<string, number[]> = {};
+      for (const [key, value] of Object.entries(
+        updateData.permissionScopes as Record<string, unknown>,
+      )) {
+        const k = String(key).trim().toLowerCase();
+        if (!k || !Array.isArray(value)) continue;
+        const ids = [
+          ...new Set(
+            value
+              .map((v) => Number(v))
+              .filter((n) => Number.isFinite(n) && n > 0),
+          ),
+        ];
+        if (ids.length > 0) clean[k] = ids;
+      }
+      updateData.permissionScopes = clean;
+    }
+
     const escalationCheck = validateNoPrivilegeEscalation(
       actor,
       updateData.roles,
@@ -804,11 +832,17 @@ router.patch(
     const newPerms: string[] = updateData.permissions ?? oldPerms;
     const oldDenied: string[] = (targetUser as any).deniedPermissions ?? [];
     const newDenied: string[] = updateData.deniedPermissions ?? oldDenied;
+    const oldScopes: Record<string, number[]> =
+      (targetUser as any).permissionScopes ?? {};
+    const newScopes: Record<string, number[]> =
+      updateData.permissionScopes ?? oldScopes;
 
     const rolesChanged = JSON.stringify(oldRoles) !== JSON.stringify(newRoles);
     const permsChanged = JSON.stringify(oldPerms) !== JSON.stringify(newPerms);
     const deniedChanged =
       JSON.stringify(oldDenied) !== JSON.stringify(newDenied);
+    const scopesChanged =
+      JSON.stringify(oldScopes) !== JSON.stringify(newScopes);
 
     const addedPerms = newPerms.filter((p) => !oldPerms.includes(p));
     const removedPerms = oldPerms.filter((p) => !newPerms.includes(p));
@@ -830,10 +864,23 @@ router.patch(
       if (removedDenied.length)
         actionDetail += ` | Denied removed: [${removedDenied.join(",")}]`;
     }
+    // Scope keys whose property list changed (added, removed, or retargeted).
+    const scopeKeys = [
+      ...new Set([...Object.keys(oldScopes), ...Object.keys(newScopes)]),
+    ];
+    const changedScopeKeys = scopeKeys.filter(
+      (k) =>
+        JSON.stringify((oldScopes as any)[k] ?? []) !==
+        JSON.stringify((newScopes as any)[k] ?? []),
+    );
+    if (scopesChanged && changedScopeKeys.length) {
+      actionDetail += ` | Scopes changed: [${changedScopeKeys.join(",")}]`;
+    }
 
     // Access-governance changes get their own actionType so the per-user
     // permission history can filter them, with a structured before/after.
-    const accessChanged = rolesChanged || permsChanged || deniedChanged;
+    const accessChanged =
+      rolesChanged || permsChanged || deniedChanged || scopesChanged;
     await logActivity({
       req,
       propertyId: updated.property_id ?? 0,
@@ -859,6 +906,10 @@ router.patch(
             newDenied,
             addedDenied,
             removedDenied,
+            scopesChanged,
+            oldScopes,
+            newScopes,
+            changedScopeKeys,
           }
         : undefined,
     });
@@ -877,6 +928,8 @@ router.patch(
       permissions: updated.permissions,
       deniedPermissions:
         updated.deniedPermissions ?? updated.denied_permissions ?? [],
+      permissionScopes:
+        updated.permissionScopes ?? updated.permission_scopes ?? {},
       status: updated.status,
     });
   },

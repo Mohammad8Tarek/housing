@@ -120,6 +120,34 @@ export function usePermission() {
 
   const denied = deniedSet();
 
+  // Per-permission property scope (mirrors the API). A scoped permission only
+  // applies in its listed properties. We read the active property from the
+  // same localStorage key PropertyContext persists, to avoid import coupling.
+  const scopes = (user as any)?.permissionScopes as
+    | Record<string, number[]>
+    | undefined;
+  const activeProperty = ((): number | "all" | null => {
+    if (isSuperAdmin || isSystemAdmin) return "all";
+    try {
+      const raw = localStorage.getItem("activePropertyId");
+      if (!raw || raw === "all") return "all";
+      const n = Number(raw);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const scopeAllows = (dotKey: string, colonKey: string): boolean => {
+    if (isSuperAdmin || isSystemAdmin) return true;
+    const scope = scopes?.[dotKey] ?? scopes?.[colonKey];
+    if (!scope || scope.length === 0) return true;
+    // When viewing "all" properties we don't hide a scoped action — the server
+    // still enforces it per request. Only a specific out-of-scope property hides it.
+    if (activeProperty === "all" || activeProperty == null) return true;
+    return scope.includes(activeProperty);
+  };
+
   const can = (module: Module, action: Action): boolean => {
     if (!user) return false;
     if (perms.has("*")) return true;
@@ -130,6 +158,10 @@ export function usePermission() {
 
     // Explicit deny wins over every grant below (role elevation included).
     if (denied.has(dotKey) || denied.has(colonKey)) return false;
+
+    // Property scope narrows access: a permission scoped to other properties
+    // is not available in the active one.
+    if (!scopeAllows(dotKey, colonKey)) return false;
 
     // The `admin` role is elevated: every module except the super-only
     // `properties` module. Mirrors the API's effectivePermissions.

@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Ban,
   ShieldCheck,
+  MapPin,
 } from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
 
@@ -31,6 +32,8 @@ type HistoryEntry = {
     deniedChanged?: boolean;
     addedDenied?: string[];
     removedDenied?: string[];
+    scopesChanged?: boolean;
+    changedScopeKeys?: string[];
   } | null;
 };
 
@@ -164,11 +167,24 @@ export function PermissionHistory({
                     </div>
                   )}
 
+                  {d.scopesChanged && d.changedScopeKeys?.length ? (
+                    <div className="flex flex-col gap-1" dir="ltr">
+                      <span className="font-medium text-sky-700 dark:text-sky-300 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {ar ? "نطاق الفنادق:" : "Property scope:"}
+                      </span>
+                      <span className="break-all text-sky-700 dark:text-sky-400">
+                        {d.changedScopeKeys.join(", ")}
+                      </span>
+                    </div>
+                  ) : null}
+
                   {!d.rolesChanged &&
                     !d.addedPerms?.length &&
                     !d.removedPerms?.length &&
                     !d.addedDenied?.length &&
                     !d.removedDenied?.length &&
+                    !d.changedScopeKeys?.length &&
                     e.action && (
                       <p className="text-muted-foreground break-words">
                         {e.action}

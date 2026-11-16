@@ -1,6 +1,7 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { getTenantId } from "../lib/request-utils.js";
 
 export const PERMISSION_MODULES = [
   "dashboard",
@@ -165,6 +166,9 @@ type AuthUser = {
   roles: string[];
   permissions: string[];
   deniedPermissions?: string[];
+  // Per-permission property scope: "module.action" -> allowed property ids.
+  // Absent/empty = unrestricted. Narrows access only; ignored for root.
+  permissionScopes?: Record<string, number[]>;
   isSystemAdmin: boolean;
 };
 
@@ -423,6 +427,54 @@ function normalizePermissions(permissions: unknown): string[] {
   return [...new Set(list.map(normalize).filter(Boolean))];
 }
 
+// Normalize a stored permission-scope map: keys normalized like permission
+// keys, values coerced to a deduped list of positive integer property ids.
+// Empty lists are dropped so "scoped" always means "restricted to ≥1 prop".
+function normalizeScopes(raw: unknown): Record<string, number[]> {
+  const out: Record<string, number[]> = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const norm = normalize(key);
+    if (!norm || !Array.isArray(value)) continue;
+    const ids = [
+      ...new Set(
+        value.map((v) => Number(v)).filter((n) => Number.isFinite(n) && n > 0),
+      ),
+    ];
+    if (ids.length > 0) out[norm] = ids;
+  }
+  return out;
+}
+
+// The scope attached to a permission, checking both dot and colon spellings.
+function scopeFor(
+  scopes: Record<string, number[]> | undefined,
+  module: PermissionModule,
+  action: PermissionAction,
+): number[] | undefined {
+  if (!scopes) return undefined;
+  const dot = `${module}.${action}`.toLowerCase();
+  const colon = `${module}:${action}`.toLowerCase();
+  return scopes[dot] ?? scopes[colon];
+}
+
+// True when the permission may be exercised in the given property. A permission
+// with no scope entry is unrestricted. Super/system admins are never scoped.
+export function scopeAllowsProperty(
+  user: AuthUser,
+  module: PermissionModule,
+  action: PermissionAction,
+  propertyId: number,
+): boolean {
+  if (user.isSystemAdmin) return true;
+  const scope = scopeFor(user.permissionScopes, module, action);
+  if (!scope || scope.length === 0) return true;
+  // A scoped permission used without a resolvable property can't be verified,
+  // so it is denied — the whole point of a scope is to restrict to a property.
+  if (!propertyId || propertyId <= 0) return false;
+  return scope.includes(propertyId);
+}
+
 function permissionKeys(
   module: PermissionModule,
   action: PermissionAction,
@@ -524,6 +576,7 @@ interface CachedUserData {
   roles: string[];
   permissions: string[];
   deniedPermissions: string[];
+  permissionScopes: Record<string, number[]>;
   propertyId: number | null;
   propertyIds: number[];
   isSystemAdmin: boolean;
@@ -632,6 +685,7 @@ export async function loadAuthUser(
       deniedPermissions: normalizePermissions(
         (userRow as any).deniedPermissions,
       ),
+      permissionScopes: normalizeScopes((userRow as any).permissionScopes),
       propertyId: (userRow as any).propertyId
         ? Number((userRow as any).propertyId)
         : null,
@@ -695,6 +749,7 @@ export async function loadAuthUser(
     roles,
     permissions: cached.permissions,
     deniedPermissions: cached.deniedPermissions ?? [],
+    permissionScopes: cached.permissionScopes ?? {},
     isSystemAdmin,
   };
 
@@ -732,6 +787,17 @@ export function requirePermission(
         return;
       }
 
+      // Per-property scope: if this permission is restricted to specific
+      // properties, the request's target property must be one of them.
+      if (!scopeAllowsProperty(user, module, action, getTenantId(req))) {
+        res.status(403).json({
+          error: `ليس لديك صلاحية ${module}.${action} في هذا الفندق`,
+          errorEn: `You do not have ${module}.${action} in this property`,
+          code: "PERMISSION_OUT_OF_SCOPE",
+        });
+        return;
+      }
+
       next();
     } catch (err) {
       next(err);
@@ -747,8 +813,14 @@ export function requireAnyPermission(
       const user = await loadAuthUser(req, res);
       if (!user) return;
 
-      const allowed = checks.some(([module, action]) =>
-        hasPermission(user, module, action),
+      // Access is granted only by a permission the user both holds AND may
+      // exercise in this request's property (scope-aware). A permission scoped
+      // to another property does not satisfy the check here.
+      const propertyId = getTenantId(req);
+      const allowed = checks.some(
+        ([module, action]) =>
+          hasPermission(user, module, action) &&
+          scopeAllowsProperty(user, module, action, propertyId),
       );
 
       if (!allowed) {

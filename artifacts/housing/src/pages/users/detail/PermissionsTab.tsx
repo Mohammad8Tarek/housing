@@ -26,7 +26,14 @@ import {
   XCircle,
   Ban,
   ShieldX,
+  MapPin,
+  Building2,
 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   MODULES,
   MODULE_ACTIONS,
@@ -54,6 +61,11 @@ export function renderPermissionsTab(s: UserDetailPageState) {
     setPerms,
     denied,
     toggleDeny,
+    scopes,
+    toggleScopeProperty,
+    setScopeForPerm,
+    selectedPropertyIds,
+    properties,
     expandedModules,
     setExpandedModules,
     permSearch,
@@ -155,6 +167,29 @@ export function renderPermissionsTab(s: UserDetailPageState) {
           )}
         </p>
       </div>
+
+      {/* Property scope legend — only meaningful for multi-property users */}
+      {selectedPropertyIds.length > 1 && (
+        <div className="flex items-start gap-2 p-3 rounded-lg border border-sky-500/30 bg-sky-50/50 dark:bg-sky-950/20">
+          <MapPin className="w-4 h-4 text-sky-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-sky-800 dark:text-sky-300 leading-relaxed">
+            {ar ? (
+              <>
+                زر <MapPin className="inline w-3 h-3 mx-0.5 -mt-0.5" /> بجانب أي
+                صلاحية ممنوحة بيقصرها على <b>فنادق محددة</b> فقط من فنادق
+                المستخدم (تقييد بالنطاق). بدون تحديد = تُطبّق في كل فنادقه.
+              </>
+            ) : (
+              <>
+                The <MapPin className="inline w-3 h-3 mx-0.5 -mt-0.5" /> button
+                on a granted permission limits it to <b>specific properties</b>{" "}
+                out of the user's set (scope restriction). No selection =
+                applies in all of them.
+              </>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Smart Capabilities Toolbar */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -503,6 +538,20 @@ export function renderPermissionsTab(s: UserDetailPageState) {
                             !isDenied && diffStats.revokedKeys?.has(pKey);
 
                           const canGrant = actorCanGrant(mod, act);
+                          const scopeIds = (scopes as any)[pKey] ?? [];
+                          const isScoped = scopeIds.length > 0;
+                          const canScope =
+                            isChecked &&
+                            !isDenied &&
+                            selectedPropertyIds.length > 1;
+                          const propName = (id: number) => {
+                            const p = (properties as any[]).find(
+                              (x) => Number(x.id) === Number(id),
+                            );
+                            return (
+                              p?.name || p?.nameEn || p?.nameAr || `#${id}`
+                            );
+                          };
                           return (
                             <div
                               key={act}
@@ -561,6 +610,89 @@ export function renderPermissionsTab(s: UserDetailPageState) {
                                 <span className="text-[9px] font-black text-rose-600 bg-rose-100 dark:bg-rose-950/60 px-1 rounded">
                                   -{ar ? "ملغي" : "Revoked"}
                                 </span>
+                              )}
+                              {canScope && (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      type="button"
+                                      title={
+                                        isScoped
+                                          ? ar
+                                            ? "مقيّدة بفنادق محددة"
+                                            : "Restricted to specific properties"
+                                          : ar
+                                            ? "قصر هذه الصلاحية على فنادق محددة"
+                                            : "Limit this permission to specific properties"
+                                      }
+                                      className={cn(
+                                        "shrink-0 p-1 rounded-md border transition-colors relative",
+                                        isScoped
+                                          ? "bg-sky-600 text-white border-sky-600 hover:bg-sky-700"
+                                          : "border-border/60 text-muted-foreground hover:text-sky-600 hover:border-sky-400",
+                                      )}
+                                    >
+                                      <MapPin className="w-3 h-3" />
+                                      {isScoped && (
+                                        <span className="absolute -top-1.5 -end-1.5 text-[8px] font-black bg-sky-700 text-white rounded-full px-1 leading-tight">
+                                          {scopeIds.length}
+                                        </span>
+                                      )}
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent
+                                    align="end"
+                                    className="w-60 p-3"
+                                  >
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                      <Building2 className="w-3.5 h-3.5 text-sky-600" />
+                                      <span className="text-xs font-bold">
+                                        {ar
+                                          ? "نطاق الفنادق لهذه الصلاحية"
+                                          : "Property scope"}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground mb-2 leading-relaxed">
+                                      {ar
+                                        ? "اختر الفنادق التي تُطبّق فيها. لا تحديد = كل فنادق المستخدم."
+                                        : "Pick where it applies. None = all the user's properties."}
+                                    </p>
+                                    <div className="space-y-1 max-h-48 overflow-auto">
+                                      {selectedPropertyIds.map((pid) => {
+                                        const checked = scopeIds.includes(pid);
+                                        return (
+                                          <label
+                                            key={pid}
+                                            className="flex items-center gap-2 p-1.5 rounded-md hover:bg-muted/40 cursor-pointer text-xs"
+                                          >
+                                            <Checkbox
+                                              checked={checked}
+                                              onCheckedChange={() =>
+                                                toggleScopeProperty(pKey, pid)
+                                              }
+                                            />
+                                            <span className="truncate">
+                                              {propName(pid)}
+                                            </span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                    {isScoped && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setScopeForPerm(pKey, [])
+                                        }
+                                        className="mt-2 text-[11px] text-sky-700 dark:text-sky-400 hover:underline font-semibold"
+                                      >
+                                        {ar
+                                          ? "إزالة التقييد (كل الفنادق)"
+                                          : "Clear restriction (all properties)"}
+                                      </button>
+                                    )}
+                                  </PopoverContent>
+                                </Popover>
                               )}
                               <button
                                 type="button"

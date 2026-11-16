@@ -146,6 +146,9 @@ export function useUserDetailPageState() {
   // Explicit deny list: permissions blocked even if a role, the admin
   // elevation, or the granted list would otherwise allow them (deny wins).
   const [denied, setDenied] = useState<Set<string>>(new Set());
+  // Per-permission property scope: "module.action" -> allowed property ids.
+  // A key absent here (or an empty list) means the permission is unrestricted.
+  const [scopes, setScopes] = useState<Record<string, number[]>>({});
   const [expandedModules, setExpandedModules] = useState<
     Record<string, boolean>
   >({});
@@ -240,6 +243,19 @@ export function useUserDetailPageState() {
         return s;
       });
     setDenied(new Set(normalizedDenied));
+
+    // Permission scopes (per-property restriction)
+    const rawScopes =
+      ((user as any).permissionScopes as Record<string, number[]>) ?? {};
+    const normScopes: Record<string, number[]> = {};
+    for (const [k, v] of Object.entries(rawScopes)) {
+      const key = String(k).trim().toLowerCase();
+      const ids = Array.isArray(v)
+        ? [...new Set(v.map(Number).filter((n) => Number.isFinite(n) && n > 0))]
+        : [];
+      if (key && ids.length > 0) normScopes[key] = ids;
+    }
+    setScopes(normScopes);
   }, [user]);
 
   // Is account locked check
@@ -617,6 +633,9 @@ export function useUserDetailPageState() {
     // Explicit deny overlay (deny wins over any grant or role elevation).
     payload.deniedPermissions = Array.from(denied);
 
+    // Per-property permission scope (only keeps restricted keys).
+    payload.permissionScopes = scopes;
+
     updateMutation.mutate({
       id: user.id,
       data: payload,
@@ -699,6 +718,40 @@ export function useUserDetailPageState() {
       }
       return next;
     });
+  };
+
+  // Set the property scope for a single permission. Pass the full allowed-id
+  // list; an empty list (or one covering all the user's properties) clears the
+  // restriction so the permission applies everywhere the user belongs.
+  const setScopeForPerm = (pKey: string, propertyIds: number[]) => {
+    const key = pKey.trim().toLowerCase();
+    const assigned = selectedPropertyIds;
+    const clean = [
+      ...new Set(propertyIds.filter((n) => Number.isFinite(n) && n > 0)),
+    ];
+    setScopes((prev) => {
+      const next = { ...prev };
+      // Unrestricted when nothing is picked, or when the pick covers every
+      // property the user is assigned to.
+      const coversAll =
+        assigned.length > 0 && assigned.every((id) => clean.includes(id));
+      if (clean.length === 0 || coversAll) {
+        delete next[key];
+      } else {
+        next[key] = clean;
+      }
+      return next;
+    });
+  };
+
+  const toggleScopeProperty = (pKey: string, propertyId: number) => {
+    const key = pKey.trim().toLowerCase();
+    const current = scopes[key] ?? [];
+    const has = current.includes(propertyId);
+    const nextIds = has
+      ? current.filter((id) => id !== propertyId)
+      : [...current, propertyId];
+    setScopeForPerm(pKey, nextIds);
   };
 
   const toggleAllModule = (mod: string) => {
@@ -871,6 +924,10 @@ export function useUserDetailPageState() {
     denied,
     setDenied,
     toggleDeny,
+    scopes,
+    setScopes,
+    setScopeForPerm,
+    toggleScopeProperty,
     expandedModules,
     setExpandedModules,
     permSearch,
