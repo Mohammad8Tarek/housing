@@ -560,7 +560,9 @@ export function EvaluationsSection({
                       </span>
                       <div className="flex-1 grid grid-cols-2 gap-2">
                         <Input
-                          placeholder={ar ? "القسم / البُعد" : "Section / dimension"}
+                          placeholder={
+                            ar ? "القسم / البُعد" : "Section / dimension"
+                          }
                           value={item.section ?? ""}
                           onChange={(e) =>
                             updateItem(idx, "section", e.target.value)

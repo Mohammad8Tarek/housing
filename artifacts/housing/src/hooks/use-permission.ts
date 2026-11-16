@@ -98,17 +98,42 @@ export function usePermission() {
 
   const perms = effectivePermissions();
 
+  // Explicit deny list: these permissions are blocked even when a role, the
+  // admin elevation, or the stored list would grant them (deny wins). Super
+  // and system admins returned "*" above, so a root account is never denied.
+  const deniedSet = (): Set<string> => {
+    const denied = new Set<string>();
+    if (isSuperAdmin || isSystemAdmin) return denied;
+    const list = (user as any)?.deniedPermissions as string[] | undefined;
+    if (Array.isArray(list)) {
+      for (const permission of list) {
+        if (!permission || permission === "none") continue;
+        const normalized = normalize(permission);
+        if (!normalized) continue;
+        denied.add(normalized);
+        if (normalized.includes(".")) denied.add(normalized.replace(".", ":"));
+        if (normalized.includes(":")) denied.add(normalized.replace(":", "."));
+      }
+    }
+    return denied;
+  };
+
+  const denied = deniedSet();
+
   const can = (module: Module, action: Action): boolean => {
     if (!user) return false;
     if (perms.has("*")) return true;
 
-    // The `admin` role is elevated: every module except the super-only
-    // `properties` module. Mirrors the API's effectivePermissions.
-    if (isAdmin && module !== "properties") return true;
-
     // Check module.action with dot or colon format
     const dotKey = `${module}.${action}`.toLowerCase();
     const colonKey = `${module}:${action}`.toLowerCase();
+
+    // Explicit deny wins over every grant below (role elevation included).
+    if (denied.has(dotKey) || denied.has(colonKey)) return false;
+
+    // The `admin` role is elevated: every module except the super-only
+    // `properties` module. Mirrors the API's effectivePermissions.
+    if (isAdmin && module !== "properties") return true;
 
     return perms.has(dotKey) || perms.has(colonKey);
   };
@@ -143,5 +168,6 @@ export function usePermission() {
     isSuperAdmin,
     hasRole,
     perms,
+    denied,
   };
 }

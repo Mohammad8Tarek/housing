@@ -4,7 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { History, Loader2, Plus, Minus, ArrowRight } from "lucide-react";
+import {
+  History,
+  Loader2,
+  Plus,
+  Minus,
+  ArrowRight,
+  Ban,
+  ShieldCheck,
+} from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
 
 type HistoryEntry = {
@@ -20,6 +28,9 @@ type HistoryEntry = {
     newRoles?: string[];
     addedPerms?: string[];
     removedPerms?: string[];
+    deniedChanged?: boolean;
+    addedDenied?: string[];
+    removedDenied?: string[];
   } | null;
 };
 
@@ -128,9 +139,36 @@ export function PermissionHistory({
                     </div>
                   )}
 
+                  {(d.addedDenied?.length || d.removedDenied?.length) && (
+                    <div className="flex flex-col gap-1" dir="ltr">
+                      <span className="font-medium text-rose-700 dark:text-rose-300 flex items-center gap-1">
+                        <Ban className="w-3 h-3" />
+                        {ar ? "المنع الصريح:" : "Explicit deny:"}
+                      </span>
+                      {d.addedDenied && d.addedDenied.length > 0 && (
+                        <div className="flex items-start gap-1 text-rose-600 dark:text-rose-400">
+                          <Ban className="w-3 h-3 mt-0.5 shrink-0" />
+                          <span className="break-all">
+                            {d.addedDenied.join(", ")}
+                          </span>
+                        </div>
+                      )}
+                      {d.removedDenied && d.removedDenied.length > 0 && (
+                        <div className="flex items-start gap-1 text-emerald-600 dark:text-emerald-400">
+                          <ShieldCheck className="w-3 h-3 mt-0.5 shrink-0" />
+                          <span className="break-all">
+                            {d.removedDenied.join(", ")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {!d.rolesChanged &&
                     !d.addedPerms?.length &&
                     !d.removedPerms?.length &&
+                    !d.addedDenied?.length &&
+                    !d.removedDenied?.length &&
                     e.action && (
                       <p className="text-muted-foreground break-words">
                         {e.action}

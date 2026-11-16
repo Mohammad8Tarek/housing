@@ -238,6 +238,10 @@ export const MIGRATIONS: Migration[] = [
     q: "ALTER TABLE users ADD COLUMN IF NOT EXISTS property_ids integer[] NOT NULL DEFAULT '{}'",
   },
   {
+    name: "users.denied_permissions",
+    q: "ALTER TABLE users ADD COLUMN IF NOT EXISTS denied_permissions text[] NOT NULL DEFAULT '{}'",
+  },
+  {
     name: "users.email",
     q: "ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT",
   },

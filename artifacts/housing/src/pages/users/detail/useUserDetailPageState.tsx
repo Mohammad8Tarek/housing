@@ -143,6 +143,9 @@ export function useUserDetailPageState() {
 
   // Permissions Matrix State
   const [perms, setPerms] = useState<Set<string>>(new Set());
+  // Explicit deny list: permissions blocked even if a role, the admin
+  // elevation, or the granted list would otherwise allow them (deny wins).
+  const [denied, setDenied] = useState<Set<string>>(new Set());
   const [expandedModules, setExpandedModules] = useState<
     Record<string, boolean>
   >({});
@@ -222,6 +225,21 @@ export function useUserDetailPageState() {
           });
       setPerms(new Set(allowed));
     }
+
+    // Denied permissions (explicit deny overlay)
+    const deniedList =
+      ((user as any).deniedPermissions as string[] | undefined) ?? [];
+    const normalizedDenied = deniedList
+      .filter((p) => p && p !== "none")
+      .map((p) => {
+        let s = String(p).trim().toLowerCase();
+        if (s.startsWith("employees."))
+          s = s.replace("employees.", "profiles.");
+        if (s.startsWith("employees:"))
+          s = s.replace("employees:", "profiles:");
+        return s;
+      });
+    setDenied(new Set(normalizedDenied));
   }, [user]);
 
   // Is account locked check
@@ -388,14 +406,29 @@ export function useUserDetailPageState() {
       };
     }
     const key = permKey(simModule as any, simAction as any);
+    // Explicit deny wins over every grant (role elevation included).
+    if (denied.has(key)) {
+      return {
+        allowed: false,
+        reason: ar
+          ? "محظور صراحةً 🚫 - مسلوب بقائمة المنع الصريح (يتجاوز أي منح أو دور)"
+          : "Explicitly denied - blocked by the deny list (overrides any grant or role)",
+        type: "explicit_deny",
+      };
+    }
+    const isElevated = isAdmin && simModule !== "properties";
     const hasPerm = perms.has(key);
-    if (hasPerm) {
+    if (hasPerm || isElevated) {
       return {
         allowed: true,
-        reason: ar
-          ? "مسموح ✅ - ممنوح في صلاحيات المستخدم"
-          : "Allowed - explicitly granted in permissions",
-        type: "custom",
+        reason: hasPerm
+          ? ar
+            ? "مسموح ✅ - ممنوح في صلاحيات المستخدم"
+            : "Allowed - explicitly granted in permissions"
+          : ar
+            ? "مسموح ✅ - عبر صلاحية الدور المرتفع (أدمن)"
+            : "Allowed - via elevated admin role",
+        type: hasPerm ? "custom" : "elevated",
       };
     }
     return {
@@ -405,7 +438,7 @@ export function useUserDetailPageState() {
         : "Denied - user does not have this permission",
       type: "denied",
     };
-  }, [simModule, simAction, primaryRole, perms, ar]);
+  }, [simModule, simAction, primaryRole, perms, denied, isAdmin, ar]);
 
   // Instant Unlock Handler
   const handleInstantUnlock = async () => {
@@ -581,6 +614,9 @@ export function useUserDetailPageState() {
     // If 0 permissions, send ["none"] to prevent fallback.
     payload.permissions = perms.size === 0 ? ["none"] : Array.from(perms);
 
+    // Explicit deny overlay (deny wins over any grant or role elevation).
+    payload.deniedPermissions = Array.from(denied);
+
     updateMutation.mutate({
       id: user.id,
       data: payload,
@@ -628,7 +664,39 @@ export function useUserDetailPageState() {
     }
     setPerms((prev) => {
       const next = new Set(prev);
-      next.has(pKey) ? next.delete(pKey) : next.add(pKey);
+      if (next.has(pKey)) {
+        next.delete(pKey);
+      } else {
+        next.add(pKey);
+        // Granting a permission lifts any explicit deny on the same key.
+        setDenied((prevDenied) => {
+          if (!prevDenied.has(pKey)) return prevDenied;
+          const n = new Set(prevDenied);
+          n.delete(pKey);
+          return n;
+        });
+      }
+      return next;
+    });
+  };
+
+  // Toggle an explicit deny on a single permission. Adding a deny also clears
+  // the grant checkbox for the same key, so the matrix reads unambiguously:
+  // a denied action is blocked no matter what the role would allow.
+  const toggleDeny = (pKey: string) => {
+    setDenied((prev) => {
+      const next = new Set(prev);
+      if (next.has(pKey)) {
+        next.delete(pKey);
+      } else {
+        next.add(pKey);
+        setPerms((prevPerms) => {
+          if (!prevPerms.has(pKey)) return prevPerms;
+          const n = new Set(prevPerms);
+          n.delete(pKey);
+          return n;
+        });
+      }
       return next;
     });
   };
@@ -800,6 +868,9 @@ export function useUserDetailPageState() {
     setDeleteConfirmOpen,
     perms,
     setPerms,
+    denied,
+    setDenied,
+    toggleDeny,
     expandedModules,
     setExpandedModules,
     permSearch,
