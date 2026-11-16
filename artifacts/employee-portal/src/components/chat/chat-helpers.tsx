@@ -219,24 +219,24 @@ export function getNotificationMessagePreview(
       /\.(jpeg|jpg|gif|png|webp)/i.test(content)) ||
     (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(content) &&
       content.length > 50) ||
-    content === "📷 صورة" ||
-    content === "📷 Photo"
+    content === "صورة" ||
+    content === "Photo"
   ) {
-    return isRtl ? "📷 صورة" : "📷 Photo";
+    return isRtl ? "صورة" : "Photo";
   }
   if (contentType === "audio" || content.startsWith("[AUDIO]:")) {
-    return isRtl ? "🎤 رسالة صوتية" : "🎤 Voice message";
+    return isRtl ? "رسالة صوتية" : "Voice message";
   }
   if (contentType === "file" || content.startsWith("[FILE]:")) {
     const raw = content.replace("[FILE]:", "");
     const fileName = raw.split("|")[0] || "";
-    return `📄 ${fileName || (isRtl ? "مستند" : "Document")}`;
+    return `${fileName || (isRtl ? "مستند" : "Document")}`;
   }
   if (contentType === "location" || content.startsWith("[LOCATION]:")) {
-    return isRtl ? "📍 موقع جغرافي" : "📍 Location";
+    return isRtl ? "موقع جغرافي" : "Location";
   }
   if (contentType === "call" || content.startsWith("[CALL]:")) {
-    return isRtl ? "📞 مكالمة" : "📞 Call";
+    return isRtl ? "مكالمة" : "Call";
   }
   return content.slice(0, 80);
 }
@@ -269,8 +269,8 @@ export function renderLastMessagePreview(
       /\.(jpeg|jpg|gif|png|webp)/i.test(content)) ||
     (/^\/9j\/|^iVBORw0KGgo|^R0lGOD|^UklGR/.test(content) &&
       content.length > 50) ||
-    content === "📷 صورة" ||
-    content === "📷 Photo"
+    content === "صورة" ||
+    content === "Photo"
   ) {
     return (
       <span className="inline-flex items-center gap-1.5 truncate">

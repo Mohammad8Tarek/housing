@@ -307,7 +307,7 @@ export default function Dashboard() {
                 variant="outline"
                 className="text-xs px-2.5 py-0.5 border-violet-400 bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 font-mono font-bold flex items-center gap-1 shadow-xs"
               >
-                <span>👑</span>
+                <span></span>
                 <span>
                   {ar
                     ? "إجمالي كل الفروع (سوبر أدمن)"
@@ -462,7 +462,7 @@ export default function Dashboard() {
       {!isAll && dashboardViewMode !== "comprehensive" && (
         <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-primary/5 border border-primary/20 text-xs text-primary font-medium">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
+            
             <span>
               {dashboardViewMode === "operations"
                 ? ar

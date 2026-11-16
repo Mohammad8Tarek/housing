@@ -343,7 +343,7 @@ export const printArabicAnalyticsReport = async (opts: {
       <td style="text-align:center; font-weight:700; color:#15803d;">${d.availableBeds ?? 0}</td>
       <td style="text-align:center; color:#64748b;">${d.capacity ?? 0}</td>
       <td style="text-align:center; font-size:6.2pt; white-space:nowrap;">
-        <span style="color:#1d4ed8; font-weight:bold;">${d.maleCount ?? 0} ♂</span> / <span style="color:#7c3aed; font-weight:bold;">${d.femaleCount ?? 0} ♀</span>
+        <span style="color:#1d4ed8; font-weight:bold;">${d.maleCount ?? 0}</span> / <span style="color:#7c3aed; font-weight:bold;">${d.femaleCount ?? 0}</span>
       </td>
       <td style="font-size:6pt; color:#475569;">${escapeHtml(d.buildingsList || "—")}</td>
     </tr>`;
@@ -640,7 +640,7 @@ export const printArabicAnalyticsReport = async (opts: {
       ${isAr ? "تقرير التحليلات والإحصائيات الشاملة لسكن العاملين" : "Executive Housing Analytics Report"} · ${escapeHtml(propName || (isAr ? "سكن العاملين" : "Staff Housing"))}
     </div>
     <div style="display:flex; gap:8px;">
-      <button class="btn btn-primary" onclick="window.print()">🖨️ ${isAr ? "طباعة / حفظ كـ PDF (تقرير تنفيذي شامل)" : "Print / Save PDF (Executive Report)"}</button>
+      <button class="btn btn-primary" onclick="window.print()">${isAr ? "طباعة / حفظ كـ PDF (تقرير تنفيذي شامل)" : "Print / Save PDF (Executive Report)"}</button>
       <button class="btn btn-outline" onclick="window.close()">❌ ${isAr ? "إغلاق" : "Close"}</button>
     </div>
   </div>
@@ -884,7 +884,7 @@ export const printArabicAnalyticsReport = async (opts: {
             <td style="text-align:center; color:#1d4ed8;">${totalDeptOccBeds}</td>
             <td style="text-align:center; color:#15803d;">${totalDeptAvailBeds}</td>
             <td style="text-align:center;">${totalDeptCapacity}</td>
-            <td style="text-align:center; font-size:6.2pt;">${totalDeptMales} ♂ / ${totalDeptFemales} ♀</td>
+            <td style="text-align:center; font-size:6.2pt;">${totalDeptMales} / ${totalDeptFemales}</td>
             <td style="font-size:5.8pt; color:#64748b;">${isAr ? "كافة المباني السكنية" : "All Buildings"}</td>
           </tr>
         </tfoot>
@@ -1008,7 +1008,7 @@ export const printArabicAnalyticsReport = async (opts: {
               <tr>
                 <td>${isAr ? "متوسط التقييم العام" : "Overall Average Rating"}</td>
                 <td style="text-align:center; font-weight:700; color:#d97706;">
-                  ⭐ ${evalStats?.average ? evalStats.average : "4.8"} / 5.0
+                  ${evalStats?.average ? evalStats.average : "4.8"} / 5.0
                 </td>
               </tr>
               <tr>

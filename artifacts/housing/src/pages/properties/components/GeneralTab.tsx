@@ -83,8 +83,8 @@ export function renderGeneralTab(s: PropertiesState) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="en">🇺🇸 English</SelectItem>
-              <SelectItem value="ar">🇸🇦 العربية</SelectItem>
+              <SelectItem value="en">English</SelectItem>
+              <SelectItem value="ar">العربية</SelectItem>
             </SelectContent>
           </Select>
         </div>

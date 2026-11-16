@@ -508,7 +508,7 @@ export const MODULE_DESCRIPTIONS: Record<Module, { en: string; ar: string }> = {
   },
   inventory: {
     en: "Room amenities, equipment conditions, asset barcode tracking, and sync.",
-    ar: "جرد أجهزة وأثاث الغرف، فحص الحالة (ممتازة/صيانة/تالف)، والتوليد الذكي.",
+    ar: "جرد أجهزة وأثاث الغرف، فحص الحالة (ممتازة/صيانة/تالف).",
   },
   workers: {
     en: "Technicians, contractors, external labor directory, and task dispatching.",

@@ -131,7 +131,7 @@ export function renderAllocationTab(s: PoliciesSectionState) {
                         variant="outline"
                         className={`text-[11px] px-2 py-0.5 ${badgeBg}`}
                       >
-                        {isL0 ? "Level 0 ★" : `Level ${lvl.levelKey || index}`}
+                        {isL0 ? "Level 0" : `Level ${lvl.levelKey || index}`}
                       </Badge>
                       <Button
                         type="button"
@@ -231,7 +231,7 @@ export function renderAllocationTab(s: PoliciesSectionState) {
                 <FormItem className="flex items-center justify-between p-3.5 border rounded-lg bg-card">
                   <div className="space-y-0.5 pe-4">
                     <FormLabel className="text-xs font-bold flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      
                       {ar
                         ? "التجميع التلقائي حسب القسم (Department Clustering)"
                         : "Auto Department Clustering"}
@@ -345,8 +345,8 @@ export function renderAllocationTab(s: PoliciesSectionState) {
                     <FormLabel className="text-xs font-bold flex items-center gap-1.5 text-blue-900 dark:text-blue-300">
                       <Bot className="w-3.5 h-3.5 text-blue-600" />
                       {ar
-                        ? "التعلم الذكي لتوزيع الأقسام (AI Adaptive Territory Learning)"
-                        : "AI Adaptive Department Learning"}
+                        ? "التعلم التكيفي لتوزيع الأقسام (Adaptive Territory Learning)"
+                        : "Adaptive Department Learning"}
                     </FormLabel>
                     <FormDescription className="text-[11px] text-blue-950/70 dark:text-blue-300/70">
                       {ar

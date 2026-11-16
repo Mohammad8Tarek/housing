@@ -693,7 +693,7 @@ export function BuildingsTab({ propertyId, buildings, floors, rooms }: Props) {
                     <Wand2 className="w-4 h-4 text-primary" />
                     <div>
                       <p className="text-sm font-semibold text-primary">
-                        {ar ? "الإنشاء الذكي" : "Smart Generation"}
+                        {ar ? "الإنشاء الجماعي" : "Bulk Generation"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {ar
@@ -982,9 +982,9 @@ export function BuildingsTab({ propertyId, buildings, floors, rooms }: Props) {
                 )
               ) : smartMode ? (
                 ar ? (
-                  `إنشاء ذكي (${smartTotalRooms} غرفة)`
+                  `إنشاء جماعي (${smartTotalRooms} غرفة)`
                 ) : (
-                  `Smart Create (${smartTotalRooms} rooms)`
+                  `Bulk Create (${smartTotalRooms} rooms)`
                 )
               ) : ar ? (
                 "إنشاء"

@@ -513,7 +513,7 @@ export default function Settings() {
                       value="classifications"
                       className="text-xs font-semibold gap-1.5"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      
                       {ar ? "تصنيفات الغرف" : "Room Classifications"}
                     </TabsTrigger>
                     <TabsTrigger

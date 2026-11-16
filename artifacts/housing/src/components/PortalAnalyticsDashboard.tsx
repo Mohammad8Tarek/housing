@@ -129,8 +129,8 @@ export default function PortalAnalyticsDashboard({
           value={analytics?.evaluations?.total || 0}
           sub={
             ar
-              ? `${analytics?.evaluations?.responseRate || 0}% نسبة الاستجابة · ⭐ ${analytics?.evaluations?.avgRating || 0}`
-              : `${analytics?.evaluations?.responseRate || 0}% response rate · ⭐ ${analytics?.evaluations?.avgRating || 0}`
+              ? `${analytics?.evaluations?.responseRate || 0}% نسبة الاستجابة · ${analytics?.evaluations?.avgRating || 0}`
+              : `${analytics?.evaluations?.responseRate || 0}% response rate · ${analytics?.evaluations?.avgRating || 0}`
           }
           icon={Award}
           color="text-primary"

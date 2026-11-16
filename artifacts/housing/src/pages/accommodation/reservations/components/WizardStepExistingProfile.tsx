@@ -201,7 +201,7 @@ export function WizardStepExistingProfile({
               {selectedProfile.employmentType !== "THIRD_PARTY" &&
                 selectedProfile.contractEndDate && (
                   <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-0.5">
-                    📄 {ar ? "تاريخ انتهاء العقد:" : "Contract End Date:"}{" "}
+                    {ar ? "تاريخ انتهاء العقد:" : "Contract End Date:"}{" "}
                     {selectedProfile.contractEndDate}
                   </p>
                 )}
@@ -285,7 +285,7 @@ export function WizardStepExistingProfile({
                     </p>
                     <p className="text-[10.5px] text-muted-foreground dark:text-amber-200/90 leading-relaxed mt-0.5">
                       {ar
-                        ? "⚡ سيقوم النظام تلقائياً بإنهاء إقامته السابقة (Check-out) وتحرير السرير هناك فور التسكين، مع الحفاظ الكامل على كافة سجلات الغرف التاريخية 100% دون أي حذف."
+                        ? "سيقوم النظام تلقائياً بإنهاء إقامته السابقة (Check-out) وتحرير السرير هناك فور التسكين، مع الحفاظ الكامل على كافة سجلات الغرف التاريخية 100% دون أي حذف."
                         : "System will check out previous accommodation and release bed, preserving 100% of historical room logs."}
                     </p>
                   </div>

@@ -498,7 +498,7 @@ export function ProfileProfilePopup({
                         >
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono font-semibold text-primary">
-                              🚪 {pRoomNum}
+                              {pRoomNum}
                             </span>
                             {pBld && (
                               <span className="text-muted-foreground">

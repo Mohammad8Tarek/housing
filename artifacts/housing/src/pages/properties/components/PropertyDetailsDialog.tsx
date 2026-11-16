@@ -91,8 +91,8 @@ export function renderPropertyDetailsDialog(s: PropertiesState) {
                 </span>
                 <span className="font-semibold">
                   {selectedPropForDetails.defaultLanguage === "ar"
-                    ? "🇸🇦 العربية (Arabic)"
-                    : "🇺🇸 English"}
+                    ? "العربية (Arabic)"
+                    : "English"}
                 </span>
               </div>
               <div className="p-2.5 rounded-lg bg-muted/40 border text-xs">

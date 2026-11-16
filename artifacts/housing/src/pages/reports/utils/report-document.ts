@@ -831,24 +831,24 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
   <div class="preview-actions-bar">
     <div class="bar-left">
       <div class="bar-title">
-        <span>🏨</span>
+        <span></span>
         <span>${escapeHtml(reportTitle)}</span>
       </div>
       <div class="bar-meta">${escapeHtml(propName)} · ${tableRows.length} ${isArabic ? "سجل" : "records"} · ${totalPages} ${isArabic ? (totalPages === 1 ? "صفحة" : "صفحات") : totalPages === 1 ? "page" : "pages"} · <span id="metaOrient">${orientation === "landscape" ? (isArabic ? "أفقي (Landscape)" : "Landscape") : isArabic ? "رأسي (Portrait)" : "Portrait"}</span> · <span style="font-family: monospace;">[${operaCode}]</span></div>
     </div>
     <div class="bar-actions">
-      <button class="btn btn-primary" onclick="window.print()">🖨️ ${isArabic ? "طباعة / حفظ كـ PDF" : "Print / Save as PDF"}</button>
-      <button class="btn btn-outline" id="orientBtn" onclick="toggleOrientation()">📄 ${isArabic ? (orientation === "landscape" ? "أفقي (انقر للرأسي)" : "رأسي (انقر للأفقي)") : orientation === "landscape" ? "Landscape (Click for Portrait)" : "Portrait (Click for Landscape)"}</button>
+      <button class="btn btn-primary" onclick="window.print()">${isArabic ? "طباعة / حفظ كـ PDF" : "Print / Save as PDF"}</button>
+      <button class="btn btn-outline" id="orientBtn" onclick="toggleOrientation()">${isArabic ? (orientation === "landscape" ? "أفقي (انقر للرأسي)" : "رأسي (انقر للأفقي)") : orientation === "landscape" ? "Landscape (Click for Portrait)" : "Portrait (Click for Landscape)"}</button>
       ${
         kpiCards.length > 0
           ? `
       <button class="btn btn-outline" id="kpiToggleBtn" onclick="toggleKpis()">
-        📊 ${isArabic ? (initialShowKpis ? "الإحصائيات: ظاهرة" : "الإحصائيات: مخفية") : initialShowKpis ? "KPIs: Shown" : "KPIs: Hidden"}
+        ${isArabic ? (initialShowKpis ? "الإحصائيات: ظاهرة" : "الإحصائيات: مخفية") : initialShowKpis ? "KPIs: Shown" : "KPIs: Hidden"}
       </button>`
           : ""
       }
       <button class="btn btn-outline" id="sigToggleBtn" onclick="toggleSignatures()">
-        ✍️ ${isArabic ? (initialShowSigs ? "التوقيعات: ظاهرة" : "التوقيعات: مخفية") : initialShowSigs ? "Signatures: Shown" : "Signatures: Hidden"}
+        ✍${isArabic ? (initialShowSigs ? "التوقيعات: ظاهرة" : "التوقيعات: مخفية") : initialShowSigs ? "Signatures: Shown" : "Signatures: Hidden"}
       </button>
       <button class="btn btn-close" onclick="window.close()">❌ ${isArabic ? "إغلاق" : "Close"}</button>
     </div>
@@ -880,8 +880,8 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
       });
       if (orientBtn) {
         orientBtn.innerHTML = currentOrientation === "portrait"
-          ? "📄 ${isArabic ? "رأسي (انقر للأفقي)" : "Portrait (Click for Landscape)"}"
-          : "📄 ${isArabic ? "أفقي (انقر للرأسي)" : "Landscape (Click for Portrait)"}";
+          ? "${isArabic ? "رأسي (انقر للأفقي)" : "Portrait (Click for Landscape)"}"
+          : "${isArabic ? "أفقي (انقر للرأسي)" : "Landscape (Click for Portrait)"}";
       }
       if (metaOrient) {
         metaOrient.innerHTML = currentOrientation === "portrait"
@@ -904,10 +904,10 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
       kpisVisible = !kpisVisible;
       if (kpisVisible) {
         grid.style.removeProperty("display");
-        if (btn) btn.innerHTML = "📊 ${isArabic ? "الإحصائيات: ظاهرة" : "KPIs: Shown"}";
+        if (btn) btn.innerHTML = "${isArabic ? "الإحصائيات: ظاهرة" : "KPIs: Shown"}";
       } else {
         grid.style.setProperty("display", "none", "important");
-        if (btn) btn.innerHTML = "📊 ${isArabic ? "الإحصائيات: مخفية" : "KPIs: Hidden"}";
+        if (btn) btn.innerHTML = "${isArabic ? "الإحصائيات: مخفية" : "KPIs: Hidden"}";
       }
     }
 
@@ -919,10 +919,10 @@ export function buildReportDocumentHtml(p: ReportDocumentParams): string {
       sigsVisible = !sigsVisible;
       if (sigsVisible) {
         sec.style.removeProperty("display");
-        if (btn) btn.innerHTML = "✍️ ${isArabic ? "التوقيعات: ظاهرة" : "Signatures: Shown"}";
+        if (btn) btn.innerHTML = "✍${isArabic ? "التوقيعات: ظاهرة" : "Signatures: Shown"}";
       } else {
         sec.style.setProperty("display", "none", "important");
-        if (btn) btn.innerHTML = "✍️ ${isArabic ? "التوقيعات: مخفية" : "Signatures: Hidden"}";
+        if (btn) btn.innerHTML = "✍${isArabic ? "التوقيعات: مخفية" : "Signatures: Hidden"}";
       }
     }
 

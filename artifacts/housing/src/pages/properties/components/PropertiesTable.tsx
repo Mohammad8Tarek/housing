@@ -296,8 +296,8 @@ export function renderPropertiesTable(s: PropertiesState) {
                   <TableCell>
                     <span className="text-xs">
                       {(prop as any).defaultLanguage === "ar"
-                        ? "🇸🇦 العربية"
-                        : "🇺🇸 English"}
+                        ? "العربية"
+                        : "English"}
                     </span>
                   </TableCell>
                 )}

@@ -601,7 +601,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
           <div className="flex items-center justify-between p-2 border-t sm:border-t-0 sm:border-l border-border/50 rtl:sm:border-l-0 rtl:sm:border-r">
             <div className="space-y-0.5">
               <span className="text-sm font-semibold flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                
                 {ar ? "مزامنة الإجازات آلياً:" : "Auto Vacation Sync:"}
               </span>
               <p className="text-xs text-muted-foreground">
@@ -834,7 +834,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    
                     <span>
                       {ar
                         ? "بدء فحص واستيراد النطاق"
@@ -967,7 +967,7 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
                       <RefreshCw className="w-3.5 h-3.5" />
                       <span>
                         {ar
-                          ? "🔄 فحص وتحديث بيانات موظفي السكن الحاليين"
+                          ? "فحص وتحديث بيانات موظفي السكن الحاليين"
                           : "Refresh All Existing Profiles"}
                       </span>
                     </>

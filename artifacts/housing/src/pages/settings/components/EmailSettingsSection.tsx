@@ -242,10 +242,10 @@ export function EmailSettingsSection({
                   <Badge variant="outline" className="text-[11px] font-normal">
                     {hasExistingPass
                       ? ar
-                        ? "✅ تم التكوين"
+                        ? "تم التكوين"
                         : "Configured"
                       : ar
-                        ? "⚠️ غير مكتمل"
+                        ? "غير مكتمل"
                         : "Not configured"}
                   </Badge>
                 </CardTitle>

@@ -68,7 +68,7 @@ export function NationalitySelect({
         ? `${selectedCountry.flag} ${selectedCountry.demonymAr}`
         : `${selectedCountry.flag} ${selectedCountry.demonymEn}`;
     }
-    return `🌐 ${value}`;
+    return `${value}`;
   }, [value, selectedCountry, isAr]);
 
   // Normalize search term
@@ -223,7 +223,7 @@ export function NationalitySelect({
                     )}
                   >
                     <span className="flex items-center gap-2 truncate">
-                      <span>🏷️</span>
+                      <span></span>
                       <span className="truncate">{n.value}</span>
                     </span>
                     {isSelected && (

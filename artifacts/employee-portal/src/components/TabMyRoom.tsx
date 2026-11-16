@@ -317,7 +317,7 @@ export default function TabMyRoom({ onRequestTab, onRoommatesTab }: Props) {
         </button>
         <div className="bg-card border border-border2 rounded-2xl p-4 flex flex-col items-start gap-2">
           <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-            <Sparkles className="w-4 h-4" />
+            
           </div>
           <div className="text-xs font-bold text-foreground">
             {isRtl ? "حالة النظافة" : "Housekeeping"}

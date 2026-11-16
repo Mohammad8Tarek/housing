@@ -342,7 +342,7 @@ export function generateAutoKpis(
         labelAr: "متوسط تقييم الخدمة (الريت)",
         value:
           avgRating !== "—"
-            ? `${avgRating} ★ (${ratedCount})`
+            ? `${avgRating} (${ratedCount})`
             : ar
               ? "لا يوجد تقييمات"
               : "No ratings",
@@ -396,7 +396,7 @@ export function generateAutoKpis(
         labelAr: "متوسط تقييم الخدمة",
         value: `${avgRating} / 5`,
         color: "blue",
-        subtext: "⭐⭐⭐⭐⭐",
+        subtext: "",
       },
       {
         label: "Satisfaction Rate",

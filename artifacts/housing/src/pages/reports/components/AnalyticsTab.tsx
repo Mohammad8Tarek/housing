@@ -190,7 +190,7 @@ export function AnalyticsTab({
       <div className="bg-card border border-border/70 shadow-xs rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
-            <Sparkles className="w-5 h-5" />
+            
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -987,14 +987,14 @@ export function AnalyticsTab({
                             className="text-blue-600 dark:text-blue-400 font-bold"
                             title={ar ? "ذكور" : "Males"}
                           >
-                            {d.maleCount ?? 0} ♂
+                            {d.maleCount ?? 0}
                           </span>
                           <span className="text-muted-foreground/60">/</span>
                           <span
                             className="text-purple-600 dark:text-purple-400 font-bold"
                             title={ar ? "إناث" : "Females"}
                           >
-                            {d.femaleCount ?? 0} ♀
+                            {d.femaleCount ?? 0}
                           </span>
                         </div>
                       </TableCell>
@@ -1037,11 +1037,11 @@ export function AnalyticsTab({
                   </TableCell>
                   <TableCell className="text-center py-2.5 tabular-nums">
                     <span className="text-blue-600 dark:text-blue-400">
-                      {totalDeptMales} ♂
+                      {totalDeptMales}
                     </span>
                     {" / "}
                     <span className="text-purple-600 dark:text-purple-400">
-                      {totalDeptFemales} ♀
+                      {totalDeptFemales}
                     </span>
                   </TableCell>
                   <TableCell className="py-2.5 text-muted-foreground text-[11px]">
@@ -1222,7 +1222,7 @@ export function AnalyticsTab({
 
             <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-xl p-3 text-center mb-3">
               <div className="text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums flex items-center justify-center gap-1">
-                <span>⭐</span>
+                <span></span>
                 <span>{evalStats?.average ? evalStats.average : "4.8"}</span>
                 <span className="text-xs text-muted-foreground font-normal">
                   / 5.0
@@ -1241,7 +1241,7 @@ export function AnalyticsTab({
                   {evalStats?.positive || 0}
                 </p>
                 <p className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium">
-                  {ar ? "إيجابي (4-5 نجوم)" : "Positive (4-5★)"}
+                  {ar ? "إيجابي (4-5 نجوم)" : "Positive (4-5)"}
                 </p>
               </div>
               <div className="bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/50 rounded-lg p-2">
@@ -1249,7 +1249,7 @@ export function AnalyticsTab({
                   {evalStats?.negative || 0}
                 </p>
                 <p className="text-[10px] text-rose-700 dark:text-rose-300 font-medium">
-                  {ar ? "ملاحظات (نجمتان أو أقل)" : "Critical (≤2★)"}
+                  {ar ? "ملاحظات (نجمتان أو أقل)" : "Critical (≤2)"}
                 </p>
               </div>
             </div>

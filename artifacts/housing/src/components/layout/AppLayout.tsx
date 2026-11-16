@@ -754,7 +754,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         </DropdownMenuLabel>
                         {isSuperAdmin && (
                           <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-0.5">
-                            👑 {ar ? "إدارة عليا" : "Executive"}
+                            {ar ? "إدارة عليا" : "Executive"}
                           </span>
                         )}
                       </div>
@@ -781,7 +781,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 variant="outline"
                                 className="text-[9px] px-1 py-0 bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/30"
                               >
-                                👑 {ar ? "سوبر أدمن" : "Super Admin"}
+                                {ar ? "سوبر أدمن" : "Super Admin"}
                               </Badge>
                             </div>
                             <p className="text-[10px] text-muted-foreground line-clamp-1">
@@ -1057,7 +1057,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       language === "en" ? "bg-accent font-semibold" : ""
                     }
                   >
-                    🇺🇸 English
+                    English
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => setLanguage("ar")}
@@ -1065,7 +1065,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       language === "ar" ? "bg-accent font-semibold" : ""
                     }
                   >
-                    🇸🇦 العربية
+                    العربية
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1121,7 +1121,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       </span>
                       {isSuperAdmin && (
                         <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400">
-                          👑 {ar ? "مدير النظام" : "Super Admin"}
+                          {ar ? "مدير النظام" : "Super Admin"}
                         </span>
                       )}
                     </div>
@@ -1138,7 +1138,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             variant="outline"
                             className="text-[9px] px-1 py-0 bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
                           >
-                            👑 {ar ? "سوبر أدمن" : "Super Admin"}
+                            {ar ? "سوبر أدمن" : "Super Admin"}
                           </Badge>
                         )}
                       </div>

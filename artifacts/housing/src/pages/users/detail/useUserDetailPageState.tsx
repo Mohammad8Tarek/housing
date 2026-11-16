@@ -393,7 +393,7 @@ export function useUserDetailPageState() {
       return {
         allowed: true,
         reason: ar
-          ? "مسموح ✅ - ممنوح في صلاحيات المستخدم"
+          ? "مسموح - ممنوح في صلاحيات المستخدم"
           : "Allowed - explicitly granted in permissions",
         type: "custom",
       };

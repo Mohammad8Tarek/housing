@@ -223,26 +223,26 @@ export function HousekeepingCells(c: ReportRowCtx) {
         >
           {ar
             ? row.status?.toLowerCase() === "dirty"
-              ? "تنظيف فوري 🧹"
+              ? "تنظيف فوري"
               : row.status?.toLowerCase() === "occupied_dirty"
                 ? "تنظيف عند الخروج"
                 : row.status?.toLowerCase() === "available"
-                  ? "✅ جاهزة"
+                  ? "جاهزة"
                   : row.status?.toLowerCase() === "occupied"
                     ? "مشغولة — لا تزعج"
                     : row.status?.toLowerCase() === "maintenance"
-                      ? "🔧 صيانة"
+                      ? "صيانة"
                       : "مراجعة"
             : row.status?.toLowerCase() === "dirty"
-              ? "Immediate Clean 🧹"
+              ? "Immediate Clean"
               : row.status?.toLowerCase() === "occupied_dirty"
                 ? "Clean on Checkout"
                 : row.status?.toLowerCase() === "available"
-                  ? "✅ Ready"
+                  ? "Ready"
                   : row.status?.toLowerCase() === "occupied"
                     ? "Occupied — DND"
                     : row.status?.toLowerCase() === "maintenance"
-                      ? "🔧 Maintenance"
+                      ? "Maintenance"
                       : "Review"}
         </Badge>
       </TableCell>

@@ -480,10 +480,10 @@ export function HousingPulseSection() {
           <Badge variant="outline" className="text-[11px] font-semibold">
             {activeConfig.ratingType === "stars"
               ? ar
-                ? "⭐⭐⭐⭐⭐ نجوم (1 إلى 5)"
+                ? "نجوم (1 إلى 5)"
                 : "Stars Scale (1-5)"
               : ar
-                ? "😊😐🙁 وجوه تعبيرية"
+                ? "وجوه تعبيرية"
                 : "Smiley Faces"}
           </Badge>
         </div>
@@ -754,13 +754,13 @@ export function HousingPulseSection() {
                   {ar ? "كافة التقييمات" : "All Ratings"}
                 </SelectItem>
                 <SelectItem value="satisfied">
-                  {ar ? "راضي 😊 (أو 4-5 نجوم)" : "Satisfied 😊"}
+                  {ar ? "راضي (أو 4-5 نجوم)" : "Satisfied"}
                 </SelectItem>
                 <SelectItem value="neutral">
-                  {ar ? "متوسط 😐 (أو 3 نجوم)" : "Neutral 😐"}
+                  {ar ? "متوسط (أو 3 نجوم)" : "Neutral"}
                 </SelectItem>
                 <SelectItem value="dissatisfied">
-                  {ar ? "غير راضي 🙁 (أو 1-2 نجوم)" : "Dissatisfied 🙁"}
+                  {ar ? "غير راضي (أو 1-2 نجوم)" : "Dissatisfied"}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -1002,7 +1002,7 @@ export function HousingPulseSection() {
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
                     {ar
-                      ? "😊 راضي / 😐 متوسط / 🙁 غير راضي"
+                      ? "راضي / متوسط / غير راضي"
                       : "Satisfied / Neutral / Dissatisfied"}
                   </p>
                 </button>
@@ -1024,7 +1024,7 @@ export function HousingPulseSection() {
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
                     {ar
-                      ? "⭐⭐⭐⭐⭐ تقييم رقمي تدريجي"
+                      ? "تقييم رقمي تدريجي"
                       : "1 to 5 numeric stars"}
                   </p>
                 </button>
@@ -1204,7 +1204,7 @@ export function HousingPulseSection() {
 
           <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-foreground space-y-1.5">
             <div className="font-semibold flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
-              <Sparkles className="w-4 h-4" />
+              
               <span>
                 {ar ? "ماذا يحدث عند التأكيد؟" : "What happens next?"}
               </span>

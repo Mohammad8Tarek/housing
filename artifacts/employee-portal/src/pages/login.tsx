@@ -326,7 +326,7 @@ export default function Login() {
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#C9A24D] to-[#F3DE9A] p-0.5 shadow-[0_0_30px_rgba(201,162,77,0.3)] animate-pulse">
             <div className="w-full h-full bg-[#0d0f14] rounded-[14px] flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-[#C9A24D] animate-spin" />
+              
             </div>
           </div>
           <div className="space-y-1">
@@ -413,7 +413,7 @@ export default function Login() {
         <section className="hidden lg:flex lg:col-span-7 flex-col justify-center pe-12 space-y-8 animate-[fadeIn_0.8s_ease]">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-[#E5CA85] backdrop-blur-md">
-              <Sparkles className="w-3.5 h-3.5 text-[#C9A24D]" />
+              
               <span>
                 {isRtl
                   ? "المنظومة السكنية الذكية الموحدة"
@@ -652,8 +652,8 @@ export default function Login() {
                   <div className="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs space-y-1">
                     <p className="font-semibold">
                       {isRtl
-                        ? "💡 كلمة المرور الافتراضية لأول مرة هي: 1234"
-                        : "💡 Default initial password is: 1234"}
+                        ? "كلمة المرور الافتراضية لأول مرة هي: 1234"
+                        : "Default initial password is: 1234"}
                     </p>
                     <p className="text-[11px] text-amber-300/80">
                       {isRtl

@@ -33,7 +33,7 @@ export function renderOutputOptionsBar(s: ReportConfigurationPageState) {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {ar ? "📃 أفقي (Landscape)" : "Landscape"}
+              {ar ? "أفقي (Landscape)" : "Landscape"}
             </button>
             <button
               type="button"
@@ -44,7 +44,7 @@ export function renderOutputOptionsBar(s: ReportConfigurationPageState) {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {ar ? "📄 عمودي (Portrait)" : "Portrait"}
+              {ar ? "عمودي (Portrait)" : "Portrait"}
             </button>
           </div>
         </div>

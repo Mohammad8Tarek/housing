@@ -154,7 +154,7 @@ export function renderMetaCloudCard(s: WhatsAppSettingsSectionState) {
           <div className="p-5 rounded-2xl bg-muted/40 border border-border/80 space-y-4 animate-in fade-in">
             <div className="flex items-center justify-between border-b pb-2">
               <div className="font-bold text-sm text-foreground flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-600" />
+                
                 <span>
                   {ar
                     ? "دليل تفعيل Meta WhatsApp Cloud API مجاناً في 3 دقائق:"

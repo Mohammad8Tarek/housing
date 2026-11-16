@@ -99,7 +99,7 @@ export function CrossPropertyConfirmDialog({
                   </p>
                   <p className="text-muted-foreground dark:text-amber-200/90 leading-relaxed">
                     {ar
-                      ? "⚡ سيقوم النظام تلقائياً بإنهاء إقامته السابقة (Check-out) وتحرير السرير هناك فور تأكيد التسكين، مع الحفاظ الكامل على كافة سجلات الغرف واللوج التاريخي 100% دون أي حذف."
+                      ? "سيقوم النظام تلقائياً بإنهاء إقامته السابقة (Check-out) وتحرير السرير هناك فور تأكيد التسكين، مع الحفاظ الكامل على كافة سجلات الغرف واللوج التاريخي 100% دون أي حذف."
                       : "System will automatically check out previous accommodation and release bed upon assignment, preserving 100% of historical room logs."}
                   </p>
                 </div>

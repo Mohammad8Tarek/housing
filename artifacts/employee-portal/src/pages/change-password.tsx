@@ -153,7 +153,7 @@ export default function ChangePassword() {
 
         {error && (
           <div className="mb-5 p-4 bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-2xl">
-            ⚠ {error}
+            {error}
           </div>
         )}
         {success && (

@@ -357,7 +357,7 @@ export function useReportExport({
           [ar ? "الفني المعين" : "Assigned To"]: m.assignedTo,
           [ar ? "تاريخ البلاغ" : "Reported Date"]: m.reportedAt,
           [ar ? "التقييم" : "Rating"]: m.rating
-            ? `${m.rating}/5 ★`
+            ? `${m.rating}/5`
             : ar
               ? "لم يتم التقييم"
               : "Not rated",

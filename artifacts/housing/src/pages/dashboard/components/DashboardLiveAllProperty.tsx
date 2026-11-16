@@ -361,7 +361,7 @@ export function DashboardLiveAllProperty({
 
         <div className="bg-card/80 border border-border/70 rounded-xl p-3 flex items-center gap-3 shadow-xs">
           <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-            <Sparkles className="w-5 h-5" />
+            
           </div>
           <div className="min-w-0">
             <p className="text-[11px] font-semibold text-muted-foreground">

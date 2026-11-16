@@ -116,7 +116,7 @@ export function renderPermissionsTab(s: UserDetailPageState) {
             }}
             className="text-xs h-8 px-3"
           >
-            <Sparkles className="w-3.5 h-3.5 mr-1" />
+            
             {ar ? "تطبيق قالب الدور الافتراضي" : "Apply Role Template"}
           </Button>
         </div>

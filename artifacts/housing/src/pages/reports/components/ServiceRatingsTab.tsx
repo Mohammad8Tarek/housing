@@ -280,7 +280,7 @@ export function ServiceRatingsTab({
                 : t.category,
           problem: t.problemType,
           worker: formatWorkerName(t.workerName),
-          rating: `${t.rating || 0} / 5 ⭐`,
+          rating: `${t.rating || 0} / 5`,
           comment: t.ratingComment || "—",
           ratedAt: t.ratedAt ? formatDateTime(t.ratedAt) : "—",
         }))
@@ -289,7 +289,7 @@ export function ServiceRatingsTab({
           workerName: formatWorkerName(w.workerName),
           specialty: w.specialty || "—",
           totalRated: w.totalRated,
-          avgRating: `${w.averageRating} / 5 ⭐`,
+          avgRating: `${w.averageRating} / 5`,
           satisfactionRate: `${w.satisfactionRate}%`,
         }));
 
@@ -480,7 +480,7 @@ export function ServiceRatingsTab({
               {ar ? "متوسط تقييم النظافة" : "Housekeeping Avg"}
             </span>
             <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-500">
-              <Sparkles className="w-4 h-4" />
+              
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
@@ -617,11 +617,11 @@ export function ServiceRatingsTab({
                     >
                       <TableCell className="text-center font-mono font-bold text-xs text-muted-foreground">
                         {idx === 0
-                          ? "🥇"
+                          ? ""
                           : idx === 1
-                            ? "🥈"
+                            ? ""
                             : idx === 2
-                              ? "🥉"
+                              ? ""
                               : idx + 1}
                       </TableCell>
                       <TableCell className="font-semibold text-xs text-foreground">

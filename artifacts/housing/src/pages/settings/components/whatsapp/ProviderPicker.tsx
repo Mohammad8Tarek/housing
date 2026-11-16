@@ -49,7 +49,7 @@ export function renderProviderPicker(s: WhatsAppSettingsSectionState) {
             variant="outline"
             className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 text-[10px]"
           >
-            🌐 {ar ? "مرن وشامل" : "Universal"}
+            {ar ? "مرن وشامل" : "Universal"}
           </Badge>
         </div>
       </button>
@@ -94,7 +94,7 @@ export function renderProviderPicker(s: WhatsAppSettingsSectionState) {
             variant="outline"
             className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px]"
           >
-            🛡️ {ar ? "أمان 100%" : "Zero-Ban"}
+            {ar ? "أمان 100%" : "Zero-Ban"}
           </Badge>
         </div>
       </button>
@@ -140,7 +140,7 @@ export function renderProviderPicker(s: WhatsAppSettingsSectionState) {
             variant="outline"
             className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30 text-[10px]"
           >
-            📱 {ar ? "تطبيق الهاتف" : "Physical Device"}
+            {ar ? "تطبيق الهاتف" : "Physical Device"}
           </Badge>
         </div>
       </button>

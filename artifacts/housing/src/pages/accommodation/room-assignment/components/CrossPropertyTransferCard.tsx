@@ -49,7 +49,7 @@ export function CrossPropertyTransferCard({
         </div>
       </div>
 
-      {/* ⚠️ تنبيه الإقامة الحالية في الفندق القديم */}
+      {/* تنبيه الإقامة الحالية في الفندق القديم */}
       {(selectedProfile as any).accommodationRoom && (
         <div className="p-3 rounded-lg border-2 border-amber-500/60 bg-amber-100/90 dark:bg-amber-900/60 text-amber-950 dark:text-amber-100 flex items-start gap-2.5 shadow-2xs">
           <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
@@ -61,7 +61,7 @@ export function CrossPropertyTransferCard({
             </p>
             <p className="text-muted-foreground dark:text-amber-200/90 leading-relaxed">
               {ar
-                ? "⚡ سيقوم النظام تلقائياً بإنهاء إقامته السابقة (Check-out) وتحرير السرير هناك فور تأكيد التسكين، مع الحفاظ الكامل على كافة سجلات الغرف ولوج الإقامات السابقة بنسبة 100% دون أي حذف."
+                ? "سيقوم النظام تلقائياً بإنهاء إقامته السابقة (Check-out) وتحرير السرير هناك فور تأكيد التسكين، مع الحفاظ الكامل على كافة سجلات الغرف ولوج الإقامات السابقة بنسبة 100% دون أي حذف."
                 : "System will automatically check out previous accommodation and release bed upon assignment, preserving 100% of historical room logs."}
             </p>
           </div>

@@ -732,22 +732,22 @@ export default function TicketDetailModal({
                               <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold border-amber-500/30">
                                 {ticket.rating === 5
                                   ? ar
-                                    ? "ممتاز ⭐⭐⭐⭐⭐"
+                                    ? "ممتاز"
                                     : "Excellent"
                                   : ticket.rating === 4
                                     ? ar
-                                      ? "جيد جداً ⭐⭐⭐⭐"
+                                      ? "جيد جداً"
                                       : "Very Good"
                                     : ticket.rating === 3
                                       ? ar
-                                        ? "مقبول ⭐⭐⭐"
+                                        ? "مقبول"
                                         : "Average"
                                       : ticket.rating === 2
                                         ? ar
-                                          ? "ضعيف ⭐⭐"
+                                          ? "ضعيف"
                                           : "Poor"
                                         : ar
-                                          ? "سيء جداً ⭐"
+                                          ? "سيء جداً"
                                           : "Very Poor"}
                               </Badge>
                             </div>

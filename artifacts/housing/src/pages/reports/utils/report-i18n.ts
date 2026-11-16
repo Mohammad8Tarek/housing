@@ -783,15 +783,15 @@ export function formatStatusBadgeHtml(val: any, isArabic: boolean): string {
   }
   const str = String(val).trim();
   if (str === "—" || str === "-") return "—";
-  if (str === "[  ]" || str === "[ ]" || str === "☐") {
+  if (str === "[  ]" || str === "[ ]" || str === "") {
     return `<span style="display:inline-block; width:13px; height:13px; border:1.2px solid #475569; border-radius:2px; vertical-align:middle; background:#ffffff;"></span>`;
   }
-  if (str === "[✓]" || str === "[x]" || str === "[X]" || str === "☑") {
+  if (str === "[✓]" || str === "[x]" || str === "[X]" || str === "") {
     return `<span style="display:inline-block; width:13px; height:13px; border:1.2px solid #059669; border-radius:2px; vertical-align:middle; background:#ecfdf5; color:#059669; text-align:center; font-size:10px; line-height:12px; font-weight:bold;">✓</span>`;
   }
 
   // Star rating badge styling
-  if (str.includes("★")) {
+  if (str.includes("")) {
     return `<span style="display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; background:#fffbeb; border:1px solid #fde68a; color:#d97706; white-space:nowrap;">${escapeHtml(str)}</span>`;
   }
 

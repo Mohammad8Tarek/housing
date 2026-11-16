@@ -57,8 +57,8 @@ export function ProfileSearchResults({
         >
           {searchPropertyId === "all"
             ? ar
-              ? "🌐 بحث شامل في كل الفنادق"
-              : "🌐 All Properties Scope"
+              ? "بحث شامل في كل الفنادق"
+              : "All Properties Scope"
             : `${ar ? "فندق: " : "Property: "} ${allProperties.find((p) => String(p.id) === searchPropertyId)?.name || ""}`}
         </Badge>
       </div>
