@@ -652,7 +652,8 @@ export async function sendCustomGatewayMessage(params: {
     return { success: false, reason: "INVALID_PHONE" };
   }
 
-  const method = (params.method || "POST").toUpperCase() === "GET" ? "GET" : "POST";
+  const method =
+    (params.method || "POST").toUpperCase() === "GET" ? "GET" : "POST";
   const payloadType = (params.payloadType || "json").toLowerCase();
   const phoneField = (params.phoneField || "to").trim() || "to";
   const messageField = (params.messageField || "body").trim() || "body";
@@ -686,14 +687,20 @@ export async function sendCustomGatewayMessage(params: {
       form.set(messageField, text);
       response = await fetch(gatewayUrl.trim(), {
         method: "POST",
-        headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          ...headers,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
         body: form.toString(),
       });
     } else {
       response = await fetch(gatewayUrl.trim(), {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ [phoneField]: cleanPhone, [messageField]: text }),
+        body: JSON.stringify({
+          [phoneField]: cleanPhone,
+          [messageField]: text,
+        }),
       });
     }
 
