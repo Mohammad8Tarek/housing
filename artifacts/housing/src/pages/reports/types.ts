@@ -16,6 +16,8 @@ export type Tab =
   | "reservations"
   | "hostings"
   | "maintenance"
+  | "maintenance_sla"
+  | "birthdays"
   | "housekeeping"
   | "equipment_inventory"
   | "daily_movement"

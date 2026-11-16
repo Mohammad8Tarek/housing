@@ -493,3 +493,64 @@ export function VacationsCells(c: ReportRowCtx) {
     </>
   );
 }
+
+export function BirthdaysHeader(c: ReportTableCtx) {
+  const { ar, H } = c;
+  return (
+    <>
+      {H("fullName", ar ? "الموظف" : "Employee")}
+      {H("department", ar ? "القسم والوظيفة" : "Dept & Title")}
+      {H("phone", ar ? "الهاتف" : "Phone")}
+      {H("dateOfBirth", ar ? "تاريخ الميلاد" : "Date of Birth")}
+      {H("birthday", ar ? "يوم الميلاد" : "Birthday", "text-center")}
+      {H("ageTurning", ar ? "العمر القادم" : "Turning", "text-center")}
+      {H("daysUntil", ar ? "المتبقي" : "Countdown", "text-center")}
+    </>
+  );
+}
+
+export function BirthdaysCells(c: ReportRowCtx) {
+  const { ar, row } = c;
+  return (
+    <>
+      <TableCell>
+        <div>
+          <p className="font-bold text-sm text-foreground">{row.fullName}</p>
+          <p className="text-xs text-muted-foreground font-mono">
+            {row.profileCode}
+          </p>
+        </div>
+      </TableCell>
+      <TableCell>
+        <p className="text-xs font-medium">{row.department}</p>
+        <p className="text-[11px] text-muted-foreground">{row.jobTitle}</p>
+      </TableCell>
+      <TableCell className="text-xs font-mono">{row.phone}</TableCell>
+      <TableCell className="text-xs font-mono">{row.dateOfBirth}</TableCell>
+      <TableCell className="text-center">
+        <Badge
+          variant="outline"
+          className="bg-pink-50 text-pink-800 border-pink-300 font-mono font-bold text-xs"
+        >
+          {row.birthday}
+        </Badge>
+      </TableCell>
+      <TableCell className="text-center text-xs font-bold">
+        {row.ageTurning}
+      </TableCell>
+      <TableCell className="text-center">
+        <span
+          className={`font-bold text-xs px-2 py-1 rounded-full ${
+            row.isToday
+              ? "bg-pink-100 text-pink-800"
+              : row.daysUntil <= 7
+                ? "bg-amber-100 text-amber-800"
+                : "bg-muted text-muted-foreground"
+          }`}
+        >
+          {row.upcomingLabel}
+        </span>
+      </TableCell>
+    </>
+  );
+}

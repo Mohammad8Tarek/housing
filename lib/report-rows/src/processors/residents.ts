@@ -598,3 +598,98 @@ export function processVacations(ctx: ReportProcessorContext): any[] {
     v.notes,
   ]);
 }
+
+// 27. EMPLOYEE BIRTHDAYS (أعياد ميلاد الموظفين)
+export function processBirthdays(ctx: ReportProcessorContext): any[] {
+  const {
+    ar,
+    filterDepartment,
+    filterGender,
+    filterNationality,
+    profiles,
+    assignments,
+    buildingMap,
+    roomMap,
+    applySearchAndDate,
+  } = ctx;
+
+  const now = new Date();
+  const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const activeAssByProfile = new Map<number, any>();
+  assignments
+    .filter((a: any) => a.status?.toLowerCase() === "active")
+    .forEach((a: any) => activeAssByProfile.set(a.profileId, a));
+
+  const list = profiles
+    .filter((p: any) => {
+      if (!p.dateOfBirth) return false;
+      if (filterDepartment !== "all" && p.department !== filterDepartment)
+        return false;
+      if (filterGender !== "all" && !matchesGender(p.gender, filterGender))
+        return false;
+      if (filterNationality !== "all" && p.nationality !== filterNationality)
+        return false;
+      return true;
+    })
+    .map((p: any) => {
+      const dob = new Date(p.dateOfBirth);
+      if (isNaN(dob.getTime())) return null;
+      const bMonth = dob.getMonth();
+      const bDay = dob.getDate();
+
+      let nextBday = new Date(now.getFullYear(), bMonth, bDay);
+      if (nextBday < today0)
+        nextBday = new Date(now.getFullYear() + 1, bMonth, bDay);
+      const daysUntil = Math.round(
+        (nextBday.getTime() - today0.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      const ageTurning = nextBday.getFullYear() - dob.getFullYear();
+
+      const asgn = activeAssByProfile.get(p.id);
+      const room = asgn ? roomMap[asgn.roomId] : null;
+      const dd = String(bDay).padStart(2, "0");
+      const mm = String(bMonth + 1).padStart(2, "0");
+
+      return {
+        id: p.id,
+        profileCode: p.profileId || `EMP-${p.id}`,
+        fullName: getProfileDisplayName(p, ar),
+        department: getProfileDisplayDepartment(p, ar) || "—",
+        jobTitle: getProfileDisplayJobTitle(p, ar) || "—",
+        phone: p.phone || "—",
+        dateOfBirth: formatDate(p.dateOfBirth, "—"),
+        birthday: `${dd}/${mm}`,
+        daysUntil,
+        ageTurning,
+        isToday: daysUntil === 0,
+        upcomingLabel: ar
+          ? daysUntil === 0
+            ? "اليوم"
+            : daysUntil === 1
+              ? "غداً"
+              : `بعد ${daysUntil} يوم`
+          : daysUntil === 0
+            ? "Today"
+            : daysUntil === 1
+              ? "Tomorrow"
+              : `in ${daysUntil} days`,
+        assignedRoom: room
+          ? ar
+            ? `غرفة ${room.roomNumber} (${buildingMap[room.buildingId] || ""})`
+            : `Room ${room.roomNumber} (${buildingMap[room.buildingId] || ""})`
+          : "—",
+      };
+    })
+    .filter((x: any): x is any => x !== null)
+    .sort((a: any, b: any) => a.daysUntil - b.daysUntil);
+
+  return applySearchAndDate(list, "dateOfBirth", (i) => [
+    i.fullName,
+    i.profileCode,
+    i.department,
+    i.jobTitle,
+    i.phone,
+    i.birthday,
+  ]);
+}

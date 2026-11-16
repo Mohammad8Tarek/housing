@@ -633,17 +633,58 @@ export function useReportExport({
             r.occupantsSummary ?? r.residentsSummary ?? "—",
         }));
 
-      default:
-        if (ar && Array.isArray(data)) {
-          return data.map((item: any) => {
-            const trItem: Record<string, any> = {};
-            for (const [key, val] of Object.entries(item)) {
-              trItem[translateReportHeader(key, true)] = val;
-            }
-            return trItem;
-          });
-        }
-        return data;
+      case "birthdays":
+        return data.map((b: any) => ({
+          [ar ? "كود الموظف" : "Employee Code"]: b.profileCode,
+          [ar ? "الاسم بالكامل" : "Full Name"]: b.fullName,
+          [ar ? "القسم" : "Department"]: b.department,
+          [ar ? "الوظيفة" : "Job Title"]: b.jobTitle,
+          [ar ? "الهاتف" : "Phone"]: b.phone,
+          [ar ? "تاريخ الميلاد" : "Date of Birth"]: b.dateOfBirth,
+          [ar ? "يوم الميلاد" : "Birthday"]: b.birthday,
+          [ar ? "العمر القادم" : "Turning Age"]: b.ageTurning,
+          [ar ? "الأيام المتبقية" : "Days Until"]: b.daysUntil,
+          [ar ? "السكن الحالي" : "Current Housing"]: b.assignedRoom,
+        }));
+
+      case "maintenance_sla":
+        return data.map((s: any) => ({
+          [ar ? "رقم الغرفة" : "Room No"]: s.roomNumber,
+          [ar ? "المبنى" : "Building"]: s.buildingName,
+          [ar ? "الفئة" : "Category"]: s.category,
+          [ar ? "الأولوية" : "Priority"]: s.priority,
+          [ar ? "الفني المعيّن" : "Assigned To"]: s.assignedTo,
+          [ar ? "تاريخ البلاغ" : "Reported Date"]: s.reportedAt,
+          [ar ? "تاريخ الإنجاز" : "Resolved Date"]: s.resolvedAt,
+          [ar ? "زمن الاستجابة" : "Response Time"]: s.resolutionTime,
+          [ar ? "المهلة المستهدفة" : "SLA Target"]: s.slaTargetText,
+          [ar ? "حالة المهلة" : "SLA Status"]: s.slaStatus,
+        }));
+
+      default: {
+        if (!Array.isArray(data)) return data;
+        // Defensive fallback for any tab without an explicit mapper: translate
+        // headers (Arabic) and flatten non-scalar cells so Excel/PDF never
+        // print "[object Object]" or a raw array.
+        const flattenCell = (v: any): any => {
+          if (v === null || v === undefined) return "";
+          if (Array.isArray(v))
+            return v
+              .map((x) => (x && typeof x === "object" ? "" : String(x)))
+              .filter(Boolean)
+              .join(ar ? "، " : ", ");
+          if (typeof v === "object") return "";
+          return v;
+        };
+        return data.map((item: any) => {
+          const outItem: Record<string, any> = {};
+          for (const [key, val] of Object.entries(item)) {
+            const header = ar ? translateReportHeader(key, true) : key;
+            outItem[header] = flattenCell(val);
+          }
+          return outItem;
+        });
+      }
     }
   };
 

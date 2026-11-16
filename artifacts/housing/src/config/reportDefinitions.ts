@@ -1341,6 +1341,82 @@ export const CONFIGURATION_COLUMNS: ReportColumnDef[] = [
 
 // ════════════════════════════════════════════════════════════
 
+export const MAINTENANCE_SLA_COLUMNS: ReportColumnDef[] = [
+  { key: "index", header: "#", headerAr: "#", type: "index" },
+  { key: "roomNumber", header: "Room", headerAr: "الغرفة", type: "id" },
+  {
+    key: "buildingName",
+    header: "Building",
+    headerAr: "المبنى",
+    type: "text-short",
+  },
+  { key: "category", header: "Category", headerAr: "الفئة", type: "text-short" },
+  {
+    key: "priority",
+    header: "Priority",
+    headerAr: "الأولوية",
+    type: "text-short",
+  },
+  { key: "assignedTo", header: "Assigned To", headerAr: "الفني", type: "text" },
+  { key: "reportedAt", header: "Reported", headerAr: "البلاغ", type: "date" },
+  { key: "resolvedAt", header: "Resolved", headerAr: "الإنجاز", type: "date" },
+  {
+    key: "resolutionTime",
+    header: "Response Time",
+    headerAr: "زمن الاستجابة",
+    type: "text-short",
+  },
+  {
+    key: "slaStatus",
+    header: "SLA Status",
+    headerAr: "حالة المهلة",
+    type: "text",
+  },
+];
+
+export const BIRTHDAYS_COLUMNS: ReportColumnDef[] = [
+  { key: "index", header: "#", headerAr: "#", type: "index" },
+  {
+    key: "profileCode",
+    header: "Employee Code",
+    headerAr: "كود الموظف",
+    type: "id",
+  },
+  { key: "fullName", header: "Full Name", headerAr: "الاسم", type: "text" },
+  {
+    key: "department",
+    header: "Department",
+    headerAr: "القسم",
+    type: "text-short",
+  },
+  { key: "jobTitle", header: "Job Title", headerAr: "الوظيفة", type: "text" },
+  { key: "phone", header: "Phone", headerAr: "الهاتف", type: "text-short" },
+  {
+    key: "dateOfBirth",
+    header: "Date of Birth",
+    headerAr: "تاريخ الميلاد",
+    type: "date",
+  },
+  {
+    key: "birthday",
+    header: "Birthday",
+    headerAr: "يوم الميلاد",
+    type: "text-short",
+  },
+  {
+    key: "ageTurning",
+    header: "Turning",
+    headerAr: "العمر القادم",
+    type: "text-short",
+  },
+  {
+    key: "daysUntil",
+    header: "Days Until",
+    headerAr: "المتبقي",
+    type: "text-short",
+  },
+];
+
 export const SMART_REPORT_TABS: Record<
   Tab,
   {
@@ -1423,6 +1499,16 @@ export const SMART_REPORT_TABS: Record<
     columns: MAINTENANCE_COLUMNS,
     title: "Maintenance Work Orders",
     titleAr: "طلبات الصيانة",
+  },
+  maintenance_sla: {
+    columns: MAINTENANCE_SLA_COLUMNS,
+    title: "Maintenance Response & SLA",
+    titleAr: "زمن استجابة الصيانة (SLA)",
+  },
+  birthdays: {
+    columns: BIRTHDAYS_COLUMNS,
+    title: "Employee Birthdays",
+    titleAr: "أعياد ميلاد الموظفين",
   },
   housekeeping: {
     columns: HOUSEKEEPING_COLUMNS,

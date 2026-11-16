@@ -21,9 +21,11 @@ import {
   processReservations,
   processHostings,
   processVacations,
+  processBirthdays,
 } from "./residents";
 import {
   processMaintenance,
+  processMaintenanceSla,
   processHousekeeping,
   processEquipmentInventory,
   processWaterDistribution,
@@ -54,7 +56,9 @@ export const REPORT_PROCESSORS: Partial<
   reservations: processReservations,
   hostings: processHostings,
   vacations: processVacations,
+  birthdays: processBirthdays,
   maintenance: processMaintenance,
+  maintenance_sla: processMaintenanceSla,
   housekeeping: processHousekeeping,
   equipment_inventory: processEquipmentInventory,
   water_distribution: processWaterDistribution,

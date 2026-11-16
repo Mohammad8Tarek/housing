@@ -639,3 +639,61 @@ export function WaterDistributionCells(c: ReportRowCtx) {
     </>
   );
 }
+
+export function MaintenanceSlaHeader(c: ReportTableCtx) {
+  const { ar, H } = c;
+  return (
+    <>
+      {H("roomNumber", ar ? "الغرفة والمبنى" : "Room & Building")}
+      {H("category", ar ? "الفئة" : "Category")}
+      {H("priority", ar ? "الأولوية" : "Priority", "text-center")}
+      {H("assignedTo", ar ? "الفني المعيّن" : "Assigned To")}
+      {H("reportedAt", ar ? "تاريخ البلاغ" : "Reported")}
+      {H("resolvedAt", ar ? "تاريخ الإنجاز" : "Resolved")}
+      {H("resolutionTime", ar ? "زمن الاستجابة" : "Response Time", "text-center")}
+      {H("slaStatus", ar ? "حالة المهلة (SLA)" : "SLA Status", "text-center")}
+    </>
+  );
+}
+
+export function MaintenanceSlaCells(c: ReportRowCtx) {
+  const { ar, row } = c;
+  return (
+    <>
+      <TableCell>
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono font-bold text-sm text-foreground">
+            {row.roomNumber}
+          </span>
+          <span className="text-[11px] text-muted-foreground truncate">
+            {row.buildingName}
+          </span>
+        </div>
+      </TableCell>
+      <TableCell className="text-xs font-medium">{row.category}</TableCell>
+      <TableCell className="text-center text-xs">{row.priority}</TableCell>
+      <TableCell className="text-xs">{row.assignedTo}</TableCell>
+      <TableCell className="text-xs font-mono">{row.reportedAt}</TableCell>
+      <TableCell className="text-xs font-mono">{row.resolvedAt}</TableCell>
+      <TableCell className="text-center text-xs font-semibold">
+        {row.resolutionTime}
+        <div className="text-[10px] text-muted-foreground font-normal">
+          {ar ? "المستهدف" : "Target"}: {row.slaTargetText}
+        </div>
+      </TableCell>
+      <TableCell className="text-center">
+        <span
+          className={`font-bold text-xs px-2 py-1 rounded-full whitespace-nowrap ${
+            row.slaBreached
+              ? "bg-rose-100 text-rose-800"
+              : row.isOpen
+                ? "bg-sky-100 text-sky-800"
+                : "bg-emerald-100 text-emerald-800"
+          }`}
+        >
+          {row.slaStatus}
+        </span>
+      </TableCell>
+    </>
+  );
+}

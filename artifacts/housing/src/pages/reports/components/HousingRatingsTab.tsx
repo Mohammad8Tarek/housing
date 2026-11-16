@@ -128,7 +128,28 @@ export function HousingRatingsTab({
 
   const propertyBreakdown: any[] = responseData?.propertyBreakdown || [];
   const commentsList: any[] = responseData?.comments || [];
-  const allCommentsList: any[] = responseData?.allComments || [];
+
+  // Full comment set fetched on demand for exports (not shipped on every page).
+  const fetchAllRows = async (): Promise<any[]> => {
+    const params = new URLSearchParams();
+    if (queryPropertyId && queryPropertyId !== "all")
+      params.append("propertyId", queryPropertyId);
+    if (ratingFilter && ratingFilter !== "all")
+      params.append("rating", ratingFilter);
+    if (fromDate) params.append("fromDate", fromDate);
+    if (toDate) params.append("toDate", toDate);
+    params.append("all", "1");
+    try {
+      const res = await fetch(
+        `/api/reports/housing-ratings?${params.toString()}`,
+      );
+      if (!res.ok) throw new Error("fetch failed");
+      const json = await res.json();
+      return json.allComments || json.comments || [];
+    } catch {
+      return commentsList;
+    }
+  };
 
   const filteredComments = useMemo(() => {
     if (!searchComment.trim()) return commentsList;
@@ -140,9 +161,8 @@ export function HousingRatingsTab({
     );
   }, [commentsList, searchComment]);
 
-  const handleExportExcel = () => {
-    const rowsToExport =
-      allCommentsList.length > 0 ? allCommentsList : commentsList;
+  const handleExportExcel = async () => {
+    const rowsToExport = await fetchAllRows();
     const excelRows = rowsToExport.map((r: any, idx: number) => ({
       "#": idx + 1,
       [ar ? "السكن / الفندق" : "Property"]: r.propertyName || "-",
@@ -194,10 +214,8 @@ export function HousingRatingsTab({
     { key: "date", header: "Date", headerAr: "التاريخ", type: "date" },
   ];
 
-  const handlePrintReport = () => {
-    const rows = (
-      allCommentsList.length > 0 ? allCommentsList : commentsList
-    ).map((r: any) => ({
+  const handlePrintReport = async () => {
+    const rows = (await fetchAllRows()).map((r: any) => ({
       property: r.propertyName || "-",
       rating:
         r.rating === "satisfied"
@@ -228,14 +246,8 @@ export function HousingRatingsTab({
         exportPDF: handlePrintReport,
       });
     }
-  }, [
-    onRegisterExport,
-    allCommentsList,
-    commentsList,
-    queryPropertyId,
-    ar,
-    stats,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRegisterExport, queryPropertyId, ar, stats]);
 
   const resetFilters = () => {
     setSelectedProp("all");

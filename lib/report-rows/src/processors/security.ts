@@ -40,15 +40,20 @@ export function processGateLogs(ctx: ReportProcessorContext): any[] {
 
       return {
         id: g.id,
+        // DD/MM/YYYY HH:mm (project date standard, time-zone aware). en-GB
+        // yields day/month/year numerals; time keeps the viewer's locale.
         scannedAt: g.scannedAt
-          ? new Date(g.scannedAt).toLocaleString(ar ? "ar-EG" : "en-US", {
+          ? `${new Date(g.scannedAt).toLocaleDateString("en-GB", {
+              timeZone: ctx.timeZone,
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })} ${new Date(g.scannedAt).toLocaleTimeString(ar ? "ar-EG" : "en-GB", {
               timeZone: ctx.timeZone,
               hour12: true,
-              month: "short",
-              day: "numeric",
               hour: "2-digit",
               minute: "2-digit",
-            })
+            })}`
           : "—",
         rawDate,
         action: isExit ? (ar ? "خروج" : "Exit") : ar ? "دخول" : "Entry",

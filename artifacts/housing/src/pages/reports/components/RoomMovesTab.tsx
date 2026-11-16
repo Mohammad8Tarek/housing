@@ -141,10 +141,33 @@ export function RoomMovesTab({
   };
 
   const movesList: any[] = responseData?.moves || [];
-  const allMovesList: any[] = responseData?.allMoves || [];
 
-  const handleExportExcel = () => {
-    const rowsToExport = allMovesList.length > 0 ? allMovesList : movesList;
+  // Fetch the full (unpaged) set on demand for exports, so routine paging does
+  // not download the entire move history on every request.
+  const fetchAllRows = async (): Promise<any[]> => {
+    const params = new URLSearchParams();
+    if (queryPropertyId && queryPropertyId !== "all")
+      params.append("propertyId", queryPropertyId);
+    if (selectedBuilding && selectedBuilding !== "all")
+      params.append("building", selectedBuilding);
+    if (selectedReason && selectedReason !== "all")
+      params.append("reasonCode", selectedReason);
+    if (fromDate) params.append("fromDate", fromDate);
+    if (toDate) params.append("toDate", toDate);
+    if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
+    params.append("all", "1");
+    try {
+      const res = await fetch(`/api/reports/room-moves?${params.toString()}`);
+      if (!res.ok) throw new Error("fetch failed");
+      const json = await res.json();
+      return json.allMoves || json.moves || [];
+    } catch {
+      return movesList;
+    }
+  };
+
+  const handleExportExcel = async () => {
+    const rowsToExport = await fetchAllRows();
     const excelRows = rowsToExport.map((r: any, idx: number) => ({
       "#": idx + 1,
       [ar ? "السكن / الفندق" : "Property"]: r.propertyName || "-",
@@ -199,19 +222,9 @@ export function RoomMovesTab({
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   }
 
-  const handlePrintReport = () => {
-    const propName =
-      queryPropertyId !== "all"
-        ? properties.find((p) => String(p.id) === String(queryPropertyId))
-            ?.displayName ||
-          properties.find((p) => String(p.id) === String(queryPropertyId))
-            ?.name ||
-          `Property #${queryPropertyId}`
-        : ar
-          ? "كافة الفنادق والسكنات"
-          : "All Properties";
-
-    const rows = (allMovesList.length > 0 ? allMovesList : movesList).map(
+  const handlePrintReport = async () => {
+    const allRows = await fetchAllRows();
+    const rows = allRows.map(
       (r: any, idx: number) => ({
         newRoom: r.newRoomNumber
           ? `Rm ${r.newRoomNumber}${r.newBedNumber ? ` (B#${r.newBedNumber})` : ""}`
@@ -240,7 +253,8 @@ export function RoomMovesTab({
         exportPDF: handlePrintReport,
       });
     }
-  }, [onRegisterExport, allMovesList, movesList, queryPropertyId, ar]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRegisterExport, queryPropertyId, ar]);
 
   const resetFilters = () => {
     setSelectedProp("all");
