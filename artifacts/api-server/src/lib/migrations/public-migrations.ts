@@ -362,6 +362,26 @@ export const MIGRATIONS: Migration[] = [
   )`,
   },
   {
+    name: "public.evaluations.public_share",
+    q: `ALTER TABLE public.evaluations ADD COLUMN IF NOT EXISTS public_token TEXT;
+        ALTER TABLE public.evaluations ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE public.evaluations ADD COLUMN IF NOT EXISTS opens_at TIMESTAMPTZ;`,
+  },
+  {
+    name: "public.survey_items.sections",
+    q: `ALTER TABLE public.survey_items ADD COLUMN IF NOT EXISTS section_ar TEXT;
+        ALTER TABLE public.survey_items ADD COLUMN IF NOT EXISTS section_en TEXT;
+        ALTER TABLE public.survey_items ADD COLUMN IF NOT EXISTS allow_na BOOLEAN NOT NULL DEFAULT false;`,
+  },
+  {
+    name: "public.survey_item_responses.public_fields",
+    q: `ALTER TABLE public.survey_item_responses ALTER COLUMN profile_id DROP NOT NULL;
+        ALTER TABLE public.survey_item_responses ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'portal';
+        ALTER TABLE public.survey_item_responses ADD COLUMN IF NOT EXISTS department TEXT;
+        ALTER TABLE public.survey_item_responses ADD COLUMN IF NOT EXISTS respondent_key TEXT;
+        ALTER TABLE public.survey_item_responses ADD COLUMN IF NOT EXISTS na BOOLEAN NOT NULL DEFAULT false;`,
+  },
+  {
     name: "public.room_locks",
     q: `CREATE TABLE IF NOT EXISTS public.room_locks (
     id SERIAL PRIMARY KEY, property_id INTEGER NOT NULL, room_id INTEGER NOT NULL,

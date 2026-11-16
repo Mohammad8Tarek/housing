@@ -56,6 +56,7 @@ import pushNotificationsRouter from "./push-notifications.js";
 import portalFoodTransportRouter from "./portal-food-transport.js";
 import portalChatRouter from "./portal-chat.js";
 import roomServicePublicRouter from "./room-service-public.js";
+import publicSurveysRouter from "./public-surveys.js";
 
 const router: IRouter = Router();
 
@@ -68,6 +69,10 @@ router.use(authRouter);
 
 // Public QR Room Service routes (no login required for residents scanning door QR)
 router.use(roomServicePublicRouter);
+
+// Public anonymous surveys via link / QR (no login). The auth gate below already
+// lets any /public/ path through.
+router.use("/public", publicSurveysRouter);
 
 // Profile portal routes use their own portal session. Admin-only portal
 // maintenance actions add permission checks inside portal-auth/.

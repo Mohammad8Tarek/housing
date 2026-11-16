@@ -19,6 +19,7 @@ import { withTableFallback } from "../lib/with-table-fallback.js";
 import { getTenantId } from "../lib/request-utils.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams, HousingPulseConfigBody } from "../validation/schemas.js";
+import { generateSurveyToken } from "./public-surveys.js";
 
 const router: Router = Router();
 
@@ -31,6 +32,7 @@ const CreateEvaluationSchema = z.object({
   category: z.string().optional().default("general"),
   department: z.string().optional(),
   expiresAt: z.string().optional(),
+  opensAt: z.string().optional(),
   items: z
     .array(
       z.object({
@@ -38,6 +40,9 @@ const CreateEvaluationSchema = z.object({
         titleEn: z.string(),
         type: z.enum(["rating", "text", "yes_no"]).default("rating"),
         required: z.boolean().default(true),
+        sectionAr: z.string().optional(),
+        sectionEn: z.string().optional(),
+        allowNa: z.boolean().optional().default(false),
       }),
     )
     .optional(),
@@ -153,6 +158,11 @@ router.post(
       } else {
         delete insertTemplate.expiresAt;
       }
+      if (insertTemplate.opensAt) {
+        insertTemplate.opensAt = new Date(insertTemplate.opensAt);
+      } else {
+        delete insertTemplate.opensAt;
+      }
 
       const result = await withTableFallback(
         async () =>
@@ -170,6 +180,9 @@ router.post(
                 titleEn: item.titleEn,
                 type: item.type,
                 required: item.required,
+                sectionAr: (item as any).sectionAr ?? null,
+                sectionEn: (item as any).sectionEn ?? null,
+                allowNa: Boolean((item as any).allowNa),
                 orderIndex: idx,
               }));
               await tenantDb.insert(surveyItemsTable).values(itemValues);
@@ -516,35 +529,53 @@ router.get(
           .from(surveyItemResponsesTable)
           .where(eq(surveyItemResponsesTable.templateId, templateId));
 
-        // Group by profileId
+        // Group by respondent: a logged-in profile (profile_id) or an anonymous
+        // public submission (respondent_key).
         const profileMap: Record<
-          number,
-          { profileId: number; items: any[]; submittedAt: Date | null }
+          string,
+          {
+            profileId: number | null;
+            respondentKey: string | null;
+            department: string | null;
+            source: string;
+            items: any[];
+            submittedAt: Date | null;
+          }
         > = {};
         for (const r of responses) {
-          if (!profileMap[r.profileId]) {
-            profileMap[r.profileId] = {
-              profileId: r.profileId,
+          const key =
+            r.profileId != null
+              ? `p:${r.profileId}`
+              : `k:${(r as any).respondentKey ?? "anon"}`;
+          if (!profileMap[key]) {
+            profileMap[key] = {
+              profileId: r.profileId ?? null,
+              respondentKey: (r as any).respondentKey ?? null,
+              department: (r as any).department ?? null,
+              source: (r as any).source ?? "portal",
               items: [],
               submittedAt: r.createdAt,
             };
           }
-          profileMap[r.profileId].items.push({
+          profileMap[key].items.push({
             itemId: r.itemId,
             ratingValue: r.ratingValue,
             textValue: r.textValue,
+            na: (r as any).na ?? false,
           });
           if (
             r.createdAt &&
-            (!profileMap[r.profileId].submittedAt ||
-              r.createdAt > profileMap[r.profileId].submittedAt!)
+            (!profileMap[key].submittedAt ||
+              r.createdAt > profileMap[key].submittedAt!)
           ) {
-            profileMap[r.profileId].submittedAt = r.createdAt;
+            profileMap[key].submittedAt = r.createdAt;
           }
         }
 
-        // Get profile names
-        const profileIds = Object.keys(profileMap).map(Number);
+        // Get names only for logged-in profiles; public respondents are anonymous.
+        const profileIds = Object.values(profileMap)
+          .map((r) => r.profileId)
+          .filter((id): id is number => id != null);
         const profiles =
           profileIds.length > 0
             ? await tenantDb
@@ -572,18 +603,25 @@ router.get(
                 : template.createdAt,
           },
           items,
-          responses: Object.values(profileMap).map((r) => ({
-            profileId: r.profileId,
-            profileName: empMap[r.profileId]
-              ? `${empMap[r.profileId].firstName || ""} ${empMap[r.profileId].lastName || ""}`.trim()
-              : `Profile #${r.profileId}`,
-            profileCode: empMap[r.profileId]?.profileId || null,
-            items: r.items,
-            submittedAt:
-              r.submittedAt instanceof Date
-                ? r.submittedAt.toISOString()
-                : r.submittedAt,
-          })),
+          responses: Object.values(profileMap).map((r) => {
+            const emp = r.profileId != null ? empMap[r.profileId] : null;
+            return {
+              profileId: r.profileId,
+              source: r.source,
+              department: r.department,
+              profileName: emp
+                ? `${emp.firstName || ""} ${emp.lastName || ""}`.trim()
+                : r.source === "public"
+                  ? "مجهول / Anonymous"
+                  : `Profile #${r.profileId}`,
+              profileCode: emp?.profileId || null,
+              items: r.items,
+              submittedAt:
+                r.submittedAt instanceof Date
+                  ? r.submittedAt.toISOString()
+                  : r.submittedAt,
+            };
+          }),
           totalResponses: Object.keys(profileMap).length,
         };
       });
@@ -943,6 +981,87 @@ router.post(
         inHouseCount,
         lastPushedAt: now.toISOString(),
       });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /api/evaluations/:id/share - Admin: make a template public, return link token
+router.post(
+  "/evaluations/:id/share",
+  requirePermission("evaluations", "edit"),
+  validate({ params: IdParams }),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+      const templateId = Number(req.params.id);
+
+      const updated = await withTenant(propertyId, async (tenantDb) => {
+        const [tpl] = await tenantDb
+          .select()
+          .from(evaluationsTable)
+          .where(
+            and(
+              eq(evaluationsTable.id, templateId),
+              isNull(evaluationsTable.surveyTemplateId),
+            ),
+          )
+          .limit(1);
+        if (!tpl) return null;
+        const token = (tpl as any).publicToken || generateSurveyToken();
+        const [row] = await tenantDb
+          .update(evaluationsTable)
+          .set({ isPublic: true, publicToken: token } as any)
+          .where(eq(evaluationsTable.id, templateId))
+          .returning();
+        return row;
+      });
+
+      if (!updated)
+        return res
+          .status(404)
+          .json({ success: false, message: "Survey template not found" });
+
+      const token = (updated as any).publicToken;
+      return res.json({
+        success: true,
+        token,
+        path: `/s/${token}`,
+        isPublic: true,
+        expiresAt: (updated as any).expiresAt ?? null,
+        opensAt: (updated as any).opensAt ?? null,
+      });
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+// POST /api/evaluations/:id/unshare - Admin: disable the public link
+router.post(
+  "/evaluations/:id/unshare",
+  requirePermission("evaluations", "edit"),
+  validate({ params: IdParams }),
+  async (req, res, next) => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId)
+        return res
+          .status(400)
+          .json({ success: false, message: "propertyId required" });
+      const templateId = Number(req.params.id);
+      await withTenant(propertyId, async (tenantDb) => {
+        await tenantDb
+          .update(evaluationsTable)
+          .set({ isPublic: false } as any)
+          .where(eq(evaluationsTable.id, templateId));
+      });
+      return res.json({ success: true, isPublic: false });
     } catch (err) {
       return next(err);
     }

@@ -529,6 +529,32 @@ export const TENANT_MIGRATIONS: Migration[] = [
     q: "CREATE INDEX IF NOT EXISTS idx_survey_item_responses_item ON survey_item_responses(item_id)",
   },
 
+  // === Public shareable surveys (link / QR, anonymous) ===
+  {
+    name: "evaluations.public_share",
+    q: `ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS public_token TEXT;
+        ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE evaluations ADD COLUMN IF NOT EXISTS opens_at TIMESTAMPTZ;`,
+  },
+  {
+    name: "evaluations.public_token_unique_idx",
+    q: "CREATE UNIQUE INDEX IF NOT EXISTS uq_evaluations_public_token ON evaluations(public_token) WHERE public_token IS NOT NULL",
+  },
+  {
+    name: "survey_items.sections",
+    q: `ALTER TABLE survey_items ADD COLUMN IF NOT EXISTS section_ar TEXT;
+        ALTER TABLE survey_items ADD COLUMN IF NOT EXISTS section_en TEXT;
+        ALTER TABLE survey_items ADD COLUMN IF NOT EXISTS allow_na BOOLEAN NOT NULL DEFAULT false;`,
+  },
+  {
+    name: "survey_item_responses.public_fields",
+    q: `ALTER TABLE survey_item_responses ALTER COLUMN profile_id DROP NOT NULL;
+        ALTER TABLE survey_item_responses ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'portal';
+        ALTER TABLE survey_item_responses ADD COLUMN IF NOT EXISTS department TEXT;
+        ALTER TABLE survey_item_responses ADD COLUMN IF NOT EXISTS respondent_key TEXT;
+        ALTER TABLE survey_item_responses ADD COLUMN IF NOT EXISTS na BOOLEAN NOT NULL DEFAULT false;`,
+  },
+
   // === Portal Notifications (per-tenant) ===
   {
     name: "portal_notifications",

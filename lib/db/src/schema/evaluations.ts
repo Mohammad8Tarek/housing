@@ -5,6 +5,7 @@ import {
   integer,
   timestamp,
   real,
+  boolean,
   index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -26,6 +27,11 @@ export const evaluationsTable = pgTable(
     /** null = admin survey template; set = profile response linked to template id */
     surveyTemplateId: integer("survey_template_id"),
     status: text("status").notNull().default("pending"),
+    /** Public share: a random token that opens the survey via link/QR without login. */
+    publicToken: text("public_token"),
+    isPublic: boolean("is_public").notNull().default(false),
+    /** Public survey opens at this time (null = immediately); closes at expiresAt. */
+    opensAt: timestamp("opens_at", { withTimezone: true }),
     submittedAt: timestamp("submitted_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
