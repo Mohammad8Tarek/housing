@@ -13,6 +13,7 @@ const ForgotPassword = lazy(() => import("./pages/forgot-password"));
 const Dashboard = lazy(() => import("./pages/dashboard"));
 const ChangePassword = lazy(() => import("./pages/change-password"));
 const RequestDetails = lazy(() => import("./pages/request-details"));
+const PublicSurvey = lazy(() => import("./pages/public-survey"));
 import BiometricLockScreen from "./components/BiometricLockScreen";
 import {
   useEffect,
@@ -369,6 +370,8 @@ function AnimatedRoutes() {
         <Suspense fallback={<RouteFallback />}>
           <Switch location={location}>
             <Route path="/login" component={Login} />
+            {/* Public anonymous survey (link / QR) — no login required */}
+            <Route path="/s/:token" component={PublicSurvey} />
             <Route path="/forgot-password" component={ForgotPassword} />
             <Route path="/change-password" component={ChangePassword} />
             <Route path="/dashboard">

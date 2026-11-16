@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ShareSurveyDialog } from "./ShareSurveyDialog";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatDate } from "@/lib/date-utils";
@@ -66,7 +67,14 @@ export function EvaluationsSection({
     expiresAt: "",
   });
   const [items, setItems] = useState<
-    Array<{ titleAr: string; titleEn: string; type: string; required: boolean }>
+    Array<{
+      titleAr: string;
+      titleEn: string;
+      type: string;
+      required: boolean;
+      section?: string;
+      allowNa?: boolean;
+    }>
   >([]);
 
   const { data: evaluations, isLoading } = useQuery({
@@ -199,7 +207,14 @@ export function EvaluationsSection({
   const addItem = () =>
     setItems([
       ...items,
-      { titleAr: "", titleEn: "", type: "rating", required: true },
+      {
+        titleAr: "",
+        titleEn: "",
+        type: "rating",
+        required: true,
+        section: "",
+        allowNa: false,
+      },
     ]);
   const removeItem = (idx: number) =>
     setItems(items.filter((_, i) => i !== idx));
@@ -362,6 +377,11 @@ export function EvaluationsSection({
                           >
                             <MessageSquare className="w-3.5 h-3.5" />
                           </Button>
+                          <ShareSurveyDialog
+                            templateId={ev.id}
+                            propertyId={activePropertyId}
+                            ar={ar}
+                          />
                           <Button
                             variant="ghost"
                             size="icon"
@@ -540,6 +560,14 @@ export function EvaluationsSection({
                       </span>
                       <div className="flex-1 grid grid-cols-2 gap-2">
                         <Input
+                          placeholder={ar ? "القسم / البُعد" : "Section / dimension"}
+                          value={item.section ?? ""}
+                          onChange={(e) =>
+                            updateItem(idx, "section", e.target.value)
+                          }
+                          className="h-8 text-xs col-span-2 bg-amber-50/40 dark:bg-amber-500/5"
+                        />
+                        <Input
                           placeholder={
                             ar ? "السؤال (عربي)" : "Question (Arabic)"
                           }
@@ -578,7 +606,20 @@ export function EvaluationsSection({
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
+                          {item.type === "rating" && (
+                            <label className="flex items-center gap-1 text-xs cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={item.allowNa ?? false}
+                                onChange={(e) =>
+                                  updateItem(idx, "allowNa", e.target.checked)
+                                }
+                                className="accent-primary"
+                              />
+                              {ar ? "لا ينطبق" : "N/A"}
+                            </label>
+                          )}
                           <label className="flex items-center gap-1 text-xs cursor-pointer">
                             <input
                               type="checkbox"
@@ -610,7 +651,17 @@ export function EvaluationsSection({
                   onClick={() => {
                     const payload = {
                       ...form,
-                      items: items.filter((i) => i.titleAr || i.titleEn),
+                      items: items
+                        .filter((i) => i.titleAr || i.titleEn)
+                        .map((i) => ({
+                          titleAr: i.titleAr,
+                          titleEn: i.titleEn,
+                          type: i.type,
+                          required: i.required,
+                          allowNa: Boolean(i.allowNa),
+                          sectionAr: i.section || undefined,
+                          sectionEn: i.section || undefined,
+                        })),
                     };
                     if (payload.department === "__all__")
                       payload.department = "";

@@ -238,6 +238,9 @@ BEGIN
     ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "expires_at" TIMESTAMPTZ;
     ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'pending'::text;
     ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "survey_template_id" INTEGER;
+    ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "public_token" TEXT;
+    ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "is_public" BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE "evaluations" ADD COLUMN IF NOT EXISTS "opens_at" TIMESTAMPTZ;
 
     -- --------------------------------------------------------
     -- Table: floors
@@ -1930,9 +1933,14 @@ BEGIN
     -- Ensure all columns exist
     ALTER TABLE "survey_item_responses" ADD COLUMN IF NOT EXISTS "template_id" INTEGER;
     ALTER TABLE "survey_item_responses" ADD COLUMN IF NOT EXISTS "profile_id" INTEGER;
+    ALTER TABLE "survey_item_responses" ALTER COLUMN "profile_id" DROP NOT NULL;
     ALTER TABLE "survey_item_responses" ADD COLUMN IF NOT EXISTS "item_id" INTEGER;
     ALTER TABLE "survey_item_responses" ADD COLUMN IF NOT EXISTS "rating_value" REAL;
     ALTER TABLE "survey_item_responses" ADD COLUMN IF NOT EXISTS "text_value" TEXT;
+    ALTER TABLE "survey_item_responses" ADD COLUMN IF NOT EXISTS "source" TEXT NOT NULL DEFAULT 'portal';
+    ALTER TABLE "survey_item_responses" ADD COLUMN IF NOT EXISTS "department" TEXT;
+    ALTER TABLE "survey_item_responses" ADD COLUMN IF NOT EXISTS "respondent_key" TEXT;
+    ALTER TABLE "survey_item_responses" ADD COLUMN IF NOT EXISTS "na" BOOLEAN NOT NULL DEFAULT false;
     ALTER TABLE "survey_item_responses" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
 
     -- --------------------------------------------------------
@@ -1955,6 +1963,9 @@ BEGIN
     ALTER TABLE "survey_items" ADD COLUMN IF NOT EXISTS "title_en" TEXT;
     ALTER TABLE "survey_items" ADD COLUMN IF NOT EXISTS "type" TEXT DEFAULT 'rating'::text;
     ALTER TABLE "survey_items" ADD COLUMN IF NOT EXISTS "required" BOOLEAN DEFAULT true;
+    ALTER TABLE "survey_items" ADD COLUMN IF NOT EXISTS "section_ar" TEXT;
+    ALTER TABLE "survey_items" ADD COLUMN IF NOT EXISTS "section_en" TEXT;
+    ALTER TABLE "survey_items" ADD COLUMN IF NOT EXISTS "allow_na" BOOLEAN NOT NULL DEFAULT false;
     ALTER TABLE "survey_items" ADD COLUMN IF NOT EXISTS "order_index" INTEGER DEFAULT 0;
     ALTER TABLE "survey_items" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
 

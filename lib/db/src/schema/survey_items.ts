@@ -23,6 +23,11 @@ export const surveyItemsTable = pgTable(
     titleEn: text("title_en").notNull(),
     type: text("type").notNull().default("rating"), // rating | text | yes_no
     required: boolean("required").notNull().default(true),
+    // Dimension / section the question belongs to (e.g. Engagement, Management).
+    sectionAr: text("section_ar"),
+    sectionEn: text("section_en"),
+    // Offer a "Not applicable" choice on a rating question.
+    allowNa: boolean("allow_na").notNull().default(false),
     orderIndex: integer("order_index").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -36,12 +41,21 @@ export const surveyItemResponsesTable = pgTable("survey_item_responses", {
   templateId: integer("template_id")
     .notNull()
     .references(() => evaluationsTable.id, { onDelete: "cascade" }),
-  profileId: integer("profile_id").notNull(),
+  // Nullable: a public/anonymous respondent has no portal profile.
+  profileId: integer("profile_id"),
   itemId: integer("item_id")
     .notNull()
     .references(() => surveyItemsTable.id, { onDelete: "cascade" }),
   ratingValue: real("rating_value"),
   textValue: text("text_value"),
+  // 'portal' (logged-in resident) or 'public' (anonymous link/QR).
+  source: text("source").notNull().default("portal"),
+  // Department the respondent selected (for per-department reporting).
+  department: text("department"),
+  // Groups one anonymous submission's answers together; also used for dedup.
+  respondentKey: text("respondent_key"),
+  // Respondent chose "Not applicable" for this rating item.
+  na: boolean("na").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
