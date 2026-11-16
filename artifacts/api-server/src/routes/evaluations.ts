@@ -20,6 +20,7 @@ import { getTenantId } from "../lib/request-utils.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams, HousingPulseConfigBody } from "../validation/schemas.js";
 import { generateSurveyToken } from "./public-surveys.js";
+import QRCode from "qrcode";
 
 const router: Router = Router();
 
@@ -1028,9 +1029,28 @@ router.post(
           .json({ success: false, message: "Survey template not found" });
 
       const token = (updated as any).publicToken;
+      // Build the link against the resident PORTAL (where /s/:token lives), not
+      // the admin origin. QR is rendered server-side so it never depends on a
+      // browser library.
+      const portalBase = (
+        process.env.PORTAL_URL || "https://resident.sunrise-resorts.com/portal/"
+      ).replace(/\/+$/, "");
+      const url = `${portalBase}/s/${token}`;
+      let qr: string | null = null;
+      try {
+        qr = await QRCode.toDataURL(url, {
+          width: 320,
+          margin: 2,
+          color: { dark: "#0F2A44", light: "#ffffff" },
+        });
+      } catch {
+        /* QR generation best-effort */
+      }
       return res.json({
         success: true,
         token,
+        url,
+        qr,
         path: `/s/${token}`,
         isPublic: true,
         expiresAt: (updated as any).expiresAt ?? null,
