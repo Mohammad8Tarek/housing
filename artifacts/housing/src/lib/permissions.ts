@@ -208,6 +208,66 @@ export const getPermissionsForRoles = (
 export const allModulePerms = (module: Module): string[] =>
   (MODULE_ACTIONS[module] ?? []).map((action) => permKey(module, action));
 
+// ── Elevated roles ───────────────────────────────────────────────────────────
+// Some roles are granted their access by the role itself, so any stored
+// permission list on them is ignored (mirrors the API's effectivePermissions).
+export const ELEVATED_ROLE_SCOPE: Record<
+  string,
+  "full" | "all_except_properties"
+> = {
+  super_admin: "full",
+  system_admin: "full",
+  admin: "all_except_properties",
+};
+
+const normRole = (r: unknown) =>
+  String(r ?? "")
+    .trim()
+    .toLowerCase();
+
+/** The elevation scope of a user's roles, or null for an ordinary role. */
+export const elevatedScope = (
+  roles: Array<string | null | undefined> | null | undefined,
+): "full" | "all_except_properties" | null => {
+  const list = (roles ?? []).map(normRole);
+  if (list.some((r) => ELEVATED_ROLE_SCOPE[r] === "full")) return "full";
+  if (list.some((r) => ELEVATED_ROLE_SCOPE[r] === "all_except_properties"))
+    return "all_except_properties";
+  return null;
+};
+
+/** Whether the user's role already grants access regardless of the stored list. */
+export const isElevatedRole = (
+  roles: Array<string | null | undefined> | null | undefined,
+): boolean => elevatedScope(roles) !== null;
+
+/**
+ * The permission keys a user effectively has, mirroring the API: an elevated
+ * role grants its whole scope regardless of the stored list; otherwise the
+ * stored list is the source of truth.
+ */
+export const effectivePermissionKeys = (
+  roles: Array<string | null | undefined> | null | undefined,
+  storedPerms: string[] | null | undefined,
+): Set<string> => {
+  const scope = elevatedScope(roles);
+  if (scope === "full") {
+    return new Set(MODULES.flatMap((m) => allModulePerms(m)));
+  }
+  const keys = new Set<string>();
+  if (scope === "all_except_properties") {
+    for (const m of MODULES) {
+      if (m === "properties") continue;
+      for (const k of allModulePerms(m)) keys.add(k);
+    }
+  }
+  for (const p of storedPerms ?? []) {
+    const n = normRole(p);
+    if (n && n !== "none") keys.add(n.replace(":", "."));
+  }
+  return keys;
+};
+
 export const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   super_admin: MODULES.flatMap((module) => allModulePerms(module)),
   system_admin: MODULES.flatMap((module) => allModulePerms(module)),

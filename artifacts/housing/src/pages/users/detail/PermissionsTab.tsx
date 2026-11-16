@@ -34,6 +34,8 @@ import {
   permKey,
   type Action,
 } from "@/lib/permissions";
+import { PermissionHistory } from "./PermissionHistory";
+import { ElevatedRoleBanner } from "../components/ElevatedRoleBanner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { UserDetailPageState } from "./useUserDetailPageState";
@@ -80,6 +82,10 @@ export function renderPermissionsTab(s: UserDetailPageState) {
       {user && (
         <RoleTemplateLink user={user} ar={ar} onChanged={() => refetchUser()} />
       )}
+
+      {/* Elevated role: the role itself grants access, so the matrix below does
+          not restrict this user. */}
+      {user && <ElevatedRoleBanner roles={user.roles} ar={ar} />}
 
       {/* Pure RBAC Fine-Grained Permissions Banner */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 rounded-xl border bg-gradient-to-r from-card to-muted/30">
@@ -509,6 +515,9 @@ export function renderPermissionsTab(s: UserDetailPageState) {
           </div>
         ))}
       </div>
+
+      {/* Who changed this user's roles or permissions, and when */}
+      {user && <PermissionHistory userId={user.id} ar={ar} />}
     </div>
   );
 }
