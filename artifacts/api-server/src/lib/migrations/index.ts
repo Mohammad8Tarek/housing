@@ -54,7 +54,12 @@ async function runForAllTenants(query: string): Promise<number> {
   }
 }
 
-export async function runMigrations(): Promise<void> {
+// Schema-only migrations: the public DDL (columns, constraints, indexes) and
+// the per-tenant DDL. Every statement is idempotent (IF NOT EXISTS / guarded
+// DO-blocks) and existing-value safe, so this can run on every boot. It must
+// run to completion before the app serves traffic, so the caller gives it a
+// generous timeout and never races it against the slow backfills below.
+export async function runSchemaMigrations(): Promise<void> {
   console.info("[migrations] Running startup migrations...");
   let ok = 0;
   for (const m of MIGRATIONS) {
@@ -89,7 +94,14 @@ export async function runMigrations(): Promise<void> {
   console.info(
     `[migrations] Tenant migrations done — ${tOk} total tenant-applications.`,
   );
+}
 
+// Best-effort data hygiene that runs AFTER the schema is in place. These loop
+// over every property, so they get slow on installations with many tenants.
+// They are idempotent and swallow their own errors, so the caller runs them
+// in the background — they must never block boot or threaten the schema
+// migrations above.
+export async function runPostMigrationTasks(): Promise<void> {
   // Sync existing rooms' features into room_inventory across all properties
   try {
     const { syncAllRoomsFeaturesToInventory } =
@@ -137,6 +149,14 @@ export async function runMigrations(): Promise<void> {
   } catch (e: any) {
     console.warn(`[migrations] backfillBilingualProfiles notice:`, e?.message);
   }
+}
+
+// Backward-compatible full sequence: schema migrations then the post-migration
+// backfills. Used by the standalone `lib/db` migrate runner and any caller
+// that wants everything in one awaited call.
+export async function runMigrations(): Promise<void> {
+  await runSchemaMigrations();
+  await runPostMigrationTasks();
 }
 
 export async function applyTenantMigrationsToSchema(
