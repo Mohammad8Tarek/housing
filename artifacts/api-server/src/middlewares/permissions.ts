@@ -164,6 +164,7 @@ type AuthUser = {
   username: string;
   roles: string[];
   permissions: string[];
+  deniedPermissions?: string[];
   isSystemAdmin: boolean;
 };
 
@@ -470,6 +471,19 @@ export function effectivePermissions(user: AuthUser): Set<string> {
     for (const permission of user.permissions) add(permission);
   }
 
+  // 3. Explicit deny wins: remove any denied permission (and its dot/colon
+  //    variants) even when a role or the stored list granted it. Super/system
+  //    admins returned early above, so a root account can never be denied.
+  if (Array.isArray(user.deniedPermissions)) {
+    for (const permission of user.deniedPermissions) {
+      const norm = normalize(permission);
+      if (!norm || norm === "none") continue;
+      permissions.delete(norm);
+      permissions.delete(norm.replace(".", ":"));
+      permissions.delete(norm.replace(":", "."));
+    }
+  }
+
   return permissions;
 }
 
@@ -509,6 +523,7 @@ interface CachedUserData {
   status: string;
   roles: string[];
   permissions: string[];
+  deniedPermissions: string[];
   propertyId: number | null;
   propertyIds: number[];
   isSystemAdmin: boolean;
@@ -614,6 +629,9 @@ export async function loadAuthUser(
       status: normalize((userRow as any).status),
       roles,
       permissions: normalizePermissions((userRow as any).permissions),
+      deniedPermissions: normalizePermissions(
+        (userRow as any).deniedPermissions,
+      ),
       propertyId: (userRow as any).propertyId
         ? Number((userRow as any).propertyId)
         : null,
@@ -676,6 +694,7 @@ export async function loadAuthUser(
     username: cached.username,
     roles,
     permissions: cached.permissions,
+    deniedPermissions: cached.deniedPermissions ?? [],
     isSystemAdmin,
   };
 

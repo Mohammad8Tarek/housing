@@ -30,6 +30,10 @@ export const usersTable = pgTable(
     passwordChangedAt: timestamp("password_changed_at", { withTimezone: true }),
     roles: text("roles").array().notNull().default([]),
     permissions: text("permissions").array().notNull().default([]),
+    // Explicit deny list: these permissions are removed even when a role or the
+    // stored list would grant them (deny wins). Does not affect super/system
+    // admins, so a root account can never be locked out.
+    deniedPermissions: text("denied_permissions").array().notNull().default([]),
     // Linked role template: editing the template updates this user's
     // permissions. Null = permissions managed individually.
     roleTemplateId: integer("role_template_id"),

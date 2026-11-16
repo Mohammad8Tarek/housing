@@ -86,7 +86,9 @@ router.get("/surveys/:token", async (req, res): Promise<void> => {
       const depRows = await tenantDb
         .select({ d: profilesTable.department })
         .from(profilesTable)
-        .where(sql`${profilesTable.department} IS NOT NULL AND ${profilesTable.department} <> ''`)
+        .where(
+          sql`${profilesTable.department} IS NOT NULL AND ${profilesTable.department} <> ''`,
+        )
         .groupBy(profilesTable.department)
         .orderBy(profilesTable.department);
       return {

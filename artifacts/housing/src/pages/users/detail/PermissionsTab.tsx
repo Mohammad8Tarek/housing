@@ -24,6 +24,8 @@ import {
   Search,
   CheckCircle2,
   XCircle,
+  Ban,
+  ShieldX,
 } from "lucide-react";
 import {
   MODULES,
@@ -50,6 +52,8 @@ export function renderPermissionsTab(s: UserDetailPageState) {
     primaryRole,
     perms,
     setPerms,
+    denied,
+    toggleDeny,
     expandedModules,
     setExpandedModules,
     permSearch,
@@ -126,6 +130,30 @@ export function renderPermissionsTab(s: UserDetailPageState) {
             {ar ? "تطبيق قالب الدور الافتراضي" : "Apply Role Template"}
           </Button>
         </div>
+      </div>
+
+      {/* Explicit Deny legend */}
+      <div className="flex items-start gap-2 p-3 rounded-lg border border-rose-500/30 bg-rose-50/50 dark:bg-rose-950/20">
+        <ShieldX className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+        <p className="text-xs text-rose-800 dark:text-rose-300 leading-relaxed">
+          {ar ? (
+            <>
+              زر <Ban className="inline w-3 h-3 mx-0.5 -mt-0.5" /> يفرض{" "}
+              <b>منعاً صريحاً</b> على الصلاحية: تُسلب نهائياً حتى لو منحها الدور
+              أو كان المستخدم أدمن مرتفع الصلاحية (المنع يتغلب على أي سماح). لا
+              يؤثر ذلك على مدير النظام العام (Super/System Admin) فلا يمكن حجب
+              حساب جذر أبداً.
+            </>
+          ) : (
+            <>
+              The <Ban className="inline w-3 h-3 mx-0.5 -mt-0.5" /> button sets
+              an <b>explicit deny</b>: the permission is blocked even if a role
+              or the elevated admin grants it (deny always wins). Super / system
+              admins are never affected, so a root account can never be locked
+              out.
+            </>
+          )}
+        </p>
       </div>
 
       {/* Smart Capabilities Toolbar */}
@@ -385,6 +413,9 @@ export function renderPermissionsTab(s: UserDetailPageState) {
                 const enabledCount = modKeys.filter((k: any) =>
                   perms.has(k),
                 ).length;
+                const deniedCount = modKeys.filter((k: any) =>
+                  denied.has(k),
+                ).length;
                 const isAllEnabled =
                   enabledCount === actions.length && actions.length > 0;
                 const isExpanded = expandedModules[mod] ?? true;
@@ -429,6 +460,18 @@ export function renderPermissionsTab(s: UserDetailPageState) {
                         >
                           {enabledCount}/{actions.length}
                         </Badge>
+                        {deniedCount > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0 font-semibold border-rose-500/40 text-rose-700 dark:text-rose-400 bg-rose-50/60 dark:bg-rose-950/30 flex items-center gap-0.5"
+                            title={
+                              ar ? "صلاحيات ممنوعة صراحةً" : "Explicitly denied"
+                            }
+                          >
+                            <ShieldX className="w-3 h-3" />
+                            {deniedCount}
+                          </Badge>
+                        )}
                         <button
                           type="button"
                           onClick={() =>
@@ -452,38 +495,49 @@ export function renderPermissionsTab(s: UserDetailPageState) {
                       <div className="p-3.5 grid grid-cols-2 gap-2">
                         {actions.map((act: any) => {
                           const pKey = permKey(mod as any, act);
-                          const isChecked = perms.has(pKey);
-                          const isAdded = diffStats.addedKeys?.has(pKey);
-                          const isRevoked = diffStats.revokedKeys?.has(pKey);
+                          const isDenied = denied.has(pKey);
+                          const isChecked = perms.has(pKey) && !isDenied;
+                          const isAdded =
+                            !isDenied && diffStats.addedKeys?.has(pKey);
+                          const isRevoked =
+                            !isDenied && diffStats.revokedKeys?.has(pKey);
 
                           const canGrant = actorCanGrant(mod, act);
                           return (
-                            <label
+                            <div
                               key={act}
                               className={cn(
                                 "flex items-center gap-2 p-2 rounded-lg border text-xs font-medium transition-colors",
-                                !canGrant && !isChecked
-                                  ? "opacity-50 cursor-not-allowed bg-muted/20"
-                                  : "cursor-pointer",
-                                isChecked
-                                  ? "bg-primary/5 border-primary/20 text-foreground"
-                                  : "border-border/50 text-muted-foreground hover:bg-muted/30",
-                                isAdded &&
+                                isDenied
+                                  ? "border-rose-500/60 bg-rose-500/15 text-rose-800 dark:text-rose-300"
+                                  : !canGrant && !isChecked
+                                    ? "opacity-50 bg-muted/20"
+                                    : isChecked
+                                      ? "bg-primary/5 border-primary/20 text-foreground"
+                                      : "border-border/50 text-muted-foreground hover:bg-muted/30",
+                                !isDenied &&
+                                  isAdded &&
                                   "border-emerald-500/50 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
-                                isRevoked &&
+                                !isDenied &&
+                                  isRevoked &&
                                   "border-rose-500/50 bg-rose-500/10 text-rose-800 dark:text-rose-300",
                               )}
                             >
                               <Checkbox
                                 checked={isChecked}
-                                disabled={!canGrant && !isChecked}
+                                disabled={isDenied || (!canGrant && !isChecked)}
                                 onCheckedChange={() => togglePerm(pKey)}
+                                className="cursor-pointer"
                               />
                               <span className="truncate flex-1 flex items-center gap-1">
-                                {!canGrant && (
+                                {!canGrant && !isDenied && (
                                   <Lock className="w-3 h-3 text-amber-500 shrink-0" />
                                 )}
-                                <span>
+                                <span
+                                  className={cn(
+                                    isDenied && "line-through opacity-80",
+                                  )}
+                                >
                                   {ar
                                     ? (ACTION_LABELS as Record<string, any>)[
                                         act
@@ -493,17 +547,43 @@ export function renderPermissionsTab(s: UserDetailPageState) {
                                       ]?.en || act}
                                 </span>
                               </span>
-                              {isAdded && (
+                              {isDenied && (
+                                <span className="text-[9px] font-black text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60 px-1 rounded">
+                                  {ar ? "ممنوع" : "Denied"}
+                                </span>
+                              )}
+                              {!isDenied && isAdded && (
                                 <span className="text-[9px] font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-950/60 px-1 rounded">
                                   +{ar ? "إضافي" : "Added"}
                                 </span>
                               )}
-                              {isRevoked && (
+                              {!isDenied && isRevoked && (
                                 <span className="text-[9px] font-black text-rose-600 bg-rose-100 dark:bg-rose-950/60 px-1 rounded">
                                   -{ar ? "ملغي" : "Revoked"}
                                 </span>
                               )}
-                            </label>
+                              <button
+                                type="button"
+                                onClick={() => toggleDeny(pKey)}
+                                title={
+                                  isDenied
+                                    ? ar
+                                      ? "رفع المنع الصريح"
+                                      : "Lift explicit deny"
+                                    : ar
+                                      ? "منع هذه الصلاحية صراحةً (يتجاوز الدور)"
+                                      : "Explicitly deny (overrides role)"
+                                }
+                                className={cn(
+                                  "shrink-0 p-1 rounded-md border transition-colors",
+                                  isDenied
+                                    ? "bg-rose-600 text-white border-rose-600 hover:bg-rose-700"
+                                    : "border-border/60 text-muted-foreground hover:text-rose-600 hover:border-rose-400",
+                                )}
+                              >
+                                <Ban className="w-3 h-3" />
+                              </button>
+                            </div>
                           );
                         })}
                       </div>

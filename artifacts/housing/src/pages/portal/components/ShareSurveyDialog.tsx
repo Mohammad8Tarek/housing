@@ -46,7 +46,9 @@ export function ShareSurveyDialog({
       });
       setQr(dataUrl);
     } catch (e: any) {
-      toast.error(e?.message || (ar ? "تعذّر إنشاء الرابط" : "Could not create link"));
+      toast.error(
+        e?.message || (ar ? "تعذّر إنشاء الرابط" : "Could not create link"),
+      );
     } finally {
       setLoading(false);
     }
@@ -111,7 +113,12 @@ export function ShareSurveyDialog({
                   alt="Survey QR"
                   className="w-48 h-48 rounded-xl border bg-white p-2"
                 />
-                <Button variant="outline" size="sm" onClick={downloadQr} className="gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadQr}
+                  className="gap-1.5"
+                >
                   <Download className="w-3.5 h-3.5" />
                   {ar ? "تحميل الكود" : "Download QR"}
                 </Button>
@@ -124,7 +131,11 @@ export function ShareSurveyDialog({
                 dir="ltr"
                 className="flex-1 text-xs font-mono bg-muted rounded-lg px-2 py-2 border truncate"
               />
-              <Button size="icon" className="h-9 w-9 flex-shrink-0" onClick={copy}>
+              <Button
+                size="icon"
+                className="h-9 w-9 flex-shrink-0"
+                onClick={copy}
+              >
                 {copied ? (
                   <Check className="w-4 h-4" />
                 ) : (

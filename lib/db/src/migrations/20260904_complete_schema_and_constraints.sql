@@ -2088,6 +2088,7 @@ BEGIN
     ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "password_hash" TEXT;
     ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "roles" TEXT[] DEFAULT '{}'::text[];
     ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "permissions" TEXT[] DEFAULT '{}'::text[];
+    ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "denied_permissions" TEXT[] DEFAULT '{}'::text[];
     ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'active'::text;
     ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT now();
     ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "property_ids" TEXT[] DEFAULT '{}'::integer[];
