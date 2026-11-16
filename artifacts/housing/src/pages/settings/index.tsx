@@ -513,7 +513,6 @@ export default function Settings() {
                       value="classifications"
                       className="text-xs font-semibold gap-1.5"
                     >
-                      
                       {ar ? "تصنيفات الغرف" : "Room Classifications"}
                     </TabsTrigger>
                     <TabsTrigger

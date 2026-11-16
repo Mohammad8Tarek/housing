@@ -797,7 +797,8 @@ export function processMaintenanceSla(ctx: ReportProcessorContext): any[] {
 
       let elapsedHours: number | null = null;
       if (reportedMs != null && !isNaN(reportedMs)) {
-        const end = resolvedMs != null && !isNaN(resolvedMs) ? resolvedMs : nowMs;
+        const end =
+          resolvedMs != null && !isNaN(resolvedMs) ? resolvedMs : nowMs;
         elapsedHours = Math.max(0, (end - reportedMs) / (1000 * 60 * 60));
       }
       const breached = elapsedHours != null && elapsedHours > targetHours;

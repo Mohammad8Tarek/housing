@@ -600,7 +600,6 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                       onClick={handleGeneratePassword}
                       className="h-6 px-2 text-[11px] gap-1 border-[#C9A24D]/40 text-[#C9A24D] hover:bg-[#C9A24D]/10 font-semibold"
                     >
-                      
                       {ar ? "توليد كلمة معقدة" : "Generate"}
                     </Button>
                     {form.password && (
@@ -687,7 +686,6 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
                 variant="outline"
                 className="text-[11px] font-normal border-purple-500/30 text-purple-700 dark:text-purple-300 bg-purple-500/5"
               >
-                
                 {ar
                   ? `تمنح ${resolvedPermissions.length} صلاحية افتراضية`
                   : `Grants ${resolvedPermissions.length} default permissions`}
@@ -1025,7 +1023,6 @@ export function CreateUserDialog({ properties }: CreateUserDialogProps) {
         {/* Footer Actions */}
         <div className="bg-slate-100/70 dark:bg-slate-900/70 border-t border-border/70 p-4 px-6 flex items-center justify-between">
           <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-            
             <span>
               {ar
                 ? "سيتم تطبيق الصلاحيات الافتراضية للدور فور الإنشاء."

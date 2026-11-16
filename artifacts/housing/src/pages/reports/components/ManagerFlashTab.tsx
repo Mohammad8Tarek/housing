@@ -422,7 +422,6 @@ export function ManagerFlashTab({
               <span className="text-xs font-medium text-muted-foreground">
                 {ar ? "غرف بانتظار النظافة" : "Dirty Rooms"}
               </span>
-              
             </div>
             <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
               {metrics.vacantDirty + metrics.occupiedDirty}

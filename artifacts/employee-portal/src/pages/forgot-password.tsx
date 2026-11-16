@@ -120,7 +120,7 @@ export default function ForgotPassword() {
       className={`min-h-[100dvh] flex flex-col relative overflow-hidden bg-gradient-to-br from-[#0F2A44] via-[#1a365d] to-[#0d2238] font-sans ${isRtl ? "dir-rtl" : "dir-ltr"}`}
     >
       {/* Background patterns matching login */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#C9A24D]/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-[#2AA8AB]/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-white/5 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Header */}
@@ -172,7 +172,7 @@ export default function ForgotPassword() {
                     value={employeeId}
                     onChange={(e) => setEmployeeId(e.target.value)}
                     placeholder={isRtl ? "مثال: EMP-1234" : "e.g. EMP-1234"}
-                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 px-4 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
+                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 px-4 focus:border-[#2AA8AB]/50 focus:ring-1 focus:ring-[#2AA8AB]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
                     required
                     disabled={isLoading}
                   />
@@ -186,7 +186,7 @@ export default function ForgotPassword() {
                     value={nationalId}
                     onChange={(e) => setNationalId(e.target.value)}
                     placeholder={isRtl ? "الرقم القومي" : "National ID"}
-                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 px-4 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
+                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 px-4 focus:border-[#2AA8AB]/50 focus:ring-1 focus:ring-[#2AA8AB]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
                     required
                     disabled={isLoading}
                   />
@@ -200,7 +200,7 @@ export default function ForgotPassword() {
                     value={dateOfBirth}
                     onChange={(iso) => setDateOfBirth(iso)}
                     placeholder={isRtl ? "يوم/شهر/سنة" : "DD/MM/YYYY"}
-                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 px-4 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
+                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 px-4 focus:border-[#2AA8AB]/50 focus:ring-1 focus:ring-[#2AA8AB]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
                     required
                     disabled={isLoading}
                   />
@@ -214,7 +214,7 @@ export default function ForgotPassword() {
                     value={roomNumber}
                     onChange={(e) => setRoomNumber(e.target.value)}
                     placeholder={isRtl ? "رقم الغرفة" : "Room number"}
-                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 px-4 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
+                    className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 px-4 focus:border-[#2AA8AB]/50 focus:ring-1 focus:ring-[#2AA8AB]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
                     required
                     disabled={isLoading}
                   />
@@ -223,7 +223,7 @@ export default function ForgotPassword() {
                 <MotionButton
                   type="submit"
                   disabled={isLoading}
-                  className="w-full mt-4 bg-[#C9A24D] hover:bg-[#E2C37A] text-[#0F2A44] font-bold rounded-2xl py-4 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(201,162,77,0.3)] transition-all"
+                  className="w-full mt-4 bg-[#2AA8AB] hover:bg-[#7FD0C4] text-[#0F2A44] font-bold rounded-2xl py-4 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(42,168,171,0.3)] transition-all"
                 >
                   {isLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -250,7 +250,7 @@ export default function ForgotPassword() {
                       type={showNewPassword ? "text" : "password"}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 ps-4 pe-11 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
+                      className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 ps-4 pe-11 focus:border-[#2AA8AB]/50 focus:ring-1 focus:ring-[#2AA8AB]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
                       required
                       disabled={isLoading}
                     />
@@ -276,7 +276,7 @@ export default function ForgotPassword() {
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 ps-4 pe-11 focus:border-[#C9A24D]/50 focus:ring-1 focus:ring-[#C9A24D]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
+                      className="w-full bg-black/20 hover:bg-black/30 focus:bg-black/40 border border-white/10 text-white rounded-2xl py-3.5 ps-4 pe-11 focus:border-[#2AA8AB]/50 focus:ring-1 focus:ring-[#2AA8AB]/50 outline-none transition-all text-[15px] placeholder:text-white/30"
                       required
                       disabled={isLoading}
                     />

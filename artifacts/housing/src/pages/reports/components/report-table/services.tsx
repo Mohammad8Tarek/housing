@@ -650,7 +650,11 @@ export function MaintenanceSlaHeader(c: ReportTableCtx) {
       {H("assignedTo", ar ? "الفني المعيّن" : "Assigned To")}
       {H("reportedAt", ar ? "تاريخ البلاغ" : "Reported")}
       {H("resolvedAt", ar ? "تاريخ الإنجاز" : "Resolved")}
-      {H("resolutionTime", ar ? "زمن الاستجابة" : "Response Time", "text-center")}
+      {H(
+        "resolutionTime",
+        ar ? "زمن الاستجابة" : "Response Time",
+        "text-center",
+      )}
       {H("slaStatus", ar ? "حالة المهلة (SLA)" : "SLA Status", "text-center")}
     </>
   );

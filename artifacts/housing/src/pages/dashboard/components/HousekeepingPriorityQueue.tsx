@@ -43,9 +43,7 @@ export function HousekeepingPriorityQueue({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-teal-500/10 dark:bg-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400">
-              
-            </div>
+            <div className="w-8 h-8 rounded-xl bg-teal-500/10 dark:bg-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400"></div>
             <div>
               <CardTitle className="text-base font-bold text-foreground">
                 {ar

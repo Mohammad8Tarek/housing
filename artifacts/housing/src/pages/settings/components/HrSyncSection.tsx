@@ -601,7 +601,6 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
           <div className="flex items-center justify-between p-2 border-t sm:border-t-0 sm:border-l border-border/50 rtl:sm:border-l-0 rtl:sm:border-r">
             <div className="space-y-0.5">
               <span className="text-sm font-semibold flex items-center gap-1.5">
-                
                 {ar ? "مزامنة الإجازات آلياً:" : "Auto Vacation Sync:"}
               </span>
               <p className="text-xs text-muted-foreground">
@@ -834,7 +833,6 @@ export function HrSyncSection({ propertyId, language }: HrSyncSectionProps) {
                   </>
                 ) : (
                   <>
-                    
                     <span>
                       {ar
                         ? "بدء فحص واستيراد النطاق"

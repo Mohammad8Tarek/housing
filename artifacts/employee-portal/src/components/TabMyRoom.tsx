@@ -183,10 +183,10 @@ export default function TabMyRoom({ onRequestTab, onRoommatesTab }: Props) {
 
       {/* Hero card */}
       <div className="relative overflow-hidden rounded-3xl p-5 text-white bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] border border-white/10 shadow-lg">
-        <div className="absolute -top-10 -end-10 w-40 h-40 rounded-full bg-[#E0C070]/10 blur-2xl" />
+        <div className="absolute -top-10 -end-10 w-40 h-40 rounded-full bg-[#59B7A8]/10 blur-2xl" />
         <div className="flex items-start justify-between gap-3 relative">
           <div className="min-w-0">
-            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#E0C070]">
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#59B7A8]">
               {room.property?.name ||
                 (isRtl ? "سكن الموظفين" : "Staff Housing")}
             </div>
@@ -218,7 +218,7 @@ export default function TabMyRoom({ onRequestTab, onRoommatesTab }: Props) {
         </div>
         {room.bedNumber && (
           <div className="mt-4 inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-xl px-3 py-1.5 text-xs font-bold">
-            <BedDouble className="w-4 h-4 text-[#E0C070]" />
+            <BedDouble className="w-4 h-4 text-[#59B7A8]" />
             {isRtl ? `سرير رقم ${room.bedNumber}` : `Bed ${room.bedNumber}`}
           </div>
         )}
@@ -316,9 +316,7 @@ export default function TabMyRoom({ onRequestTab, onRoommatesTab }: Props) {
           </div>
         </button>
         <div className="bg-card border border-border2 rounded-2xl p-4 flex flex-col items-start gap-2">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-            
-          </div>
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center"></div>
           <div className="text-xs font-bold text-foreground">
             {isRtl ? "حالة النظافة" : "Housekeeping"}
           </div>

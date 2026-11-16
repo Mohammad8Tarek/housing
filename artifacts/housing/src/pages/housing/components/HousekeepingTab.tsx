@@ -1052,7 +1052,6 @@ export function HousekeepingTab({
                               }
                             >
                               <span className="flex items-center gap-1">
-                                
                                 {ar ? "فحص" : "Inspect"}
                               </span>
                             </Button>
@@ -1097,7 +1096,6 @@ export function HousekeepingTab({
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               ) : (
                                 <span className="flex items-center gap-1">
-                                  
                                   {ar ? "إتمام وفحص" : "Done & Inspect"}
                                 </span>
                               )}

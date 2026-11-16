@@ -324,10 +324,8 @@ export default function Login() {
     return (
       <div className="min-h-dvh bg-[#0d0f14] flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-4 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#C9A24D] to-[#F3DE9A] p-0.5 shadow-[0_0_30px_rgba(201,162,77,0.3)] animate-pulse">
-            <div className="w-full h-full bg-[#0d0f14] rounded-[14px] flex items-center justify-center">
-              
-            </div>
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#2AA8AB] to-[#7FD0C4] p-0.5 shadow-[0_0_30px_rgba(42,168,171,0.3)] animate-pulse">
+            <div className="w-full h-full bg-[#0d0f14] rounded-[14px] flex items-center justify-center"></div>
           </div>
           <div className="space-y-1">
             <h3 className="font-bold text-white text-lg tracking-wider">
@@ -343,7 +341,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-dvh flex relative overflow-x-hidden bg-[#0A0B10] text-foreground selection:bg-[#C9A24D]/30">
+    <div className="min-h-dvh flex relative overflow-x-hidden bg-[#0A0B10] text-foreground selection:bg-[#2AA8AB]/30">
       {/* Background Resort Image with Luxury Dark Gradient Overlay */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         <div
@@ -354,7 +352,7 @@ export default function Login() {
         />
         {/* Multilayered Atmospheric Gradients for Perfect Contrast */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-black/90 dark:from-[#08090D]/95 dark:via-[#08090D]/85 dark:to-[#08090D]/95" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(201,162,77,0.15),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(42,168,171,0.15),transparent_60%)]" />
       </div>
 
       {/* Top Header Navigation */}
@@ -363,9 +361,9 @@ export default function Login() {
         style={{ paddingTop: "max(16px, env(safe-area-inset-top, 16px))" }}
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C9A24D] to-[#99772B] p-0.5 shadow-[0_4px_16px_rgba(201,162,77,0.3)]">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#2AA8AB] to-[#1E8385] p-0.5 shadow-[0_4px_16px_rgba(42,168,171,0.3)]">
             <div className="w-full h-full bg-[#0D0F16] rounded-[10px] flex items-center justify-center">
-              <span className="font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-[#F7E7B4] to-[#C9A24D] text-lg">
+              <span className="font-serif font-black text-transparent bg-clip-text bg-gradient-to-r from-[#7FD0C4] to-[#2AA8AB] text-lg">
                 S
               </span>
             </div>
@@ -374,7 +372,7 @@ export default function Login() {
             <span className="text-xl sm:text-2xl font-black tracking-[0.18em] text-white block leading-none font-serif">
               SUNRISE
             </span>
-            <span className="text-[10px] text-[#C9A24D] font-semibold tracking-wider uppercase block mt-1">
+            <span className="text-[10px] text-[#2AA8AB] font-semibold tracking-wider uppercase block mt-1">
               {isRtl ? "بوابة المقيمين" : "Resident Portal"}
             </span>
           </div>
@@ -388,7 +386,7 @@ export default function Login() {
             className="h-9 px-3 rounded-xl bg-white/10 hover:bg-white/15 active:bg-white/20 border border-white/15 text-white flex items-center gap-1.5 transition-all backdrop-blur-md text-xs font-bold shadow-xs cursor-pointer"
             title={t("theme.language")}
           >
-            <Languages className="w-4 h-4 text-[#C9A24D]" />
+            <Languages className="w-4 h-4 text-[#2AA8AB]" />
             <span>{lang === "ar" ? "EN" : "عربي"}</span>
           </button>
 
@@ -412,8 +410,7 @@ export default function Login() {
         {/* Left Side: Brand Welcome Hero (Visible on Desktop / Tablets) */}
         <section className="hidden lg:flex lg:col-span-7 flex-col justify-center pe-12 space-y-8 animate-[fadeIn_0.8s_ease]">
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-[#E5CA85] backdrop-blur-md">
-              
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-[#BC9F6F] backdrop-blur-md">
               <span>
                 {isRtl
                   ? "المنظومة السكنية الذكية الموحدة"
@@ -425,14 +422,14 @@ export default function Login() {
               {isRtl ? (
                 <>
                   مرحباً بك في مجتمع <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F4DF9E] via-[#D8B45E] to-[#C9A24D]">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7FD0C4] via-[#59B7A8] to-[#2AA8AB]">
                     صن رايز للمنتجعات
                   </span>
                 </>
               ) : (
                 <>
                   Welcome to <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F4DF9E] via-[#D8B45E] to-[#C9A24D]">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7FD0C4] via-[#59B7A8] to-[#2AA8AB]">
                     SUNRISE Resorts
                   </span>{" "}
                   Living
@@ -450,7 +447,7 @@ export default function Login() {
           {/* Feature Highlights Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md space-y-2">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-[#C9A24D]">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-[#2AA8AB]">
                 <Wrench className="w-5 h-5" />
               </div>
               <h4 className="font-bold text-sm text-white">
@@ -497,7 +494,7 @@ export default function Login() {
         <section className="lg:col-span-5 flex flex-col justify-center items-center w-full max-w-[430px] mx-auto">
           <div className="w-full bg-[#12131A]/85 dark:bg-[#0E1017]/90 backdrop-blur-2xl border border-white/15 dark:border-white/10 rounded-[28px] p-6 sm:p-8 shadow-[0_16px_50px_rgba(0,0,0,0.6)] relative overflow-hidden">
             {/* Top Golden Light Accent */}
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#C9A24D] to-transparent opacity-80" />
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#2AA8AB] to-transparent opacity-80" />
 
             {/* Title Section */}
             <div className="mb-6 text-center sm:text-start">
@@ -532,7 +529,7 @@ export default function Login() {
                   className="text-xs font-semibold text-white/85 flex items-center justify-between"
                 >
                   <span className="flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-[#C9A24D]" />
+                    <User className="w-3.5 h-3.5 text-[#2AA8AB]" />
                     <span>
                       {isRtl
                         ? "كود الموظف / رقم البروفايل"
@@ -557,7 +554,7 @@ export default function Login() {
                     placeholder={
                       isRtl ? "مثال: EMP-001 أو 1024" : "e.g. EMP-001 or 1024"
                     }
-                    className="w-full bg-black/40 hover:bg-black/50 focus:bg-black/60 border border-white/15 focus:border-[#C9A24D] text-white rounded-2xl py-3.5 ps-3.5 pe-10 focus:ring-2 focus:ring-[#C9A24D]/25 outline-none transition-all text-sm placeholder:text-white/30"
+                    className="w-full bg-black/40 hover:bg-black/50 focus:bg-black/60 border border-white/15 focus:border-[#2AA8AB] text-white rounded-2xl py-3.5 ps-3.5 pe-10 focus:ring-2 focus:ring-[#2AA8AB]/25 outline-none transition-all text-sm placeholder:text-white/30"
                     required
                     disabled={isLoading}
                   />
@@ -581,13 +578,13 @@ export default function Login() {
                     htmlFor="password"
                     className="text-xs font-semibold text-white/85 flex items-center gap-1.5"
                   >
-                    <Lock className="w-3.5 h-3.5 text-[#C9A24D]" />
+                    <Lock className="w-3.5 h-3.5 text-[#2AA8AB]" />
                     <span>{isRtl ? "كلمة المرور" : "Password"}</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => handleSupportAction("password")}
-                    className="text-xs text-[#C9A24D] hover:text-[#E2C37A] font-medium transition-colors hover:underline cursor-pointer"
+                    className="text-xs text-[#2AA8AB] hover:text-[#7FD0C4] font-medium transition-colors hover:underline cursor-pointer"
                   >
                     {isRtl ? "نسيت كلمة المرور؟" : "Forgot Password?"}
                   </button>
@@ -606,7 +603,7 @@ export default function Login() {
                         ? "أدخل كلمة المرور الخاصة بك"
                         : "Enter your password"
                     }
-                    className="w-full bg-black/40 hover:bg-black/50 focus:bg-black/60 border border-white/15 focus:border-[#C9A24D] text-white rounded-2xl py-3.5 ps-3.5 pe-11 focus:ring-2 focus:ring-[#C9A24D]/25 outline-none transition-all text-sm placeholder:text-white/30 font-mono tracking-wider"
+                    className="w-full bg-black/40 hover:bg-black/50 focus:bg-black/60 border border-white/15 focus:border-[#2AA8AB] text-white rounded-2xl py-3.5 ps-3.5 pe-11 focus:ring-2 focus:ring-[#2AA8AB]/25 outline-none transition-all text-sm placeholder:text-white/30 font-mono tracking-wider"
                     required
                     disabled={isLoading}
                   />
@@ -625,7 +622,7 @@ export default function Login() {
                     }
                   >
                     {showPassword ? (
-                      <EyeOff className="w-4 h-4 text-[#C9A24D]" />
+                      <EyeOff className="w-4 h-4 text-[#2AA8AB]" />
                     ) : (
                       <Eye className="w-4 h-4 text-white/60" />
                     )}
@@ -640,7 +637,7 @@ export default function Login() {
                   onClick={() => setShowDefaultPwHint(!showDefaultPwHint)}
                   className="text-[11px] text-white/60 hover:text-white/90 flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <HelpCircle className="w-3.5 h-3.5 text-[#C9A24D]" />
+                  <HelpCircle className="w-3.5 h-3.5 text-[#2AA8AB]" />
                   <span>
                     {isRtl
                       ? "أول مرة تسجل دخول للبوابة؟"
@@ -678,7 +675,7 @@ export default function Login() {
                     <div
                       className={`w-5 h-5 rounded-lg border transition-all flex items-center justify-center ${
                         rememberMe
-                          ? "border-[#C9A24D] bg-[#C9A24D] text-black shadow-[0_0_10px_rgba(201,162,77,0.4)]"
+                          ? "border-[#2AA8AB] bg-[#2AA8AB] text-black shadow-[0_0_10px_rgba(42,168,171,0.4)]"
                           : "border-white/30 bg-black/30 group-hover:border-white/50"
                       }`}
                     >
@@ -733,7 +730,7 @@ export default function Login() {
                 type="submit"
                 withTap
                 disabled={isLoading}
-                className="w-full mt-3 bg-gradient-to-r from-[#C9A24D] via-[#DFBF70] to-[#C9A24D] text-[#12131C] font-bold py-3.5 rounded-2xl hover:brightness-105 active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_6px_25px_rgba(201,162,77,0.35)] cursor-pointer text-sm"
+                className="w-full mt-3 bg-gradient-to-r from-[#2AA8AB] via-[#59B7A8] to-[#2AA8AB] text-white font-bold py-3.5 rounded-2xl hover:brightness-105 active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_6px_25px_rgba(42,168,171,0.35)] cursor-pointer text-sm"
               >
                 {isLoading ? (
                   <>
@@ -779,7 +776,7 @@ export default function Login() {
                     {isLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <Fingerprint className="w-4 h-4 text-[#C9A24D]" />
+                      <Fingerprint className="w-4 h-4 text-[#2AA8AB]" />
                     )}
                     <span>
                       {isRtl
@@ -814,7 +811,7 @@ export default function Login() {
           {/* Secure Portal & Copyright Footer */}
           <footer className="mt-6 text-center space-y-2">
             <div className="inline-flex items-center justify-center gap-1.5 py-1 px-3 rounded-full bg-black/40 border border-white/10 backdrop-blur-md text-[11px] text-white/60">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#C9A24D]" />
+              <ShieldCheck className="w-3.5 h-3.5 text-[#2AA8AB]" />
               <span>
                 {isRtl
                   ? "بوابة سكن الموظفين المشفرة والآمنة"

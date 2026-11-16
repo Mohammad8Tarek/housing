@@ -291,7 +291,7 @@ export default function TabProfile({
       <div className="bg-card border border-border2 rounded-2xl overflow-hidden">
         <div className="h-24 bg-gradient-to-r from-[#1A2B4C] to-[#2A3B5C] relative"></div>
         <div className="px-5 pb-5 -mt-12">
-          <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-[#C9A24D] to-[#E0C070] p-0.5 shadow-lg">
+          <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-[#2AA8AB] to-[#59B7A8] p-0.5 shadow-lg">
             <div className="w-full h-full rounded-[calc(1.5rem-2px)] bg-[#1A2B4C] flex items-center justify-center overflow-hidden">
               {preview ? (
                 <img

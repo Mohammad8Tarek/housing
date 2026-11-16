@@ -355,7 +355,6 @@ export function renderCardsView(
                                       variant="outline"
                                       className="text-[9px] py-0 px-1 font-bold border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 flex items-center gap-0.5"
                                     >
-                                      
                                       <span>{ar ? "+ مخصص" : "+ Custom"}</span>
                                     </Badge>
                                   );

@@ -989,8 +989,7 @@ export const MAINTENANCE_COLUMNS: ReportColumnDef[] = [
     header: "Rating",
     headerAr: "التقييم",
     type: "text-short",
-    format: (v) =>
-      v ? (String(v).includes("") ? String(v) : `${v}/5`) : "—",
+    format: (v) => (v ? (String(v).includes("") ? String(v) : `${v}/5`) : "—"),
   },
   { key: "status", header: "Status", headerAr: "الحالة", type: "status" },
 ];
@@ -1350,7 +1349,12 @@ export const MAINTENANCE_SLA_COLUMNS: ReportColumnDef[] = [
     headerAr: "المبنى",
     type: "text-short",
   },
-  { key: "category", header: "Category", headerAr: "الفئة", type: "text-short" },
+  {
+    key: "category",
+    header: "Category",
+    headerAr: "الفئة",
+    type: "text-short",
+  },
   {
     key: "priority",
     header: "Priority",

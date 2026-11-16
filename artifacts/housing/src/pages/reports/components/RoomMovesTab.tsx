@@ -224,20 +224,18 @@ export function RoomMovesTab({
 
   const handlePrintReport = async () => {
     const allRows = await fetchAllRows();
-    const rows = allRows.map(
-      (r: any, idx: number) => ({
-        newRoom: r.newRoomNumber
-          ? `Rm ${r.newRoomNumber}${r.newBedNumber ? ` (B#${r.newBedNumber})` : ""}`
-          : "-",
-        resident: r.residentName || "-",
-        oldRoom: r.oldRoomNumber
-          ? `Rm ${r.oldRoomNumber}${r.oldBedNumber ? ` (B#${r.oldBedNumber})` : ""}`
-          : "-",
-        reason: r.moveReason || r.reasonCode || "-",
-        user: r.actionByUsername || "System",
-        datetime: formatDateTimeCell(r.createdAt),
-      }),
-    );
+    const rows = allRows.map((r: any, idx: number) => ({
+      newRoom: r.newRoomNumber
+        ? `Rm ${r.newRoomNumber}${r.newBedNumber ? ` (B#${r.newBedNumber})` : ""}`
+        : "-",
+      resident: r.residentName || "-",
+      oldRoom: r.oldRoomNumber
+        ? `Rm ${r.oldRoomNumber}${r.oldBedNumber ? ` (B#${r.oldBedNumber})` : ""}`
+        : "-",
+      reason: r.moveReason || r.reasonCode || "-",
+      user: r.actionByUsername || "System",
+      datetime: formatDateTimeCell(r.createdAt),
+    }));
 
     if (!rows.length) {
       return;
@@ -295,7 +293,6 @@ export function RoomMovesTab({
     if (c === "REQUEST") {
       return (
         <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[11px] gap-1 font-medium">
-          
           <span>{ar ? "طلب شخصي" : "Personal Request"}</span>
         </Badge>
       );
