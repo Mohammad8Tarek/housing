@@ -1511,9 +1511,12 @@ router.post(
 );
 
 // ── إرسال / إعادة إرسال تأكيد الحجز يدوياً عبر الواتساب ──────────────
+// Sending a WhatsApp confirmation is an outbound action with a real side
+// effect (it messages the guest), so it needs the action-level `edit`
+// permission — like cancel/extend — not just `view`.
 router.post(
   "/reservations/:id/send-whatsapp",
-  requirePermission("reservations", "view"),
+  requirePermission("reservations", "edit"),
   validate({ params: IdParams }),
   validate({ body: SendWhatsAppBody }),
   async (req, res): Promise<void> => {
