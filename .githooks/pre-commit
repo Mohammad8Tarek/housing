@@ -1,0 +1,32 @@
+#!/bin/sh
+# Auto-format staged files with Prettier before each commit.
+#
+# Why: the CI "Lint" job runs `prettier --check` over the whole repo, so a
+# single unformatted file merged into main turns every later PR's Lint red
+# through the base merge. Formatting at commit time keeps main clean at the
+# source, for everyone, with no failed commits to fight.
+#
+# Activated by the root package.json "prepare" script
+# (`git config core.hooksPath .githooks`), which runs on `pnpm install`.
+# Skip with `git commit --no-verify` when you really must.
+
+set -e
+
+# Only the files staged for THIS commit, limited to what Prettier handles.
+staged=$(git diff --cached --name-only --diff-filter=ACM \
+  | grep -E '\.(ts|tsx|js|jsx|json|md|yml|yaml)$' || true)
+
+[ -z "$staged" ] && exit 0
+
+# Prefer pnpm's prettier; fall back to npx so the hook still works without pnpm.
+if command -v pnpm >/dev/null 2>&1; then
+  RUN_PRETTIER="pnpm exec prettier"
+else
+  RUN_PRETTIER="npx --no-install prettier"
+fi
+
+# Format in place, then re-stage so the formatted version is what gets committed.
+echo "$staged" | xargs $RUN_PRETTIER --write --ignore-unknown
+echo "$staged" | xargs git add
+
+exit 0

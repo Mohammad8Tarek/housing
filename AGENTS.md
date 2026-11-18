@@ -125,6 +125,8 @@ git commit -m "feat/fix(scope): clear description of change"
 git push origin main
 ```
 
+> **Formatting:** CI's `Lint` job runs `prettier --check` over the whole repo, so one unformatted file on `main` turns every later PR's Lint red. A committed pre-commit hook (`.githooks/pre-commit`, activated by the `prepare` script on `pnpm install`) auto-formats staged files, and `pnpm format` / `pnpm format:check` fix or verify the whole repo. Don't commit unformatted code.
+
 ---
 
 ## 4. Instant Feature-to-File Fast Navigation Matrix
