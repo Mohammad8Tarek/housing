@@ -2028,6 +2028,13 @@ BEGIN
 
     -- Table: user_sessions
     -- --------------------------------------------------------
+    -- Global app-wide key/value config (public only; e.g. the shared VAPID keys)
+    CREATE TABLE IF NOT EXISTS "app_config" (
+      "key" TEXT PRIMARY KEY,
+      "value" JSONB NOT NULL DEFAULT '{}'::jsonb,
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
     CREATE TABLE IF NOT EXISTS "user_sessions" (
       "sid" VARCHAR(255),
       "sess" JSONB,

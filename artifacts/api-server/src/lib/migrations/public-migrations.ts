@@ -9,6 +9,14 @@ export interface Migration {
 
 export const MIGRATIONS: Migration[] = [
   {
+    name: "public.app_config_table",
+    q: `CREATE TABLE IF NOT EXISTS public.app_config (
+      "key" text PRIMARY KEY,
+      "value" jsonb NOT NULL DEFAULT '{}'::jsonb,
+      "updated_at" timestamptz NOT NULL DEFAULT now()
+    )`,
+  },
+  {
     name: "public.user_sessions_table",
     q: `CREATE TABLE IF NOT EXISTS public.user_sessions (
       "sid" varchar NOT NULL COLLATE "default",

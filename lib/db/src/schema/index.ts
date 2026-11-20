@@ -38,3 +38,5 @@ export * from "./reports";
 export * from "./property_housing_ratings";
 export * from "./property_housing_pulse_config";
 export * from "./room_moves";
+
+export * from "./app-config";

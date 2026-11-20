@@ -196,6 +196,13 @@ export const RegisterDeviceBody = z.object({
 
 export const UnregisterDeviceBody = z.object({ token: zText(4096).min(1) });
 
+// Admin "send test notification" — targets one profile's registered devices.
+export const PushTestBody = z.object({
+  profileId: z.union([z.number().int().positive(), z.string().regex(/^\d+$/)]),
+  title: zText(120).optional(),
+  body: zText(300).optional(),
+});
+
 // ─── workers.ts ──────────────────────────────────────────────────────────────
 // Specialties are lookup-driven (dynamic keys), so only the shape is constrained.
 const workerSpecialty = zText(50).min(1);

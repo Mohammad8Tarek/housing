@@ -17,6 +17,12 @@ describe("public MIGRATIONS — deploy safety", () => {
     expect(m!.q).toMatch(/DEFAULT/i);
   });
 
+  it("registers the global app_config table, idempotently", () => {
+    const m = MIGRATIONS.find((x) => x.name === "public.app_config_table");
+    expect(m, "app_config table migration must exist").toBeTruthy();
+    expect(m!.q).toMatch(/CREATE TABLE IF NOT EXISTS public\.app_config/i);
+  });
+
   it("registers the users.permission_scopes column, idempotently", () => {
     const m = MIGRATIONS.find((x) => x.name === "users.permission_scopes");
     expect(m, "permission_scopes migration must exist").toBeTruthy();

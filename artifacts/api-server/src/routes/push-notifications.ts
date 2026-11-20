@@ -16,31 +16,21 @@ import {
 } from "@workspace/db";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
+import { requirePermission } from "../middlewares/permissions.js";
+import { getTenantId } from "../lib/request-utils.js";
 import { validate } from "../middlewares/validate.js";
 import {
   PushSubscribeBody,
   PushUnsubscribeBody,
   RegisterDeviceBody,
   UnregisterDeviceBody,
+  PushTestBody,
 } from "../validation/schemas.js";
 import { isFcmConfigured, sendFcmToToken } from "../lib/fcm-service.js";
+import { getVapidConfig, isWebPushReady } from "../lib/vapid-config.js";
 import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
-
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
-const VAPID_EMAIL =
-  process.env.VAPID_EMAIL || "mailto:sunrise-housing@example.com";
-
-const isVapidConfigured = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
-if (!isVapidConfigured) {
-  console.warn(
-    "[push-notifications] VAPID_PUBLIC_KEY and/or VAPID_PRIVATE_KEY not set — web push notifications disabled",
-  );
-} else {
-  webPush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY!, VAPID_PRIVATE_KEY!);
-}
 
 /** A dead token is dropped after this many consecutive non-fatal failures. */
 const MAX_TOKEN_FAILURES = 5;
@@ -57,14 +47,88 @@ export interface PushPayload {
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
-// GET /push/vapid-key — Return VAPID public key for the PWA
-router.get("/vapid-key", (_req, res) => {
+// GET /push/vapid-key — Return VAPID public key for the PWA. Provisions the
+// key pair on first call if it does not exist yet.
+router.get("/vapid-key", async (_req, res) => {
+  const cfg = await getVapidConfig();
   res.json({
-    success: isVapidConfigured,
-    publicKey: VAPID_PUBLIC_KEY || null,
+    success: !!cfg,
+    publicKey: cfg?.publicKey ?? null,
     fcm: isFcmConfigured(),
   });
 });
+
+// ─── Admin: push configuration status & test send ────────────────────────────
+
+// GET /push/admin/status — configuration + reach for the active property.
+router.get(
+  "/admin/status",
+  requirePermission("portal_notifications", "view"),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    const cfg = await getVapidConfig();
+    let subscriptions = 0;
+    let devices = 0;
+    if (propertyId) {
+      try {
+        await withTenant(propertyId, async (tenantDb) => {
+          const [s] = await tenantDb
+            .select({ c: sql`count(*)`.mapWith(Number) })
+            .from(pushSubscriptionsTable)
+            .where(eq(pushSubscriptionsTable.propertyId, propertyId));
+          const [d] = await tenantDb
+            .select({ c: sql`count(*)`.mapWith(Number) })
+            .from(deviceTokensTable)
+            .where(eq(deviceTokensTable.propertyId, propertyId));
+          subscriptions = s?.c ?? 0;
+          devices = d?.c ?? 0;
+        });
+      } catch {
+        /* counts are best-effort */
+      }
+    }
+    res.json({
+      webPush: !!cfg,
+      vapidPublicKey: cfg?.publicKey ?? null,
+      vapidSource: process.env.VAPID_PUBLIC_KEY
+        ? "env"
+        : cfg
+          ? "generated"
+          : "none",
+      fcm: isFcmConfigured(),
+      subscriptions,
+      devices,
+    });
+  },
+);
+
+// POST /push/admin/test — send a test notification to one profile's devices.
+router.post(
+  "/admin/test",
+  requirePermission("portal_notifications", "create"),
+  validate({ body: PushTestBody }),
+  async (req, res): Promise<void> => {
+    const propertyId = getTenantId(req);
+    if (!propertyId) {
+      res.status(400).json({ error: "propertyId is required" });
+      return;
+    }
+    const profileId = Number(req.body.profileId);
+    if (!profileId) {
+      res.status(400).json({ error: "profileId is required" });
+      return;
+    }
+    await sendPushToProfiles(propertyId, [profileId], {
+      title: req.body.title || "Sunrise Housing",
+      titleAr: req.body.title || "سكن صن رايز",
+      body: req.body.body || "This is a test notification ✅",
+      bodyAr: req.body.body || "ده إشعار تجريبي للتأكد إن الإشعارات شغّالة ✅",
+      url: "/dashboard",
+      tag: "push-test",
+    });
+    res.json({ success: true });
+  },
+);
 
 // POST /push/subscribe — Register a Web Push subscription
 router.post(
@@ -222,7 +286,8 @@ async function deliverWebPush(
   subs: any[],
   payload: PushPayload,
 ): Promise<{ sent: number; failed: number }> {
-  if (!isVapidConfigured || subs.length === 0) return { sent: 0, failed: 0 };
+  if (subs.length === 0 || !(await getVapidConfig()))
+    return { sent: 0, failed: 0 };
   const body = buildWebPayload(payload);
   let sent = 0;
   let failed = 0;
@@ -306,7 +371,8 @@ async function dispatch(
   payload: PushPayload,
   profileIds?: number[],
 ): Promise<void> {
-  if (!isVapidConfigured && !isFcmConfigured()) return;
+  const webReady = await isWebPushReady();
+  if (!webReady && !isFcmConfigured()) return;
   if (profileIds && profileIds.length === 0) return;
 
   try {
@@ -325,7 +391,7 @@ async function dispatch(
         : eq(deviceTokensTable.propertyId, propertyId);
 
       const [subs, tokens] = await Promise.all([
-        isVapidConfigured
+        webReady
           ? tenantDb.select().from(pushSubscriptionsTable).where(subWhere)
           : Promise.resolve([]),
         isFcmConfigured()

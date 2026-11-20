@@ -102,6 +102,15 @@ export async function runSchemaMigrations(): Promise<void> {
 // in the background — they must never block boot or threaten the schema
 // migrations above.
 export async function runPostMigrationTasks(): Promise<void> {
+  // Provision the Web Push (VAPID) key pair if missing, so push notifications
+  // work without any manual environment setup. Idempotent and cached.
+  try {
+    const { getVapidConfig } = await import("../vapid-config.js");
+    await getVapidConfig();
+  } catch (e: any) {
+    console.warn(`[migrations] VAPID provisioning notice:`, e?.message);
+  }
+
   // Sync existing rooms' features into room_inventory across all properties
   try {
     const { syncAllRoomsFeaturesToInventory } =

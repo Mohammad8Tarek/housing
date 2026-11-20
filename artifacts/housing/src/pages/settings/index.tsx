@@ -22,6 +22,7 @@ import {
   MessageSquare,
   HardHat,
   Mail,
+  Bell,
   Scale,
   ShieldAlert,
   Wrench,
@@ -42,6 +43,7 @@ import { HrSyncSection } from "./components/HrSyncSection";
 import { DoorLocksSection } from "./components/DoorLocksSection";
 import { WhatsAppSettingsSection } from "./components/WhatsAppSettingsSection";
 import { EmailSettingsSection } from "./components/EmailSettingsSection";
+import { PushNotificationsSection } from "./components/PushNotificationsSection";
 import { WorkersTab } from "@/pages/maintenance/components/WorkersTab";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -82,6 +84,14 @@ export default function Settings() {
     user?.roles?.includes("admin") ||
     user?.roles?.includes("super_admin") ||
     (user as any)?.isSystemAdmin,
+  );
+
+  const canNotifications = Boolean(
+    can("portal_notifications", "view") ||
+    can("settings", "edit") ||
+    isSystemAdmin ||
+    user?.roles?.includes("admin") ||
+    user?.roles?.includes("super_admin"),
   );
 
   const initRef = useRef(false);
@@ -269,6 +279,14 @@ export default function Settings() {
           colorClass: "text-indigo-500",
           allowed: canManageEmail,
         },
+        {
+          id: "notifications",
+          labelAr: "الإشعارات",
+          labelEn: "Notifications",
+          icon: Bell,
+          colorClass: "text-rose-500",
+          allowed: canNotifications,
+        },
       ].filter((t) => t.allowed),
     [
       canGeneral,
@@ -282,6 +300,7 @@ export default function Settings() {
       canMaintenanceServices,
       canWhatsApp,
       canManageEmail,
+      canNotifications,
     ],
   );
 
@@ -714,6 +733,15 @@ export default function Settings() {
           {canManageEmail && (
             <TabsContent value="email" className="space-y-4">
               <EmailSettingsSection
+                propertyId={selectedPropertyId}
+                language={language}
+              />
+            </TabsContent>
+          )}
+
+          {canNotifications && (
+            <TabsContent value="notifications" className="space-y-4">
+              <PushNotificationsSection
                 propertyId={selectedPropertyId}
                 language={language}
               />
