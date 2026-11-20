@@ -37,6 +37,7 @@ import {
   UserPlus,
   FileText,
   Trophy,
+  Megaphone,
   MessageSquare,
   LayoutGrid,
   Sparkles,
@@ -458,6 +459,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       label: ar ? "البوابة" : "Portal",
       icon: Trophy,
       permissionModule: "portal_content",
+    },
+    {
+      href: "/announcements",
+      label: ar ? "الإعلانات" : "Announcements",
+      icon: Megaphone,
+      permissionModule: "portal_notifications",
     },
     {
       href: "/settings",
