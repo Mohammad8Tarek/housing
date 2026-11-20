@@ -7,6 +7,7 @@ import {
   withTenant,
   portalNotificationsTable,
   portalNotificationReadsTable,
+  profilesTable,
 } from "@workspace/db";
 import { eq, and, desc, or, isNull, gt, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -14,7 +15,10 @@ import { requirePermission } from "../middlewares/permissions.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { requirePortalAuth, portalSession } from "./portal-auth/shared.js";
 import { logActivity } from "../lib/activity-logger.js";
-import { sendPushToProperty } from "./push-notifications.js";
+import {
+  sendPushToProperty,
+  sendPushToProfiles,
+} from "./push-notifications.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams } from "../validation/schemas.js";
 
@@ -61,8 +65,23 @@ router.get("/my", requirePortalAuth, async (req, res, next) => {
     const notifications = await withTenant(
       sess.propertyId,
       async (tenantDb) => {
-        // Get all active notifications for this property/department
+        // Get all active notifications for this property, scoped to the
+        // resident: property-wide ones (targetAll / no department) plus any
+        // targeted at THIS resident's own department.
         const now = new Date();
+        const [me] = await tenantDb
+          .select({ department: profilesTable.department })
+          .from(profilesTable)
+          .where(eq(profilesTable.id, sess.profileDbId))
+          .limit(1);
+        const myDept = me?.department ?? null;
+
+        const audienceMatch = [
+          eq(portalNotificationsTable.targetAll, true),
+          isNull(portalNotificationsTable.department),
+          ...(myDept ? [eq(portalNotificationsTable.department, myDept)] : []),
+        ];
+
         const rows = await tenantDb
           .select()
           .from(portalNotificationsTable)
@@ -73,10 +92,7 @@ router.get("/my", requirePortalAuth, async (req, res, next) => {
                 isNull(portalNotificationsTable.expiresAt),
                 gt(portalNotificationsTable.expiresAt, now),
               ),
-              or(
-                eq(portalNotificationsTable.targetAll, true),
-                isNull(portalNotificationsTable.department),
-              ),
+              or(...audienceMatch),
             ),
           )
           .orderBy(desc(portalNotificationsTable.createdAt))
@@ -238,21 +254,37 @@ router.post(
         data: { notification },
       });
 
-      // Send Web Push notification to all subscribed mobile devices (wakes up phone if screen off)
-      sendPushToProperty(
-        propertyId,
-        {
-          title: validated.title,
-          titleAr: validated.titleAr ?? validated.title,
-          body: validated.message,
-          bodyAr: validated.messageAr ?? validated.message,
-          tag: `portal-notif-${notification.id}`,
-          url: "/dashboard",
-        },
-        validated.targetAll ? undefined : (validated.department ?? undefined),
-      ).catch((err) =>
-        console.error("[portal-notifications] Push error:", err),
-      );
+      // Send Web Push / native push to the targeted audience (wakes the phone
+      // even with the screen off). For a department target we resolve that
+      // department's profiles and push only to them; otherwise the whole
+      // property.
+      const pushPayload = {
+        title: validated.title,
+        titleAr: validated.titleAr ?? validated.title,
+        body: validated.message,
+        bodyAr: validated.messageAr ?? validated.message,
+        tag: `portal-notif-${notification.id}`,
+        url: "/dashboard",
+      };
+      const onPushError = (err: unknown) =>
+        console.error("[portal-notifications] Push error:", err);
+
+      if (validated.targetAll || !validated.department) {
+        sendPushToProperty(propertyId, pushPayload).catch(onPushError);
+      } else {
+        const dept = validated.department;
+        withTenant(propertyId, async (tenantDb) =>
+          tenantDb
+            .select({ id: profilesTable.id })
+            .from(profilesTable)
+            .where(eq(profilesTable.department, dept)),
+        )
+          .then((rows) => {
+            const ids = rows.map((r) => r.id);
+            if (ids.length) sendPushToProfiles(propertyId, ids, pushPayload);
+          })
+          .catch(onPushError);
+      }
 
       const s = su(req);
       await logActivity({

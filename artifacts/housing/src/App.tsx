@@ -46,6 +46,7 @@ const ReportConfiguration = lazy(
 const Users = lazy(() => import("@/pages/users"));
 const UserDetail = lazy(() => import("@/pages/users/detail"));
 const ActivityLog = lazy(() => import("@/pages/activity-log"));
+const Announcements = lazy(() => import("@/pages/announcements/index"));
 const Settings = lazy(() => import("@/pages/settings"));
 const EditHostingRequest = lazy(
   () => import("@/pages/hosting-requests/EditHostingRequest"),
@@ -247,6 +248,11 @@ const APP_ROUTES: AppRouteDef[] = [
   { path: "/portal", module: "portal_content", component: Portal },
   { path: "/settings", module: "settings", component: Settings },
   { path: "/activity-log", module: "activity_log", component: ActivityLog },
+  {
+    path: "/announcements",
+    module: "portal_notifications",
+    component: Announcements,
+  },
   {
     path: "/hosting-requests/create",
     module: "hosting_requests",
