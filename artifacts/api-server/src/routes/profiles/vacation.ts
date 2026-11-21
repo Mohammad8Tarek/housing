@@ -74,7 +74,10 @@ router.post(
         status: "ACTIVE",
       });
 
-      // 3. Find active room assignment and update room to occupied_vacation
+      // 3. Find active room assignment. Only flip the room to
+      // occupied_vacation when EVERY active occupant is on vacation — a room
+      // with roommates still present stays `occupied` (matches manage.ts and
+      // the HR-sync lifecycle).
       const [activeAssign] = await tenantDb
         .select({ id: assignmentsTable.id, roomId: assignmentsTable.roomId })
         .from(assignmentsTable)
@@ -86,10 +89,36 @@ router.post(
         );
 
       if (activeAssign?.roomId) {
-        await tenantDb
-          .update(roomsTable)
-          .set({ status: "occupied_vacation" })
-          .where(eq(roomsTable.id, activeAssign.roomId));
+        const roomAssignments = await tenantDb
+          .select({
+            profileId: assignmentsTable.profileId,
+            status: profilesTable.status,
+          })
+          .from(assignmentsTable)
+          .leftJoin(
+            profilesTable,
+            eq(assignmentsTable.profileId, profilesTable.id),
+          )
+          .where(
+            and(
+              eq(assignmentsTable.roomId, activeAssign.roomId),
+              eq(assignmentsTable.status, "ACTIVE"),
+            ),
+          );
+
+        // This profile was already set to VACATION above; count it as such.
+        const allOnVacation = roomAssignments.every((ra) =>
+          ra.profileId === id
+            ? true
+            : String(ra.status || "").toUpperCase() === "VACATION",
+        );
+
+        if (allOnVacation) {
+          await tenantDb
+            .update(roomsTable)
+            .set({ status: "occupied_vacation" })
+            .where(eq(roomsTable.id, activeAssign.roomId));
+        }
       }
 
       return updated;
@@ -174,7 +203,8 @@ router.post(
           ),
         );
 
-      // 3. Update room back to occupied
+      // 3. Restore the room to `occupied` only if it was parked as
+      // `occupied_vacation` — never stomp dirty / out-of-service states.
       const [activeAssign] = await tenantDb
         .select({ id: assignmentsTable.id, roomId: assignmentsTable.roomId })
         .from(assignmentsTable)
@@ -186,10 +216,16 @@ router.post(
         );
 
       if (activeAssign?.roomId) {
-        await tenantDb
-          .update(roomsTable)
-          .set({ status: "occupied" })
+        const [room] = await tenantDb
+          .select({ id: roomsTable.id, status: roomsTable.status })
+          .from(roomsTable)
           .where(eq(roomsTable.id, activeAssign.roomId));
+        if (room?.status === "occupied_vacation") {
+          await tenantDb
+            .update(roomsTable)
+            .set({ status: "occupied" })
+            .where(eq(roomsTable.id, activeAssign.roomId));
+        }
       }
 
       return updated;

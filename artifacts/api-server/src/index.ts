@@ -400,6 +400,15 @@ async function start(): Promise<void> {
       logger.error({ err }, "Failed to schedule maintenance escalation");
     }
 
+    // Auto-return employees whose vacation end date has passed (hourly)
+    try {
+      const { initVacationAutoReturnCron } =
+        await import("./lib/vacation-auto-return.js");
+      initVacationAutoReturnCron();
+    } catch (err) {
+      logger.error({ err }, "Failed to schedule vacation auto-return");
+    }
+
     // Scheduled report emails (checked every 10 minutes)
     try {
       const { initReportScheduleCron } =
