@@ -16,6 +16,7 @@ import { requireAnyPermission } from "../../middlewares/permissions.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
 import { findAssignmentAcrossAllProperties } from "../../lib/cross-property-service.js";
+import { roomStatusAfterDeparture } from "../../lib/room-status.js";
 import { fmtAssignment } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
 import { IdParams } from "../../validation/schemas.js";
@@ -141,7 +142,7 @@ router.post(
         const newOcc = assignment.isEntireRoom
           ? 0
           : Number(remainingCount?.count ?? 0);
-        let nextRoomStatus = newOcc === 0 ? "dirty" : "occupied_dirty";
+        let nextRoomStatus: string = roomStatusAfterDeparture(newOcc);
 
         if (newOcc > 0) {
           // Check if remaining occupants in this room are on vacation

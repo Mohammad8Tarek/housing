@@ -27,6 +27,7 @@ import {
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
+import { roomStatusAfterCheckIn } from "../lib/room-status.js";
 import {
   requirePermission,
   requireAnyPermission,
@@ -1094,14 +1095,11 @@ router.post(
 
         // 4. Update room occupancy (a room with a resident is occupied;
         //    one still waiting for cleaning stays flagged)
-        const wasDirty = ["dirty", "occupied_dirty"].includes(
-          String(room.status ?? "").toLowerCase(),
-        );
         await tenantDb
           .update(roomsTable)
           .set({
             currentOccupancy: newOccupancy,
-            status: wasDirty ? "occupied_dirty" : "occupied",
+            status: roomStatusAfterCheckIn(room.status),
           })
           .where(eq(roomsTable.id, roomId));
 

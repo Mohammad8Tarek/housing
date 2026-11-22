@@ -17,6 +17,7 @@ import {
 } from "../../middlewares/permissions.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
+import { roomStatusAfterCheckIn } from "../../lib/room-status.js";
 import {
   syncProfileAcrossProperties,
   closeSourceAssignmentOnTransfer,
@@ -493,16 +494,13 @@ router.post(
           ? room.currentOccupancy
           : room.currentOccupancy + 1;
 
-      // A room that still needs cleaning stays flagged for housekeeping.
-      const wasDirty = ["dirty", "occupied_dirty"].includes(
-        String(room.status ?? "").toLowerCase(),
-      );
       await tenantDb
         .update(roomsTable)
         .set({
           currentOccupancy: newOccupancy,
-          // Workflow: Room with active guest becomes "occupied"
-          status: wasDirty ? "occupied_dirty" : "occupied",
+          // Workflow: Room with active guest becomes "occupied" (a room still
+          // awaiting housekeeping keeps its dirty flag as "occupied_dirty").
+          status: roomStatusAfterCheckIn(room.status),
         })
         .where(eq(roomsTable.id, parsed.data.roomId));
 
