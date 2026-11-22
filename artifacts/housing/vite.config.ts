@@ -47,6 +47,29 @@ export default defineConfig({
         if (warning.message.includes("Error when using sourcemap")) return;
         warn(warning);
       },
+      output: {
+        // Split the stable framework libraries into a dedicated, long-cached
+        // vendor chunk so an app-code change doesn't bust React's cache on the
+        // entry chunk (loaded on every visit).
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (
+            /[\\/]node_modules[\\/](react|react-dom|scheduler|react-is)[\\/]/.test(
+              id,
+            )
+          ) {
+            return "vendor-react";
+          }
+          if (
+            /[\\/]node_modules[\\/](@tanstack[\\/]react-query|wouter|next-themes)[\\/]/.test(
+              id,
+            )
+          ) {
+            return "vendor-core";
+          }
+          return undefined;
+        },
+      },
     },
   },
   server: {
