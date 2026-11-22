@@ -124,7 +124,10 @@ export async function runVacationReturnsForProperty(
 
   if (returned > 0) {
     broadcastToProperty(propertyId, { module: "profiles", action: "updated" });
-    broadcastToProperty(propertyId, { module: "assignments", action: "updated" });
+    broadcastToProperty(propertyId, {
+      module: "assignments",
+      action: "updated",
+    });
     broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
     logger.info({ propertyId, returned }, "vacation auto-return");
   }

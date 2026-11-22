@@ -57,7 +57,7 @@ const priorityStyle: Record<string, string> = {
   low: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/30",
 };
 
-export default function AnnouncementsPage() {
+export function AnnouncementsSection() {
   const { activePropertyId } = useProperty();
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -177,22 +177,13 @@ export default function AnnouncementsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 py-2">
-      <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-2xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center text-rose-600 dark:text-rose-400">
-          <Megaphone className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {ar ? "إعلانات المقيمين" : "Resident Announcements"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {ar
-              ? "ابعث إعلاناً لكل المقيمين أو قسم معيّن — يوصلهم إشعار فوري + داخل البوابة."
-              : "Broadcast to all residents or a department — delivered as a push + in-portal notification."}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground flex items-center gap-2">
+        <Megaphone className="w-4 h-4 text-rose-500" />
+        {ar
+          ? "ابعث إعلاناً لكل المقيمين أو قسم معيّن — يوصلهم إشعار فوري + داخل البوابة."
+          : "Broadcast to all residents or a department — delivered as a push + in-portal notification."}
+      </p>
 
       {/* Compose */}
       <PermissionGate module="portal_notifications" action="create">

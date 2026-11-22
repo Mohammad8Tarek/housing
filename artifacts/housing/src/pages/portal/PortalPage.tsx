@@ -18,6 +18,7 @@ import {
   Palette,
   UtensilsCrossed,
   MessageCircle,
+  Megaphone,
 } from "lucide-react";
 
 import { PortalContactsSection } from "./components/PortalContactsSection";
@@ -25,6 +26,7 @@ import { EvaluationsSection } from "./components/EvaluationsSection";
 import { ActivitiesSection } from "./components/ActivitiesSection";
 import { PortalAccountsSection } from "./components/PortalAccountsSection";
 import { PortalDocsSection } from "./components/PortalDocsSection";
+import { AnnouncementsSection } from "./components/AnnouncementsSection";
 export function PortalPage() {
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -113,6 +115,13 @@ export function PortalPage() {
             className="inline-flex items-center gap-2 text-xs lg:text-sm whitespace-nowrap"
           >
             <MessageCircle className="w-4 h-4" /> {ar ? "المحادثات" : "Chat"}
+          </TabsTrigger>
+          <TabsTrigger
+            value="announcements"
+            className="inline-flex items-center gap-2 text-xs lg:text-sm whitespace-nowrap"
+          >
+            <Megaphone className="w-4 h-4" />{" "}
+            {ar ? "الإعلانات" : "Announcements"}
           </TabsTrigger>
         </TabsList>
 
@@ -220,6 +229,17 @@ export function PortalPage() {
           <Card>
             <CardContent className="pt-6">
               <PortalChat />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent
+          value="announcements"
+          className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+        >
+          <Card>
+            <CardContent className="pt-6">
+              <AnnouncementsSection />
             </CardContent>
           </Card>
         </TabsContent>
