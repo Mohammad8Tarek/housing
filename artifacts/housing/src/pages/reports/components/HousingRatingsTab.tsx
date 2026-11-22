@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
+import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
 import {
@@ -185,6 +185,7 @@ export function HousingRatingsTab({
       [ar ? "تاريخ التقييم" : "Date"]: formatDate(r.createdAt),
     }));
 
+    const XLSX = await loadStyledXlsx();
     const ws = XLSX.utils.json_to_sheet(excelRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Housing Pulse Ratings");
@@ -192,7 +193,7 @@ export function HousingRatingsTab({
     const propName =
       properties.find((p) => String(p.id) === String(queryPropertyId))?.name ||
       "All_Properties";
-    writeSunriseWorkbook(
+    await writeSunriseWorkbook(
       wb,
       getExportFileName(`Housing_Pulse_Ratings_${propName}`, "xlsx"),
       { rtl: ar },

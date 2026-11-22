@@ -1,7 +1,7 @@
 // State, effects and handlers of PoliciesSection (moved verbatim).
 import { escapeHtml } from "@/lib/html-escape";
 import { useState } from "react";
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
 import { useFormContext } from "react-hook-form";
 import type {
   SettingsFormData,
@@ -379,7 +379,7 @@ export function usePoliciesSectionState({
     generalPolicies: any[];
   } | null>(null);
 
-  const handleExportExcelTemplate = () => {
+  const handleExportExcelTemplate = async () => {
     const values = form.getValues();
 
     // 1. Level Capacities Sheet (Dynamic Job Level Policies)
@@ -513,6 +513,7 @@ export function usePoliciesSectionState({
       },
     ];
 
+    const XLSX = await loadXlsx();
     const wb = XLSX.utils.book_new();
     const wsLevels = XLSX.utils.json_to_sheet(levelCapacities);
     const wsCustom = XLSX.utils.json_to_sheet(
@@ -552,9 +553,10 @@ export function usePoliciesSectionState({
     setImportFileName(file.name);
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
         const bstr = evt.target?.result;
+        const XLSX = await loadXlsx();
         const wb = XLSX.read(bstr, { type: "binary" });
 
         let levelCapacities: any[] = [];

@@ -1,5 +1,5 @@
 // State, effects and handlers of Properties (moved verbatim).
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
 import { getExportFileName } from "@/lib/date-utils";
 import {
   detectColumnField,
@@ -164,9 +164,10 @@ export function usePropertiesState() {
     setHousingConfigFile(f);
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
         const data = evt.target?.result;
+        const XLSX = await loadXlsx();
         const wb = XLSX.read(data, { type: "binary" });
         const firstSheet = wb.SheetNames[0];
         const rows = XLSX.utils.sheet_to_json<Record<string, any>>(
@@ -440,7 +441,7 @@ export function usePropertiesState() {
       return next;
     });
   };
-  const exportPropExcel = () => {
+  const exportPropExcel = async () => {
     const target =
       selectedRows.size > 0
         ? propList.filter((p) => selectedRows.has(p.id))
@@ -468,6 +469,7 @@ export function usePropertiesState() {
       Language: p.defaultLanguage ?? "",
       Status: p.status ?? "",
     }));
+    const XLSX = await loadXlsx();
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Properties");

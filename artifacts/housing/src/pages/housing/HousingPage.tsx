@@ -11,7 +11,7 @@ import {
   LayoutGrid,
   BedDouble,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
 import { getExportFileName } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -196,7 +196,7 @@ export function HousingPage() {
   const cleanRate =
     totalRooms > 0 ? Math.round((availableRooms / totalRooms) * 100) : 100;
 
-  const exportHousingConfiguration = () => {
+  const exportHousingConfiguration = async () => {
     if (!rooms.length && !buildings.length) {
       toast.error(
         ar
@@ -206,6 +206,7 @@ export function HousingPage() {
       return;
     }
 
+    const XLSX = await loadXlsx();
     const wb = XLSX.utils.book_new();
 
     // 1. Rooms Configuration Sheet

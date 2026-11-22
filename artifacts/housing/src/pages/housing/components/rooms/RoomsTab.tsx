@@ -1,6 +1,6 @@
 import { RoomImportWizard } from "../import/RoomImportWizard";
 import { Search, Plus, FileDown, Trash2, QrCode } from "lucide-react";
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
 import { getExportFileName } from "@/lib/date-utils";
 import { useState, useEffect } from "react";
 import { RoomQrModal } from "./RoomQrModal";
@@ -383,7 +383,7 @@ export function RoomsTab({
     }
   };
 
-  const exportRooms = () => {
+  const exportRooms = async () => {
     const rows = rData.map((r: any) => {
       const bld = buildings.find((b: any) => b.id === r.buildingId);
       const flr = floors.find((f: any) => f.id === r.floorId);
@@ -430,6 +430,7 @@ export function RoomsTab({
           };
     });
 
+    const XLSX = await loadXlsx();
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, ar ? "الغرف" : "Rooms");

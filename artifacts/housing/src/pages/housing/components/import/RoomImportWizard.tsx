@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
+import type * as XLSX from "xlsx";
 import { getExportFileName } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
@@ -183,9 +184,10 @@ export function RoomImportWizard({
     setFile(f);
     const reader = new FileReader();
 
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
         const data = evt.target?.result;
+        const XLSX = await loadXlsx();
         const wb = XLSX.read(data, { type: "binary", cellDates: true });
         setWorkbook(wb);
         setSheetNames(wb.SheetNames);
@@ -204,10 +206,11 @@ export function RoomImportWizard({
     reader.readAsBinaryString(f);
   };
 
-  const loadSheetData = (wb: XLSX.WorkBook, sheetName: string) => {
+  const loadSheetData = async (wb: XLSX.WorkBook, sheetName: string) => {
     const ws = wb.Sheets[sheetName];
     if (!ws) return;
 
+    const XLSX = await loadXlsx();
     // Read as array of objects
     const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(ws, {
       defval: "",
@@ -417,7 +420,7 @@ export function RoomImportWizard({
   };
 
   // Download Error Report
-  const handleDownloadErrorReport = () => {
+  const handleDownloadErrorReport = async () => {
     if (!validationResult || validationResult.allErrors.length === 0) {
       toast.info(ar ? "لا توجد أخطاء لتنزيلها" : "No errors to export");
       return;
@@ -433,6 +436,7 @@ export function RoomImportWizard({
         : e.suggestedFixEn,
     }));
 
+    const XLSX = await loadXlsx();
     const ws = XLSX.utils.json_to_sheet(errorRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Import_Errors");

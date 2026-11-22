@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
+import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
 import {
@@ -123,9 +123,10 @@ export function ServiceRatingsTab({
     );
   });
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!ratedTickets.length && !workerLeaderboard.length) return;
 
+    const XLSX = await loadStyledXlsx();
     const wb = XLSX.utils.book_new();
 
     // Sheet 1: Summary & Worker Leaderboard
@@ -185,7 +186,7 @@ export function ServiceRatingsTab({
       ar ? "سجل التقييمات التفصيلي" : "Ratings Detail Log",
     );
 
-    writeSunriseWorkbook(
+    await writeSunriseWorkbook(
       wb,
       getExportFileName("Service_Ratings_Report", "xlsx"),
       { rtl: ar },

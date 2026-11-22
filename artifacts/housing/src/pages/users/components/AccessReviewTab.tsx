@@ -30,7 +30,7 @@ import { DataPagination } from "@/components/DataPagination";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { useDebounce } from "@/hooks/use-debounce";
 import { getExportFileName } from "@/lib/date-utils";
-import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
+import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ACTION_LABELS, MODULE_LABELS } from "@/lib/permissions";
 
 type ReviewUser = {
@@ -175,14 +175,19 @@ export function AccessReviewTab({ ar }: { ar: boolean }) {
               `${ar ? "من يملك صلاحية" : "Who can"}: ${label.module(moduleOf(permission))} — ${label.action(actionOf(permission))}`,
             ]
           : [ar ? "مراجعة صلاحيات المستخدمين" : "User access review"];
+      const XLSX = await loadStyledXlsx();
       const ws = XLSX.utils.aoa_to_sheet([title, [], header, ...rows]);
       ws["!cols"] = header.map((_, i) => ({ wch: i < 5 ? 22 : 26 }));
       if (ar) ws["!views"] = [{ RTL: true }] as any;
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, ar ? "الصلاحيات" : "Access");
-      writeSunriseWorkbook(wb, getExportFileName("Access_Review", "xlsx"), {
-        rtl: ar,
-      });
+      await writeSunriseWorkbook(
+        wb,
+        getExportFileName("Access_Review", "xlsx"),
+        {
+          rtl: ar,
+        },
+      );
     } catch {
       toast.error(ar ? "تعذر تصدير الملف" : "Export failed");
     } finally {

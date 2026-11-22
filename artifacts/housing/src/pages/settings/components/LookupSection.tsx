@@ -35,7 +35,7 @@ import {
   Download,
   FileDown,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
 import { getExportFileName } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -338,7 +338,7 @@ export function LookupSection({
     }
   };
 
-  const exportLookupsExcel = () => {
+  const exportLookupsExcel = async () => {
     if (!values || values.length === 0) {
       toast.error(
         ar ? "لا توجد بيانات لتصديرها" : "No lookup data available to export",
@@ -347,6 +347,7 @@ export function LookupSection({
     }
 
     try {
+      const XLSX = await loadXlsx();
       const wb = XLSX.utils.book_new();
 
       if (category === "job_title") {
@@ -553,6 +554,7 @@ export function LookupSection({
         return;
       }
 
+      const XLSX = await loadXlsx();
       const wb = XLSX.utils.book_new();
 
       // 1. Departments Sheet

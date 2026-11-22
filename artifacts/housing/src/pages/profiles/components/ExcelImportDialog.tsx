@@ -25,7 +25,7 @@ import {
   PlusCircle,
   RefreshCw,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
 
 const MAX_PROFILE_IMPORT_FILE_SIZE = 25 * 1024 * 1024;
 const PROFILE_IMPORT_EXTENSIONS = [".xlsx", ".xls"];
@@ -235,7 +235,8 @@ export function ExcelImportDialog({
     return "M";
   };
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
+    const XLSX = await loadXlsx();
     const ws = XLSX.utils.aoa_to_sheet([
       [
         "Profile_Code",
@@ -479,8 +480,9 @@ export function ExcelImportDialog({
     setFileName(file.name);
     setParseError("");
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
+        const XLSX = await loadXlsx();
         const wb = XLSX.read(ev.target?.result, {
           type: "binary",
         });
@@ -1232,7 +1234,7 @@ export function ExcelImportDialog({
   };
 
   // Download skipped duplicates as Excel
-  const downloadSkippedDuplicatesExcel = () => {
+  const downloadSkippedDuplicatesExcel = async () => {
     if (!importResult || importResult.skippedItems.length === 0) return;
 
     const exportRows = importResult.skippedItems.map((item, idx) => ({
@@ -1244,6 +1246,7 @@ export function ExcelImportDialog({
       "سبب الاستبعاد (Reason)": item.reason,
     }));
 
+    const XLSX = await loadXlsx();
     const ws = XLSX.utils.json_to_sheet(exportRows);
     ws["!cols"] = [
       { wch: 6 },

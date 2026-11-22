@@ -4,7 +4,7 @@
  * and comprehensive validation for ANY room configuration file (.xlsx, .xls, .csv).
  */
 
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
 
 export type SystemFieldKey =
   | "roomNumber"
@@ -741,10 +741,11 @@ export function validateAndNormalizeRows({
  * (.xlsx or .csv) pre-filled with the exact column headers, realistic examples,
  * and an educational guidance worksheet.
  */
-export function downloadRoomImportTemplate(
+export async function downloadRoomImportTemplate(
   format: "xlsx" | "csv" = "xlsx",
   lang: "ar" | "en" = "ar",
 ) {
+  const XLSX = await loadXlsx();
   const isAr = lang === "ar";
   const sampleData = [
     {
