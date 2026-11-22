@@ -22,6 +22,7 @@ import { requirePermission } from "../../middlewares/permissions.js";
 import { moveOrEnsureProfilePortalAccount } from "../../lib/portal-accounts.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
+import { roomStatusAfterDeparture } from "../../lib/room-status.js";
 import { enrichProfileBilingual } from "../../lib/bilingual-translator.js";
 import { resolveProfileTenant, normalizePhotoData } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
@@ -361,7 +362,7 @@ router.patch(
                     .update(roomsTable)
                     .set({
                       currentOccupancy: newOcc,
-                      status: newOcc === 0 ? "dirty" : "occupied_dirty",
+                      status: roomStatusAfterDeparture(newOcc),
                     })
                     .where(eq(roomsTable.id, room.id));
                 }
