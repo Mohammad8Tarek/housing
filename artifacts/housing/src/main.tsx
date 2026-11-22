@@ -2,20 +2,24 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { registerServiceWorker } from "./register-service-worker";
-import * as Sentry from "@sentry/react";
 import { setBaseUrl } from "@workspace/api-client-react";
 import { getApiBaseUrl, installApiFetchInterceptor } from "@/lib/api-origin";
 
+// Load the Sentry SDK lazily and only when a DSN is configured, so the
+// ~200kB browser-tracing + replay bundle never enters the main entry chunk
+// (which loads on every page view).
 if (import.meta.env.VITE_SENTRY_DSN) {
-  Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration(),
-    ],
-    tracesSampleRate: 1.0,
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
+  void import("@sentry/react").then((Sentry) => {
+    Sentry.init({
+      dsn: import.meta.env.VITE_SENTRY_DSN,
+      integrations: [
+        Sentry.browserTracingIntegration(),
+        Sentry.replayIntegration(),
+      ],
+      tracesSampleRate: 1.0,
+      replaysSessionSampleRate: 0.1,
+      replaysOnErrorSampleRate: 1.0,
+    });
   });
 }
 
