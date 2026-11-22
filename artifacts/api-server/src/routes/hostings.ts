@@ -37,6 +37,7 @@ import {
 } from "../middlewares/permissions.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { findHostingAcrossAllProperties } from "../lib/cross-property-service.js";
+import { roomStatusAfterCheckIn } from "../lib/room-status.js";
 import { validate } from "../middlewares/validate.js";
 import {
   CommonListQuery,
@@ -982,14 +983,11 @@ router.post(
             const newOcc = room.currentOccupancy + 1;
             // A room with someone in it is occupied (still flagged if it
             // was waiting for cleaning).
-            const wasDirty = ["dirty", "occupied_dirty"].includes(
-              String((room as any).status ?? "").toLowerCase(),
-            );
             await tenantDb
               .update(roomsTable)
               .set({
                 currentOccupancy: newOcc,
-                status: wasDirty ? "occupied_dirty" : "occupied",
+                status: roomStatusAfterCheckIn((room as any).status),
               })
               .where(eq(roomsTable.id, roomIdToUse));
           }

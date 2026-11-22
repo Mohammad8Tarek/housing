@@ -27,6 +27,10 @@ import {
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
 import {
+  roomStatusAfterDeparture,
+  roomStatusAfterCheckIn,
+} from "../../lib/room-status.js";
+import {
   executeCrossPropertyTransfer,
   findAssignmentAcrossAllProperties,
 } from "../../lib/cross-property-service.js";
@@ -421,7 +425,7 @@ router.post(
           .update(roomsTable)
           .set({
             currentOccupancy: oldOcc,
-            status: oldOcc === 0 ? "dirty" : "occupied_dirty",
+            status: roomStatusAfterDeparture(oldOcc),
           })
           .where(eq(roomsTable.id, oldRoom.id));
       }
@@ -441,19 +445,12 @@ router.post(
           ? Number(newRemaining?.count ?? 0)
           : Number(newRemaining?.count ?? 0) + 1;
 
-      const newRoomDirty = ["dirty", "occupied_dirty"].includes(
-        String(newRoom.status ?? "").toLowerCase(),
-      );
       await tenantDb
         .update(roomsTable)
         .set({
           currentOccupancy: newOcc,
           status:
-            newOcc > 0
-              ? newRoomDirty
-                ? "occupied_dirty"
-                : "occupied"
-              : "available",
+            newOcc > 0 ? roomStatusAfterCheckIn(newRoom.status) : "available",
         })
         .where(eq(roomsTable.id, newRoom.id));
 
