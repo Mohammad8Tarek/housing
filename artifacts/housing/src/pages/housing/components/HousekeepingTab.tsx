@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
 import { getExportFileName } from "@/lib/date-utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
@@ -351,7 +351,7 @@ export function HousekeepingTab({
     }
   };
 
-  const handleBulkExportExcel = () => {
+  const handleBulkExportExcel = async () => {
     const target =
       selectedRoomIds.size > 0
         ? rooms.filter((r) => selectedRoomIds.has(r.id))
@@ -368,6 +368,7 @@ export function HousekeepingTab({
         (r.status || "").toLowerCase().trim(),
       ).label,
     }));
+    const XLSX = await loadXlsx();
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Housekeeping");

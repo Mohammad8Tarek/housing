@@ -1,6 +1,15 @@
 // SUNRISE-branded Excel styling. Uses xlsx-js-style (a SheetJS fork whose
 // writer emits cell styles; plain `xlsx` silently drops them).
-import * as XLSX from "xlsx-js-style";
+//
+// The ~869kB xlsx-js-style bundle is loaded lazily (only when a user triggers
+// an export) via loadStyledXlsx(); here we import only its *types* so nothing
+// heavy enters the route chunk at module load.
+import type * as XLSX from "xlsx-js-style";
+import { loadStyledXlsx } from "@/lib/lazy-xlsx";
+
+// Re-exported so callers can obtain the runtime module from the same place as
+// writeSunriseWorkbook: `const XLSX = await loadStyledXlsx();`.
+export { loadStyledXlsx };
 
 const TEAL = "2AA8AB";
 const TEAL_TINT = "E8F6F6";
@@ -14,13 +23,14 @@ const border = { top: thin, bottom: thin, left: thin, right: thin };
  * Teal bold header row, light-teal zebra rows, thin rules, and a brand font.
  * Layout (freeze panes, filters, widths) is left to the caller.
  */
-export function applySunriseSheetStyle(
+function applySunriseSheetStyle(
+  xlsx: typeof XLSX,
   ws: XLSX.WorkSheet,
   opts: { headerRow?: number; rtl?: boolean } = {},
 ): void {
   const ref = ws["!ref"];
   if (!ref) return;
-  const range = XLSX.utils.decode_range(ref);
+  const range = xlsx.utils.decode_range(ref);
   const headerRow = opts.headerRow ?? range.s.r;
   const align = {
     horizontal: opts.rtl ? "right" : "left",
@@ -32,7 +42,7 @@ export function applySunriseSheetStyle(
     const isHeader = r === headerRow;
     const zebra = !isHeader && (r - headerRow) % 2 === 0;
     for (let c = range.s.c; c <= range.e.c; c++) {
-      const addr = XLSX.utils.encode_cell({ r, c });
+      const addr = xlsx.utils.encode_cell({ r, c });
       const cell = ws[addr] ?? (ws[addr] = { t: "s", v: "" });
       cell.s = isHeader
         ? {
@@ -65,18 +75,19 @@ export function applySunriseSheetStyle(
   ws["!rows"] = rows;
 }
 
-export { XLSX };
-
 /**
  * Style every sheet in the workbook and save it. Rows above the detected
  * header row (e.g. report title / property lines) are styled as teal titles.
  * The header row is the first row filled across most of the sheet's width.
+ *
+ * Async because the xlsx-js-style writer is loaded on demand.
  */
-export function writeSunriseWorkbook(
+export async function writeSunriseWorkbook(
   wb: XLSX.WorkBook,
   filename: string,
   opts: { rtl?: boolean } = {},
-): void {
+): Promise<void> {
+  const XLSX = await loadStyledXlsx();
   for (const name of wb.SheetNames) {
     const ws = wb.Sheets[name];
     const ref = ws?.["!ref"];
@@ -114,7 +125,7 @@ export function writeSunriseWorkbook(
         }
       }
     }
-    applySunriseSheetStyle(ws, { headerRow, rtl: opts.rtl });
+    applySunriseSheetStyle(XLSX, ws, { headerRow, rtl: opts.rtl });
   }
   XLSX.writeFile(wb, filename);
 }

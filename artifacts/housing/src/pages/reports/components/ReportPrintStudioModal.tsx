@@ -23,7 +23,7 @@ import {
   BarChart2,
   X,
 } from "lucide-react";
-import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
+import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { getExportFileName, formatDate } from "@/lib/date-utils";
 import {
   PrintableReportDocument,
@@ -162,7 +162,7 @@ export function ReportPrintStudioModal({
   });
 
   // Excel Export
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!activeRows.length) return;
 
     // Filter row objects to only visible columns
@@ -178,15 +178,20 @@ export function ReportPrintStudioModal({
       return obj;
     });
 
+    const XLSX = await loadStyledXlsx();
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     const cleanSheetName = (isAr ? titleAr || title : title)
       .slice(0, 31)
       .replace(/[\\/?*[\]]/g, "_");
     XLSX.utils.book_append_sheet(wb, ws, cleanSheetName);
-    writeSunriseWorkbook(wb, getExportFileName(`${docTitle}_Report`, "xlsx"), {
-      rtl: isAr,
-    });
+    await writeSunriseWorkbook(
+      wb,
+      getExportFileName(`${docTitle}_Report`, "xlsx"),
+      {
+        rtl: isAr,
+      },
+    );
   };
 
   return (

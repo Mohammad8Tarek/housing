@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
+import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { getExportFileName } from "@/lib/date-utils";
 import {
   Building2,
@@ -465,7 +465,7 @@ export function HousingMapReportTab({
   }, [filteredBuildings, sortBy, sortDir]);
 
   // Excel Export Handler
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const rows: any[] = [];
 
     flatRooms.forEach((r) => {
@@ -557,6 +557,7 @@ export function HousingMapReportTab({
       }
     });
 
+    const XLSX = await loadStyledXlsx();
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(
@@ -567,7 +568,7 @@ export function HousingMapReportTab({
 
     const currentPropName =
       properties.find((p) => p.id === selectedPropertyId)?.name || "Housing";
-    writeSunriseWorkbook(
+    await writeSunriseWorkbook(
       workbook,
       getExportFileName(`Housing_Map_Report_${currentPropName}`, "xlsx"),
       { rtl: ar },

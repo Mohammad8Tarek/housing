@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
 import { useColumnVisibility } from "@/components/ui/column-chooser";
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
 
 export function useUsersPageState() {
   const [, setLocation] = useLocation();
@@ -356,7 +356,7 @@ export function useUsersPageState() {
     });
   };
 
-  const exportUserExcel = () => {
+  const exportUserExcel = async () => {
     const all: any[] = users || [];
     const target =
       selectedRows.size > 0
@@ -370,6 +370,7 @@ export function useUsersPageState() {
       Roles: (u.roles || []).join(", "),
       Status: u.status ?? "",
     }));
+    const XLSX = await loadXlsx();
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Users");

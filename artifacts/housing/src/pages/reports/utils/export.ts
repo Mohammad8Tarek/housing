@@ -1,5 +1,5 @@
 import { escapeHtml } from "@/lib/html-escape";
-import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
+import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { toast } from "sonner";
 import { getExportFileName } from "@/lib/date-utils";
 import {
@@ -30,7 +30,7 @@ export interface ExcelExportOptions {
   filenamePrefix?: string;
 }
 
-export const exportExcel = (
+export const exportExcel = async (
   activeTab: string,
   rows: Record<string, any>[],
   options?: ExcelExportOptions,
@@ -46,6 +46,7 @@ export const exportExcel = (
   }
 
   // 1. Generate worksheet from json rows
+  const XLSX = await loadStyledXlsx();
   const ws = XLSX.utils.json_to_sheet(rows);
 
   // 2. Compute intelligent column widths (wch) dynamically from headers and cell content
@@ -138,7 +139,7 @@ export const exportExcel = (
 
   // 8. Output filename conforming to DD-MM-YYYY format
   const filePrefix = options?.filenamePrefix || `${activeTab}_Report`;
-  writeSunriseWorkbook(wb, getExportFileName(filePrefix, "xlsx"), {
+  await writeSunriseWorkbook(wb, getExportFileName(filePrefix, "xlsx"), {
     rtl: isAr,
   });
   toast.success(

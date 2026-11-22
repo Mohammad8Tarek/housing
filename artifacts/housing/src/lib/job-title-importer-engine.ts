@@ -5,7 +5,7 @@
  * Create / Update / Duplicate-Skip detection.
  */
 
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
 
 export type RowAction = "create" | "update" | "duplicate_skip" | "invalid";
 
@@ -193,11 +193,12 @@ export const hasArabic = (text: string | null | undefined): boolean => {
 /**
  * Generates and triggers instant download of the Excel/CSV template for ANY lookup category
  */
-export function downloadLookupTemplate(
+export async function downloadLookupTemplate(
   category: string = "job_title",
   format: "xlsx" | "csv" = "xlsx",
   language: "ar" | "en" = "ar",
 ) {
+  const XLSX = await loadXlsx();
   const ar = language === "ar";
   const wb = XLSX.utils.book_new();
 
@@ -509,6 +510,7 @@ export async function parseJobTitlesFile(
     category?: string;
   },
 ): Promise<ParseResult> {
+  const XLSX = await loadXlsx();
   const buffer = await file.arrayBuffer();
   const wb = XLSX.read(buffer, { type: "array" });
   const sheetName = wb.SheetNames[0];

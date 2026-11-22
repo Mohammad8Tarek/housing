@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
-import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
+import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { getExportFileName } from "@/lib/date-utils";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
@@ -127,7 +127,8 @@ export function ManagerFlashTab({
     });
   }, [ar]);
 
-  const handleExcelExport = () => {
+  const handleExcelExport = async () => {
+    const XLSX = await loadStyledXlsx();
     const wb = XLSX.utils.book_new();
 
     // Sheet 1: Building Capacity Matrix
@@ -189,7 +190,7 @@ export function ManagerFlashTab({
       ar ? "توزيع الجنسيات" : "Nationalities",
     );
 
-    writeSunriseWorkbook(
+    await writeSunriseWorkbook(
       wb,
       getExportFileName("Daily_Morning_Operations_Report", "xlsx"),
       { rtl: ar },

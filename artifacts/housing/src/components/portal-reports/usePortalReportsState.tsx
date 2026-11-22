@@ -8,8 +8,6 @@ import { useState } from "react";
 import { BarChart3, Users, Star, Target } from "lucide-react";
 import { useGetSettings, useListProperties } from "@workspace/api-client-react";
 import { drawPdfHeader, drawPdfFooter, pdfTextSafe } from "@/lib/pdf-utils";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 export function usePortalReportsState({
   defaultType,
@@ -168,6 +166,8 @@ export function usePortalReportsState({
   };
 
   const generatePdf = async (data: any) => {
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
     const doc = new jsPDF({
       orientation: "landscape",
       unit: "mm",

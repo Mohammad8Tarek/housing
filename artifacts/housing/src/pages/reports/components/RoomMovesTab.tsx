@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
+import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
 import {
@@ -196,6 +196,7 @@ export function RoomMovesTab({
       ),
     }));
 
+    const XLSX = await loadStyledXlsx();
     const ws = XLSX.utils.json_to_sheet(excelRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Room Moves Report");
@@ -203,7 +204,7 @@ export function RoomMovesTab({
     const propName =
       properties.find((p) => String(p.id) === String(queryPropertyId))?.name ||
       "All_Properties";
-    writeSunriseWorkbook(
+    await writeSunriseWorkbook(
       wb,
       getExportFileName(`Room_Moves_Report_${propName}`, "xlsx"),
       { rtl: ar },

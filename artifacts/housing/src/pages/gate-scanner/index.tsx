@@ -39,7 +39,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
 import { GateCameraScanner } from "./GateCameraScanner";
 import {
   Dialog,
@@ -300,12 +300,13 @@ export default function GateScannerPage() {
   };
 
   // Export to Excel
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!logs.length) {
       toast.info(isAr ? "لا توجد سجلات لتصديرها" : "No logs to export");
       return;
     }
 
+    const XLSX = await loadXlsx();
     const dataToExport = logs.map((l: any, i: number) => ({
       م: i + 1,
       "الوقت والتاريخ": new Date(l.scannedAt).toLocaleString("ar-EG"),

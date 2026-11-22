@@ -12,7 +12,7 @@ import type { ReportMeta } from "@/lib/report/columnTypes";
 import type { ReportColumnDef } from "@/lib/report/columnTypes";
 import { formatValue } from "@/lib/report/columnTypes";
 import { getNestedValue } from "@/lib/report/widthEngine";
-import { XLSX, writeSunriseWorkbook } from "@/lib/xlsx-brand";
+import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { getExportFileName } from "@/lib/date-utils";
 
 export interface SmartReportExportOptions {
@@ -109,6 +109,7 @@ export function useSmartReportExport({
       );
 
       // Create worksheet
+      const XLSX = await loadStyledXlsx();
       const wsData = [headerRow, ...dataRows];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
 
@@ -148,7 +149,7 @@ export function useSmartReportExport({
       const wb = XLSX.utils.book_new();
       const sheetName = meta.title.slice(0, 31); // Excel sheet name max 31 chars
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      writeSunriseWorkbook(wb, getExportFileName(fileBaseName, "xlsx"), {
+      await writeSunriseWorkbook(wb, getExportFileName(fileBaseName, "xlsx"), {
         rtl: useAr,
       });
     } catch (err) {

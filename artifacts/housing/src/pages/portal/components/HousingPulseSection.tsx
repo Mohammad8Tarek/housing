@@ -4,7 +4,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
+import { loadXlsx } from "@/lib/lazy-xlsx";
 import { printLuxuryReport } from "@/pages/reports/utils/luxury-report-engine";
 import {
   HeartHandshake,
@@ -258,7 +258,7 @@ export function HousingPulseSection() {
   }, [commentsList, searchComment]);
 
   // Export to Excel
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const rowsToExport =
       allCommentsList.length > 0 ? allCommentsList : commentsList;
     const excelRows = rowsToExport.map((r: any, idx: number) => ({
@@ -283,6 +283,7 @@ export function HousingPulseSection() {
       [ar ? "تاريخ التقييم" : "Date"]: formatDate(r.createdAt),
     }));
 
+    const XLSX = await loadXlsx();
     const ws = XLSX.utils.json_to_sheet(excelRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Housing Pulse");
