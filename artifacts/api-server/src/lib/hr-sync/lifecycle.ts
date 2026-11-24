@@ -10,6 +10,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { logActivity } from "../activity-logger.js";
 import { broadcastToProperty } from "../websocket.js";
+import { roomStatusAfterDeparture } from "../room-status.js";
 
 // ============================================================================
 // Helper: Sync accommodation and room lifecycle for an employee
@@ -85,7 +86,7 @@ export async function syncEmployeeAccommodationLifecycle({
 
         if (room) {
           const newOcc = Math.max(0, room.currentOccupancy - 1);
-          const newRoomStatus = newOcc === 0 ? "dirty" : "occupied_dirty";
+          const newRoomStatus = roomStatusAfterDeparture(newOcc);
 
           await tenantDb
             .update(roomsTable)

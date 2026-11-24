@@ -18,6 +18,7 @@ import {
   requireSuperAdmin,
 } from "../../middlewares/permissions.js";
 import { getTenantId } from "../../lib/request-utils.js";
+import { isDirtyRoomStatus } from "../../lib/room-status.js";
 import { safeCount, safeSelect, statusEq } from "./shared.js";
 
 const router: Router = Router();
@@ -183,7 +184,7 @@ router.get(
                   st === "oos"
                 ) {
                   oooRooms++;
-                } else if (st === "dirty" || st === "occupied_dirty") {
+                } else if (isDirtyRoomStatus(st)) {
                   dirtyRooms++;
                 } else if (st === "occupied" || occ > 0) {
                   occupiedRooms++;
@@ -545,7 +546,7 @@ router.get(
         totalBeds += cap;
 
         const st = (r.status || "available").toLowerCase();
-        if (st === "dirty" || st === "occupied_dirty") {
+        if (isDirtyRoomStatus(st)) {
           dirtyRooms++;
         } else if (
           st === "maintenance" ||

@@ -135,6 +135,9 @@ async function applyRoomStatusForOpenTicket(
       .where(eq(roomsTable.id, roomId));
   } else if (category === "housekeeping") {
     if (room.status === "out_of_service") return;
+    // Inline boolean-keyed form kept: the shared roomStatusAfterDeparture()
+    // helper frames this as an occupant leaving, which misfits a ticket
+    // context; `occupied ? "occupied_dirty" : "dirty"` reads more directly.
     await tenantDb
       .update(roomsTable)
       .set({ status: occupied ? "occupied_dirty" : "dirty" })
@@ -167,6 +170,8 @@ async function applyRoomStatusAfterTicketDone(
   if (!room || room.status === "out_of_order") return;
   const occupied = (room.currentOccupancy || 0) > 0;
   if (category === "maintenance") {
+    // Inline boolean-keyed form kept: see note in applyRoomStatusForOpenTicket
+    // — roomStatusAfterDeparture() misfits this ticket context.
     await tenantDb
       .update(roomsTable)
       .set({ status: occupied ? "occupied_dirty" : "dirty" })

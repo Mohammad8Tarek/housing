@@ -15,6 +15,10 @@ import { logActivity } from "./activity-logger.js";
 import { su } from "./request-utils.js";
 import { hasPermission } from "../middlewares/permissions.js";
 import {
+  roomStatusAfterDeparture,
+  roomStatusAfterCheckIn,
+} from "./room-status.js";
+import {
   decidePolicy,
   evaluatePlacementPolicy,
   exceptionColumns,
@@ -298,7 +302,7 @@ export async function archiveSourceProfileOnTransfer(
         const newOcc = oldAssignment.isEntireRoom
           ? 0
           : Number(remainingCount?.count ?? 0);
-        const nextRoomStatus = newOcc === 0 ? "dirty" : "occupied_dirty";
+        const nextRoomStatus = roomStatusAfterDeparture(newOcc);
 
         await srcDb
           .update(roomsTable)
@@ -693,11 +697,7 @@ export async function executeCrossPropertyTransfer(
       .update(roomsTable)
       .set({
         currentOccupancy: newOcc,
-        status: ["dirty", "occupied_dirty"].includes(
-          String(lockedRoom.status ?? "").toLowerCase(),
-        )
-          ? "occupied_dirty"
-          : "occupied",
+        status: roomStatusAfterCheckIn(lockedRoom.status),
       })
       .where(eq(roomsTable.id, newRoom.id));
 
@@ -775,7 +775,7 @@ export async function executeCrossPropertyTransfer(
         .update(roomsTable)
         .set({
           currentOccupancy: oldOcc,
-          status: oldOcc === 0 ? "dirty" : "occupied_dirty",
+          status: roomStatusAfterDeparture(oldOcc),
         })
         .where(eq(roomsTable.id, oldRoom.id));
     }
