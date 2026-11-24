@@ -782,6 +782,13 @@ router.get(
   "/mock-feed",
   validate({ query: CommonListQuery }),
   (req, res): void => {
+    // Synthetic integration-test feed. It is exempt from the global auth gate,
+    // so keep it out of production entirely rather than exposing an
+    // unauthenticated endpoint there.
+    if (process.env.NODE_ENV === "production") {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
     const hotel = String(req.query.hotel || "all").toLowerCase();
     const testUpgrade = req.query.test_casual_upgrade === "true";
 
@@ -813,10 +820,9 @@ router.post(
     const providedKey = String(req.headers["x-api-key"] || "").trim();
     if (expectedKey) {
       if (!safeEqual(providedKey, expectedKey)) {
-        console.warn("[HR_SYNC_AUTH_FAIL_VACATION]", {
-          expectedKey,
-          providedKey,
-        });
+        // Never log the keys themselves — that would leak HR_SYNC_API_KEY into
+        // the server logs. Match the generic message used by the other hooks.
+        console.warn("[HR_SYNC_AUTH_FAIL_VACATION] invalid x-api-key");
         res.status(401).json({ success: false, error: "Unauthorized" });
         return;
       }
