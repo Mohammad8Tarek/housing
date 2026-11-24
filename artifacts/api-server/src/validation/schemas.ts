@@ -22,7 +22,9 @@ const optInt = (min = 0, max = 100000) =>
     z.coerce.number().int().min(min).max(max).optional(),
   );
 const optBool = zBool.optional();
-const optJson = z.union([z.record(z.any()), z.array(z.any())]).optional();
+const optJson = z
+  .union([z.record(z.string(), z.any()), z.array(z.any())])
+  .optional();
 
 export const UpdateSettingsBody = z
   .object({
@@ -316,8 +318,8 @@ export const CreateReportTemplateBody = z.object({
   nameEn: zNullableText(200).optional(),
   dataSource: reportDataSource,
   columns: z.array(z.string().max(100)).max(200).optional(),
-  filters: z.record(z.any()).optional(),
-  layoutOptions: z.record(z.any()).optional(),
+  filters: z.record(z.string(), z.any()).optional(),
+  layoutOptions: z.record(z.string(), z.any()).optional(),
 });
 
 export const UpdateReportTemplateBody = CreateReportTemplateBody.partial();
@@ -325,7 +327,7 @@ export const UpdateReportTemplateBody = CreateReportTemplateBody.partial();
 export const CustomReportQueryBody = z.object({
   dataSource: reportDataSource.default("in_house"),
   columns: z.array(z.string().max(100)).max(200).default([]),
-  filters: z.record(z.any()).default({}),
+  filters: z.record(z.string(), z.any()).default({}),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(5000).default(20),
   sortBy: z
@@ -383,14 +385,14 @@ export const RoomImportExecuteBody = z.object({
     .enum(["create_update", "create_only", "update_only", "replace"])
     .default("create_update"),
   fileName: zText(255).default("room_config.xlsx"),
-  rooms: z.array(z.record(z.any())).min(1).max(20000),
+  rooms: z.array(z.record(z.string(), z.any())).min(1).max(20000),
 });
 
 export const SaveImportTemplateBody = z.object({
   propertyId: zOptionalId,
   name: zText(200).min(1),
   description: zText(1000).default(""),
-  columnMapping: z.record(z.any()),
+  columnMapping: z.record(z.string(), z.any()),
 });
 
 // ─── room-inventory.ts ───────────────────────────────────────────────────────
@@ -723,13 +725,13 @@ export const LockUpdateBody = body({
 export const KeyRevokeBody = body({ propertyId: o(bId), type: o(bText(40)) });
 export const KeyExtendBody = body({ propertyId: o(bId), expiresAt: o(bDate) });
 // HR sync / eSign (external integrations — record payloads stay flexible)
-const hrRecords = z.array(z.record(z.any())).max(20000);
+const hrRecords = z.array(z.record(z.string(), z.any())).max(20000);
 export const HrReceiveBody = body({
   propertyId: o(bId),
   profiles: o(hrRecords),
   employees: o(hrRecords),
-  data: o(z.union([hrRecords, z.record(z.any())])),
-  mapping: o(z.record(z.any())),
+  data: o(z.union([hrRecords, z.record(z.string(), z.any())])),
+  mapping: o(z.record(z.string(), z.any())),
   syncProfiles: o(bBool),
   allowedLevels: o(z.array(bScalar(100)).max(500)),
   allowedDepartments: o(z.array(bScalar(200)).max(500)),
@@ -848,7 +850,7 @@ export const TransportBookingBody = body({
 });
 // profiles
 export const ProfilesBulkBody = body({
-  profiles: o(z.array(z.record(z.any())).max(20000)),
+  profiles: o(z.array(z.record(z.string(), z.any())).max(20000)),
 });
 export const ProfilePhotoBody = body({ photoUrl: o(bDataUrl) });
 export const ProfileIdImageBody = body({ idImage: o(bDataUrl) });
@@ -1064,46 +1066,3 @@ export const TwoFactorDisableBody = z.object({
   password: z.string().min(1).max(200),
   code: z.string().trim().min(6).max(20),
 });
-
-// ─── Gate access devices (biometric terminals / turnstiles) ────────────────
-const gateDeviceType = z.enum(["BIOMETRIC", "TURNSTILE", "HYBRID"]);
-const gateDeviceVendor = z.enum(["ZKTECO", "HIKVISION", "SUPREMA", "GENERIC"]);
-const gateDeviceDirection = z.enum(["IN", "OUT", "BOTH"]);
-
-export const GateDeviceCreateBody = z.object({
-  name: zText(120).min(1),
-  deviceType: gateDeviceType.optional(),
-  vendor: gateDeviceVendor.optional(),
-  serialNumber: zText(120).optional(),
-  ipAddress: zText(64).optional(),
-  port: z.coerce.number().int().positive().max(65535).optional(),
-  direction: gateDeviceDirection.optional(),
-  enabled: z.boolean().optional(),
-});
-
-export const GateDeviceUpdateBody = z.object({
-  name: zText(120).min(1).optional(),
-  deviceType: gateDeviceType.optional(),
-  vendor: gateDeviceVendor.optional(),
-  serialNumber: zText(120).nullable().optional(),
-  ipAddress: zText(64).nullable().optional(),
-  port: z.coerce.number().int().positive().max(65535).nullable().optional(),
-  direction: gateDeviceDirection.optional(),
-  enabled: z.boolean().optional(),
-  rotateKey: z.boolean().optional(),
-});
-
-export const GateDeviceEventBody = z
-  .object({
-    serial: zText(120).optional(),
-    userRef: zText(120).optional(),
-    direction: z.enum(["IN", "OUT"]).optional(),
-    method: zText(30).optional(),
-    at: zText(40).optional(),
-    format: z.enum(["normalized", "zkteco_attlog"]).optional(),
-    // Raw ZKTeco ATTLOG upload body when format = zkteco_attlog.
-    data: z.string().max(100000).optional(),
-  })
-  .refine((b) => Boolean(b.userRef) || Boolean(b.data), {
-    message: "userRef or ATTLOG data is required",
-  });
