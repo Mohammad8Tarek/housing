@@ -16,7 +16,7 @@ router.use(requireAuth);
 const enqueueExportSchema = z.object({
   format: z.enum(["csv", "excel", "pdf"]),
   reportType: z.string(),
-  filters: z.record(z.any()).optional(),
+  filters: z.record(z.string(), z.any()).optional(),
 });
 
 // ─── POST /jobs/export — Enqueue an export job ────────────────

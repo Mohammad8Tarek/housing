@@ -67,7 +67,7 @@ router.post(
     if (!parsed.success) {
       res.status(400).json({
         success: false,
-        message: parsed.error.errors[0]?.message ?? "Invalid input",
+        message: parsed.error.issues[0]?.message ?? "Invalid input",
       });
       return;
     }
@@ -124,7 +124,7 @@ router.put(
     if (!parsed.success) {
       res.status(400).json({
         success: false,
-        message: parsed.error.errors[0]?.message ?? "Invalid input",
+        message: parsed.error.issues[0]?.message ?? "Invalid input",
       });
       return;
     }

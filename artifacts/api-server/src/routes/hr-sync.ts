@@ -62,13 +62,13 @@ const HrSourceConfigSchema = z.object({
 const HrSyncConfigSchema = z.object({
   apiUrl: z.string().optional().nullable(),
   apiKey: z.string().optional().nullable(),
-  fieldMapping: z.record(z.string()).optional().nullable(),
+  fieldMapping: z.record(z.string(), z.string()).optional().nullable(),
   isActive: z.boolean().optional(),
   autoCheckoutOnDeparture: z.boolean().optional(),
   autoVacationSync: z.boolean().optional(),
   targetPropertyIds: z.array(z.number()).optional().default([]),
   sources: z.array(HrSourceConfigSchema).optional().default([]),
-  esignConfig: z.record(z.any()).optional().nullable(),
+  esignConfig: z.record(z.string(), z.any()).optional().nullable(),
 });
 
 // Constant-time comparison so the API key cannot be guessed by timing.
@@ -204,7 +204,7 @@ router.put(
     if (!parsed.success) {
       res
         .status(400)
-        .json({ error: parsed.error.errors[0]?.message ?? "Invalid input" });
+        .json({ error: parsed.error.issues[0]?.message ?? "Invalid input" });
       return;
     }
 
