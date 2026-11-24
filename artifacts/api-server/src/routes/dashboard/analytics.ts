@@ -11,6 +11,7 @@ import { requirePermission } from "../../middlewares/permissions.js";
 import { validate } from "../../middlewares/validate.js";
 import { DashboardHorizonQuery } from "../../validation/schemas.js";
 import { getTenantId } from "../../lib/request-utils.js";
+import { isDirtyRoomStatus } from "../../lib/room-status.js";
 import { safeSelect, statusEq } from "./shared.js";
 
 const router: Router = Router();
@@ -66,7 +67,7 @@ router.get(
           roomCapacityMap.set(r.id, cap);
           totalBeds += cap;
           const st = (r.status || "available").toLowerCase();
-          if (st === "dirty" || st === "occupied_dirty") {
+          if (isDirtyRoomStatus(st)) {
             dirtyRooms++;
           } else if (
             st === "maintenance" ||
@@ -97,7 +98,7 @@ router.get(
             "ooo",
             "oos",
           ].includes(st);
-          const isDirty = st === "dirty" || st === "occupied_dirty";
+          const isDirty = isDirtyRoomStatus(st);
 
           if (isMaint || isDirty) continue;
           // Fully vacant rule: room is ready/available ONLY if 0 occupants
