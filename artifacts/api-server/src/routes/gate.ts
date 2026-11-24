@@ -29,13 +29,23 @@ import {
   GateVerifyBody,
   GateDeviceCreateBody,
   GateDeviceUpdateBody,
+  GateDeviceEventBody,
   IdParams,
   ProfileCodeParams,
   CommonListQuery,
 } from "../validation/schemas.js";
 import { portalSession } from "./portal-auth/shared.js";
 import { logActivity } from "../lib/activity-logger.js";
-import { generateDeviceKey } from "../lib/gate-devices.js";
+import { generateDeviceKey, verifyDeviceKey } from "../lib/gate-devices.js";
+import { broadcastToProperty } from "../lib/websocket.js";
+import {
+  decideGateAccess,
+  normalizeDirection,
+  parseZktecoAttlog,
+  type NormalizedGateEvent,
+  type GateDirection,
+  type GateMethod,
+} from "../lib/gate-access.js";
 
 const router: Router = Router();
 const GATE_SECRET =
@@ -883,7 +893,202 @@ router.get(
   },
 );
 
-// ─── 6. Gate devices registry (biometric terminals / turnstiles) ───────────
+// ─── 6. POST /gate/device/event ────────────────────────────────────────────
+// Universal ingestion endpoint for physical access devices (biometric
+// terminals, card readers, turnstile controllers). The device authenticates
+// with its API key (x-device-key); the server resolves the resident, decides
+// GRANT/DENY, logs the IN/OUT movement and returns whether to open the gate.
+//
+// Accepts either a normalized event ({ userRef, direction, method }) from any
+// modern system (Hikvision ISAPI, Suprema, a custom bridge), or a raw ZKTeco
+// ATTLOG upload ({ format: "zkteco_attlog", data }).
+async function resolveResidentForGate(
+  tenantDb: any,
+  userRef: string,
+): Promise<{ profile: any; assignment: any; room: any; building: any } | null> {
+  const [p] = await tenantDb
+    .select()
+    .from(profilesTable)
+    .where(
+      or(
+        eq(profilesTable.profileId, userRef),
+        eq(profilesTable.nationalId, userRef),
+        sql`CAST(${profilesTable.id} AS TEXT) = ${userRef}`,
+      ),
+    )
+    .limit(1);
+  if (!p) return null;
+  const [assign] = await tenantDb
+    .select()
+    .from(assignmentsTable)
+    .where(
+      and(
+        eq(assignmentsTable.profileId, p.id),
+        eq(assignmentsTable.status, "ACTIVE"),
+      ),
+    )
+    .orderBy(desc(assignmentsTable.id))
+    .limit(1);
+  let room = null;
+  let building = null;
+  if (assign?.roomId) {
+    const [rm] = await tenantDb
+      .select()
+      .from(roomsTable)
+      .where(eq(roomsTable.id, assign.roomId))
+      .limit(1);
+    room = rm;
+    if (rm?.buildingId) {
+      const [bld] = await tenantDb
+        .select()
+        .from(buildingsTable)
+        .where(eq(buildingsTable.id, rm.buildingId))
+        .limit(1);
+      building = bld;
+    }
+  }
+  return { profile: p, assignment: assign, room, building };
+}
+
+router.post(
+  "/gate/device/event",
+  validate({ body: GateDeviceEventBody }),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId =
+        Number(req.query?.propertyId) || Number((req.body as any)?.propertyId);
+      if (!propertyId) {
+        res.status(400).json({ success: false, error: "propertyId required" });
+        return;
+      }
+      const presentedKey = String(req.headers["x-device-key"] || "").trim();
+      if (!presentedKey) {
+        res.status(401).json({ success: false, error: "Missing x-device-key" });
+        return;
+      }
+
+      const b = req.body as any;
+
+      // Authenticate the device within the property (by serial if given, else
+      // by matching the key against the property's enabled devices).
+      const device = await withTenant(propertyId, async (tdb) => {
+        const rows = await tdb
+          .select()
+          .from(gateDevicesTable)
+          .where(eq(gateDevicesTable.enabled, true));
+        const candidates = b.serial
+          ? rows.filter((d: any) => d.serialNumber === b.serial)
+          : rows;
+        return (
+          candidates.find((d: any) =>
+            verifyDeviceKey(presentedKey, d.apiKeyHash),
+          ) || null
+        );
+      });
+
+      if (!device) {
+        console.warn("[GATE_DEVICE_AUTH_FAIL] invalid x-device-key");
+        res.status(401).json({ success: false, error: "Unauthorized device" });
+        return;
+      }
+
+      // Mark the device as seen.
+      await withTenant(propertyId, (tdb) =>
+        tdb
+          .update(gateDevicesTable)
+          .set({ lastSeenAt: new Date() })
+          .where(eq(gateDevicesTable.id, device.id)),
+      );
+
+      const deviceDefaultDir: GateDirection =
+        device.direction === "OUT" ? "OUT" : "IN";
+
+      // Build the list of normalized events to process.
+      let events: NormalizedGateEvent[];
+      if (b.format === "zkteco_attlog" && b.data) {
+        events = parseZktecoAttlog(b.data, {
+          defaultDirection: deviceDefaultDir,
+        });
+      } else {
+        events = [
+          {
+            userRef: String(b.userRef),
+            direction: b.direction
+              ? normalizeDirection(b.direction, deviceDefaultDir)
+              : deviceDefaultDir,
+            method: (String(b.method || "FINGERPRINT").toUpperCase() ||
+              "FINGERPRINT") as GateMethod,
+          },
+        ];
+      }
+
+      const results: any[] = [];
+      for (const ev of events) {
+        const dir: GateDirection =
+          device.direction === "BOTH" ? ev.direction : deviceDefaultDir;
+        const resolved = await withTenant(propertyId, (tdb) =>
+          resolveResidentForGate(tdb, ev.userRef),
+        );
+        const decision = decideGateAccess({
+          profile: resolved?.profile ?? null,
+          hasActiveAssignment: Boolean(resolved?.assignment),
+        });
+
+        const p = resolved?.profile;
+        await withTenant(propertyId, (tdb) =>
+          tdb.insert(gateLogsTable).values({
+            propertyId,
+            profileId: p?.id ?? null,
+            employeeId: p?.profileId ?? ev.userRef,
+            fullName: p?.fullName ?? p?.name ?? ev.userRef,
+            department: p?.department ?? null,
+            jobTitle: p?.jobTitle ?? null,
+            roomNumber: resolved?.room?.roomNumber ?? null,
+            buildingName: resolved?.building?.name ?? null,
+            direction: dir,
+            status: decision.status,
+            reason: decision.reason,
+            scannedBy: device.name,
+            scanMethod: ev.method,
+          }),
+        );
+
+        results.push({
+          userRef: ev.userRef,
+          direction: dir,
+          method: ev.method,
+          decision: decision.decision,
+          open: decision.decision === "GRANT",
+          reason: decision.reason,
+          resident: p
+            ? {
+                profileId: p.id,
+                employeeId: p.profileId,
+                name: p.fullName ?? p.name,
+                room: resolved?.room?.roomNumber ?? null,
+                building: resolved?.building?.name ?? null,
+              }
+            : null,
+        });
+      }
+
+      broadcastToProperty(propertyId, { module: "gate", action: "sync" });
+      broadcastToProperty(propertyId, { module: "dashboard", action: "sync" });
+
+      // Single-event callers (the common case) get a flat response; batch
+      // (ATTLOG) callers get the full list.
+      if (results.length === 1) {
+        res.json({ success: true, ...results[0], processed: 1 });
+      } else {
+        res.json({ success: true, processed: results.length, results });
+      }
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
+// ─── 7. Gate devices registry (biometric terminals / turnstiles) ───────────
 // The API key is returned once, on creation / rotation. The stored hash is
 // never exposed.
 function shapeDevice(d: any) {

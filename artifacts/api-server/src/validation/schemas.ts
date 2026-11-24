@@ -1092,3 +1092,18 @@ export const GateDeviceUpdateBody = z.object({
   enabled: z.boolean().optional(),
   rotateKey: z.boolean().optional(),
 });
+
+export const GateDeviceEventBody = z
+  .object({
+    serial: zText(120).optional(),
+    userRef: zText(120).optional(),
+    direction: z.enum(["IN", "OUT"]).optional(),
+    method: zText(30).optional(),
+    at: zText(40).optional(),
+    format: z.enum(["normalized", "zkteco_attlog"]).optional(),
+    // Raw ZKTeco ATTLOG upload body when format = zkteco_attlog.
+    data: z.string().max(100000).optional(),
+  })
+  .refine((b) => Boolean(b.userRef) || Boolean(b.data), {
+    message: "userRef or ATTLOG data is required",
+  });

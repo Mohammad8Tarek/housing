@@ -62,6 +62,7 @@ const ALLOWLIST = new Set([
   "hr-sync.ts :: POST /receive", // x-api-key webhook
   "hr-sync.ts :: POST /notify-vacation", // x-api-key webhook
   "hr-sync.ts :: POST /notify-departure", // x-api-key webhook
+  "gate.ts :: POST /gate/device/event", // x-device-key authenticated terminal
 ]);
 
 const PERM_GUARD = /require(Permission|AnyPermission|SuperAdmin)\s*\(/;

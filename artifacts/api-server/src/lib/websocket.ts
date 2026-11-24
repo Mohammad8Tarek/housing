@@ -39,7 +39,8 @@ export type WsModule =
   | "hosting-requests"
   | "workers"
   | "evaluations"
-  | "activities";
+  | "activities"
+  | "gate";
 
 export type WsAction =
   | "created"
