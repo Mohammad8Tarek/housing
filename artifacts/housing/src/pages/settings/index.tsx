@@ -26,6 +26,7 @@ import {
   Scale,
   ShieldAlert,
   Wrench,
+  Fingerprint,
 } from "lucide-react";
 import { LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { useProperty } from "@/context/PropertyContext";
@@ -44,6 +45,7 @@ import { DoorLocksSection } from "./components/DoorLocksSection";
 import { WhatsAppSettingsSection } from "./components/WhatsAppSettingsSection";
 import { EmailSettingsSection } from "./components/EmailSettingsSection";
 import { PushNotificationsSection } from "./components/PushNotificationsSection";
+import { GatesDevicesSection } from "./components/GatesDevicesSection";
 import { WorkersTab } from "@/pages/maintenance/components/WorkersTab";
 import { usePermission } from "@/hooks/use-permission";
 
@@ -74,6 +76,8 @@ export default function Settings() {
     can("settings", "manage_security") || can("settings", "edit");
   const canHrSync = canView("hr_sync");
   const canDoorLocks = canView("smart_locks");
+  const canGates =
+    can("gate", "view") || can("gate", "create") || can("settings", "edit");
   const canWhatsApp = canView("whatsapp");
   const canMaintenanceServices =
     canView("maintenance") || can("settings", "edit");
@@ -257,6 +261,14 @@ export default function Settings() {
           allowed: canDoorLocks,
         },
         {
+          id: "gates",
+          labelAr: "البوابات والأجهزة",
+          labelEn: "Gates",
+          icon: Fingerprint,
+          colorClass: "text-cyan-600",
+          allowed: canGates,
+        },
+        {
           id: "maintenance-services",
           labelAr: "خدمات الصيانة",
           labelEn: "Services",
@@ -297,6 +309,7 @@ export default function Settings() {
       canSecurity,
       canHrSync,
       canDoorLocks,
+      canGates,
       canMaintenanceServices,
       canWhatsApp,
       canManageEmail,
@@ -707,6 +720,15 @@ export default function Settings() {
           {canView("smart_locks") && (
             <TabsContent value="door-locks" className="space-y-4">
               <DoorLocksSection
+                propertyId={selectedPropertyId}
+                language={language}
+              />
+            </TabsContent>
+          )}
+
+          {canGates && (
+            <TabsContent value="gates" className="space-y-4">
+              <GatesDevicesSection
                 propertyId={selectedPropertyId}
                 language={language}
               />
