@@ -27,6 +27,7 @@ import {
   ShieldAlert,
   Wrench,
   Fingerprint,
+  Settings2,
 } from "lucide-react";
 import { LOOKUP_CATEGORIES } from "@/hooks/use-lookup-values";
 import { useProperty } from "@/context/PropertyContext";
@@ -375,21 +376,33 @@ export default function Settings() {
   return (
     <FormProvider {...form}>
       <div className="space-y-6 w-full pb-6 px-1">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {ar ? "الإعدادات" : "Settings"}
-          </h1>
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+            <Settings2 className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              {ar ? "الإعدادات" : "Settings"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {ar
+                ? "إدارة إعدادات النظام والسياسات والتكاملات لكل فندق"
+                : "Manage system settings, policies and integrations per property"}
+            </p>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 md:grid-cols-10 mb-6">
+          <TabsList className="mb-6 flex h-auto w-full flex-wrap justify-start gap-2 bg-transparent p-0">
             {tabsList.map((t) => {
               const Icon = t.icon;
               return (
-                <TabsTrigger key={t.id} value={t.id}>
-                  <Icon
-                    className={`w-3.5 h-3.5 mr-1.5 ${t.colorClass || ""}`}
-                  />
+                <TabsTrigger
+                  key={t.id}
+                  value={t.id}
+                  className="gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-2 text-xs font-medium text-muted-foreground shadow-none transition-colors hover:bg-muted/60 hover:text-foreground data-[state=active]:border-primary/40 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm sm:text-sm"
+                >
+                  <Icon className={`h-4 w-4 ${t.colorClass || ""}`} />
                   {ar ? t.labelAr : t.labelEn}
                 </TabsTrigger>
               );
