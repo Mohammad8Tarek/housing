@@ -11,12 +11,14 @@ import {
   buildingsTable,
   propertiesTable,
   gateLogsTable,
+  gateDevicesTable,
 } from "@workspace/db";
 import { eq, and, desc, sql, or, ilike } from "drizzle-orm";
-import { getTenantId } from "../lib/request-utils.js";
+import { getTenantId, su } from "../lib/request-utils.js";
 import {
   loadAuthUser,
   requirePermission,
+  requireAnyPermission,
   hasPermission,
 } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
@@ -25,11 +27,15 @@ import {
   GateLogsQuery,
   GateStatsQuery,
   GateVerifyBody,
+  GateDeviceCreateBody,
+  GateDeviceUpdateBody,
+  IdParams,
   ProfileCodeParams,
   CommonListQuery,
 } from "../validation/schemas.js";
 import { portalSession } from "./portal-auth/shared.js";
 import { logActivity } from "../lib/activity-logger.js";
+import { generateDeviceKey } from "../lib/gate-devices.js";
 
 const router: Router = Router();
 const GATE_SECRET =
@@ -873,6 +879,212 @@ router.get(
       res
         .status(500)
         .json({ error: error.message || "Failed to fetch gate statistics" });
+    }
+  },
+);
+
+// ─── 6. Gate devices registry (biometric terminals / turnstiles) ───────────
+// The API key is returned once, on creation / rotation. The stored hash is
+// never exposed.
+function shapeDevice(d: any) {
+  if (!d) return d;
+  const { apiKeyHash, ...rest } = d;
+  void apiKeyHash;
+  return rest;
+}
+
+// GET /gate/devices — list the property's registered devices
+router.get(
+  "/gate/devices",
+  requireAnyPermission(["gate", "view"], ["settings", "view"]),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId required" });
+        return;
+      }
+      const rows = await withTenant(propertyId, (tdb) =>
+        tdb.select().from(gateDevicesTable).orderBy(desc(gateDevicesTable.id)),
+      );
+      res.json({ success: true, data: rows.map(shapeDevice) });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+// POST /gate/devices — register a device and mint its API key (shown once)
+router.post(
+  "/gate/devices",
+  requireAnyPermission(["gate", "create"], ["settings", "edit"]),
+  validate({ body: GateDeviceCreateBody }),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId required" });
+        return;
+      }
+      const b = req.body as any;
+      const { key, hash, prefix } = generateDeviceKey();
+
+      const [created] = await withTenant(propertyId, (tdb) =>
+        tdb
+          .insert(gateDevicesTable)
+          .values({
+            propertyId,
+            name: b.name,
+            deviceType: b.deviceType ?? "BIOMETRIC",
+            vendor: b.vendor ?? "GENERIC",
+            serialNumber: b.serialNumber ?? null,
+            ipAddress: b.ipAddress ?? null,
+            port: b.port ?? null,
+            direction: b.direction ?? "IN",
+            apiKeyHash: hash,
+            apiKeyPrefix: prefix,
+            enabled: b.enabled ?? true,
+          })
+          .returning(),
+      );
+
+      const s = su(req);
+      await logActivity({
+        req,
+        propertyId,
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `تسجيل جهاز بوابة: ${created.name}`,
+        actionType: "CREATE",
+        module: "gate",
+        entityType: "gate_device",
+        entityId: created.id,
+        details: { name: created.name, vendor: created.vendor },
+      });
+
+      // The raw key is returned ONCE here and never stored or shown again.
+      res
+        .status(201)
+        .json({ success: true, data: shapeDevice(created), apiKey: key });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+// PATCH /gate/devices/:id — update a device; rotateKey mints a new key (once)
+router.patch(
+  "/gate/devices/:id",
+  requireAnyPermission(["gate", "create"], ["settings", "edit"]),
+  validate({ params: IdParams }),
+  validate({ body: GateDeviceUpdateBody }),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      const id = Number(req.params.id);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId required" });
+        return;
+      }
+      const b = req.body as any;
+      const set: Record<string, any> = { updatedAt: new Date() };
+      for (const f of [
+        "name",
+        "deviceType",
+        "vendor",
+        "serialNumber",
+        "ipAddress",
+        "port",
+        "direction",
+        "enabled",
+      ]) {
+        if (Object.prototype.hasOwnProperty.call(b, f)) set[f] = b[f];
+      }
+
+      let newKey: string | undefined;
+      if (b.rotateKey) {
+        const { key, hash, prefix } = generateDeviceKey();
+        set.apiKeyHash = hash;
+        set.apiKeyPrefix = prefix;
+        newKey = key;
+      }
+
+      const [updated] = await withTenant(propertyId, (tdb) =>
+        tdb
+          .update(gateDevicesTable)
+          .set(set)
+          .where(eq(gateDevicesTable.id, id))
+          .returning(),
+      );
+      if (!updated) {
+        res.status(404).json({ error: "Device not found" });
+        return;
+      }
+
+      const s = su(req);
+      await logActivity({
+        req,
+        propertyId,
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `تعديل جهاز بوابة: ${updated.name}${b.rotateKey ? " (تدوير المفتاح)" : ""}`,
+        actionType: "UPDATE",
+        module: "gate",
+        entityType: "gate_device",
+        entityId: updated.id,
+        details: { rotateKey: Boolean(b.rotateKey) },
+      });
+
+      res.json({ success: true, data: shapeDevice(updated), apiKey: newKey });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+// DELETE /gate/devices/:id — remove a device
+router.delete(
+  "/gate/devices/:id",
+  requireAnyPermission(["gate", "create"], ["settings", "edit"]),
+  validate({ params: IdParams }),
+  async (req, res): Promise<void> => {
+    try {
+      const propertyId = getTenantId(req);
+      const id = Number(req.params.id);
+      if (!propertyId) {
+        res.status(400).json({ error: "propertyId required" });
+        return;
+      }
+      const [removed] = await withTenant(propertyId, (tdb) =>
+        tdb
+          .delete(gateDevicesTable)
+          .where(eq(gateDevicesTable.id, id))
+          .returning(),
+      );
+      if (!removed) {
+        res.status(404).json({ error: "Device not found" });
+        return;
+      }
+      const s = su(req);
+      await logActivity({
+        req,
+        propertyId,
+        username: s.username,
+        userId: s.userId,
+        userRole: s.userRole,
+        action: `حذف جهاز بوابة: ${removed.name}`,
+        actionType: "DELETE",
+        module: "gate",
+        entityType: "gate_device",
+        entityId: removed.id,
+        severity: "warning",
+        details: { name: removed.name },
+      });
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   },
 );

@@ -1316,6 +1316,29 @@ We wish you a safe trip and a pleasant stay! ✨';`,
     CREATE INDEX IF NOT EXISTS idx_gate_logs_scanned_at ON public.gate_logs (scanned_at);`,
   },
   {
+    name: "public.gate_devices",
+    q: `CREATE TABLE IF NOT EXISTS public.gate_devices (
+      id SERIAL PRIMARY KEY,
+      property_id INTEGER NOT NULL,
+      name VARCHAR(120) NOT NULL,
+      device_type VARCHAR(30) NOT NULL DEFAULT 'BIOMETRIC',
+      vendor VARCHAR(40) NOT NULL DEFAULT 'GENERIC',
+      serial_number VARCHAR(120),
+      ip_address VARCHAR(64),
+      port INTEGER,
+      direction VARCHAR(10) NOT NULL DEFAULT 'IN',
+      api_key_hash TEXT NOT NULL,
+      api_key_prefix VARCHAR(16),
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      last_seen_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_gate_devices_property_id ON public.gate_devices (property_id);
+    CREATE INDEX IF NOT EXISTS idx_gate_devices_serial_number ON public.gate_devices (serial_number);
+    CREATE INDEX IF NOT EXISTS idx_gate_devices_enabled ON public.gate_devices (enabled);`,
+  },
+  {
     name: "public.profile_documents",
     q: `CREATE TABLE IF NOT EXISTS public.profile_documents (
       id SERIAL PRIMARY KEY,

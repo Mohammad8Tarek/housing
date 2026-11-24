@@ -2459,6 +2459,46 @@ BEGIN
     CREATE INDEX IF NOT EXISTS idx_gate_logs_scanned_at ON gate_logs(scanned_at);
 
     -- --------------------------------------------------------
+    -- Table: gate_devices
+    -- --------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS "gate_devices" (
+      "id" SERIAL PRIMARY KEY,
+      "property_id" INTEGER NOT NULL,
+      "name" VARCHAR(120) NOT NULL,
+      "device_type" VARCHAR(30) NOT NULL DEFAULT 'BIOMETRIC',
+      "vendor" VARCHAR(40) NOT NULL DEFAULT 'GENERIC',
+      "serial_number" VARCHAR(120),
+      "ip_address" VARCHAR(64),
+      "port" INTEGER,
+      "direction" VARCHAR(10) NOT NULL DEFAULT 'IN',
+      "api_key_hash" TEXT NOT NULL,
+      "api_key_prefix" VARCHAR(16),
+      "enabled" BOOLEAN NOT NULL DEFAULT TRUE,
+      "last_seen_at" TIMESTAMPTZ,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "property_id" INTEGER;
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "name" VARCHAR(120);
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "device_type" VARCHAR(30) DEFAULT 'BIOMETRIC';
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "vendor" VARCHAR(40) DEFAULT 'GENERIC';
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "serial_number" VARCHAR(120);
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "ip_address" VARCHAR(64);
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "port" INTEGER;
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "direction" VARCHAR(10) DEFAULT 'IN';
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "api_key_hash" TEXT;
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "api_key_prefix" VARCHAR(16);
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "enabled" BOOLEAN DEFAULT TRUE;
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "last_seen_at" TIMESTAMPTZ;
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ DEFAULT NOW();
+    ALTER TABLE "gate_devices" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ DEFAULT NOW();
+
+    CREATE INDEX IF NOT EXISTS idx_gate_devices_property_id ON gate_devices(property_id);
+    CREATE INDEX IF NOT EXISTS idx_gate_devices_serial_number ON gate_devices(serial_number);
+    CREATE INDEX IF NOT EXISTS idx_gate_devices_enabled ON gate_devices(enabled);
+
+    -- --------------------------------------------------------
     -- Table: property_whatsapp_configs (per tenant)
     -- --------------------------------------------------------
     CREATE TABLE IF NOT EXISTS "property_whatsapp_configs" (
@@ -2767,6 +2807,30 @@ We wish you a safe trip and a pleasant stay! ✨',
   CREATE INDEX IF NOT EXISTS idx_gate_logs_direction ON public.gate_logs (direction);
   CREATE INDEX IF NOT EXISTS idx_gate_logs_status ON public.gate_logs (status);
   CREATE INDEX IF NOT EXISTS idx_gate_logs_scanned_at ON public.gate_logs (scanned_at);
+
+  -- --------------------------------------------------------
+  -- Table: public.gate_devices
+  -- --------------------------------------------------------
+  CREATE TABLE IF NOT EXISTS public.gate_devices (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER NOT NULL,
+    name VARCHAR(120) NOT NULL,
+    device_type VARCHAR(30) NOT NULL DEFAULT 'BIOMETRIC',
+    vendor VARCHAR(40) NOT NULL DEFAULT 'GENERIC',
+    serial_number VARCHAR(120),
+    ip_address VARCHAR(64),
+    port INTEGER,
+    direction VARCHAR(10) NOT NULL DEFAULT 'IN',
+    api_key_hash TEXT NOT NULL,
+    api_key_prefix VARCHAR(16),
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    last_seen_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  CREATE INDEX IF NOT EXISTS idx_gate_devices_property_id ON public.gate_devices (property_id);
+  CREATE INDEX IF NOT EXISTS idx_gate_devices_serial_number ON public.gate_devices (serial_number);
+  CREATE INDEX IF NOT EXISTS idx_gate_devices_enabled ON public.gate_devices (enabled);
 
   -- --------------------------------------------------------
   -- Table: public.room_import_jobs
