@@ -31,7 +31,7 @@ export function errorHandler(
 
   if (err instanceof ZodError) {
     const message = formatZodError(err, ar);
-    logger.warn({ url: req.url, errors: err.errors }, "Zod validation error");
+    logger.warn({ url: req.url, errors: err.issues }, "Zod validation error");
     res.status(400).json({ success: false, message });
     return;
   }
