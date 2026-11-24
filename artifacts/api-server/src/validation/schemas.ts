@@ -1064,3 +1064,46 @@ export const TwoFactorDisableBody = z.object({
   password: z.string().min(1).max(200),
   code: z.string().trim().min(6).max(20),
 });
+
+// ─── Gate access devices (biometric terminals / turnstiles) ────────────────
+const gateDeviceType = z.enum(["BIOMETRIC", "TURNSTILE", "HYBRID"]);
+const gateDeviceVendor = z.enum(["ZKTECO", "HIKVISION", "SUPREMA", "GENERIC"]);
+const gateDeviceDirection = z.enum(["IN", "OUT", "BOTH"]);
+
+export const GateDeviceCreateBody = z.object({
+  name: zText(120).min(1),
+  deviceType: gateDeviceType.optional(),
+  vendor: gateDeviceVendor.optional(),
+  serialNumber: zText(120).optional(),
+  ipAddress: zText(64).optional(),
+  port: z.coerce.number().int().positive().max(65535).optional(),
+  direction: gateDeviceDirection.optional(),
+  enabled: z.boolean().optional(),
+});
+
+export const GateDeviceUpdateBody = z.object({
+  name: zText(120).min(1).optional(),
+  deviceType: gateDeviceType.optional(),
+  vendor: gateDeviceVendor.optional(),
+  serialNumber: zText(120).nullable().optional(),
+  ipAddress: zText(64).nullable().optional(),
+  port: z.coerce.number().int().positive().max(65535).nullable().optional(),
+  direction: gateDeviceDirection.optional(),
+  enabled: z.boolean().optional(),
+  rotateKey: z.boolean().optional(),
+});
+
+export const GateDeviceEventBody = z
+  .object({
+    serial: zText(120).optional(),
+    userRef: zText(120).optional(),
+    direction: z.enum(["IN", "OUT"]).optional(),
+    method: zText(30).optional(),
+    at: zText(40).optional(),
+    format: z.enum(["normalized", "zkteco_attlog"]).optional(),
+    // Raw ZKTeco ATTLOG upload body when format = zkteco_attlog.
+    data: z.string().max(100000).optional(),
+  })
+  .refine((b) => Boolean(b.userRef) || Boolean(b.data), {
+    message: "userRef or ATTLOG data is required",
+  });
