@@ -1,6 +1,6 @@
-import { Link } from "wouter";
+﻿import { Link } from "wouter";
 import { DocumentPreviewModal } from "@/components/ui/document-preview-modal";
-import { Skeleton } from "@/components/ui/skeleton";
+import { DetailSkeleton } from "@/components/ui/page-states";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -51,7 +51,7 @@ export default function ProfileDetail() {
   if (empLoading || !profileId)
     return (
       <div className="p-8">
-        <Skeleton className="h-64 w-full" />
+        <DetailSkeleton />
       </div>
     );
   if (!profile)
