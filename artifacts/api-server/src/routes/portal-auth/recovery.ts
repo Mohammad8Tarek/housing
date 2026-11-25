@@ -242,7 +242,7 @@ router.post(
       if (!parsed.success) {
         res.status(400).json({
           success: false,
-          message: parsed.error.errors[0]?.message || "Missing fields",
+          message: parsed.error.issues[0]?.message || "Missing fields",
         });
         return;
       }
@@ -256,7 +256,7 @@ router.post(
       if (!pwdParsed.success) {
         res.status(400).json({
           success: false,
-          message: pwdParsed.error.errors[0]?.message || "Invalid password",
+          message: pwdParsed.error.issues[0]?.message || "Invalid password",
         });
         return;
       }

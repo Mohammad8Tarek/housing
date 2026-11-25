@@ -151,7 +151,7 @@ router.post("/my-maintenance", async (req, res): Promise<void> => {
   if (!parsed.success) {
     res.status(400).json({
       success: false,
-      message: parsed.error.errors[0]?.message ?? "Invalid input",
+      message: parsed.error.issues[0]?.message ?? "Invalid input",
     });
     return;
   }
@@ -257,7 +257,7 @@ router.post("/rate-maintenance", async (req, res): Promise<void> => {
   if (!parsed.success) {
     res.status(400).json({
       success: false,
-      message: parsed.error.errors[0]?.message ?? "Invalid rating input",
+      message: parsed.error.issues[0]?.message ?? "Invalid rating input",
     });
     return;
   }

@@ -148,7 +148,7 @@ router.post("/surveys/:token/respond", async (req, res): Promise<void> => {
   if (!parsed.success) {
     res
       .status(400)
-      .json({ success: false, message: parsed.error.errors[0]?.message });
+      .json({ success: false, message: parsed.error.issues[0]?.message });
     return;
   }
   const resolved = await resolveSurveyByToken(token);

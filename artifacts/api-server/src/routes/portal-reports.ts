@@ -31,7 +31,7 @@ const ReportSchema = z.object({
       to: z.string().datetime().optional(),
     })
     .optional(),
-  filters: z.record(z.any()).optional(),
+  filters: z.record(z.string(), z.any()).optional(),
   includeCharts: z.boolean().default(true),
 });
 

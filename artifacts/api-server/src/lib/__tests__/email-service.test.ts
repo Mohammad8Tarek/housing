@@ -13,6 +13,9 @@ describe("createTransporter — force IPv4", () => {
   let createSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    // Restore the original createTransport first: re-spying an already-spied
+    // method keeps accumulated call history under Vitest 4.
+    vi.restoreAllMocks();
     lookupMock.mockReset();
     createSpy = vi
       .spyOn(nodemailer, "createTransport")
