@@ -187,9 +187,23 @@ router.get(
     });
 
     // Resilient fallback: Enrich any assignment whose profile data is missing locally
+    // Cache lookups for this request so each profile id is searched across
+    // tenants at most once (avoids one cross-tenant query per row).
+    const profileLookupCache = new Map<
+      number,
+      ReturnType<typeof findProfileAcrossAllProperties>
+    >();
+    const lookupProfileCached = (id: number) => {
+      let hit = profileLookupCache.get(id);
+      if (!hit) {
+        hit = findProfileAcrossAllProperties(id);
+        profileLookupCache.set(id, hit);
+      }
+      return hit;
+    };
     for (const item of result.data) {
       if (!item.profileFirstName && item.profileId) {
-        const found = await findProfileAcrossAllProperties(item.profileId);
+        const found = await lookupProfileCached(item.profileId);
         if (found?.profile) {
           item.profileFirstName = found.profile.firstName;
           item.profileLastName = found.profile.lastName;
@@ -356,9 +370,23 @@ router.get(
     });
 
     // Resilient fallback: Enrich any history record whose profile data is missing locally
+    // Cache lookups for this request so each profile id is searched across
+    // tenants at most once (avoids one cross-tenant query per row).
+    const profileLookupCache = new Map<
+      number,
+      ReturnType<typeof findProfileAcrossAllProperties>
+    >();
+    const lookupProfileCached = (id: number) => {
+      let hit = profileLookupCache.get(id);
+      if (!hit) {
+        hit = findProfileAcrossAllProperties(id);
+        profileLookupCache.set(id, hit);
+      }
+      return hit;
+    };
     for (const item of result.data) {
       if (!item.profileFirstName && item.profileId) {
-        const found = await findProfileAcrossAllProperties(item.profileId);
+        const found = await lookupProfileCached(item.profileId);
         if (found?.profile) {
           item.profileFirstName = found.profile.firstName;
           item.profileLastName = found.profile.lastName;
