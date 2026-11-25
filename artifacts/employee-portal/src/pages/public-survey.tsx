@@ -1,9 +1,10 @@
-// Public, anonymous survey page opened from a shareable link / QR code.
+﻿// Public, anonymous survey page opened from a shareable link / QR code.
 // No login. Pick your department, answer the sectioned questions on a 5-point
 // scale (with an optional "Not applicable"), and submit. Works standalone.
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "wouter";
 import { Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { SkeletonDetail } from "../components/SkeletonLoader";
 
 type Item = {
   id: number;
@@ -229,9 +230,7 @@ export default function PublicSurvey() {
   if (loading)
     return (
       <Shell ar={ar} onToggleLang={toggleLang}>
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="w-7 h-7 animate-spin text-[#2AA8AB]" />
-        </div>
+        <SkeletonDetail />
       </Shell>
     );
 
