@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -22,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DataPagination } from "@/components/DataPagination";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -100,7 +100,6 @@ export function BuildingsTab({ propertyId, buildings, floors, rooms }: Props) {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 500);
 
   const { data: lookupRoomTypes = [] } = useLookupValues(
     propertyId,
@@ -162,7 +161,7 @@ export function BuildingsTab({ propertyId, buildings, floors, rooms }: Props) {
   // Reset page to 1 on search change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch]);
+  }, [search]);
 
   const {
     data: _bDataWrapper,
@@ -173,7 +172,7 @@ export function BuildingsTab({ propertyId, buildings, floors, rooms }: Props) {
       propertyId,
       limit: pageSize,
       page: currentPage,
-      search: debouncedSearch,
+      search,
     } as any,
     { query: { placeholderData: (prev: any) => prev } as any },
   );
@@ -378,15 +377,13 @@ export function BuildingsTab({ propertyId, buildings, floors, rooms }: Props) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="relative w-[200px]">
-            <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={ar ? "ابحث عن مبنى..." : "Search buildings..."}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8"
-            />
-          </div>
+          <DebouncedSearchInput
+            className="w-[200px]"
+            placeholder={ar ? "ابحث عن مبنى..." : "Search buildings..."}
+            value={search}
+            onDebouncedChange={setSearch}
+            delay={500}
+          />
           <p className="text-sm text-muted-foreground">
             {paginationMeta.total} {ar ? "مبنى" : "buildings"}
           </p>

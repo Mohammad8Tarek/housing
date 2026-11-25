@@ -7,7 +7,6 @@ import {
   ArrowLeftRight,
   Clock,
   RefreshCw,
-  Search,
   ShieldCheck,
   User,
   Wrench,
@@ -15,7 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import {
@@ -36,7 +35,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { getExportFileName } from "@/lib/date-utils";
 import { DataPagination } from "@/components/DataPagination";
-import { useDebounce } from "@/hooks/use-debounce";
 
 interface RoomMovesTabProps {
   ar: boolean;
@@ -66,7 +64,6 @@ export function RoomMovesTab({
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const debouncedSearch = useDebounce(searchQuery, 300);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(15);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
@@ -106,7 +103,7 @@ export function RoomMovesTab({
       selectedReason,
       fromDate,
       toDate,
-      debouncedSearch,
+      searchQuery,
       currentPage,
       pageSize,
     ],
@@ -120,8 +117,7 @@ export function RoomMovesTab({
         params.append("reasonCode", selectedReason);
       if (fromDate) params.append("fromDate", fromDate);
       if (toDate) params.append("toDate", toDate);
-      if (debouncedSearch.trim())
-        params.append("search", debouncedSearch.trim());
+      if (searchQuery.trim()) params.append("search", searchQuery.trim());
       params.append("page", String(currentPage));
       params.append("limit", String(pageSize));
 
@@ -154,7 +150,7 @@ export function RoomMovesTab({
       params.append("reasonCode", selectedReason);
     if (fromDate) params.append("fromDate", fromDate);
     if (toDate) params.append("toDate", toDate);
-    if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
+    if (searchQuery.trim()) params.append("search", searchQuery.trim());
     params.append("all", "1");
     try {
       const res = await fetch(`/api/reports/room-moves?${params.toString()}`);
@@ -559,23 +555,20 @@ export function RoomMovesTab({
         </div>
 
         {/* Search */}
-        <div className="relative">
-          <Search className="w-4 h-4 absolute start-3 top-2.5 text-muted-foreground" />
-          <Input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder={
-              ar
-                ? "ابحث برقم الغرفة (قديمة أو جديدة)، اسم الموظف، كود الموظف، أو اسم المشرف المنفذ..."
-                : "Search by room number, resident name, staff ID, or supervisor username..."
-            }
-            className="text-xs ps-9 h-9"
-          />
-        </div>
+        <DebouncedSearchInput
+          value={searchQuery}
+          onDebouncedChange={(v) => {
+            setSearchQuery(v);
+            setCurrentPage(1);
+          }}
+          delay={300}
+          placeholder={
+            ar
+              ? "ابحث برقم الغرفة (قديمة أو جديدة)، اسم الموظف، كود الموظف، أو اسم المشرف المنفذ..."
+              : "Search by room number, resident name, staff ID, or supervisor username..."
+          }
+          inputClassName="text-xs h-9"
+        />
       </div>
 
       {/* ── ROOM MOVES TABLE (PMS HOSPITALITY FORMAT) ── */}

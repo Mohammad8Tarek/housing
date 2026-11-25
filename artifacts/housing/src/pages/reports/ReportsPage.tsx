@@ -5,7 +5,6 @@ import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
 import { DataPagination } from "@/components/DataPagination";
-import { useDebounce } from "@/hooks/use-debounce";
 import { AnalyticsTab } from "./components/AnalyticsTab";
 
 import { useReportData } from "./hooks/useReportData";
@@ -88,13 +87,10 @@ export default function Reports() {
   });
   const { stats, analytics } = serverAnalytics;
 
-  // Rows are rebuilt from the full datasets, so wait until typing pauses.
-  const debouncedSearch = useDebounce(filters.search, 300);
-
   const processor = useReportDataProcessor({
     ar,
     ...filters,
-    search: debouncedSearch,
+    search: filters.search,
     buildings: data.buildings,
     floors: data.floors,
     rooms: data.rooms,
@@ -135,7 +131,7 @@ export default function Reports() {
       filters.filterRoomType,
       filters.filterEmploymentType,
       filters.waterSortMode,
-      debouncedSearch,
+      filters.search,
       filters.dateFrom,
       filters.dateTo,
       data.buildings,
@@ -185,7 +181,7 @@ export default function Reports() {
     propId: data.propId,
     ar,
     filters,
-    search: debouncedSearch,
+    search: filters.search,
     sort,
     page: filters.currentPage,
     pageSize: filters.pageSize,

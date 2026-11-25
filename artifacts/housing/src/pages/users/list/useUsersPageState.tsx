@@ -11,7 +11,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLocation } from "wouter";
-import { useDebounce } from "@/hooks/use-debounce";
 import { getExportFileName } from "@/lib/date-utils";
 import { toast } from "sonner";
 import {
@@ -85,8 +84,6 @@ export function useUsersPageState() {
     setLocation(buildNavHref(`/users/${u.id}?tab=${tab}`));
   };
 
-  const debouncedSearch = useDebounce(searchQuery, 500);
-
   const {
     data: _apiResponseWrapper,
     isLoading,
@@ -95,7 +92,7 @@ export function useUsersPageState() {
   } = useListUsers({
     page: currentPage,
     limit: pageSize as any,
-    search: debouncedSearch,
+    search: searchQuery,
     role: roleFilter,
     status: statusFilter,
   } as any);
@@ -537,7 +534,6 @@ export function useUsersPageState() {
     matrixTargetUserId,
     setMatrixTargetUserId,
     openUserSheet,
-    debouncedSearch,
     _apiResponseWrapper,
     isLoading,
     isError,

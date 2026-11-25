@@ -84,16 +84,13 @@ export default function ReservationsPage() {
 
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  // `search` holds the already-debounced value (the toolbar's
+  // DebouncedSearchInput pushes updates only after typing stops).
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("UPCOMING");
   useEffect(() => {
-    const h = setTimeout(() => setDebouncedSearch(search), 500);
-    return () => clearTimeout(h);
-  }, [search]);
-  useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, statusFilter]);
+  }, [search, statusFilter]);
 
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -300,7 +297,7 @@ export default function ReservationsPage() {
       propertyId: currentPropId,
       page: currentPage,
       limit: pageSize,
-      search: debouncedSearch,
+      search: search,
       status: statusFilter === "all" ? undefined : statusFilter,
     } as any,
     {
@@ -310,7 +307,7 @@ export default function ReservationsPage() {
           currentPropId,
           currentPage,
           pageSize,
-          debouncedSearch,
+          search,
           statusFilter,
         ],
         enabled: !!currentPropId,

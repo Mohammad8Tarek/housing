@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { BulkActionBar } from "@/components/ui/bulk-action-bar";
 import { ColumnChooser } from "@/components/ui/column-chooser";
 import { PermissionGate } from "@/components/ui/permission-gate";
-import { Radio, Search, CalendarPlus, LogOut } from "lucide-react";
+import { Radio, CalendarPlus, LogOut } from "lucide-react";
 import { IH_COLS } from "../utils/constants";
 
 type Props = {
@@ -68,17 +68,15 @@ export function InHouseToolbar({
             onShowAll={columns.showAll}
             onHideAll={columns.hideAll}
           />
-          <div className="relative flex-1 min-w-[180px] sm:w-52 sm:flex-initial">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder={
-                ar ? "بحث بالاسم أو الغرفة..." : "Search by name or room..."
-              }
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-            />
-          </div>
+          <DebouncedSearchInput
+            className="flex-1 min-w-[180px] sm:w-52 sm:flex-initial"
+            value={search}
+            onDebouncedChange={onSearchChange}
+            delay={400}
+            placeholder={
+              ar ? "بحث بالاسم أو الغرفة..." : "Search by name or room..."
+            }
+          />
         </div>
       </div>
 

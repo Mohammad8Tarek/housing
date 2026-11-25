@@ -4,7 +4,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,14 +21,12 @@ import {
   Download,
   Layers,
   Loader2,
-  Search,
   ShieldCheck,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DataPagination } from "@/components/DataPagination";
 import { PermissionGate } from "@/components/ui/permission-gate";
-import { useDebounce } from "@/hooks/use-debounce";
 import { getExportFileName } from "@/lib/date-utils";
 import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ACTION_LABELS, MODULE_LABELS } from "@/lib/permissions";
@@ -90,7 +88,6 @@ function buildQuery(params: Record<string, string | number | undefined>) {
 export function AccessReviewTab({ ar }: { ar: boolean }) {
   const label = useLabels(ar);
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 300);
   const [status, setStatus] = useState("active");
   const [permission, setPermission] = useState("all");
   const [page, setPage] = useState(1);
@@ -99,7 +96,7 @@ export function AccessReviewTab({ ar }: { ar: boolean }) {
   const [exporting, setExporting] = useState(false);
 
   const filters = {
-    search: debouncedSearch.trim(),
+    search: search.trim(),
     status,
     permission,
   };
@@ -212,22 +209,21 @@ export function AccessReviewTab({ ar }: { ar: boolean }) {
 
       {/* Toolbar */}
       <div className="flex flex-col lg:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder={
-              ar
-                ? "بحث بالاسم أو الإيميل أو القسم..."
-                : "Search name, email or department..."
-            }
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              resetPage();
-            }}
-            className="pl-10 rtl:pr-10 rtl:pl-3 h-10"
-          />
-        </div>
+        <DebouncedSearchInput
+          className="flex-1"
+          placeholder={
+            ar
+              ? "بحث بالاسم أو الإيميل أو القسم..."
+              : "Search name, email or department..."
+          }
+          value={search}
+          onDebouncedChange={(v) => {
+            setSearch(v);
+            resetPage();
+          }}
+          delay={300}
+          inputClassName="h-10"
+        />
         <Select
           value={permission}
           onValueChange={(v) => {

@@ -2,10 +2,9 @@ import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
-import { useDebounce } from "@/hooks/use-debounce";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -45,7 +44,6 @@ import { toast } from "sonner";
 import {
   Users,
   UserPlus,
-  Search,
   Wrench,
   Phone,
   MessageCircle,
@@ -92,7 +90,6 @@ export function WorkersTab({
   });
 
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 300);
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
   const [workerTypeFilter, setWorkerTypeFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
@@ -117,7 +114,7 @@ export function WorkersTab({
     queryKey: [
       "/api/workers",
       propertyId,
-      debouncedSearch,
+      search,
       specialtyFilter,
       workerTypeFilter,
       departmentFilter,
@@ -126,8 +123,7 @@ export function WorkersTab({
       const params = new URLSearchParams({
         propertyId: String(propertyId),
       });
-      if (debouncedSearch.trim())
-        params.append("search", debouncedSearch.trim());
+      if (search.trim()) params.append("search", search.trim());
       if (departmentFilter !== "all")
         params.append("department", departmentFilter);
       if (specialtyFilter !== "all")
@@ -256,19 +252,18 @@ export function WorkersTab({
       <div className="bg-card border rounded-xl p-3.5 shadow-xs space-y-3">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Search Input */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 rtl:right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={
-                ar
-                  ? "البحث باسم الفني، الهاتف، التخصص، أو الشركة..."
-                  : "Search worker by name, phone, specialty, contractor..."
-              }
-              className="h-9 text-xs pl-9 rtl:pr-9 rtl:pl-3"
-            />
-          </div>
+          <DebouncedSearchInput
+            className="flex-1 max-w-md"
+            value={search}
+            onDebouncedChange={setSearch}
+            delay={300}
+            placeholder={
+              ar
+                ? "البحث باسم الفني، الهاتف، التخصص، أو الشركة..."
+                : "Search worker by name, phone, specialty, contractor..."
+            }
+            inputClassName="h-9 text-xs"
+          />
 
           {/* Action Buttons & View Mode */}
           <div className="flex items-center gap-2">

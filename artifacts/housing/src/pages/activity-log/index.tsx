@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { DateInput } from "@/components/ui/date-input";
 import { Button } from "@/components/ui/button";
 import {
@@ -283,12 +284,6 @@ export default function ActivityLog() {
     ? keyLogsRaw
     : ((keyLogsRaw as any)?.data as any[]) || [];
 
-  const [debouncedSearch, setDebouncedSearch] = useState(search);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
   const {
     data: logsResponse,
     isLoading,
@@ -298,7 +293,7 @@ export default function ActivityLog() {
       propertyId: activePropertyId,
       page: currentPage,
       limit: pageSize,
-      search: debouncedSearch || undefined,
+      search: search || undefined,
       module: moduleFilter === "all" ? undefined : moduleFilter,
       action: actionFilter === "all" ? undefined : actionFilter,
       actionType: actionTypeFilter === "all" ? undefined : actionTypeFilter,
@@ -633,17 +628,18 @@ export default function ActivityLog() {
       {activeView === "activity" ? (
         <>
           <div className="flex gap-2 flex-wrap items-center">
-            <Input
+            <DebouncedSearchInput
               placeholder={
                 ar
                   ? "بحث بالمستخدم أو الإجراء أو IP..."
                   : "Search by user, action, IP..."
               }
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
+              onDebouncedChange={(v) => {
+                setSearch(v);
                 setCurrentPage(1);
               }}
+              delay={300}
               className="w-56"
             />
             <Select

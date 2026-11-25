@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,7 +14,7 @@ import {
   SelectLabel,
   SelectSeparator,
 } from "@/components/ui/select";
-import { Search, RotateCcw, X, Layers, LayoutList } from "lucide-react";
+import { RotateCcw, Layers, LayoutList } from "lucide-react";
 
 export function ReportFilters({
   ar,
@@ -474,27 +474,18 @@ export function ReportFilters({
     <div className="overflow-hidden rounded-xl border bg-card shadow-xs space-y-3 p-4">
       {/* Top Search & Actions Bar */}
       <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground rtl:left-auto rtl:right-3" />
-          <Input
-            className="pl-9 pr-9 rtl:pr-9 rtl:pl-9 h-10 bg-background"
-            placeholder={
-              ar
-                ? "بحث شامل (بالاسم، كود الموظف، رقم الغرفة، الهوية، الهاتف، المبنى...)"
-                : "Live search across all fields (name, ID, room #, phone, building...)"
-            }
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rtl:right-auto rtl:left-3"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        <DebouncedSearchInput
+          className="flex-1"
+          inputClassName="h-10 bg-background"
+          placeholder={
+            ar
+              ? "بحث شامل (بالاسم، كود الموظف، رقم الغرفة، الهوية، الهاتف، المبنى...)"
+              : "Live search across all fields (name, ID, room #, phone, building...)"
+          }
+          value={search}
+          onDebouncedChange={setSearch}
+          delay={300}
+        />
 
         <div className="flex items-center gap-2 flex-wrap">
           {activeTab === "assignments" && setInHouseViewMode && (

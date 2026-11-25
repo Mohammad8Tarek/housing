@@ -7,7 +7,6 @@ import {
   getListProfilesQueryKey,
 } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
-import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatDate } from "@/lib/date-utils";
@@ -23,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -48,7 +47,6 @@ import {
   Eye,
   Trash2,
   Plus,
-  Search,
   Users,
   AlertCircle,
   FileSpreadsheet,
@@ -124,12 +122,10 @@ export function ProfilesPage() {
     number | null
   >(null);
 
-  const debouncedSearch = useDebounce(search, 300);
-
   // Reset to page 1 when search or status changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterStatus, filterDept]);
+  }, [search, filterStatus, filterDept]);
   const [resettingPasswordId, setResettingPasswordId] = useState<number | null>(
     null,
   );
@@ -144,7 +140,7 @@ export function ProfilesPage() {
     propertyId: activePropertyId ?? undefined,
     page: currentPage,
     limit: pageSize,
-    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    ...(search ? { search } : {}),
     ...(filterStatus !== "ALL" ? { status: filterStatus } : {}),
     ...(filterDept !== "ALL" ? { department: filterDept } : {}),
     ...(sort ? { sortBy: sort.key, sortDir: sort.dir } : {}),
@@ -837,19 +833,17 @@ export function ProfilesPage() {
       <Card>
         <CardContent className="pt-4 pb-3">
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder={
-                  ar
-                    ? "بحث بالاسم أو الكود أو القسم..."
-                    : "Search name, code, department..."
-                }
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
+            <DebouncedSearchInput
+              className="flex-1"
+              value={search}
+              onDebouncedChange={setSearch}
+              delay={300}
+              placeholder={
+                ar
+                  ? "بحث بالاسم أو الكود أو القسم..."
+                  : "Search name, code, department..."
+              }
+            />
             <Select value={filterDept} onValueChange={setFilterDept}>
               <SelectTrigger className="w-full sm:w-44">
                 <SelectValue

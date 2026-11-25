@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
-import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { loadXlsx } from "@/lib/lazy-xlsx";
 import { getExportFileName } from "@/lib/date-utils";
@@ -15,7 +14,6 @@ import {
   Layers,
   BedDouble,
   Users,
-  Search,
   Wrench,
   Loader2,
   Ban,
@@ -23,7 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { DateInput } from "@/components/ui/date-input";
 import { usePermission } from "@/hooks/use-permission";
 import {
@@ -82,7 +80,6 @@ export function HousekeepingTab({
   const [floorFilter, setFloorFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
-  const debouncedSearch = useDebounce(search, 300);
 
   // Loading state for updating rooms
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -222,8 +219,8 @@ export function HousekeepingTab({
       }
 
       // Search filter
-      if (debouncedSearch.trim()) {
-        const q = debouncedSearch.trim().toLowerCase();
+      if (search.trim()) {
+        const q = search.trim().toLowerCase();
         const matchNumber = (r.roomNumber || "").toLowerCase().includes(q);
         const matchType = (r.roomType || "").toLowerCase().includes(q);
         if (!matchNumber && !matchType) return false;
@@ -231,7 +228,7 @@ export function HousekeepingTab({
 
       return true;
     });
-  }, [rooms, statusFilter, buildingFilter, floorFilter, debouncedSearch]);
+  }, [rooms, statusFilter, buildingFilter, floorFilter, search]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -828,15 +825,13 @@ export function HousekeepingTab({
           <label className="text-xs font-medium text-muted-foreground block mb-1.5">
             {ar ? "بحث برقم الغرفة" : "Search Room"}
           </label>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={ar ? "رقم الغرفة أو النوع..." : "Room # or type..."}
-              className="h-9 text-xs pl-8"
-            />
-          </div>
+          <DebouncedSearchInput
+            value={search}
+            onDebouncedChange={setSearch}
+            delay={300}
+            placeholder={ar ? "رقم الغرفة أو النوع..." : "Room # or type..."}
+            inputClassName="h-9 text-xs"
+          />
         </div>
       </div>
 

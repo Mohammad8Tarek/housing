@@ -1,18 +1,17 @@
 import { RoomImportWizard } from "../import/RoomImportWizard";
-import { Search, Plus, FileDown, Trash2, QrCode } from "lucide-react";
+import { Plus, FileDown, Trash2, QrCode } from "lucide-react";
 import { loadXlsx } from "@/lib/lazy-xlsx";
 import { getExportFileName } from "@/lib/date-utils";
 import { useState, useEffect } from "react";
 import { RoomQrModal } from "./RoomQrModal";
 import { RoomQrBatchPrintDialog } from "./RoomQrBatchPrintDialog";
-import { useDebounce } from "@/hooks/use-debounce";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/context/LanguageContext";
 import { useProperty } from "@/context/PropertyContext";
 import { toast } from "sonner";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import {
   Select,
   SelectContent,
@@ -83,7 +82,6 @@ export function RoomsTab({
   const { properties } = useProperty();
 
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 500);
 
   const createRoomMut = useCreateRoom();
   const updateRoomMut = useUpdateRoom();
@@ -102,7 +100,7 @@ export function RoomsTab({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, roomBuildingFilter, roomFloorFilter, roomStatusFilter]);
+  }, [search, roomBuildingFilter, roomFloorFilter, roomStatusFilter]);
 
   const [pageSize, setPageSize] = useState(10);
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(
@@ -133,7 +131,7 @@ export function RoomsTab({
       propertyId,
       limit: pageSize,
       page: currentPage,
-      search: debouncedSearch,
+      search,
       buildingId:
         roomBuildingFilter === "all" ? undefined : Number(roomBuildingFilter),
       floorId: roomFloorFilter === "all" ? undefined : Number(roomFloorFilter),
@@ -572,15 +570,13 @@ export function RoomsTab({
             </SelectContent>
           </Select>
 
-          <div className="relative w-[160px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder={ar ? "بحث..." : "Search..."}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8"
-            />
-          </div>
+          <DebouncedSearchInput
+            className="w-[160px]"
+            placeholder={ar ? "بحث..." : "Search..."}
+            value={search}
+            onDebouncedChange={setSearch}
+            delay={500}
+          />
 
           <p className="text-sm text-muted-foreground">
             {paginationMeta.total} {ar ? "غرفة" : "rooms"}

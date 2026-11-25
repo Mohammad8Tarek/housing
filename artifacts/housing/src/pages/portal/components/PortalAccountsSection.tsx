@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import {
   Select,
   SelectContent,
@@ -23,15 +23,12 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useDebounce } from "@/hooks/use-debounce";
 import { DataPagination } from "@/components/DataPagination";
 import {
   Shield,
   CheckCircle,
   XCircle,
-  Search,
   Filter,
-  X,
   Users,
   KeyRound,
   UserCheck,
@@ -46,7 +43,6 @@ export function PortalAccountsSection() {
 
   // Pagination & Filter States
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 300);
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -68,7 +64,7 @@ export function PortalAccountsSection() {
       activePropertyId,
       currentPage,
       pageSize,
-      debouncedSearch,
+      search,
       statusFilter,
     ],
     queryFn: async () => {
@@ -79,8 +75,8 @@ export function PortalAccountsSection() {
         paginate: "true",
       });
 
-      if (debouncedSearch.trim()) {
-        params.set("search", debouncedSearch.trim());
+      if (search.trim()) {
+        params.set("search", search.trim());
       }
       if (statusFilter && statusFilter !== "all") {
         params.set("status", statusFilter);
@@ -216,28 +212,18 @@ export function PortalAccountsSection() {
 
       {/* Filter Bar: Debounced Search & Status Select */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder={
-              ar
-                ? "بحث بالاسم، رقم الموظف، الوظيفة، القسم..."
-                : "Search by name, profile ID, job title, department..."
-            }
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="ps-9 pe-9 h-9 text-xs"
-          />
-          {search && (
-            <button
-              onClick={() => handleSearchChange("")}
-              className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              title={ar ? "مسح البحث" : "Clear search"}
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+        <DebouncedSearchInput
+          className="flex-1 max-w-sm"
+          placeholder={
+            ar
+              ? "بحث بالاسم، رقم الموظف، الوظيفة، القسم..."
+              : "Search by name, profile ID, job title, department..."
+          }
+          value={search}
+          onDebouncedChange={handleSearchChange}
+          delay={300}
+          inputClassName="h-9 text-xs"
+        />
 
         <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
           <SelectTrigger className="w-full sm:w-52 h-9 text-xs">

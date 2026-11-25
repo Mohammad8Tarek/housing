@@ -11,7 +11,6 @@ import {
 } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { checkPolicyCompliance } from "@/lib/room-recommender";
 import {
@@ -94,10 +93,12 @@ export default function InHouse() {
 
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  // `search` holds the already-debounced value: the toolbar's
+  // DebouncedSearchInput only pushes updates after the user stops typing, so
+  // the page (and its table) re-render once per search rather than per keystroke.
   const [search, setSearch] = useState(
     () => new URLSearchParams(window.location.search).get("search") ?? "",
   );
-  const debouncedSearch = useDebounce(search, 500);
   const [ending, setEnding] = useState<EndingFilter | null>(() => {
     const v = new URLSearchParams(window.location.search).get("ending");
     return v === "overdue" || v === "7" || v === "14" || v === "30" ? v : null;
@@ -105,7 +106,7 @@ export default function InHouse() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch]);
+  }, [search]);
 
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [bulkCheckoutOpen, setBulkCheckoutOpen] = useState(false);
@@ -299,7 +300,7 @@ export default function InHouse() {
       propertyId: numericPropertyId as any,
       page: currentPage,
       limit: pageSize,
-      search: debouncedSearch || undefined,
+      search: search || undefined,
       ...(ending ? { ending } : {}),
     } as any,
     {
@@ -308,7 +309,7 @@ export default function InHouse() {
           propertyId: numericPropertyId as any,
           page: currentPage,
           limit: pageSize,
-          search: debouncedSearch || undefined,
+          search: search || undefined,
           ...(ending ? { ending } : {}),
         } as any),
         enabled: !!numericPropertyId,

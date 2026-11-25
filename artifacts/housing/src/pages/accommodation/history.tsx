@@ -8,7 +8,6 @@ import {
   useGetSettings,
   useListProperties,
 } from "@workspace/api-client-react";
-import { useDebounce } from "@/hooks/use-debounce";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
@@ -24,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { TableSkeleton } from "@/components/ui/page-states";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -47,7 +46,6 @@ import {
 import { formatDate } from "@/lib/date-utils";
 import { DataPagination } from "@/components/DataPagination";
 import {
-  Search,
   Building2,
   BedDouble,
   History,
@@ -131,12 +129,11 @@ export default function HistoryPage() {
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 500);
   const [filterStatus, setFilterStatus] = useState("ALL");
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterStatus]);
+  }, [search, filterStatus]);
 
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const queryClient = useQueryClient();
@@ -157,7 +154,7 @@ export default function HistoryPage() {
       activePropertyId,
       currentPage,
       pageSize,
-      debouncedSearch,
+      search,
       filterStatus,
     ],
     queryFn: async () => {
@@ -165,7 +162,7 @@ export default function HistoryPage() {
       if (activePropertyId) qs.set("propertyId", activePropertyId.toString());
       qs.set("page", currentPage.toString());
       qs.set("limit", pageSize.toString());
-      if (debouncedSearch) qs.set("search", debouncedSearch);
+      if (search) qs.set("search", search);
       if (filterStatus && filterStatus !== "ALL")
         qs.set("status", filterStatus);
       const headers: Record<string, string> = {
@@ -602,7 +599,7 @@ export default function HistoryPage() {
         if (activePropertyId) qs.set("propertyId", activePropertyId.toString());
         qs.set("page", "1");
         qs.set("limit", "2000");
-        if (debouncedSearch) qs.set("search", debouncedSearch);
+        if (search) qs.set("search", search);
         if (filterStatus && filterStatus !== "ALL")
           qs.set("status", filterStatus);
         const headers: Record<string, string> = {
@@ -775,22 +772,20 @@ export default function HistoryPage() {
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap print:hidden">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder={
-              ar
-                ? "بحث بالاسم أو الكود أو الهوية أو الغرفة..."
-                : "Search by name, code, ID or room..."
-            }
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-        </div>
+        <DebouncedSearchInput
+          className="flex-1 min-w-[200px]"
+          placeholder={
+            ar
+              ? "بحث بالاسم أو الكود أو الهوية أو الغرفة..."
+              : "Search by name, code, ID or room..."
+          }
+          value={search}
+          onDebouncedChange={(v) => {
+            setSearch(v);
+            setCurrentPage(1);
+          }}
+          delay={500}
+        />
         <Select
           value={filterStatus}
           onValueChange={(v) => {
@@ -1209,9 +1204,7 @@ export default function HistoryPage() {
                 ? "كل الحالات"
                 : "All Status"
               : formatStatus(filterStatus, ar),
-          ...(debouncedSearch
-            ? { [ar ? "البحث" : "Search"]: debouncedSearch }
-            : {}),
+          ...(search ? { [ar ? "البحث" : "Search"]: search } : {}),
         }}
         kpis={studioKpis}
         availableColumns={studioColumns}

@@ -12,7 +12,6 @@ import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/use-permission";
-import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { TableSkeleton } from "@/components/ui/page-states";
 import { useColumnVisibility } from "@/components/ui/column-chooser";
@@ -202,7 +201,6 @@ export default function Tickets() {
   );
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearch = useDebounce(searchTerm, 400);
 
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -211,7 +209,7 @@ export default function Tickets() {
   useEffect(() => {
     setCurrentPage(1);
   }, [
-    debouncedSearch,
+    searchTerm,
     categoryFilter,
     statusFilter,
     priorityFilter,
@@ -249,7 +247,7 @@ export default function Tickets() {
     setPage(1);
     setCurrentPage(1);
   }, [
-    debouncedSearch,
+    searchTerm,
     statusFilter,
     priorityFilter,
     categoryFilter,
@@ -363,7 +361,7 @@ export default function Tickets() {
   // Filters shared by the list, the kanban and the Excel export.
   const ticketFilters = {
     propertyId: effectivePropertyId,
-    search: debouncedSearch || undefined,
+    search: searchTerm || undefined,
     priority: priorityFilter || undefined,
     category: categoryFilter === "all" ? undefined : categoryFilter,
     assignedTo: effectiveAssignedTo,

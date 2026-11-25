@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import {
   Select,
   SelectContent,
@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ColumnChooser } from "@/components/ui/column-chooser";
-import { Search } from "lucide-react";
+
 import { RES_COLS } from "../utils";
 
 interface ReservationsToolbarProps {
@@ -38,15 +38,13 @@ export function ReservationsToolbar({
 }: ReservationsToolbarProps) {
   return (
     <div className="flex flex-col sm:flex-row gap-3">
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground rtl:left-auto rtl:right-3" />
-        <Input
-          className="pl-9 rtl:pr-9 rtl:pl-3"
-          placeholder={ar ? "بحث..." : "Search..."}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+      <DebouncedSearchInput
+        className="flex-1"
+        placeholder={ar ? "بحث..." : "Search..."}
+        value={search}
+        onDebouncedChange={setSearch}
+        delay={500}
+      />
       <Select value={statusFilter} onValueChange={setStatusFilter}>
         <SelectTrigger className="w-56">
           <SelectValue placeholder={ar ? "حالة الحجز" : "Reservation Status"} />
