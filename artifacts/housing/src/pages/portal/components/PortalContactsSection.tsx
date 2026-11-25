@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { CardSkeleton } from "@/components/ui/page-states";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -141,7 +141,7 @@ export function PortalContactsSection() {
       </div>
 
       {isLoading ? (
-        <Skeleton className="h-40 w-full" />
+        <CardSkeleton count={3} />
       ) : contacts.length === 0 ? (
         <div className="border-2 border-dashed rounded-xl py-16 text-center text-muted-foreground">
           <Globe className="w-10 h-10 mx-auto mb-3 opacity-30" />
