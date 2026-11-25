@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuditLog, useListActivityLogs } from "@workspace/api-client-react";
 import { useProperty } from "@/context/PropertyContext";
@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/ui/page-states";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -877,7 +877,7 @@ export default function ActivityLog() {
           </div>
 
           {isLoading ? (
-            <Skeleton className="h-64 w-full" />
+            <TableSkeleton rows={6} columns={6} />
           ) : (
             <div className="border rounded-lg bg-card overflow-hidden">
               <Table>
@@ -1539,7 +1539,7 @@ export default function ActivityLog() {
           </div>
 
           {keyLogsLoading ? (
-            <Skeleton className="h-64 w-full" />
+            <TableSkeleton rows={6} columns={6} />
           ) : (
             <div className="border rounded-lg bg-card overflow-hidden">
               <Table>
