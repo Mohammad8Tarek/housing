@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect, useMemo } from "react";
+import { SkeletonDetail } from "../components/SkeletonLoader";
 import {
   ArrowLeft,
   Loader2,
@@ -198,10 +199,7 @@ export default function RequestDetails() {
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto py-8">
-        <div className="flex items-center gap-3 mb-6"></div>
-        <div className="bg-card border border-border2 rounded-3xl p-10 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 text-accent2 animate-spin" />
-        </div>
+        <SkeletonDetail />
       </div>
     );
   }
