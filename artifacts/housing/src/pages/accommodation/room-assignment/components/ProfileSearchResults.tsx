@@ -101,6 +101,8 @@ export function ProfileSearchResults({
                   <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-primary font-black flex items-center justify-center flex-shrink-0 border border-primary/25 shadow-2xs group-hover:scale-105 transition-transform overflow-hidden">
                     {emp.photoUrl ? (
                       <img
+                        loading="lazy"
+                        decoding="async"
                         src={emp.photoUrl}
                         alt=""
                         className="w-full h-full object-cover"
