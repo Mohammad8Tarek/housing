@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
@@ -19,6 +20,7 @@ interface DashboardKpiCardProps {
   };
   sparklineData?: number[];
   alert?: boolean;
+  isLoading?: boolean;
 }
 
 export function DashboardKpiCard({
@@ -32,7 +34,23 @@ export function DashboardKpiCard({
   delta,
   sparklineData = [35, 42, 40, 48, 55, 52, 60],
   alert,
+  isLoading,
 }: DashboardKpiCardProps) {
+  if (isLoading) {
+    return (
+      <Card className="h-full flex flex-col justify-between bg-card/75 backdrop-blur-xl border border-border/50 shadow-md relative overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="w-8 h-8 rounded-xl" />
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col justify-end relative z-10 pt-1 space-y-2">
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-3 w-32 max-w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Generate mini SVG sparkline path
   const minVal = Math.min(...sparklineData);
   const maxVal = Math.max(...sparklineData, minVal + 1);
