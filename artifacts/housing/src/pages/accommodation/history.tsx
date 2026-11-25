@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useListProfiles,
@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/ui/page-states";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -820,7 +820,7 @@ export default function HistoryPage() {
       </div>
 
       {isLoading ? (
-        <Skeleton className="h-64 w-full" />
+        <TableSkeleton rows={6} columns={7} />
       ) : (
         <div className="border rounded-lg bg-card overflow-x-auto">
           <Table>
