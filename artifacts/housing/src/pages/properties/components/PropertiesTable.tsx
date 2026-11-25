@@ -126,6 +126,8 @@ export function renderPropertiesTable(s: PropertiesState) {
                       >
                         {(prop as any).logo ? (
                           <img
+                            loading="lazy"
+                            decoding="async"
                             src={(prop as any).logo}
                             alt={prop.name}
                             className="w-8 h-8 rounded-lg object-contain border"
