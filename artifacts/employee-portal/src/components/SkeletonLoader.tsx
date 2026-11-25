@@ -212,6 +212,99 @@ export function SkeletonDocuments() {
   );
 }
 
+export function SkeletonList({ items = 4 }: { items?: number }) {
+  return (
+    <div
+      style={{
+        padding: "16px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+      }}
+    >
+      {Array.from({ length: items }).map((_, i) => (
+        <div
+          key={i}
+          style={{
+            background: "hsl(var(--card))",
+            border: "0.5px solid hsl(var(--border2))",
+            borderRadius: "16px",
+            padding: "16px",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+          }}
+        >
+          <Pulse w={40} h={40} r={20} />
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+            }}
+          >
+            <Pulse w="55%" h={14} r={4} />
+            <Pulse w="35%" h={10} r={4} />
+          </div>
+          <Pulse w={56} h={22} r={11} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonDetail() {
+  return (
+    <div
+      style={{
+        padding: "16px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "16px",
+      }}
+    >
+      <Pulse w={90} h={32} r={10} />
+      <div
+        style={{
+          background: "hsl(var(--card))",
+          border: "0.5px solid hsl(var(--border2))",
+          borderRadius: "24px",
+          padding: "24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <Pulse w={48} h={48} r={24} />
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+            }}
+          >
+            <Pulse w="50%" h={18} r={6} />
+            <Pulse w="35%" h={12} r={4} />
+          </div>
+          <Pulse w={64} h={24} r={12} />
+        </div>
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            style={{ display: "flex", justifyContent: "space-between" }}
+          >
+            <Pulse w="30%" h={12} r={4} />
+            <Pulse w="45%" h={12} r={4} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function SkeletonCard() {
   return (
     <div

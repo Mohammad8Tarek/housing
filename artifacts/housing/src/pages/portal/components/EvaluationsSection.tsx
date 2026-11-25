@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { ShareSurveyDialog } from "./ShareSurveyDialog";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -32,7 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListSkeleton, TableSkeleton } from "@/components/ui/page-states";
 import { Badge } from "@/components/ui/badge";
 
 import {
@@ -312,7 +312,7 @@ export function EvaluationsSection({
           </div>
 
           {isLoading ? (
-            <Skeleton className="h-64 w-full" />
+            <TableSkeleton rows={5} columns={5} />
           ) : (
             <div className="border rounded-lg overflow-hidden bg-card">
               <Table>
@@ -690,7 +690,7 @@ export function EvaluationsSection({
                 </DialogTitle>
               </DialogHeader>
               {responsesLoading ? (
-                <Skeleton className="h-40 w-full" />
+                <ListSkeleton rows={3} />
               ) : responsesData ? (
                 <div className="space-y-4">
                   <div className="flex gap-4 text-sm">

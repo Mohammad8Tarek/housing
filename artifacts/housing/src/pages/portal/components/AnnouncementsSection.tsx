@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PermissionGate } from "@/components/ui/permission-gate";
+import { ListSkeleton } from "@/components/ui/page-states";
 import { formatDate } from "@/lib/date-utils";
 import { toast } from "sonner";
 import {
@@ -362,9 +363,7 @@ export function AnnouncementsSection() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="py-8 text-center">
-              <Loader2 className="w-5 h-5 animate-spin inline text-muted-foreground" />
-            </div>
+            <ListSkeleton rows={3} />
           ) : announcements.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               {ar ? "لا توجد إعلانات بعد." : "No announcements yet."}

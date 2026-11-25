@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useListProfiles,
@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/ui/page-states";
 import { Badge } from "@/components/ui/badge";
 import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { Button } from "@/components/ui/button";
@@ -100,6 +100,8 @@ function ProfileMini({
     <div className="flex items-center gap-2">
       {photoUrl ? (
         <img
+          loading="lazy"
+          decoding="async"
           src={photoUrl}
           alt={initials}
           className="w-8 h-8 rounded-full object-cover border flex-shrink-0"
@@ -815,7 +817,7 @@ export default function HistoryPage() {
       </div>
 
       {isLoading ? (
-        <Skeleton className="h-64 w-full" />
+        <TableSkeleton rows={6} columns={7} />
       ) : (
         <div className="border rounded-lg bg-card overflow-x-auto">
           <Table>

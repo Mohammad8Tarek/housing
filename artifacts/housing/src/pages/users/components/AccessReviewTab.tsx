@@ -1,4 +1,4 @@
-// Access review: what each user can actually do, as the server grants it.
+﻿// Access review: what each user can actually do, as the server grants it.
 // Filter by one permission to answer "who can …?", expand a row to see every
 // action per module, and export the whole matrix to Excel.
 import { Fragment, useMemo, useState } from "react";
@@ -30,6 +30,7 @@ import { PermissionGate } from "@/components/ui/permission-gate";
 import { getExportFileName } from "@/lib/date-utils";
 import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ACTION_LABELS, MODULE_LABELS } from "@/lib/permissions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type ReviewUser = {
   id: number;
@@ -340,13 +341,14 @@ export function AccessReviewTab({ ar }: { ar: boolean }) {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={4} className="py-10 text-center">
-                  <Loader2 className="w-5 h-5 animate-spin inline" />
-                </td>
-              </tr>
-            )}
+            {isLoading &&
+              Array.from({ length: 4 }).map((_, i) => (
+                <tr key={`skeleton-${i}`}>
+                  <td colSpan={4} className="py-3 px-4">
+                    <Skeleton className="h-5 w-full" />
+                  </td>
+                </tr>
+              ))}
             {isError && (
               <tr>
                 <td colSpan={4} className="py-10 text-center">

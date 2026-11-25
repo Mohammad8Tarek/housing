@@ -787,7 +787,7 @@ router.patch(
       const parsed = UpdateRoomBody.safeParse(bodyToParse);
       if (!parsed.success) {
         res.status(400).json({
-          error: parsed.error.errors?.[0]?.message || parsed.error.message,
+          error: parsed.error.issues[0]?.message || parsed.error.message,
         });
         return;
       }

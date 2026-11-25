@@ -1,4 +1,4 @@
-// Late tickets: open maintenance / housekeeping tickets that passed their
+﻿// Late tickets: open maintenance / housekeeping tickets that passed their
 // target time or are about to, with who holds them.
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +12,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlarmClock, ArrowUpRight, CheckCircle2, Loader2 } from "lucide-react";
+import { AlarmClock, ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/context/LanguageContext";
 
 type SlaState = "overdue" | "due_soon" | "on_track";
@@ -127,8 +128,10 @@ export function SlaWatchCard({
       </CardHeader>
       <CardContent className="pt-0">
         {isLoading || !data ? (
-          <div className="py-8 text-center">
-            <Loader2 className="w-5 h-5 animate-spin inline text-muted-foreground" />
+          <div className="py-2 space-y-3">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-3/4" />
           </div>
         ) : data.overdue + data.dueSoon === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">

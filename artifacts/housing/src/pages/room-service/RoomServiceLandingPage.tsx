@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { FormSkeleton } from "@/components/ui/page-states";
 import { toast } from "sonner";
 
 interface RoomInfo {
@@ -386,12 +387,10 @@ export default function RoomServiceLandingPage() {
 
         {/* Loading State */}
         {loading && (
-          <div className="w-full max-w-lg bg-card border rounded-2xl p-8 text-center space-y-4 shadow-sm my-auto">
-            <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto" />
-            <p className="text-sm font-medium text-muted-foreground">
-              {ar ? "جاري قراءة بيانات الغرفة..." : "Loading room details..."}
-            </p>
-          </div>
+          <FormSkeleton
+            fields={4}
+            className="w-full max-w-lg rounded-2xl shadow-sm my-auto"
+          />
         )}
 
         {/* Error State */}

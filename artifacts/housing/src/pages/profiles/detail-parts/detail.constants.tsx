@@ -17,6 +17,8 @@ export function ProfileAvatar({
   if (photoUrl) {
     return (
       <img
+        loading="lazy"
+        decoding="async"
         src={photoUrl}
         alt={initials}
         className={`${dim} rounded-full object-cover border-4 border-background shadow-lg flex-shrink-0`}

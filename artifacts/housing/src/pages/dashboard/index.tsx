@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import {
   useGetDashboardStats,
   useGetOccupancyByBuilding,
@@ -527,6 +527,7 @@ export default function Dashboard() {
               {/* Card 1: Total Profiles */}
               {isWidgetVisible("kpi_profiles") && (
                 <DashboardKpiCard
+                  isLoading={statsLoading}
                   title={ar ? "إجمالي الموظفين" : "Total Profiles"}
                   value={<AnimatedNumber value={totalProfilesCount} />}
                   sub={`${stats?.activeProfiles ?? 0} ${ar ? "نشط" : "active"} · ${Math.max(
@@ -553,6 +554,7 @@ export default function Dashboard() {
               {/* Card 2: Bed Occupancy Rate (Live Calculated) */}
               {isWidgetVisible("kpi_beds") && (
                 <DashboardKpiCard
+                  isLoading={statsLoading}
                   title={ar ? "إشغال الأسرة" : "Bed Occupancy"}
                   value={
                     <AnimatedNumber
@@ -582,6 +584,7 @@ export default function Dashboard() {
               {/* Card 3: Room Occupancy Rate (Live Calculated) */}
               {isWidgetVisible("kpi_rooms") && (
                 <DashboardKpiCard
+                  isLoading={statsLoading}
                   title={ar ? "إشغال الغرف" : "Room Occupancy"}
                   value={
                     <AnimatedNumber
@@ -613,6 +616,7 @@ export default function Dashboard() {
               {/* Card 4: Expected Arrivals */}
               {isWidgetVisible("kpi_arrivals") && (
                 <DashboardKpiCard
+                  isLoading={statsLoading}
                   title={ar ? "المتوقع وصولهم" : "Arrivals"}
                   value={
                     <AnimatedNumber value={stats?.upcomingReservations ?? 0} />
@@ -640,6 +644,7 @@ export default function Dashboard() {
               {/* Card 5: Maintenance & Tickets */}
               {isWidgetVisible("kpi_maintenance") && (
                 <DashboardKpiCard
+                  isLoading={statsLoading}
                   title={ar ? "تذاكر الصيانة" : "Active Tickets"}
                   value={<AnimatedNumber value={stats?.openMaintenance ?? 0} />}
                   sub={`${stats?.overdueMaintenance ?? 0} ${ar ? "قيد المتابعة" : "in progress"}`}

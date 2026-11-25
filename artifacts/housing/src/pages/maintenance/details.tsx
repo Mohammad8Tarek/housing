@@ -25,13 +25,13 @@ import {
   Play,
   Lock,
   Star,
-  Loader2,
   DoorClosed,
   Building2,
   Layers,
   User,
 } from "lucide-react";
 import { usePermission } from "@/hooks/use-permission";
+import { DetailSkeleton } from "@/components/ui/page-states";
 import { differenceInMinutes, differenceInHours } from "date-fns";
 import { formatDateTime } from "@/lib/date-utils";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
@@ -250,14 +250,7 @@ export default function MaintenanceDetails() {
           </Button>
           <div className="text-center text-gray-500 py-16">
             {isSingleLoading ? (
-              <div className="flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="text-sm font-medium">
-                  {ar
-                    ? "جاري تحميل تفاصيل البلاغ..."
-                    : "Loading ticket details..."}
-                </p>
-              </div>
+              <DetailSkeleton className="text-start" />
             ) : (
               <div className="flex flex-col items-center justify-center gap-3">
                 <p className="font-semibold text-rose-600">

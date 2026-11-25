@@ -1,4 +1,4 @@
-import {
+﻿import {
   Table,
   TableBody,
   TableCell,
@@ -7,7 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/ui/page-states";
 import { Users } from "lucide-react";
 import { DataPagination } from "@/components/DataPagination";
 import { InHouseTableRow, type RowActions } from "./InHouseTableRow";
@@ -53,7 +53,7 @@ export function InHouseTable({
   actions,
 }: Props) {
   if (isLoading) {
-    return <Skeleton className="h-64 w-full" />;
+    return <TableSkeleton rows={6} columns={8} />;
   }
 
   return (

@@ -2,7 +2,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useProperty } from "@/context/PropertyContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Brush } from "lucide-react";
-import { PageLoader } from "@/components/ui/loader";
+import { PageSkeleton } from "@/components/ui/page-states";
 import { useListBuildings, useListFloors } from "@workspace/api-client-react";
 import { HousekeepingTab } from "../housing/components/HousekeepingTab";
 import { useAllRows } from "@/lib/use-all-rows";
@@ -62,7 +62,7 @@ export default function HousekeepingPage() {
   }
 
   if (bLoading || fLoading || rLoading) {
-    return <PageLoader />;
+    return <PageSkeleton />;
   }
 
   const buildings = (bData as any)?.data || bData || [];

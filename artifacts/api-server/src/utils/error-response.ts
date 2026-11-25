@@ -29,19 +29,22 @@ export function fieldLabel(field: string, ar: boolean): string {
 }
 
 export function formatZodError(error: ZodError, ar: boolean): string {
-  const first = error.errors[0];
+  const first = error.issues[0];
   if (!first) return ar ? "بيانات غير صالحة" : "Invalid input";
 
   const label = fieldLabel(first.path.join("."), ar);
 
+  // Zod 4 issue shape: invalid_type carries `input`, too_small carries
+  // `origin`, string-format failures are `invalid_format` with `format`,
+  // and enum failures are `invalid_value` with `values`.
   switch (first.code) {
     case "invalid_type":
-      if (first.received === "undefined") {
+      if ((first as any).input === undefined) {
         return ar ? `${label} مطلوب` : `${label} is required`;
       }
       return ar ? `${label} غير صالح` : `Invalid ${label}`;
     case "too_small":
-      if (first.type === "string") {
+      if ((first as any).origin === "string") {
         return ar
           ? `${label} يجب أن يكون ${(first as any).minimum} أحرف على الأقل`
           : `${label} must be at least ${(first as any).minimum} characters`;
@@ -51,12 +54,12 @@ export function formatZodError(error: ZodError, ar: boolean): string {
       return ar
         ? `${label} يجب أن يكون ${(first as any).maximum} أحرف كحد أقصى`
         : `${label} must be at most ${(first as any).maximum} characters`;
-    case "invalid_string":
-      if (first.validation === "email") {
+    case "invalid_format":
+      if ((first as any).format === "email") {
         return ar ? "البريد الإلكتروني غير صالح" : "Invalid email address";
       }
       return ar ? `${label} غير صالح` : `Invalid ${label}`;
-    case "invalid_enum_value":
+    case "invalid_value":
       return ar ? `${label} غير مسموح به` : `Invalid ${label} value`;
     default:
       return first.message || (ar ? `خطأ في ${label}` : `Error in ${label}`);

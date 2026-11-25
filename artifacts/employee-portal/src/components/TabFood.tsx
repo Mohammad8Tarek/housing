@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { SkeletonList } from "./SkeletonLoader";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
 import {
@@ -154,9 +155,7 @@ export default function TabFood() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 text-accent2 animate-spin" />
-        </div>
+        <SkeletonList items={4} />
       ) : tab === "menu" ? (
         <div className="space-y-4">
           {menu.length === 0 ? (
