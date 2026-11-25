@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { PageLoader } from "@/components/ui/loader";
+import { CardSkeleton } from "@/components/ui/page-states";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
 
@@ -1151,9 +1151,7 @@ export function HousingMapReportTab({
 
       {/* Loading State */}
       {isLoading ? (
-        <div className="py-20 flex justify-center">
-          <PageLoader />
-        </div>
+        <CardSkeleton count={6} />
       ) : filteredBuildings.length === 0 ? (
         <Card className="p-12 text-center text-muted-foreground">
           <Building2 className="w-12 h-12 mx-auto mb-3 opacity-20" />
