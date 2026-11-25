@@ -38,4 +38,10 @@ onlyBuiltDependencies:
 
 overrides:
   esbuild: 0.27.3
-  qs: ^6.15.2
+  # Security patches for runtime (api-server / Express 5) transitive deps.
+  # Pinned within the existing major so no breaking API changes.
+  qs: ^6.17.1
+  proxy-addr: ^2.0.8
+  compression: ^1.8.2
+  body-parser: ^2.4.0
+  nodemailer: ^10.6.1
