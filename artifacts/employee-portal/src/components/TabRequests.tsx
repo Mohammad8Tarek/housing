@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+﻿import { useState, useEffect, useCallback, useMemo } from "react";
 import { Loader2, X, Star } from "lucide-react";
+import { SkeletonList } from "./SkeletonLoader";
 import { useLocation } from "wouter";
 import { useTheme } from "../lib/theme";
 import { apiFetch } from "../lib/api";
@@ -682,9 +683,7 @@ export default function TabRequests() {
         )}
 
         {loadingHistory ? (
-          <div className="bg-card border border-border2 rounded-2xl p-10 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-accent2 animate-spin" />
-          </div>
+          <SkeletonList items={3} />
         ) : displayedRequests.length === 0 ? (
           <div className="bg-card border border-border2 rounded-2xl p-10 text-center">
             <div className="w-14 h-14 bg-surface rounded-2xl flex items-center justify-center mx-auto mb-3">
