@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+﻿import { FormSkeleton } from "@/components/ui/page-states";
 import { BroadcastWhatsAppDialog } from "@/components/BroadcastWhatsAppDialog";
 import { useWhatsAppSettingsSectionState } from "./whatsapp/useWhatsAppSettingsSectionState";
 import { renderProviderPicker } from "./whatsapp/ProviderPicker";
@@ -26,16 +26,7 @@ export function WhatsAppSettingsSection(props: WhatsAppSettingsSectionProps) {
   } = s;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-12 text-muted-foreground">
-        <Loader2 className="w-8 h-8 animate-spin mr-2" />
-        <span>
-          {ar
-            ? "جاري تحميل إعدادات الواتساب..."
-            : "Loading WhatsApp settings..."}
-        </span>
-      </div>
-    );
+    return <FormSkeleton fields={4} />;
   }
 
   return (
