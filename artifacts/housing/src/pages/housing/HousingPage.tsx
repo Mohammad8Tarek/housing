@@ -1,4 +1,4 @@
-import { RoomImportWizard } from "./components/import/RoomImportWizard";
+﻿import { RoomImportWizard } from "./components/import/RoomImportWizard";
 import {
   FileSpreadsheet,
   Download,
@@ -508,7 +508,8 @@ export function HousingPage() {
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardKpiCard
           title={ar ? "إجمالي المباني" : "Total Buildings"}
-          value={isLoading ? "—" : buildings.length}
+          isLoading={isLoading}
+          value={buildings.length}
           sub={ar ? "مباني سكنية نشطة" : "Active residential buildings"}
           icon={Building}
           color="text-violet-600 dark:text-violet-400"
@@ -518,7 +519,8 @@ export function HousingPage() {
         />
         <DashboardKpiCard
           title={ar ? "إجمالي الغرف" : "Total Rooms"}
-          value={isLoading ? "—" : totalRooms}
+          isLoading={isLoading}
+          value={totalRooms}
           sub={ar ? `سعة: ${totalBeds} سرير` : `Capacity: ${totalBeds} beds`}
           icon={MapPin}
           color="text-primary"
@@ -528,7 +530,8 @@ export function HousingPage() {
         />
         <DashboardKpiCard
           title={ar ? "إشغال الغرف" : "Room Occupancy"}
-          value={isLoading ? "—" : `${occPct}%`}
+          isLoading={isLoading}
+          value={`${occPct}%`}
           sub={`${occupiedRooms} / ${totalRooms} ${ar ? "غرفة" : "rooms"} · ${occupiedBeds} ${ar ? "سرير" : "beds"}`}
           icon={Users}
           color="text-blue-600 dark:text-blue-400"
@@ -542,7 +545,8 @@ export function HousingPage() {
         />
         <DashboardKpiCard
           title={ar ? "الغرف المتاحة بالكامل" : "Available Rooms"}
-          value={isLoading ? "—" : availableRooms}
+          isLoading={isLoading}
+          value={availableRooms}
           sub={`${freeBeds} ${ar ? "سرير شاغر للتسكين" : "vacant beds ready"}${partiallyOccupiedRooms > 0 ? ` · ${partiallyOccupiedRooms} ${ar ? "غرف بها أسرة" : "partial rooms"}` : ""}`}
           icon={BedDouble}
           color="text-emerald-600 dark:text-emerald-400"
