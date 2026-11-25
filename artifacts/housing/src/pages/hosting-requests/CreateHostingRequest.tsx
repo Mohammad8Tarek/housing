@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { TableSkeleton } from "@/components/ui/page-states";
 import {
   ArrowLeft,
   Loader2,
@@ -567,9 +568,7 @@ export default function CreateHostingRequest() {
             </CardHeader>
             <CardContent className="pt-4">
               {isLoadingHistory ? (
-                <div className="flex justify-center p-6">
-                  <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
-                </div>
+                <TableSkeleton rows={3} columns={5} />
               ) : hostingHistory.length > 0 ? (
                 <div className="rounded-xl border bg-card overflow-hidden">
                   <Table>
