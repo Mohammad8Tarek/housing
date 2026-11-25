@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useLanguage } from "@/context/LanguageContext";
 import {
@@ -9,6 +9,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { BedDouble, CheckCircle2, Sparkles, Wrench } from "lucide-react";
+import { ChartSkeleton } from "@/components/ui/page-states";
 
 interface DonutDataProps {
   roomStatusBreakdown?: {
@@ -74,6 +75,10 @@ export function DashboardAnalyticsDonut({
     { name: ar ? "لا توجد غرف" : "No Rooms", value: 1, color: "#94a3b8" },
   ];
   const chartData = data.length > 0 ? data : fallbackData;
+
+  if (isLoading) {
+    return <ChartSkeleton />;
+  }
 
   return (
     <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden flex flex-col justify-between">
