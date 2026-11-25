@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import {
   Card,
   CardContent,
@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/LanguageContext";
 import { Users, User, ShieldCheck } from "lucide-react";
+import { ChartSkeleton } from "@/components/ui/page-states";
 
 interface GenderDemographicsProps {
   genderDistribution?: {
@@ -22,6 +23,7 @@ interface GenderDemographicsProps {
 export function GenderDemographicsCard({
   genderDistribution,
   totalResidents = 0,
+  isLoading,
 }: GenderDemographicsProps) {
   const { language } = useLanguage();
   const ar = language === "ar";
@@ -32,6 +34,10 @@ export function GenderDemographicsCard({
 
   const malePercent = Math.round((male / total) * 100);
   const femalePercent = Math.round((female / total) * 100);
+
+  if (isLoading) {
+    return <ChartSkeleton />;
+  }
 
   return (
     <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden flex flex-col justify-between">
