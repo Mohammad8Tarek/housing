@@ -3,7 +3,6 @@ import { useState, useMemo } from "react";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { usePermission } from "@/hooks/use-permission";
-import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useGetSettings } from "@workspace/api-client-react";
@@ -72,7 +71,6 @@ export function useReportConfigurationPageState() {
 
   // ─── 2. State: Filters & Search ───────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearch = useDebounce(searchTerm, 300);
 
   const [filterBuilding, setFilterBuilding] = useState<string>("all");
   const [filterFloor, setFilterFloor] = useState<string>("all");
@@ -161,7 +159,7 @@ export function useReportConfigurationPageState() {
       status: filterStatus,
       dateFrom,
       dateTo,
-      search: debouncedSearch,
+      search: searchTerm,
     }),
     [
       filterBuilding,
@@ -172,7 +170,7 @@ export function useReportConfigurationPageState() {
       filterStatus,
       dateFrom,
       dateTo,
-      debouncedSearch,
+      searchTerm,
     ],
   );
 
@@ -709,7 +707,6 @@ export function useReportConfigurationPageState() {
     handleSourceChange,
     searchTerm,
     setSearchTerm,
-    debouncedSearch,
     filterBuilding,
     setFilterBuilding,
     filterFloor,

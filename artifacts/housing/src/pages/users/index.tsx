@@ -1,4 +1,4 @@
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ShieldCheck, Search, Users, X, ListChecks } from "lucide-react";
+import { ShieldCheck, Users, ListChecks } from "lucide-react";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { ColumnChooser } from "@/components/ui/column-chooser";
 import {
@@ -181,29 +181,17 @@ export default function UsersPage() {
 
           {/* ── Search & Filter Bar ── */}
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder={ar ? "بحث بالاسم..." : "Search users by name..."}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="pl-10 rtl:pr-10 rtl:pl-3 h-10"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => {
-                    setSearchQuery("");
-                    setCurrentPage(1);
-                  }}
-                  className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground ${ar ? "left-3" : "right-3"}`}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+            <DebouncedSearchInput
+              className="flex-1"
+              placeholder={ar ? "بحث بالاسم..." : "Search users by name..."}
+              value={searchQuery}
+              onDebouncedChange={(v) => {
+                setSearchQuery(v);
+                setCurrentPage(1);
+              }}
+              delay={500}
+              inputClassName="h-10"
+            />
             <Select
               value={statusFilter}
               onValueChange={(v) => {

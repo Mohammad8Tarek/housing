@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
-import { Search, Building2, BedDouble, Layers } from "lucide-react";
+import { Building2, BedDouble, Layers } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataPagination } from "@/components/DataPagination";
 import {
@@ -35,7 +34,6 @@ export function AvailabilityTab({
   const ar = language === "ar";
 
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 500);
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -49,7 +47,7 @@ export function AvailabilityTab({
       propertyId,
       limit: pageSize,
       page: currentPage,
-      search: debouncedSearch,
+      search,
       status: statusFilter === "all" ? undefined : statusFilter,
     } as any,
     { query: { keepPreviousData: true } as any },
@@ -62,15 +60,13 @@ export function AvailabilityTab({
   return (
     <div className="space-y-4">
       <div className="flex gap-3 items-center flex-wrap">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder={ar ? "ابحث عن غرفة..." : "Search room..."}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8"
-          />
-        </div>
+        <DebouncedSearchInput
+          className="flex-1 max-w-xs"
+          placeholder={ar ? "ابحث عن غرفة..." : "Search room..."}
+          value={search}
+          onDebouncedChange={setSearch}
+          delay={500}
+        />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder={ar ? "كل الحالات" : "All Statuses"} />

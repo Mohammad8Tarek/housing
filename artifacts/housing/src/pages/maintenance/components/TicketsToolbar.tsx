@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { ColumnChooser } from "@/components/ui/column-chooser";
-import { Search, X, List, LayoutGrid, FileText } from "lucide-react";
+import { List, LayoutGrid, FileText } from "lucide-react";
 
 interface TicketsToolbarProps {
   ar: boolean;
@@ -36,26 +36,16 @@ export function TicketsToolbar({
     <div className="px-4 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3 bg-card p-2.5 rounded-xl border shadow-xs">
         {/* Search Box */}
-        <div className="relative w-full sm:w-72">
-          <Search className="w-3.5 h-3.5 absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <Input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={
-              ar ? "بحث برقم الغرفة، الوصف، الفني..." : "Search tickets..."
-            }
-            className="h-8.5 text-xs ps-8 pe-7 bg-background"
-          />
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={() => setSearchTerm("")}
-              className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          )}
-        </div>
+        <DebouncedSearchInput
+          className="w-full sm:w-72"
+          value={searchTerm}
+          onDebouncedChange={setSearchTerm}
+          delay={400}
+          placeholder={
+            ar ? "بحث برقم الغرفة، الوصف، الفني..." : "Search tickets..."
+          }
+          inputClassName="h-8.5 text-xs bg-background"
+        />
 
         <div className="flex items-center gap-2">
           {/* View Mode Toggle */}

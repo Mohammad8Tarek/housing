@@ -1,6 +1,5 @@
 // Multi-criteria filters and search.
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { DebouncedSearchInput } from "@/components/ui/debounced-search-input";
 import { DateInput } from "@/components/ui/date-input";
 import {
   Select,
@@ -56,28 +55,18 @@ export function renderFiltersPanel(s: ReportConfigurationPageState) {
           <Label className="text-xs font-medium">
             {ar ? "بحث سريع بالاسم / الرقم / الغرفة" : "Search Name, ID, Room"}
           </Label>
-          <div className="relative">
-            <Search className="w-4 h-4 absolute start-2.5 top-2.5 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1);
-              }}
-              placeholder={
-                ar ? "ابحث بالاسم، الرقم الوظيفي، الغرفة..." : "Search..."
-              }
-              className="ps-8 text-xs h-9"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute end-2.5 top-2.5 text-muted-foreground hover:text-foreground text-xs"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+          <DebouncedSearchInput
+            value={searchTerm}
+            onDebouncedChange={(v) => {
+              setSearchTerm(v);
+              setPage(1);
+            }}
+            delay={300}
+            placeholder={
+              ar ? "ابحث بالاسم، الرقم الوظيفي، الغرفة..." : "Search..."
+            }
+            inputClassName="text-xs h-9"
+          />
         </div>
 
         {/* Building Filter */}
