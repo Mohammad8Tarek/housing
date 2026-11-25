@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+﻿import React, { useState, useMemo } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { ChartSkeleton } from "@/components/ui/page-states";
 
 interface DepartmentItem {
   name: string;
@@ -78,6 +79,10 @@ export function DepartmentBarList({
 
   const maxCount = Math.max(1, ...departments.map((d) => d.count));
   const topDept = departments.length > 0 ? departments[0] : null;
+
+  if (isLoading) {
+    return <ChartSkeleton />;
+  }
 
   return (
     <Card className="bg-card/75 backdrop-blur-xl border-border/50 shadow-xl overflow-hidden flex flex-col justify-between">
