@@ -1,4 +1,4 @@
-import type { Property } from "@workspace/api-client-react";
+﻿import type { Property } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,11 +9,11 @@ import {
   Phone,
   Home,
   UserX,
-  Loader2,
   ArrowRight,
   ShieldCheck,
 } from "lucide-react";
 import type { ProfileResult } from "../../shared/profile-search";
+import { ListSkeleton } from "@/components/ui/page-states";
 
 /** ── مصفوفة نتائج البحث الذكية (Profile Selection Matrix) ── */
 export function ProfileSearchResults({
@@ -63,16 +63,7 @@ export function ProfileSearchResults({
         </Badge>
       </div>
 
-      {isSearching && (
-        <div className="p-8 text-center text-sm text-muted-foreground flex items-center justify-center gap-2.5">
-          <Loader2 className="w-5 h-5 animate-spin text-primary" />
-          <span>
-            {ar
-              ? "جاري البحث عبر قواعد بيانات الفنادق..."
-              : "Searching across hotel databases..."}
-          </span>
-        </div>
-      )}
+      {isSearching && <ListSkeleton rows={3} />}
 
       {!isSearching && empResults.length === 0 && (
         <div className="p-8 text-center text-sm text-muted-foreground">
