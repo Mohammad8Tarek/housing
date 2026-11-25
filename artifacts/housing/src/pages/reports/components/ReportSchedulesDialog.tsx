@@ -1,4 +1,4 @@
-// Scheduled report emails: schedule the open report (with its current
+﻿// Scheduled report emails: schedule the open report (with its current
 // filters) to be emailed daily / weekly / monthly, and manage the property's
 // schedules. A schedule runs with its creator's permissions.
 import { useMemo, useState } from "react";
@@ -31,6 +31,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/use-permission";
 import { formatDate } from "@/lib/date-utils";
 import { FILTER_KEYS, SERVER_ROW_TABS } from "../hooks/useServerReportRows";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Schedule = {
   id: number;
@@ -414,8 +415,10 @@ export function ReportSchedulesDialog({
               : "All scheduled reports for this property"}
           </div>
           {isLoading ? (
-            <div className="py-4 text-center">
-              <Loader2 className="w-5 h-5 animate-spin inline" />
+            <div className="py-2 space-y-3">
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
             </div>
           ) : schedules.length === 0 ? (
             <p className="text-sm text-muted-foreground py-3">

@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { Loader2 } from "lucide-react";
+import { SkeletonList } from "./SkeletonLoader";
 import { useTheme } from "../lib/theme";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { apiFetch } from "../lib/api";
@@ -249,11 +250,7 @@ export default function TabNotifications({ onChangeTab }: Props) {
   );
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 text-accent2 animate-spin" />
-      </div>
-    );
+    return <SkeletonList items={5} />;
   }
 
   const chip = (id: string, label: string, count?: number) => (

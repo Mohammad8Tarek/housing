@@ -1,4 +1,4 @@
-// User detail > Audit trail tab.
+﻿// User detail > Audit trail tab.
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,6 +22,7 @@ import { SessionsList } from "@/components/SessionsList";
 import { UserTwoFactorCard } from "./UserTwoFactorCard";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { MonitorSmartphone } from "lucide-react";
+import { TableSkeleton } from "@/components/ui/page-states";
 
 export function renderAuditTab(s: UserDetailPageState) {
   const { ar, isAuditLoading, refetchAudit, auditLogs, userId } = s;
@@ -81,9 +82,7 @@ export function renderAuditTab(s: UserDetailPageState) {
         </CardHeader>
         <CardContent>
           {isAuditLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-6 h-6 animate-spin text-[#C9A24D]" />
-            </div>
+            <TableSkeleton rows={4} columns={4} className="py-2" />
           ) : auditLogs.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground space-y-2">
               <Activity className="w-8 h-8 mx-auto opacity-30" />

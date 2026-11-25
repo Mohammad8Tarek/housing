@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { formatDate } from "@/lib/date-utils";
 import { useProperty } from "@/context/PropertyContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -30,7 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { CardSkeleton, ListSkeleton } from "@/components/ui/page-states";
 import { Badge } from "@/components/ui/badge";
 
 import {
@@ -276,7 +276,7 @@ export function ActivitiesSection({
       </div>
 
       {isLoading ? (
-        <Skeleton className="h-64 w-full" />
+        <CardSkeleton count={6} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {activities?.map((act) => (
@@ -854,7 +854,7 @@ export function ActivitiesSection({
             </DialogTitle>
           </DialogHeader>
           {regLoading ? (
-            <Skeleton className="h-40 w-full" />
+            <ListSkeleton rows={3} />
           ) : (
             <div>
               {registrations && registrations.length > 0 ? (

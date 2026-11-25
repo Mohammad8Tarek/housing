@@ -23,6 +23,7 @@ import {
   History,
   User,
 } from "lucide-react";
+import { DetailSkeleton } from "@/components/ui/page-states";
 import { cn } from "@/lib/utils";
 import { useUserDetailPageState } from "./detail/useUserDetailPageState";
 import { renderDetailHeader } from "./detail/DetailHeader";
@@ -55,16 +56,7 @@ export default function UserDetailPage() {
   } = s;
 
   if (isUserLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <RefreshCw className="w-8 h-8 animate-spin text-[#C9A24D]" />
-        <p className="text-sm font-medium text-muted-foreground">
-          {ar
-            ? "جاري تحميل ملف وحوكمة المستخدم..."
-            : "Loading user governance profile..."}
-        </p>
-      </div>
-    );
+    return <DetailSkeleton />;
   }
 
   if (isUserError || !user) {

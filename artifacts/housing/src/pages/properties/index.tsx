@@ -1,4 +1,4 @@
-import { RoomImportWizard } from "@/pages/housing/components/import/RoomImportWizard";
+﻿import { RoomImportWizard } from "@/pages/housing/components/import/RoomImportWizard";
 import { FileSpreadsheet } from "lucide-react";
 import { PermissionGate } from "@/components/ui/permission-gate";
 import { AnimatedConfirmModal } from "@/components/shared/AnimatedConfirmModal";
@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/ui/page-states";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Building2, Globe, Palette, Shield, Users } from "lucide-react";
 import { ColumnChooser } from "@/components/ui/column-chooser";
@@ -90,7 +90,7 @@ export default function Properties() {
 
       {/* Table */}
       {isLoading ? (
-        <Skeleton className="h-64 w-full" />
+        <TableSkeleton rows={5} columns={6} />
       ) : (
         renderPropertiesTable(s)
       )}

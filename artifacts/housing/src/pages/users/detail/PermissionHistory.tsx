@@ -1,4 +1,4 @@
-// User detail > Access & permissions > change history.
+﻿// User detail > Access & permissions > change history.
 // Who changed this user's roles or permissions and when, with before/after.
 import { useQuery } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   History,
-  Loader2,
   Plus,
   Minus,
   ArrowRight,
@@ -15,6 +14,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { formatDate } from "@/lib/date-utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type HistoryEntry = {
   id: number;
@@ -64,8 +64,10 @@ export function PermissionHistory({
       </CardHeader>
       <CardContent className="p-4 pt-1">
         {isLoading ? (
-          <div className="py-6 text-center text-muted-foreground">
-            <Loader2 className="w-5 h-5 animate-spin inline" />
+          <div className="py-2 space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-2/3" />
           </div>
         ) : isError ? (
           <p className="text-sm text-muted-foreground py-4">

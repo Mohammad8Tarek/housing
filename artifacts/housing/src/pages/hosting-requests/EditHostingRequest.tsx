@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useLocation, useParams } from "wouter";
-import { PageLoader } from "@/components/ui/loader";
+import { FormSkeleton } from "@/components/ui/page-states";
 import { ArrowLeft, Loader2, Upload, Paperclip } from "lucide-react";
 import { useProperty } from "@/context/PropertyContext";
 
@@ -208,7 +208,7 @@ export default function EditHostingRequest() {
     updateMutation.mutate();
   };
 
-  if (isLoadingRequest) return <PageLoader />;
+  if (isLoadingRequest) return <FormSkeleton fields={8} className="m-4" />;
 
   return (
     <div className="space-y-6 p-1">

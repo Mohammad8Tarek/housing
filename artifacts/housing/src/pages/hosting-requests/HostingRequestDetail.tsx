@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/ui/page-states";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { toast } from "sonner";
 import { AnimatedConfirmModal } from "@/components/shared/AnimatedConfirmModal";
@@ -879,9 +880,7 @@ export default function HostingRequestDetail() {
             </CardHeader>
             <CardContent>
               {isLoadingHistory ? (
-                <div className="flex justify-center p-4">
-                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                </div>
+                <TableSkeleton rows={3} columns={5} />
               ) : hostingHistory && hostingHistory.length > 0 ? (
                 <div className="rounded-md border bg-card overflow-hidden">
                   <Table>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import {
   Building2,
   BedDouble,
@@ -39,6 +39,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AnalyticsTabProps {
   ar: boolean;
@@ -231,7 +232,11 @@ export function AnalyticsTab({
               <p
                 className={`text-xl font-extrabold tracking-tight ${kpi.color}`}
               >
-                {isLoading ? "—" : kpi.value}
+                {isLoading ? (
+                  <Skeleton className="h-7 w-12 mx-auto" />
+                ) : (
+                  kpi.value
+                )}
               </p>
             </div>
           );

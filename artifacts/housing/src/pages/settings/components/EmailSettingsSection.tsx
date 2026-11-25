@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
@@ -30,6 +30,7 @@ import { PermissionGate } from "@/components/ui/permission-gate";
 import { MaintenanceReportCard } from "./MaintenanceReportCard";
 import { MaintenanceEscalationCard } from "./MaintenanceEscalationCard";
 import { HousingReportCard } from "./HousingReportCard";
+import { FormSkeleton } from "@/components/ui/page-states";
 
 interface EmailSettingsSectionProps {
   propertyId: number | null;
@@ -214,14 +215,7 @@ export function EmailSettingsSection({
   };
 
   if (isLoading) {
-    return (
-      <div className="p-8 flex items-center justify-center gap-2 text-muted-foreground">
-        <RefreshCw className="w-5 h-5 animate-spin" />
-        <span>
-          {ar ? "جاري تحميل إعدادات البريد..." : "Loading email settings..."}
-        </span>
-      </div>
-    );
+    return <FormSkeleton fields={6} />;
   }
 
   return (

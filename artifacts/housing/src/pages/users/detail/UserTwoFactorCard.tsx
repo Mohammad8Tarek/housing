@@ -1,4 +1,4 @@
-// Admin view of a user's two-step verification: on/off, and a reset for a
+﻿// Admin view of a user's two-step verification: on/off, and a reset for a
 // user who lost their phone (they set it up again after signing in).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
@@ -11,9 +11,10 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/date-utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function UserTwoFactorCard({
   ar,
@@ -61,7 +62,7 @@ export function UserTwoFactorCard({
       </CardHeader>
       <CardContent className="flex items-center justify-between gap-3 flex-wrap">
         {isLoading || !data ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
+          <Skeleton className="h-6 w-28 rounded-full" />
         ) : data.enabled ? (
           <>
             <div className="text-sm flex items-center gap-2">
