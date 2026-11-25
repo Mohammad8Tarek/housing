@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
+import { SkeletonList } from "./SkeletonLoader";
 import {
   Calendar,
   Clock,
@@ -180,11 +181,7 @@ export default function TabActivities() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 text-accent2 animate-spin" />
-      </div>
-    );
+    return <SkeletonList items={4} />;
   }
 
   return (
