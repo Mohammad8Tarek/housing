@@ -172,6 +172,193 @@ export function CardSkeleton({ count = 3, className }: CardSkeletonProps) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// PageHeaderSkeleton — page title + subtitle + action buttons
+// ─────────────────────────────────────────────────────────────
+export function PageHeaderSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4",
+        className,
+      )}
+    >
+      <div className="space-y-2">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="h-4 w-72 max-w-full" />
+      </div>
+      <div className="flex gap-2">
+        <Skeleton className="h-9 w-24" />
+        <Skeleton className="h-9 w-24" />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// StatsGridSkeleton — KPI stat cards row
+// ─────────────────────────────────────────────────────────────
+interface StatsGridSkeletonProps {
+  count?: number;
+  className?: string;
+}
+
+export function StatsGridSkeleton({
+  count = 4,
+  className,
+}: StatsGridSkeletonProps) {
+  return (
+    <div className={cn("grid gap-4 grid-cols-2 lg:grid-cols-4", className)}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="rounded-xl border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="w-9 h-9 rounded-lg" />
+          </div>
+          <Skeleton className="h-7 w-16" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ListSkeleton — list rows with a leading icon/avatar
+// ─────────────────────────────────────────────────────────────
+interface ListSkeletonProps {
+  rows?: number;
+  className?: string;
+}
+
+export function ListSkeleton({ rows = 4, className }: ListSkeletonProps) {
+  return (
+    <div className={cn("space-y-3", className)}>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-3 rounded-xl border bg-card p-4"
+        >
+          <Skeleton className="w-10 h-10 rounded-full flex-none" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-3 w-1/3" />
+          </div>
+          <Skeleton className="h-6 w-16 rounded-full flex-none" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// FormSkeleton — labeled form fields inside a card
+// ─────────────────────────────────────────────────────────────
+interface FormSkeletonProps {
+  fields?: number;
+  className?: string;
+}
+
+export function FormSkeleton({ fields = 6, className }: FormSkeletonProps) {
+  return (
+    <div className={cn("rounded-xl border bg-card p-6 space-y-6", className)}>
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-44" />
+        <Skeleton className="h-3 w-64 max-w-full" />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {Array.from({ length: fields }).map((_, i) => (
+          <div key={i} className="space-y-2">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-end gap-2">
+        <Skeleton className="h-10 w-24" />
+        <Skeleton className="h-10 w-32" />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// DetailSkeleton — back button + identity header + content cards
+// ─────────────────────────────────────────────────────────────
+export function DetailSkeleton({ className }: { className?: string }) {
+  return (
+    <div className={cn("space-y-6", className)}>
+      <Skeleton className="h-8 w-24" />
+      <div className="rounded-xl border bg-card p-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="w-16 h-16 rounded-full flex-none" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-6 w-56 max-w-full" />
+            <Skeleton className="h-4 w-40" />
+            <div className="flex gap-2 pt-1">
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="rounded-xl border bg-card p-5 space-y-3">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+        <div className="rounded-xl border bg-card p-5 space-y-3">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/6" />
+          <Skeleton className="h-4 w-3/6" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ChartSkeleton — chart card with a donut placeholder + legend
+// ─────────────────────────────────────────────────────────────
+export function ChartSkeleton({ className }: { className?: string }) {
+  return (
+    <div className={cn("rounded-xl border bg-card p-5 space-y-4", className)}>
+      <div className="space-y-2">
+        <Skeleton className="h-5 w-40" />
+        <Skeleton className="h-3 w-56 max-w-full" />
+      </div>
+      <div className="flex justify-center py-2">
+        <Skeleton className="w-40 h-40 rounded-full" />
+      </div>
+      <div className="space-y-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Skeleton className="w-3 h-3 rounded-full flex-none" />
+            <Skeleton className="h-3 flex-1" />
+            <Skeleton className="h-3 w-10 flex-none" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// PageSkeleton — full page: header + KPI stats + table
+// ─────────────────────────────────────────────────────────────
+export function PageSkeleton({ className }: { className?: string }) {
+  return (
+    <div className={cn("space-y-6", className)}>
+      <PageHeaderSkeleton />
+      <StatsGridSkeleton />
+      <TableSkeleton rows={6} columns={5} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // InlineLoader — small spinner for inline loading
 // ─────────────────────────────────────────────────────────────
 export function InlineLoader({ message }: { message?: string }) {
