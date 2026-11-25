@@ -21,8 +21,8 @@ and on demand (Actions tab -> DB Backup -> Run workflow). Each run:
 
 The workflow needs one repository secret (Settings -> Secrets and variables -> Actions):
 
-| Name | Value |
-| --- | --- |
+| Name                  | Value                                                                          |
+| --------------------- | ------------------------------------------------------------------------------ |
 | `BACKUP_DATABASE_URL` | Railway Postgres connection string (`postgresql://user:pass@host:port/dbname`) |
 
 Without it the dump step fails fast. Rotate this secret whenever the DB password
