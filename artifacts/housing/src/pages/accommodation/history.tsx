@@ -102,6 +102,8 @@ function ProfileMini({
     <div className="flex items-center gap-2">
       {photoUrl ? (
         <img
+          loading="lazy"
+          decoding="async"
           src={photoUrl}
           alt={initials}
           className="w-8 h-8 rounded-full object-cover border flex-shrink-0"
