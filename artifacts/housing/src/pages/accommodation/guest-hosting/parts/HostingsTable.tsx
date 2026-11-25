@@ -123,6 +123,8 @@ export function renderHostingsTable(s: GuestHostingState) {
                       >
                         {emp?.photoUrl ? (
                           <img
+                            loading="lazy"
+                            decoding="async"
                             src={emp.photoUrl}
                             alt=""
                             className="h-8 w-8 rounded-full border object-cover"

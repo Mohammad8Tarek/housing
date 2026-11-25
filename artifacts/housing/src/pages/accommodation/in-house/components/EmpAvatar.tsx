@@ -14,6 +14,8 @@ export function EmpAvatar({
     `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "—";
   return photo ? (
     <img
+      loading="lazy"
+      decoding="async"
       src={photo}
       alt={initials}
       className="w-9 h-9 rounded-full object-cover border border-border shadow-xs flex-shrink-0"
