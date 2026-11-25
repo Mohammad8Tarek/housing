@@ -54,13 +54,13 @@ jobs:
             scripts/db/backup.sh --url "$DATABASE_URL" --out staff-housing.dump
           fi
 
-      - name: Verify dump (full backup: live restore test)
+      - name: "Verify dump (full backup - live restore test)"
         if: ${{ github.event_name == 'schedule' || inputs.property_id == '' }}
         run: |
           pg_restore --dbname "$RESTORE_URL" --no-owner --no-privileges --exit-on-error staff-housing.dump
           psql "$RESTORE_URL" -Atc "SELECT count(*) || ' tables restored' FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog','information_schema')"
 
-      - name: Verify dump (property backup: archive integrity)
+      - name: "Verify dump (property backup - archive integrity)"
         if: ${{ github.event_name != 'schedule' && inputs.property_id != '' }}
         run: |
           # Tenant tables have FKs into public.*, so a single-schema dump cannot
