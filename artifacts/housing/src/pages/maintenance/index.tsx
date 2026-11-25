@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import {
   useListMaintenance,
   useCreateMaintenance,
@@ -14,7 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePermission } from "@/hooks/use-permission";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/ui/page-states";
 import { useColumnVisibility } from "@/components/ui/column-chooser";
 import TicketDetailModal from "@/components/ui/ticket-detail-modal";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -1023,7 +1023,7 @@ export default function Tickets() {
 
       {/* Main Content Area: Kanban Board vs Data Table */}
       {isLoading ? (
-        <Skeleton className="h-64 w-full mx-4 sm:mx-6" />
+        <TableSkeleton rows={6} columns={7} className="mx-4 sm:mx-6" />
       ) : viewMode === "kanban" ? (
         <div className="px-4 sm:px-6">
           <TicketsKanbanBoard
