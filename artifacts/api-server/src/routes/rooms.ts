@@ -21,7 +21,7 @@ import {
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
 import { logger } from "../lib/logger.js";
-import { getTenantId, su } from "../lib/request-utils.js";
+import { getTenantId, su, assertPropertyAccess } from "../lib/request-utils.js";
 import {
   requirePermission,
   requireAnyPermission,
@@ -731,6 +731,7 @@ router.get(
         res.status(404).json({ error: "Room not found" });
         return;
       }
+      if (!assertPropertyAccess(req, res, propertyId)) return;
       res.json({ ...room, genderPolicy: room.gender, propertyId });
     } catch (err: any) {
       logger.error({ err }, "[rooms/get] Error");

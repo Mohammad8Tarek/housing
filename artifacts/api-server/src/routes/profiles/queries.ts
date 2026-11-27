@@ -20,7 +20,7 @@ import {
   requirePermission,
   hasPermission,
 } from "../../middlewares/permissions.js";
-import { getTenantId } from "../../lib/request-utils.js";
+import { getTenantId, assertPropertyAccess } from "../../lib/request-utils.js";
 import {
   buildProfileSearchConditions,
   buildAssignmentSearchConditions,
@@ -621,6 +621,7 @@ router.get(
       return;
     }
     propertyId = resolved.propertyId;
+    if (!assertPropertyAccess(req, res, propertyId)) return;
 
     const row = await withTenant(propertyId, async (tenantDb) => {
       const [r] = await tenantDb
