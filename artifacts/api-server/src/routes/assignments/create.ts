@@ -11,6 +11,7 @@ import {
   GetAssignmentResponse,
 } from "@workspace/api-zod";
 import { logActivity } from "../../lib/activity-logger.js";
+import { logger } from "../../lib/logger.js";
 import {
   requirePermission,
   hasPermission,
@@ -102,7 +103,7 @@ router.post(
       );
       if (foundSource && foundSource.propertyId !== propertyId) {
         effectiveSourcePropId = foundSource.propertyId;
-        console.log(
+        logger.info(
           `[assignments] Auto-discovered profile #${parsed.data.profileId} in source property #${foundSource.propertyId} (${foundSource.profile.firstName} ${foundSource.profile.lastName})`,
         );
       }
@@ -129,7 +130,10 @@ router.post(
           closeSourceAfterCreate = { targetName };
         }
       } catch (syncErr: any) {
-        console.error("[assignments] Cross-property sync failed:", syncErr);
+        logger.error(
+          { err: syncErr },
+          "[assignments] Cross-property sync failed",
+        );
         res.status(500).json({
           error: `فشل مزامنة الملف الشخصي عبر الفنادق: ${syncErr.message}`,
         });
@@ -153,7 +157,7 @@ router.post(
           .set({ phone: inputPhone })
           .where(eq(profilesTable.id, resolvedProfileId));
       }).catch((e) =>
-        console.warn("[assignments] could not update phone:", e?.message),
+        logger.warn({ err: e }, "[assignments] could not update phone"),
       );
     }
 
@@ -640,9 +644,9 @@ router.post(
         closeSourceAfterCreate.targetName,
         archiveSourceProfile,
       ).catch((e) =>
-        console.error(
-          "[assignments] closing the source stay after transfer failed:",
-          e?.message,
+        logger.error(
+          { err: e },
+          "[assignments] closing the source stay after transfer failed",
         ),
       );
     }
@@ -670,9 +674,9 @@ router.post(
         undefined,
         true,
       ).catch((delErr) => {
-        console.warn(
-          "[assignments] deleteSourceProfileOnTransfer in POST /assignments warning:",
-          delErr?.message,
+        logger.warn(
+          { err: delErr },
+          "[assignments] deleteSourceProfileOnTransfer in POST /assignments warning",
         );
       });
     }
@@ -685,9 +689,9 @@ router.post(
       bedId: (result.assignment as any)?.bedId || null,
       startDate: result.assignment!.checkInDate,
     }).catch((err) => {
-      console.error(
-        "[WhatsApp Hook] Error sending check-in notification:",
-        err,
+      logger.error(
+        { err },
+        "[WhatsApp Hook] Error sending check-in notification",
       );
     });
 
@@ -734,7 +738,7 @@ router.post(
 
       res.json({ success: true, message: result.message });
     } catch (err: any) {
-      console.error("[assignments] send-whatsapp error:", err?.message || err);
+      logger.error({ err }, "[assignments] send-whatsapp error");
       res
         .status(500)
         .json({ error: err?.message || "Failed to send WhatsApp message" });

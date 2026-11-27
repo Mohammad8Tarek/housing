@@ -19,6 +19,7 @@ import {
   UpdatePropertyResponse,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
+import { logger } from "../lib/logger.js";
 import {
   requirePermission,
   requireAuth,
@@ -122,9 +123,9 @@ async function assignExistingUsersToProperty(
         assignedUsernames.push(existingUser.username);
       }
     } catch (err: any) {
-      console.error(
-        `[Properties] Error assigning user ${item} to property ${propertyId}:`,
-        err,
+      logger.error(
+        { err },
+        `[Properties] Error assigning user ${item} to property ${propertyId}`,
       );
     }
   }
@@ -263,9 +264,9 @@ router.post(
         try {
           await ensurePropertyAdmin(adminUsername, adminPassword, property.id);
         } catch (userErr: any) {
-          console.error(
-            "[Properties] Error setting up admin user:",
-            userErr?.message || userErr,
+          logger.error(
+            { err: userErr },
+            "[Properties] Error setting up admin user",
           );
         }
       }
@@ -301,9 +302,9 @@ router.post(
             });
           }
         } catch (userErr: any) {
-          console.error(
-            "[Properties] Error assigning existing users:",
-            userErr?.message || userErr,
+          logger.error(
+            { err: userErr },
+            "[Properties] Error assigning existing users",
           );
         }
       }
@@ -344,10 +345,7 @@ router.post(
           ],
         );
       } catch (e: any) {
-        console.warn(
-          "[Properties] Default settings insert skipped:",
-          e?.message || e,
-        );
+        logger.warn({ err: e }, "[Properties] Default settings insert skipped");
       }
 
       const sp = {
@@ -373,7 +371,7 @@ router.post(
       });
       res.status(201).json(GetPropertyResponse.parse(sp));
     } catch (err: any) {
-      console.error("[POST /properties] error:", err?.message ?? err);
+      logger.error({ err }, "[POST /properties] error");
       res
         .status(500)
         .json({ error: err?.message || "Failed to create property" });
@@ -485,9 +483,9 @@ router.patch(
       try {
         await ensurePropertyAdmin(adminUsername, adminPassword, params.data.id);
       } catch (userErr: any) {
-        console.error(
-          "[Properties] Error setting up admin user on update:",
-          userErr?.message || userErr,
+        logger.error(
+          { err: userErr },
+          "[Properties] Error setting up admin user on update",
         );
       }
     }
@@ -521,9 +519,9 @@ router.patch(
           });
         }
       } catch (userErr: any) {
-        console.error(
-          "[Properties] Error assigning existing users on update:",
-          userErr?.message || userErr,
+        logger.error(
+          { err: userErr },
+          "[Properties] Error assigning existing users on update",
         );
       }
     }
@@ -603,10 +601,7 @@ router.patch(
           ],
         );
       } catch (e: any) {
-        console.warn(
-          "[Properties] Sync to tenant settings skipped:",
-          e?.message || e,
-        );
+        logger.warn({ err: e }, "[Properties] Sync to tenant settings skipped");
       }
     }
 

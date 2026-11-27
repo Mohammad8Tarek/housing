@@ -31,6 +31,7 @@ import {
   CheckoutHostingParams,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
+import { logger } from "../lib/logger.js";
 import {
   requirePermission,
   requireAnyPermission,
@@ -318,7 +319,7 @@ router.get(
         },
       });
     } catch (error: any) {
-      console.error("[List Hostings API] Error:", error.message || error);
+      logger.error({ err: error }, "[List Hostings API] Error");
       res.status(500).json({ error: "Failed to fetch hostings" });
     }
   },
@@ -581,10 +582,7 @@ router.get(
         },
       });
     } catch (error: any) {
-      console.error(
-        "[Hostings API] Error fetching hosting:",
-        error.message || error,
-      );
+      logger.error({ err: error }, "[Hostings API] Error fetching hosting");
       res.status(500).json({ error: "Failed to fetch hosting" });
     }
   },
@@ -693,7 +691,7 @@ router.patch(
       };
       res.json(response);
     } catch (error: any) {
-      console.error("[Update Hosting API] Error:", error.message || error);
+      logger.error({ err: error }, "[Update Hosting API] Error");
       res.status(500).json({ error: "Failed to update hosting" });
     }
   },
@@ -857,7 +855,7 @@ router.post(
       };
       res.json(response);
     } catch (error: any) {
-      console.error("[Approve Hosting API] Error:", error.message || error);
+      logger.error({ err: error }, "[Approve Hosting API] Error");
       res.status(500).json({ error: "Failed to approve hosting" });
     }
   },
@@ -1037,7 +1035,7 @@ router.post(
       };
       res.json(response);
     } catch (error: any) {
-      console.error("[Checkin Hosting API] Error:", error.message || error);
+      logger.error({ err: error }, "[Checkin Hosting API] Error");
       res.status(500).json({ error: "Failed to checkin hosting" });
     }
   },
@@ -1163,7 +1161,7 @@ router.post(
       };
       res.json(response);
     } catch (error: any) {
-      console.error("[Checkout API] Error:", error.message || error);
+      logger.error({ err: error }, "[Checkout API] Error");
       res.status(500).json({ error: "Failed to checkout hosting" });
     }
   },

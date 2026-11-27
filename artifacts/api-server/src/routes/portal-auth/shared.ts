@@ -3,6 +3,7 @@ import { withTenant } from "@workspace/db";
 import { profilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { logger } from "../../lib/logger.js";
 
 export const MAX_FAILED = 5;
 
@@ -52,9 +53,9 @@ export async function requirePortalAuth(req: any, res: any, next: any) {
     };
 
     if (!xSid) {
-      console.warn(
+      logger.warn(
+        { debugInfo },
         "[portal-auth] 401 — no portal session, no X-Session-Id",
-        debugInfo,
       );
       res.status(401).json({ success: false, message: "Not authenticated" });
       return;
@@ -64,7 +65,7 @@ export async function requirePortalAuth(req: any, res: any, next: any) {
       debugInfo.storeError = err?.message;
       debugInfo.storeFound = !!storedSess;
       debugInfo.storeHasPortal = !!storedSess?.portal;
-      console.warn("[portal-auth] 401 — X-Session-Id fallback", debugInfo);
+      logger.warn({ debugInfo }, "[portal-auth] 401 — X-Session-Id fallback");
       if (err || !storedSess) {
         res.status(401).json({ success: false, message: "Not authenticated" });
         return;

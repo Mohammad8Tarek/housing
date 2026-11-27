@@ -77,6 +77,7 @@ import {
   PropertyIdOnlyBody,
   SubTicketBody,
 } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 const assignedProfile = aliasedTable(profilesTable, "assigned_profile");
@@ -232,9 +233,9 @@ async function getAccessibleProperties(
       );
     return props;
   } catch (err) {
-    console.error(
-      "[Maintenance Route] Failed to get accessible properties:",
-      err,
+    logger.error(
+      { err },
+      "[Maintenance Route] Failed to get accessible properties",
     );
     return [];
   }
@@ -781,9 +782,9 @@ router.get(
               }
             });
           } catch (propErr) {
-            console.error(
-              `[Maintenance Route] Error querying tenant ${prop.id}:`,
-              propErr,
+            logger.error(
+              { err: propErr, propertyId: prop.id },
+              `[Maintenance Route] Error querying tenant ${prop.id}`,
             );
           }
         }

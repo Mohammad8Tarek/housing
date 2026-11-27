@@ -11,6 +11,7 @@ import {
   CommonListQuery,
   PropertyScopedBody,
 } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -80,7 +81,7 @@ router.get(
       const servers = await loadServers(propertyId);
       res.json({ success: true, propertyId, servers });
     } catch (err: any) {
-      console.error("[hotek/config] Error:", err.message);
+      logger.error({ err }, "[hotek/config] Error");
       res.status(500).json({ error: "Failed to load Hotek configuration" });
     }
   },
@@ -149,7 +150,7 @@ router.post(
       res.status(201).json({ success: true, server: toServer(result.rows[0]) });
     } catch (err: any) {
       await client.query("ROLLBACK");
-      console.error("[hotek/servers/post] Error:", err.message);
+      logger.error({ err }, "[hotek/servers/post] Error");
       res.status(500).json({ error: "Failed to create Hotek server" });
     } finally {
       client.release();
@@ -229,7 +230,7 @@ router.patch(
       res.json({ success: true, server: toServer(result.rows[0]) });
     } catch (err: any) {
       await client.query("ROLLBACK");
-      console.error("[hotek/servers/patch] Error:", err.message);
+      logger.error({ err }, "[hotek/servers/patch] Error");
       res.status(500).json({ error: "Failed to update Hotek server" });
     } finally {
       client.release();
@@ -284,7 +285,7 @@ router.post(
         message: test.message,
       });
     } catch (err: any) {
-      console.error("[hotek/servers/test] Error:", err.message);
+      logger.error({ err }, "[hotek/servers/test] Error");
       res.status(500).json({ error: "Failed to test Hotek server" });
     }
   },
@@ -326,7 +327,7 @@ router.delete(
       res.json({ success: true, deleted: id });
     } catch (err: any) {
       await client.query("ROLLBACK");
-      console.error("[hotek/servers/delete] Error:", err.message);
+      logger.error({ err }, "[hotek/servers/delete] Error");
       res.status(500).json({ error: "Failed to delete server" });
     } finally {
       client.release();

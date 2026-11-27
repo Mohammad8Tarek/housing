@@ -14,6 +14,7 @@ import {
   CommonListQuery,
   RequestRefParams,
 } from "../../validation/schemas.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -43,7 +44,7 @@ router.get(
 
       res.status(200).json({ success: true, data: rowsRes.rows });
     } catch (err: unknown) {
-      console.error("ROUTE ERROR:", err);
+      logger.error({ err }, "ROUTE ERROR");
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message });
     }
@@ -152,7 +153,7 @@ router.get(
         },
       });
     } catch (err: unknown) {
-      console.error("ROUTE ERROR:", err);
+      logger.error({ err }, "ROUTE ERROR");
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message });
     }
@@ -179,7 +180,7 @@ router.get(
       );
       res.json({ success: true, data: res2.rows[0] });
     } catch (err: unknown) {
-      console.error("ROUTE ERROR:", err);
+      logger.error({ err }, "ROUTE ERROR");
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message });
     }
@@ -208,7 +209,7 @@ router.get(
       );
       res.json({ success: true, count: rows.rows.length, data: rows.rows });
     } catch (err: unknown) {
-      console.error("ROUTE ERROR:", err);
+      logger.error({ err }, "ROUTE ERROR");
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message });
     }
@@ -241,7 +242,7 @@ router.get(
 
       res.json({ success: true, data: request });
     } catch (err: unknown) {
-      console.error("ROUTE ERROR:", err);
+      logger.error({ err }, "ROUTE ERROR");
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message });
     }

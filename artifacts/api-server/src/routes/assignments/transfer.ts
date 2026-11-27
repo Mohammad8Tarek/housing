@@ -37,6 +37,7 @@ import {
 import { fmtAssignment } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
 import { IdParams } from "../../validation/schemas.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -623,7 +624,7 @@ router.post(
         actionByUsername: s.username || "System",
       });
     } catch (moveErr) {
-      console.warn("Failed to insert into room_moves:", moveErr);
+      logger.warn({ err: moveErr }, "Failed to insert into room_moves");
     }
 
     broadcastToProperty(propertyId, {

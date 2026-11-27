@@ -21,6 +21,7 @@ import { validate } from "../middlewares/validate.js";
 import { IdParams, HousingPulseConfigBody } from "../validation/schemas.js";
 import { generateSurveyToken } from "./public-surveys.js";
 import QRCode from "qrcode";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -945,9 +946,9 @@ router.post(
           });
         });
       } catch (errTenant) {
-        console.warn(
-          "[housing-pulse-push] notification broadcast warning:",
-          errTenant,
+        logger.warn(
+          { err: errTenant },
+          "[housing-pulse-push] notification broadcast warning",
         );
       }
 
@@ -961,7 +962,10 @@ router.post(
         });
         broadcastSyncAll(propertyId);
       } catch (wsErr) {
-        console.warn("[housing-pulse-push] WebSocket broadcast error:", wsErr);
+        logger.warn(
+          { err: wsErr },
+          "[housing-pulse-push] WebSocket broadcast error",
+        );
       }
 
       await logActivity({

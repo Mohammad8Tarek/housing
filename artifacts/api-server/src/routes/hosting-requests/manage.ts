@@ -6,6 +6,7 @@ import { requirePermission } from "../../middlewares/permissions.js";
 import { CreateFamilyVisitBody, su, resolveRequestId } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
 import { RequestRefParams } from "../../validation/schemas.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -123,7 +124,7 @@ router.put(
         client.release();
       }
     } catch (err: unknown) {
-      console.error("ROUTE ERROR:", err);
+      logger.error({ err }, "ROUTE ERROR");
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message });
     }
@@ -208,7 +209,7 @@ router.delete(
         client.release();
       }
     } catch (err: unknown) {
-      console.error("ROUTE ERROR:", err);
+      logger.error({ err }, "ROUTE ERROR");
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message });
     }

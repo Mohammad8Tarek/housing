@@ -1,6 +1,7 @@
 /**
  * hr-sync/lifecycle.ts — Accommodation/room lifecycle sync for an HR employee record (checkout, vacation, return).
  */
+import { logger } from "../logger.js";
 import {
   profilesTable,
   profileVacationsTable,
@@ -344,7 +345,10 @@ export async function syncEmployeeAccommodationLifecycle({
       });
     }
   } catch (err) {
-    console.error("[HrSync] Error in syncEmployeeAccommodationLifecycle:", err);
+    logger.error(
+      { err },
+      "[HrSync] Error in syncEmployeeAccommodationLifecycle",
+    );
   }
 
   return checkoutResult;

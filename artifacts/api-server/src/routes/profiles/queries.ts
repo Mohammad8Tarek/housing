@@ -28,6 +28,7 @@ import {
 import { resolveProfileTenant, filterSensitive } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
 import { CommonListQuery, IdParams } from "../../validation/schemas.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -272,7 +273,10 @@ router.get(
         });
         aggregated.push(...rows);
       } catch (err) {
-        console.warn(`[profiles/search] Error querying tenant ${pId}:`, err);
+        logger.warn(
+          { err, propertyId: pId },
+          `[profiles/search] Error querying tenant ${pId}`,
+        );
       }
     }
 

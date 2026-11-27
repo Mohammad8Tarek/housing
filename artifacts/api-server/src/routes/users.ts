@@ -42,6 +42,7 @@ import {
   UsersBulkBody,
   LastPropertyBody,
 } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -1154,7 +1155,7 @@ router.delete(
 
       res.sendStatus(204);
     } catch (err: any) {
-      console.error("Failed to delete user:", err);
+      logger.error({ err }, "Failed to delete user");
       res.status(500).json({
         error: "فشل حذف المستخدم لوجود ارتباطات متعلقة بالسجل",
         details: err.message,
@@ -1327,7 +1328,7 @@ router.post(
       invalidateAuthUserCache(ids);
       res.json({ success: true, updatedCount });
     } catch (err: any) {
-      console.error("Bulk users operation failed:", err);
+      logger.error({ err }, "Bulk users operation failed");
       res.status(500).json({
         error: "Failed to perform bulk operation",
         details: err.message,

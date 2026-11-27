@@ -20,6 +20,7 @@ import {
 import { getTenantId } from "../../lib/request-utils.js";
 import { isDirtyRoomStatus } from "../../lib/room-status.js";
 import { safeCount, safeSelect, statusEq } from "./shared.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -954,7 +955,7 @@ router.get(
 
       res.json({ success: true, ...data });
     } catch (err: any) {
-      console.error("[DashboardHousingBreakdown] Error:", err);
+      logger.error({ err }, "[DashboardHousingBreakdown] Error");
       res.status(500).json({
         success: false,
         message: err.message || "Failed to load housing breakdown",

@@ -10,6 +10,7 @@ import { eq, and, lte, gte, isNull, sql } from "drizzle-orm";
 import { requireAuth, hasPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { CommonListQuery } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -706,7 +707,7 @@ router.get(
         });
       });
     } catch (err) {
-      console.error("[notifications] failed to build notifications", err);
+      logger.error({ err }, "[notifications] failed to build notifications");
       res.json({ count: 0, notifications: [] });
     }
   },

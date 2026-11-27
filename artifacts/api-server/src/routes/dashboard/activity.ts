@@ -13,6 +13,7 @@ import { validate } from "../../middlewares/validate.js";
 import { DashboardActivityQuery } from "../../validation/schemas.js";
 import { getTenantId } from "../../lib/request-utils.js";
 import { safeSelect, statusEq } from "./shared.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -135,7 +136,7 @@ router.get(
 
       res.json({ success: true, data });
     } catch (err: any) {
-      console.error("[DashboardTicketsOverview] Error:", err);
+      logger.error({ err }, "[DashboardTicketsOverview] Error");
       res.status(500).json({
         success: false,
         message: err.message || "Failed to load tickets overview",

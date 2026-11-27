@@ -16,6 +16,7 @@ import {
 } from "../validation/schemas.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import { translateLookup, hasArabic } from "../lib/bilingual-translator.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -245,7 +246,7 @@ router.post(
       });
       res.json(result);
     } catch (err: any) {
-      console.error("Error in /lookup-values/bulk:", err);
+      logger.error({ err }, "Error in /lookup-values/bulk");
       res
         .status(500)
         .json({ error: err.message || "Failed to bulk import lookup values" });

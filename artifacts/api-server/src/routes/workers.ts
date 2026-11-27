@@ -15,6 +15,7 @@ import {
   UpdateWorkerBody,
 } from "../validation/schemas.js";
 import { getTenantId, su } from "../lib/request-utils.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -182,7 +183,7 @@ router.get(
         },
       });
     } catch (err: any) {
-      console.error("[Workers Route] Error listing workers:", err);
+      logger.error({ err }, "[Workers Route] Error listing workers");
       res.status(500).json({
         success: false,
         message: err.message || "Failed to list workers",
@@ -276,7 +277,7 @@ router.post(
 
       res.status(201).json({ success: true, data: created });
     } catch (err: any) {
-      console.error("[Workers Route] Error creating worker:", err);
+      logger.error({ err }, "[Workers Route] Error creating worker");
       res.status(500).json({
         success: false,
         message: err.message || "Failed to create worker",
@@ -363,7 +364,7 @@ router.get(
 
       res.json({ success: true, data: result });
     } catch (err: any) {
-      console.error("[Workers Route] Error getting worker:", err);
+      logger.error({ err }, "[Workers Route] Error getting worker");
       res.status(500).json({
         success: false,
         message: err.message || "Failed to get worker",
@@ -462,7 +463,7 @@ router.put(
 
       res.json({ success: true, data: updated });
     } catch (err: any) {
-      console.error("[Workers Route] Error updating worker:", err);
+      logger.error({ err }, "[Workers Route] Error updating worker");
       res.status(500).json({
         success: false,
         message: err.message || "Failed to update worker",
@@ -548,7 +549,7 @@ router.delete(
 
       res.json({ success: true, message: "Worker deleted successfully" });
     } catch (err: any) {
-      console.error("[Workers Route] Error deleting worker:", err);
+      logger.error({ err }, "[Workers Route] Error deleting worker");
       res.status(400).json({
         success: false,
         message: err.message || "Failed to delete worker",

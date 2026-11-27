@@ -26,6 +26,7 @@ import {
   KeyRevokeBody,
   KeyExtendBody,
 } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 const router = Router();
 
@@ -333,7 +334,7 @@ router.post(
         });
         return;
       }
-      console.error("[Smart] checkin-issue-key error:", err);
+      logger.error({ err }, "[Smart] checkin-issue-key error");
       res
         .status(500)
         .json({ error: err.message || "Failed to issue key via Smart server" });
@@ -760,7 +761,7 @@ router.post(
 
       res.status(201).json(key);
     } catch (err: any) {
-      console.error("[Keys] Issue error:", err);
+      logger.error({ err }, "[Keys] Issue error");
       res.status(500).json({
         error: "Failed to issue key",
         details: err instanceof Error ? err.message : String(err),
@@ -826,9 +827,9 @@ router.post(
             await encoder.checkout(realRoomNumber);
           }
         } catch (encErr) {
-          console.warn(
-            "[Keys] Encoder revoke failed (continuing with DB revoke):",
-            encErr,
+          logger.warn(
+            { err: encErr },
+            "[Keys] Encoder revoke failed (continuing with DB revoke)",
           );
         }
       }
@@ -868,7 +869,7 @@ router.post(
 
       res.json(updated);
     } catch (err: any) {
-      console.error("[Keys] Revoke error:", err);
+      logger.error({ err }, "[Keys] Revoke error");
       res.status(500).json({ error: "Failed to revoke key" });
     }
   },

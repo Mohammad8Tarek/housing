@@ -1,6 +1,7 @@
 /**
  * hr-sync/lookups.ts — Auto-registration of departments, job titles, levels and companies as lookup values.
  */
+import { logger } from "../logger.js";
 import { lookupValuesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { broadcastToProperty } from "../websocket.js";
@@ -272,7 +273,7 @@ export async function autoRegisterLookups(
       });
     }
   } catch (err: any) {
-    console.warn("[HrSync] autoRegisterLookups notice:", err?.message);
+    logger.warn({ err }, "[HrSync] autoRegisterLookups notice");
   }
   return { added, updated };
 }

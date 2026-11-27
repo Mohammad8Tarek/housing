@@ -2,6 +2,7 @@
 // - the technician / staff member a ticket is assigned to;
 // - the resident who reported it, when it is resolved (asks for a rating).
 // Never throws: a notification failure must not affect the ticket change.
+import { logger } from "./logger.js";
 import { and, eq } from "drizzle-orm";
 import {
   assignmentsTable,
@@ -112,7 +113,7 @@ export async function notifyTicketAssigned(
       url: "/dashboard",
     });
   } catch (err: any) {
-    console.warn("[maintenance] assignment notification failed:", err?.message);
+    logger.warn({ err }, "[maintenance] assignment notification failed");
   }
 }
 
@@ -134,6 +135,6 @@ export async function notifyTicketResolved(
       url: `/request-details?id=${ticket.id}`,
     });
   } catch (err: any) {
-    console.warn("[maintenance] resolved notification failed:", err?.message);
+    logger.warn({ err }, "[maintenance] resolved notification failed");
   }
 }

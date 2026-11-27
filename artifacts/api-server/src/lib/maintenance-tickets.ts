@@ -1,6 +1,7 @@
 // Ticket-system helpers for maintenance / housekeeping requests:
 // readable ticket numbers, target (SLA) times per service, and the
 // per-ticket history log (maintenance_events).
+import { logger } from "./logger.js";
 import { maintenanceEventsTable } from "@workspace/db";
 
 /** MNT-2026-0037 / HK-2026-0012 / GEN-2026-0003 (from the ticket id and year). */
@@ -158,6 +159,6 @@ export async function recordTicketEvents(
   } catch (err: any) {
     // History must never block the ticket change itself (e.g. table not yet
     // migrated on a tenant).
-    console.warn("[maintenance] could not record ticket events:", err?.message);
+    logger.warn({ err }, "[maintenance] could not record ticket events");
   }
 }

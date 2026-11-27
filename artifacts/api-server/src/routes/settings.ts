@@ -10,6 +10,7 @@ import {
 import { validate } from "../middlewares/validate.js";
 import { TestEmailBody, UpdateSettingsBody } from "../validation/schemas.js";
 import { sendTestEmail } from "../lib/email-service.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -51,7 +52,7 @@ router.get("/settings", requireAuth, async (req, res): Promise<void> => {
           : settings.updatedAt,
     });
   } catch (err: any) {
-    console.error("[settings/get] Error:", err.message);
+    logger.error({ err }, "[settings/get] Error");
     res.status(500).json({ error: "Failed to fetch settings" });
   }
 });
@@ -234,7 +235,7 @@ router.patch(
             : updated.updatedAt,
       });
     } catch (err: any) {
-      console.error("[settings/patch] Error:", err.message);
+      logger.error({ err }, "[settings/patch] Error");
       res.status(500).json({ error: "Failed to update settings" });
     }
   },
@@ -324,7 +325,7 @@ router.post(
         });
       }
     } catch (err: any) {
-      console.error("[settings/email/test] Error:", err?.message || err);
+      logger.error({ err }, "[settings/email/test] Error");
       res.status(500).json({ error: err?.message || "Internal server error" });
     }
   },
@@ -354,7 +355,7 @@ router.get(
         extension: settings?.portalContactExt ?? "#4055",
       });
     } catch (err: any) {
-      console.error("[settings/portal-contacts] Error:", err.message);
+      logger.error({ err }, "[settings/portal-contacts] Error");
       res.status(500).json({ error: "Failed to fetch portal contacts" });
     }
   },

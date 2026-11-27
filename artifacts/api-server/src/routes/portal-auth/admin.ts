@@ -10,6 +10,7 @@ import { requirePermission } from "../../middlewares/permissions.js";
 import { portalSession, requirePortalAuth } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
 import { CommonListQuery } from "../../validation/schemas.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -531,7 +532,7 @@ router.get(
 
       res.json({ success: true, employees });
     } catch (err: any) {
-      console.error("[portal-auth/employees] Error:", err);
+      logger.error({ err }, "[portal-auth/employees] Error");
       res.status(500).json({ success: false, message: "Internal error" });
     }
   },

@@ -26,6 +26,7 @@ import {
   ListReservationsQueryParams,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
+import { logger } from "../lib/logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import { roomStatusAfterCheckIn } from "../lib/room-status.js";
 import {
@@ -527,15 +528,15 @@ router.post(
         reservationId: result.id,
         phoneOverride: body.guestPhone,
       }).catch((err) => {
-        console.warn(
-          "[POST /reservations] WhatsApp confirmation dispatch warning:",
-          err?.message,
+        logger.warn(
+          { err },
+          "[POST /reservations] WhatsApp confirmation dispatch warning",
         );
       });
 
       res.status(201).json({ ...result, propertyId });
     } catch (err: any) {
-      console.error("[POST /reservations] error:", err?.message ?? err);
+      logger.error({ err }, "[POST /reservations] error");
       res.status(500).json({ error: "Failed to create reservation" });
     }
   },
@@ -585,7 +586,7 @@ router.get(
         propertyId,
       });
     } catch (err: any) {
-      console.error("[GET /reservations/:id] error:", err?.message ?? err);
+      logger.error({ err }, "[GET /reservations/:id] error");
       res.status(500).json({ error: "Failed to fetch reservation" });
     }
   },
@@ -710,7 +711,7 @@ router.patch(
         propertyId,
       });
     } catch (err: any) {
-      console.error("[PATCH /reservations/:id] error:", err?.message ?? err);
+      logger.error({ err }, "[PATCH /reservations/:id] error");
       res.status(500).json({ error: "Failed to update reservation" });
     }
   },
@@ -788,7 +789,7 @@ router.delete(
       }
       res.sendStatus(204);
     } catch (err: any) {
-      console.error("[DELETE /reservations/:id] error:", err?.message ?? err);
+      logger.error({ err }, "[DELETE /reservations/:id] error");
       res.status(500).json({ error: "Failed to delete reservation" });
     }
   },
@@ -1256,9 +1257,9 @@ router.post(
         bedId: result.assignment?.bedNumber || null,
         startDate: updated.checkInDate,
       }).catch((err) => {
-        console.error(
-          "[WhatsApp Hook] Error sending check-in notification from reservation:",
-          err,
+        logger.error(
+          { err },
+          "[WhatsApp Hook] Error sending check-in notification from reservation",
         );
       });
 
@@ -1270,10 +1271,7 @@ router.post(
         room: result.room,
       });
     } catch (err: any) {
-      console.error(
-        "[POST /reservations/:id/checkin] error:",
-        err?.message ?? err,
-      );
+      logger.error({ err }, "[POST /reservations/:id/checkin] error");
       res.status(500).json({ error: "Check-in failed" });
     }
   },
@@ -1492,7 +1490,7 @@ const handleCancelReservation = async (req: any, res: any): Promise<void> => {
 
     res.json({ ...fmtReservation(updated), propertyId });
   } catch (err: any) {
-    console.error("[CANCEL reservation] error:", err?.message ?? err);
+    logger.error({ err }, "[CANCEL reservation] error");
     res.status(500).json({ error: "Failed to cancel reservation" });
   }
 };
@@ -1548,10 +1546,7 @@ router.post(
 
       res.json(result);
     } catch (err: any) {
-      console.error(
-        "[POST /reservations/:id/send-whatsapp] error:",
-        err?.message ?? err,
-      );
+      logger.error({ err }, "[POST /reservations/:id/send-whatsapp] error");
       res
         .status(500)
         .json({ error: "Failed to dispatch WhatsApp confirmation" });

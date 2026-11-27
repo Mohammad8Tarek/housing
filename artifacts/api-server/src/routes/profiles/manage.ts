@@ -31,6 +31,7 @@ import {
   ProfilePhotoBody,
   ProfileIdImageBody,
 } from "../../validation/schemas.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -369,9 +370,9 @@ router.patch(
               }
             }
           } catch (syncErr) {
-            console.error(
-              "[HospitalityWorkflow] Error syncing room status:",
-              syncErr,
+            logger.error(
+              { err: syncErr },
+              "[HospitalityWorkflow] Error syncing room status",
             );
           }
         }

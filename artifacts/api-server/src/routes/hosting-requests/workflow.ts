@@ -391,7 +391,7 @@ router.post(
       );
       res.json({ success: true, data: updated });
     } catch (err: unknown) {
-      console.error("ROUTE ERROR:", err);
+      logger.error({ err }, "ROUTE ERROR");
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message });
     }
@@ -543,7 +543,7 @@ router.post(
       );
       res.json({ success: true, data: updated });
     } catch (err: unknown) {
-      console.error("ROUTE ERROR:", err);
+      logger.error({ err }, "ROUTE ERROR");
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message });
     }
@@ -716,7 +716,7 @@ router.post(
       );
       res.json({ success: true, data: updated });
     } catch (err: unknown) {
-      console.error("ROUTE ERROR:", err);
+      logger.error({ err }, "ROUTE ERROR");
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message });
     }

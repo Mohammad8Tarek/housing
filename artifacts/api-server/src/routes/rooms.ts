@@ -20,6 +20,7 @@ import {
   ListRoomsQueryParams,
 } from "@workspace/api-zod";
 import { logActivity } from "../lib/activity-logger.js";
+import { logger } from "../lib/logger.js";
 import { getTenantId, su } from "../lib/request-utils.js";
 import {
   requirePermission,
@@ -404,7 +405,7 @@ router.get(
         },
       });
     } catch (err: any) {
-      console.error("[rooms/list] Error:", err.message);
+      logger.error({ err }, "[rooms/list] Error");
       res.status(500).json({ error: "Failed to fetch rooms" });
     }
   },
@@ -541,7 +542,7 @@ router.get(
         history,
       });
     } catch (err: any) {
-      console.error("[rooms/history] Error:", err.message);
+      logger.error({ err }, "[rooms/history] Error");
       res.status(500).json({ error: "Failed to fetch room history" });
     }
   },
@@ -645,7 +646,7 @@ router.post(
             extraData.featuresList,
           );
         } catch (e) {
-          console.error("[rooms/create] Failed to sync inventory:", e);
+          logger.error({ err: e }, "[rooms/create] Failed to sync inventory");
         }
       }
 
@@ -676,7 +677,7 @@ router.post(
       });
       res.status(201).json({ ...room, genderPolicy: room.gender, propertyId });
     } catch (err: any) {
-      console.error("[rooms/create] Error:", err);
+      logger.error({ err }, "[rooms/create] Error");
       // Check for Postgres Foreign Key constraint violation
       if (err.code === "23503") {
         res.status(400).json({ error: "Building or floor does not exist." });
@@ -732,7 +733,7 @@ router.get(
       }
       res.json({ ...room, genderPolicy: room.gender, propertyId });
     } catch (err: any) {
-      console.error("[rooms/get] Error:", err.message);
+      logger.error({ err }, "[rooms/get] Error");
       res.status(500).json({ error: err.message || "Failed to fetch room" });
     }
   },
@@ -995,7 +996,7 @@ router.patch(
             extraData.featuresList,
           );
         } catch (e) {
-          console.error("[rooms/update] Failed to sync inventory:", e);
+          logger.error({ err: e }, "[rooms/update] Failed to sync inventory");
         }
       }
 
@@ -1065,7 +1066,7 @@ router.patch(
 
       res.json({ ...updated, genderPolicy: updated.gender, propertyId });
     } catch (err: any) {
-      console.error("[rooms/update] Error:", err);
+      logger.error({ err }, "[rooms/update] Error");
       if (err.code === "23503") {
         res.status(400).json({
           error: "المبنى أو الدور المحدد غير موجود في النظام",
@@ -1146,7 +1147,10 @@ router.patch(
       try {
         await syncRoomFeaturesToInventory(propertyId, updated.id, list);
       } catch (e) {
-        console.error("[rooms/patch-features] Failed to sync inventory:", e);
+        logger.error(
+          { err: e },
+          "[rooms/patch-features] Failed to sync inventory",
+        );
       }
 
       res.json({ success: true, room: { ...updated, propertyId } });
@@ -1567,7 +1571,7 @@ router.delete(
       }
       res.json({ success: true, id: roomId });
     } catch (err: any) {
-      console.error("[rooms/delete] Error:", err);
+      logger.error({ err }, "[rooms/delete] Error");
       res.status(500).json({ error: err.message || "Failed to delete room" });
     }
   },

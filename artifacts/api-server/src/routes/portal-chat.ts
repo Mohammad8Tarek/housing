@@ -25,6 +25,7 @@ import {
   ChatMessageBody,
   AdminChatMessageBody,
 } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -448,7 +449,7 @@ router.post(
             url: "/dashboard",
           });
         }
-      }).catch((err) => console.error("[portal-chat] Push error:", err));
+      }).catch((err) => logger.error({ err }, "[portal-chat] Push error"));
 
       return res.json({ success: true, message });
     } catch (err) {

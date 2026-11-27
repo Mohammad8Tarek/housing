@@ -391,7 +391,7 @@ export async function getRequestWithSteps(
         request.assignedRoomNumber = roomRes.rows[0].room_number;
       }
     } catch (e) {
-      console.error("Error fetching room number for family visit:", e);
+      logger.error({ err: e }, "Error fetching room number for family visit");
     }
   }
 

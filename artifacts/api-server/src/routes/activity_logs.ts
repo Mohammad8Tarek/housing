@@ -11,6 +11,7 @@ import { requirePermission } from "../middlewares/permissions.js";
 import { getTenantId } from "../lib/request-utils.js";
 import { validate } from "../middlewares/validate.js";
 import { CommonListQuery } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -267,7 +268,7 @@ router.get(
         },
       });
     } catch (err: any) {
-      console.error("[ActivityLogs] Error fetching logs:", err);
+      logger.error({ err }, "[ActivityLogs] Error fetching logs");
       res.status(500).json({
         error: "Failed to fetch activity logs",
         details: err?.message,
@@ -329,7 +330,7 @@ router.get(
 
       res.json(facets);
     } catch (err: any) {
-      console.error("[ActivityLogs] facets error:", err);
+      logger.error({ err }, "[ActivityLogs] facets error");
       res.status(500).json({ error: "Failed to load facets" });
     }
   },

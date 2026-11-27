@@ -19,6 +19,7 @@ import {
   LoginSchema,
   ChangePasswordSchema,
 } from "./shared.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -69,9 +70,9 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
             return { emp, acc, propertyId: p.id };
           });
         } catch (error: any) {
-          console.warn(
-            `[Portal Login] Skipping property ${p.id} due to error:`,
-            error.message,
+          logger.warn(
+            { err: error, propertyId: p.id },
+            `[Portal Login] Skipping property ${p.id} due to error`,
           );
           return null;
         }
@@ -238,7 +239,7 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
 
     await new Promise<void>((resolve) => {
       req.session.save((err: any) => {
-        if (err) console.error("[portal-login] session save error:", err);
+        if (err) logger.error({ err }, "[portal-login] session save error");
         resolve();
       });
     });
@@ -251,7 +252,7 @@ router.post("/login", portalLoginRateLimit, async (req, res): Promise<void> => {
       employee: userObj,
     });
   } catch (error: any) {
-    console.error("Portal login error:", error);
+    logger.error({ err: error }, "Portal login error");
     res
       .status(500)
       .json({ success: false, message: `Server error: ${error.message}` });
@@ -329,7 +330,7 @@ router.get("/me", requirePortalAuth, async (req, res): Promise<void> => {
           : ((result.account?.lastLoginAt as unknown as string) ?? null),
     });
   } catch (error: any) {
-    console.error("Portal /me error:", error);
+    logger.error({ err: error }, "Portal /me error");
     res
       .status(500)
       .json({ success: false, message: `Server error: ${error.message}` });

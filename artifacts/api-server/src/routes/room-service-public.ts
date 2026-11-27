@@ -16,6 +16,7 @@ import { broadcastToProperty } from "../lib/websocket.js";
 import { logActivity } from "../lib/activity-logger.js";
 import { validate } from "../middlewares/validate.js";
 import { CommonListQuery } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -116,7 +117,7 @@ router.get(
         room: roomData,
       });
     } catch (err: any) {
-      console.error("[Room Service Public] Error fetching room info:", err);
+      logger.error({ err }, "[Room Service Public] Error fetching room info");
       res.status(500).json({
         success: false,
         message: err.message || "Failed to load room details",
@@ -263,7 +264,7 @@ router.post("/public/room-request", async (req, res): Promise<void> => {
       reportedAt: ticket.reportedAt,
     });
   } catch (err: any) {
-    console.error("[Room Service Public] Error submitting request:", err);
+    logger.error({ err }, "[Room Service Public] Error submitting request");
     res.status(500).json({
       success: false,
       message: err.message || "Failed to submit service request",
@@ -341,7 +342,7 @@ router.get(
         qrDataUrl,
       });
     } catch (err: any) {
-      console.error("[Room QR Generator] Error:", err);
+      logger.error({ err }, "[Room QR Generator] Error");
       res
         .status(500)
         .json({ error: err.message || "Failed to generate QR code" });
