@@ -44,6 +44,7 @@ import { MaintenanceDualTrackReportRibbon } from "./components/MaintenanceDualTr
 import { HousingRatingsTab } from "./components/HousingRatingsTab";
 import { RoomMovesTab } from "./components/RoomMovesTab";
 import { ReportPrintStudioModal } from "./components/ReportPrintStudioModal";
+import { AnalyticsPrintModal } from "./components/AnalyticsPrintModal";
 import { TABS, groupOfTab } from "./constants";
 
 export default function Reports() {
@@ -765,6 +766,13 @@ export default function Reports() {
           {...exportActions.printStudioProps}
         />
       )}
+
+      <AnalyticsPrintModal
+        open={exportActions.analyticsPrintOpen}
+        onOpenChange={exportActions.setAnalyticsPrintOpen}
+        html={exportActions.analyticsPrintHtml}
+        ar={ar}
+      />
     </div>
   );
 }
