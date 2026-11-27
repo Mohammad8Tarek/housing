@@ -105,6 +105,43 @@ router.post(
         return;
       }
 
+      // ── Visit Room Availability ────────────────────────────────────────────
+      // When a specific visit room is chosen, reject if that room already has an
+      // active hosting whose dates overlap the request's [fromDate, toDate] in
+      // the visit hotel's schema (text ISO dates compare correctly).
+      if (body.assignedRoomId) {
+        const visitPropId = body.visitHotelId || body.hotelId || propId;
+        try {
+          const vpRes = await pool.query(
+            "SELECT schema_name FROM public.properties WHERE id = $1",
+            [visitPropId],
+          );
+          const visitSchema =
+            vpRes.rows[0]?.schema_name || `prop_${visitPropId}`;
+          if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(visitSchema)) {
+            const clashRes = await pool.query(
+              `SELECT id FROM "${visitSchema}".hostings
+                WHERE room_id = $1
+                  AND status NOT IN ('CANCELLED','CANCELED','REJECTED','CHECKED_OUT','COMPLETED','LEFT')
+                  AND expected_from <= $2
+                  AND expected_to   >= $3
+                LIMIT 1`,
+              [body.assignedRoomId, body.toDate, body.fromDate],
+            );
+            if (clashRes.rows.length > 0) {
+              res.status(409).json({
+                success: false,
+                message:
+                  "غرفة الزيارة المختارة محجوزة باستضافة أخرى في نفس الفترة / The selected visit room is already booked by another hosting in this date range",
+              });
+              return;
+            }
+          }
+        } catch {
+          // If the availability lookup fails, do not block creation.
+        }
+      }
+
       let requestId = -1;
       let requestNumber = "";
       const client = await pool.connect();
