@@ -36,6 +36,7 @@ import {
 } from "../validation/schemas.js";
 import { portalSession } from "./portal-auth/shared.js";
 import { logActivity } from "../lib/activity-logger.js";
+import { logger } from "../lib/logger.js";
 import { generateDeviceKey, verifyDeviceKey } from "../lib/gate-devices.js";
 import { broadcastToProperty } from "../lib/websocket.js";
 import {
@@ -361,7 +362,7 @@ router.get(
         },
       });
     } catch (error: any) {
-      console.error("[GatePass] Error generating pass:", error);
+      logger.error({ err: error }, "[GatePass] Error generating pass");
       res
         .status(500)
         .json({ error: error.message || "Failed to generate gate pass" });
@@ -602,7 +603,7 @@ router.post(
         resident: residentPayload,
       });
     } catch (error: any) {
-      console.error("[GateVerify] Error:", error);
+      logger.error({ err: error }, "[GateVerify] Error");
       res
         .status(500)
         .json({ error: error.message || "Failed to verify gate pass" });
@@ -719,7 +720,7 @@ router.post(
 
       res.json({ success: true, log: newLog });
     } catch (error: any) {
-      console.error("[GateLog] Error recording log:", error);
+      logger.error({ err: error }, "[GateLog] Error recording log");
       res
         .status(500)
         .json({ error: error.message || "Failed to record gate log" });
@@ -829,7 +830,7 @@ router.get(
         },
       });
     } catch (error: any) {
-      console.error("[GateLogs] Error fetching logs:", error);
+      logger.error({ err: error }, "[GateLogs] Error fetching logs");
       res
         .status(500)
         .json({ error: error.message || "Failed to fetch gate logs" });
@@ -885,7 +886,7 @@ router.get(
         },
       });
     } catch (error: any) {
-      console.error("[GateStats] Error:", error);
+      logger.error({ err: error }, "[GateStats] Error");
       res
         .status(500)
         .json({ error: error.message || "Failed to fetch gate statistics" });
@@ -987,7 +988,7 @@ router.post(
       });
 
       if (!device) {
-        console.warn("[GATE_DEVICE_AUTH_FAIL] invalid x-device-key");
+        logger.warn("[GATE_DEVICE_AUTH_FAIL] invalid x-device-key");
         res.status(401).json({ success: false, error: "Unauthorized device" });
         return;
       }

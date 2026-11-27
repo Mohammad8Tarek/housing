@@ -16,6 +16,7 @@ import bcrypt from "bcryptjs";
 import { LoginBody, ChangePasswordBody } from "@workspace/api-zod";
 import { sendOtpEmail } from "../lib/email-service.js";
 import { logActivity, getClientIp } from "../lib/activity-logger.js";
+import { logger } from "../lib/logger.js";
 import {
   changePasswordRateLimit,
   resetLoginAttempts,
@@ -310,7 +311,7 @@ async function finishLogin(
   // ✅ Regenerate session to get a fresh session ID (prevents stale cookie issues)
   req.session.regenerate((regenErr: any) => {
     if (regenErr) {
-      console.error("[auth/login] Session regenerate error:", regenErr.message);
+      logger.error({ err: regenErr }, "[auth/login] Session regenerate error");
       // Fallback: assign directly if regenerate fails
       Object.assign(req.session, sessionData);
     } else {
@@ -320,7 +321,7 @@ async function finishLogin(
     // Explicitly save the session before responding
     req.session.save((saveErr: any) => {
       if (saveErr) {
-        console.error("[auth/login] Session save error:", saveErr.message);
+        logger.error({ err: saveErr }, "[auth/login] Session save error");
       }
 
       if (user.propertyId) {
@@ -337,7 +338,7 @@ async function finishLogin(
           details: `User logged in from ${ip}${passwordExpired ? " (password expired)" : ""}`,
           ipAddress: ip,
         }).catch((err) => {
-          console.error("[auth/login] Activity log error:", err);
+          logger.error({ err }, "[auth/login] Activity log error");
         });
       }
 
@@ -562,7 +563,7 @@ router.post("/auth/logout", async (req, res): Promise<void> => {
 
   req.session.destroy((err) => {
     if (err) {
-      console.error("Session destroy error:", err.message);
+      logger.error({ err }, "Session destroy error");
     }
     // Respond inside the callback to guarantee destroy completes first
     res.json({ message: "Logged out" });
@@ -791,7 +792,7 @@ router.post(
         details: `Switched from property ${oldPropertyId ?? "none"} to ${newPropertyId}`,
         ipAddress: getClientIp(req),
       }).catch((err) => {
-        console.error("[auth/property-switch] Activity log error:", err);
+        logger.error({ err }, "[auth/property-switch] Activity log error");
       });
     }
 
@@ -953,9 +954,9 @@ router.post(
           };
         }
       } catch (e: any) {
-        console.warn(
-          "[auth/request-otp] Could not load tenant SMTP config:",
-          e?.message,
+        logger.warn(
+          { err: e },
+          "[auth/request-otp] Could not load tenant SMTP config",
         );
       }
     }

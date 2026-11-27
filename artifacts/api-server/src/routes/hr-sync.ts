@@ -11,6 +11,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { logActivity } from "../lib/activity-logger.js";
+import { logger } from "../lib/logger.js";
 import {
   requireAnyPermission,
   loadAuthUser,
@@ -400,7 +401,7 @@ router.post(
     } else {
       if (expectedKey) {
         if (!safeEqual(providedKey, expectedKey)) {
-          console.warn("[HR_SYNC_AUTH_FAIL] invalid x-api-key");
+          logger.warn("[HR_SYNC_AUTH_FAIL] invalid x-api-key");
           res.status(401).json({ success: false, error: "Unauthorized" });
           return;
         }
@@ -822,7 +823,7 @@ router.post(
       if (!safeEqual(providedKey, expectedKey)) {
         // Never log the keys themselves — that would leak HR_SYNC_API_KEY into
         // the server logs. Match the generic message used by the other hooks.
-        console.warn("[HR_SYNC_AUTH_FAIL_VACATION] invalid x-api-key");
+        logger.warn("[HR_SYNC_AUTH_FAIL_VACATION] invalid x-api-key");
         res.status(401).json({ success: false, error: "Unauthorized" });
         return;
       }
@@ -969,7 +970,7 @@ router.post(
       const providedKey = String(req.headers["x-api-key"] || "").trim();
       if (expectedKey) {
         if (!safeEqual(providedKey, expectedKey)) {
-          console.warn("[HR_SYNC_AUTH_FAIL_DEP] invalid x-api-key");
+          logger.warn("[HR_SYNC_AUTH_FAIL_DEP] invalid x-api-key");
           res.status(401).json({ success: false, error: "Unauthorized" });
           return;
         }
@@ -1076,7 +1077,7 @@ router.post(
         autoCheckout: checkoutResult,
       });
     } catch (err: any) {
-      console.error("[NOTIFY_DEPARTURE_ERROR]", err);
+      logger.error({ err }, "[NOTIFY_DEPARTURE_ERROR]");
       if (!res.headersSent) {
         res
           .status(500)
@@ -1265,7 +1266,7 @@ router.post(
       const result = await testEsignConnection(config);
       res.json(result);
     } catch (err: any) {
-      console.error("[Esign Test Error]", err);
+      logger.error({ err }, "[Esign Test Error]");
       res.status(400).json({
         success: false,
         error: err?.message || "فشل الاتصال بسيرفر Sunrise e-Signature",
@@ -1345,7 +1346,7 @@ router.get(
         res.json({ success: true, employee, sourceId: foundSourceId });
       }
     } catch (err: any) {
-      console.error("[Esign Lookup Error]", err);
+      logger.error({ err }, "[Esign Lookup Error]");
       res.status(400).json({
         success: false,
         error: err?.message || "فشل جلب بيانات الموظف من HR",
@@ -1447,9 +1448,9 @@ router.post(
             notFoundCodes.push(code);
           }
         } catch (fetchErr: any) {
-          console.warn(
-            `[Esign Range Sync] Error fetching code ${code}:`,
-            fetchErr?.message,
+          logger.warn(
+            { err: fetchErr },
+            `[Esign Range Sync] Error fetching code ${code}`,
           );
         }
         if (count > 10) {
@@ -1504,7 +1505,7 @@ router.post(
         stats: syncResult.stats,
       });
     } catch (err: any) {
-      console.error("[Esign Range Sync Error]", err);
+      logger.error({ err }, "[Esign Range Sync Error]");
       res.status(500).json({
         success: false,
         error: err?.message || "حدث خطأ أثناء الاستيراد بالنطاق",
@@ -1595,9 +1596,9 @@ router.post(
             notFoundInHr++;
           }
         } catch (fetchErr: any) {
-          console.warn(
-            `[Esign Batch Refresh] Error checking profile ${p.profileId}:`,
-            fetchErr?.message,
+          logger.warn(
+            { err: fetchErr },
+            `[Esign Batch Refresh] Error checking profile ${p.profileId}`,
           );
         }
         if (validProfiles.length > 20) {
@@ -1652,7 +1653,7 @@ router.post(
         stats: syncResult.stats,
       });
     } catch (err: any) {
-      console.error("[Esign Batch Refresh Error]", err);
+      logger.error({ err }, "[Esign Batch Refresh Error]");
       res.status(500).json({
         success: false,
         error: err?.message || "حدث خطأ أثناء تحديث بيانات الموظفين",
