@@ -191,6 +191,12 @@ export interface AnalyticsReportOptions {
   activePropertyId: number | undefined;
   settings: any;
   language?: "ar" | "en";
+  /**
+   * When true, omit the sticky action bar and the auto-print <script> so the
+   * document can be embedded in an in-app preview iframe (the modal supplies
+   * its own print controls). Defaults to false (standalone print window).
+   */
+  embed?: boolean;
 }
 
 /**
@@ -214,6 +220,7 @@ export const buildAnalyticsReportHtml = async (
     activePropertyId,
     settings,
     language = "ar",
+    embed = false,
   } = opts;
   const isAr = language === "ar";
   const propObj = properties.find(
@@ -655,7 +662,10 @@ export const buildAnalyticsReportHtml = async (
   </style>
 </head>
 <body>
-  <div class="print-actions-bar">
+  ${
+    embed
+      ? ""
+      : `<div class="print-actions-bar">
     <div style="font-weight:800; font-size:9.5pt;">
       ${isAr ? "تقرير التحليلات والإحصائيات الشاملة لسكن العاملين" : "Executive Housing Analytics Report"} · ${escapeHtml(propName || (isAr ? "سكن العاملين" : "Staff Housing"))}
     </div>
@@ -663,7 +673,8 @@ export const buildAnalyticsReportHtml = async (
       <button class="btn btn-primary" onclick="window.print()">${isAr ? "طباعة / حفظ كـ PDF (تقرير تنفيذي شامل)" : "Print / Save PDF (Executive Report)"}</button>
       <button class="btn btn-outline" onclick="window.close()">${isAr ? "إغلاق" : "Close"}</button>
     </div>
-  </div>
+  </div>`
+  }
 
   <!-- ══════════════════════════════════════════════════════════════ -->
   <!-- PAGE 1: Executive Overview, Capacity, Movement & Buildings   -->
@@ -1075,11 +1086,15 @@ export const buildAnalyticsReportHtml = async (
     </div>
   </div>
 
-  <script>
+  ${
+    embed
+      ? ""
+      : `<script>
     document.fonts.ready.then(function() {
       setTimeout(function() { window.print(); }, 400);
     });
-  </script>
+  </script>`
+  }
 </body>
 </html>`;
 

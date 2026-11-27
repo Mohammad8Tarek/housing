@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { exportExcel, printArabicAnalyticsReport } from "../utils/export";
+import { exportExcel, buildAnalyticsReportHtml } from "../utils/export";
 import { formatDate } from "@/lib/date-utils";
 import {
   translateReportHeader,
@@ -721,6 +721,8 @@ export function useReportExport({
 
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [studioScope, setStudioScope] = useState<"all" | "page">("all");
+  const [analyticsPrintOpen, setAnalyticsPrintOpen] = useState(false);
+  const [analyticsPrintHtml, setAnalyticsPrintHtml] = useState("");
 
   const printStudioProps = useMemo(() => {
     const allRows = toExcelRows("all");
@@ -899,21 +901,29 @@ export function useReportExport({
 
   const handleExportAnalyticsPDF = async () => {
     if (!canExportReports) return;
-    const isArabic = ar; // Direct language mode — zero popup prompting!
-    printArabicAnalyticsReport({
-      analytics,
-      stats,
-      rooms,
-      profiles,
-      buildings,
-      floors,
-      evalStats,
-      properties,
-      propId,
-      activePropertyId,
-      settings,
-      language: isArabic ? "ar" : "en",
-    });
+    try {
+      const html = await buildAnalyticsReportHtml({
+        analytics,
+        stats,
+        rooms,
+        profiles,
+        buildings,
+        floors,
+        evalStats,
+        properties,
+        propId,
+        activePropertyId,
+        settings,
+        language: ar ? "ar" : "en",
+        embed: true, // in-app preview iframe supplies its own print controls
+      });
+      setAnalyticsPrintHtml(html);
+      setAnalyticsPrintOpen(true);
+    } catch {
+      toast.error(
+        ar ? "تعذّر تجهيز التقرير للطباعة" : "Failed to prepare the report",
+      );
+    }
   };
 
   return {
@@ -924,5 +934,8 @@ export function useReportExport({
     setIsStudioOpen,
     studioScope,
     printStudioProps,
+    analyticsPrintOpen,
+    setAnalyticsPrintOpen,
+    analyticsPrintHtml,
   };
 }
