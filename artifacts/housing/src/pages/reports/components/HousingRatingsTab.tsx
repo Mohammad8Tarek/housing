@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { loadStyledXlsx, writeSunriseWorkbook } from "@/lib/xlsx-brand";
 import { ReportPrintStudioModal } from "./ReportPrintStudioModal";
 import type { ReportColumnConfig } from "./PrintableReportDocument";
@@ -235,7 +236,14 @@ export function HousingRatingsTab({
       date: formatDate(r.createdAt),
     }));
 
-    if (!rows.length) return;
+    if (!rows.length) {
+      toast.warning(
+        ar
+          ? "لا توجد بيانات تقييم متاحة للطباعة"
+          : "No evaluation data available to print",
+      );
+      return;
+    }
     setStudioRows(rows);
     setIsStudioOpen(true);
   };
