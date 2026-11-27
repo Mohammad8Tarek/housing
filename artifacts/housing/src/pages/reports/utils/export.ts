@@ -178,7 +178,7 @@ export const loadImgDataUrl = async (
   }
 };
 
-export const printArabicAnalyticsReport = async (opts: {
+export interface AnalyticsReportOptions {
   analytics: any;
   stats?: any;
   rooms: any[];
@@ -191,7 +191,16 @@ export const printArabicAnalyticsReport = async (opts: {
   activePropertyId: number | undefined;
   settings: any;
   language?: "ar" | "en";
-}) => {
+}
+
+/**
+ * Pure builder: returns the full printable HTML document for the Analytics
+ * report. Kept separate from printing so the markup can be rendered/tested
+ * headlessly (no window/DOM side effects beyond optional logo loading).
+ */
+export const buildAnalyticsReportHtml = async (
+  opts: AnalyticsReportOptions,
+): Promise<string> => {
   const {
     analytics,
     stats,
@@ -1073,6 +1082,14 @@ export const printArabicAnalyticsReport = async (opts: {
   </script>
 </body>
 </html>`;
+
+  return html;
+};
+
+export const printArabicAnalyticsReport = async (
+  opts: AnalyticsReportOptions,
+) => {
+  const html = await buildAnalyticsReportHtml(opts);
 
   const printWindow = window.open("", "_blank", "width=1050,height=850");
   if (!printWindow) {
