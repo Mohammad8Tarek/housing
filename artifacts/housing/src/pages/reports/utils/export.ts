@@ -478,7 +478,6 @@ export const printArabicAnalyticsReport = async (opts: {
       box-shadow: 0 4px 15px rgba(0,0,0,0.08);
       border-radius: 4px;
       page-break-after: always;
-      page-break-inside: avoid;
       box-sizing: border-box;
       position: relative;
       display: flex;
@@ -618,15 +617,23 @@ export const printArabicAnalyticsReport = async (opts: {
         width: 100%;
         min-height: auto;
         page-break-after: always;
-        page-break-inside: avoid;
         overflow: visible;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        display: block;
       }
       .page-sheet:last-child {
         page-break-after: avoid !important;
       }
+      /* Let long tables flow across physical pages instead of being
+         clipped or forcing blank pages. Repeat headers/footers, and keep
+         individual rows and small atomic blocks from splitting. */
+      table { page-break-inside: auto; }
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; }
+      tr { page-break-inside: avoid; page-break-after: auto; }
+      svg, img, .kpi-grid, .ops-grid, .occ-gauge-box, .sig-block {
+        page-break-inside: avoid;
+      }
+      .sec-head { page-break-after: avoid; }
       @page {
         size: A4 portrait;
         margin: 4mm 6mm;
