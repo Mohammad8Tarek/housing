@@ -62,7 +62,10 @@ if (!globalThis.__sunrise_pg_pool__) {
   });
 
   globalThis.__sunrise_pg_pool__.on("connect", (client) => {
-    // Force search_path to public for all new connections to fix Neon Pooler empty search_path bug
+    // Pin every new pooled connection to a known baseline search_path.
+    // Multi-tenant queries switch schema per request via withTenant(); this
+    // just guarantees connections start at `public` (global tables) instead
+    // of whatever the server/pooler leaves it as.
     client.query("SET search_path TO public").catch((err) => {
       console.error("[DB Pool] Failed to set search_path on connect:", err);
     });

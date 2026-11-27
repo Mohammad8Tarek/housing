@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",
-    "@opentelemetry/api": "^1.9.1",
     "@types/express-session": "^1.18.2",
     "@types/node-cron": "^3.0.11",
     "@types/web-push": "^3.6.4",
