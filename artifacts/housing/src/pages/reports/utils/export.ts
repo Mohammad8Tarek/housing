@@ -477,15 +477,19 @@ export const printArabicAnalyticsReport = async (opts: {
       padding: 6mm 8mm 5mm;
       box-shadow: 0 4px 15px rgba(0,0,0,0.08);
       border-radius: 4px;
-      page-break-after: always;
       box-sizing: border-box;
       position: relative;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
     }
+    /* Break BEFORE each sheet except the first. This never forces a break
+       after the last sheet, so trailing nodes (e.g. the print script) can't
+       produce a blank final page. */
+    .page-sheet + .page-sheet {
+      page-break-before: always;
+    }
     .page-sheet:last-child {
-      page-break-after: avoid;
       margin-bottom: 25px;
     }
     .header {
@@ -616,12 +620,11 @@ export const printArabicAnalyticsReport = async (opts: {
         padding: 5mm 7mm 4mm;
         width: 100%;
         min-height: auto;
-        page-break-after: always;
         overflow: visible;
         display: block;
       }
-      .page-sheet:last-child {
-        page-break-after: avoid !important;
+      .page-sheet + .page-sheet {
+        page-break-before: always;
       }
       /* Let long tables flow across physical pages instead of being
          clipped or forcing blank pages. Repeat headers/footers, and keep
