@@ -190,7 +190,9 @@ export function AnalyticsTab({
       {/* Top Header Card */}
       <div className="bg-card border border-border/70 shadow-xs rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0"></div>
+          <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+            <TrendingUp className="w-5 h-5" />
+          </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-foreground">
@@ -1225,7 +1227,7 @@ export function AnalyticsTab({
 
             <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-xl p-3 text-center mb-3">
               <div className="text-2xl font-black text-amber-600 dark:text-amber-400 tabular-nums flex items-center justify-center gap-1">
-                <span></span>
+                <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
                 <span>{evalStats?.average ? evalStats.average : "4.8"}</span>
                 <span className="text-xs text-muted-foreground font-normal">
                   / 5.0
