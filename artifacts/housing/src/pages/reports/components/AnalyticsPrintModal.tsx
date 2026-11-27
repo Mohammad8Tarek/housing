@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
 
@@ -39,42 +39,40 @@ export function AnalyticsPrintModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-5xl w-[95vw] h-[92vh] p-0 gap-0 overflow-hidden flex flex-col"
+        srTitle={ar ? "معاينة تقرير التحليلات" : "Analytics report preview"}
+        className="max-w-5xl w-[95vw]"
         dir={ar ? "rtl" : "ltr"}
       >
-        <DialogTitle className="sr-only">
-          {ar ? "معاينة تقرير التحليلات" : "Analytics report preview"}
-        </DialogTitle>
-
-        {/* Toolbar */}
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b bg-muted/40 shrink-0">
-          <span className="text-sm font-bold text-foreground">
-            {ar ? "معاينة التقرير قبل الطباعة" : "Report Print Preview"}
-          </span>
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={handlePrint} className="h-8 gap-1.5">
-              <Printer className="w-4 h-4" />
-              {ar ? "طباعة / حفظ PDF" : "Print / Save PDF"}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="h-8 gap-1.5"
-            >
-              <X className="w-4 h-4" />
-              {ar ? "إغلاق" : "Close"}
-            </Button>
+        <div className="flex flex-col gap-3">
+          {/* Toolbar (pe-8 keeps the dialog's built-in close X from overlapping) */}
+          <div className="flex items-center justify-between gap-3 pe-8">
+            <span className="text-sm font-bold text-foreground">
+              {ar ? "معاينة التقرير قبل الطباعة" : "Report Print Preview"}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={handlePrint} className="h-8 gap-1.5">
+                <Printer className="w-4 h-4" />
+                {ar ? "طباعة / حفظ PDF" : "Print / Save PDF"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="h-8 gap-1.5"
+              >
+                <X className="w-4 h-4" />
+                {ar ? "إغلاق" : "Close"}
+              </Button>
+            </div>
           </div>
-        </div>
 
-        {/* Isolated report preview */}
-        <div className="flex-1 min-h-0 bg-slate-200/70 dark:bg-slate-800/60">
+          {/* Isolated report preview — explicit height (the dialog wraps
+              children in a non-flex container, so flex-1 would collapse). */}
           <iframe
             ref={iframeRef}
             title={ar ? "معاينة التقرير" : "Report preview"}
             srcDoc={html}
-            className="w-full h-full border-0 bg-white"
+            className="w-full h-[74vh] rounded-lg border bg-white"
           />
         </div>
       </DialogContent>
