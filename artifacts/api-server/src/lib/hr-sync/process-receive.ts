@@ -1,6 +1,7 @@
 /**
  * hr-sync/process-receive.ts — Core batch processor for /receive and /sync.
  */
+import { logger } from "../logger.js";
 import {
   pool,
   withTenant,
@@ -393,9 +394,9 @@ export async function processReceive(
                   changedFields.push(`مستندات (${newDocs.length} ملف جديد)`);
                 }
               } catch (docErr) {
-                console.warn(
+                logger.warn(
+                  { err: docErr },
                   `[HrSync] Error inserting documents for profile ${existing.id}`,
-                  docErr,
                 );
               }
             }
@@ -570,9 +571,9 @@ export async function processReceive(
                 })),
               );
             } catch (docErr) {
-              console.warn(
+              logger.warn(
+                { err: docErr },
                 `[HrSync] Error inserting documents for new profile ${inserted.id}`,
-                docErr,
               );
             }
           }

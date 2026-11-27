@@ -1,3 +1,4 @@
+import { logger } from "./logger.js";
 import nodemailer from "nodemailer";
 import net from "node:net";
 import { lookup } from "node:dns/promises";
@@ -180,8 +181,9 @@ export async function sendMailWithRetry(
       lastErr = err;
       if (attempt < attempts) {
         const delay = baseDelayMs * Math.pow(2, attempt - 1);
-        console.warn(
-          `[email-retry] ${label} send attempt ${attempt}/${attempts} failed (${err?.message || err}); retrying in ${Math.round(delay / 1000)}s`,
+        logger.warn(
+          { err },
+          `[email-retry] ${label} send attempt ${attempt}/${attempts} failed; retrying in ${Math.round(delay / 1000)}s`,
         );
         await new Promise((r) => setTimeout(r, delay));
       }
@@ -327,16 +329,16 @@ export async function sendOtpEmail({
         : `${minutes} دقائق`;
 
   if (!isConfigured) {
-    console.log("\n" + "=".repeat(65));
-    console.log(
+    logger.info("\n" + "=".repeat(65));
+    logger.info(
       "📨 [AUTH OTP SIMULATION] (SMTP not configured in environment or settings)",
     );
-    console.log(`👤 Recipient : ${recipientName} <${toEmail}>`);
-    console.log(`🔑 OTP Code  : >>> ${otpCode} <<<`);
-    console.log(
+    logger.info(`👤 Recipient : ${recipientName} <${toEmail}>`);
+    logger.info(`🔑 OTP Code  : >>> ${otpCode} <<<`);
+    logger.info(
       `⏱️ Validity  : ${expiresInSeconds} seconds (${minutes} minutes)`,
     );
-    console.log("=".repeat(65) + "\n");
+    logger.info("=".repeat(65) + "\n");
     return { success: true, mode: "console" };
   }
 
@@ -356,22 +358,22 @@ export async function sendOtpEmail({
       text: `مرحباً ${recipientName}،\nرمز التحقق لاستعادة كلمة المرور الخاص بك في SUNRISE Resident هو: ${otpCode}\nهذا الرمز صالح لمدة ${minuteLabel} (${expiresInSeconds} ثانية) فقط.\nإذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.`,
     });
 
-    console.log(
+    logger.info(
       `[AUTH OTP] Email sent successfully to ${toEmail}. Message ID: ${info.messageId}`,
     );
     return { success: true, messageId: info.messageId, mode: "smtp" };
   } catch (err: any) {
-    console.error(
-      `[AUTH OTP ERROR] Failed to send email via SMTP to ${toEmail}:`,
-      err?.message || err,
+    logger.error(
+      { err },
+      `[AUTH OTP ERROR] Failed to send email via SMTP to ${toEmail}`,
     );
-    console.log("\n" + "=".repeat(65));
-    console.log(
+    logger.info("\n" + "=".repeat(65));
+    logger.info(
       "⚠️ [AUTH OTP FALLBACK] (Failed to send via SMTP, code logged for recovery)",
     );
-    console.log(`👤 Recipient : ${recipientName} <${toEmail}>`);
-    console.log(`🔑 OTP Code  : >>> ${otpCode} <<<`);
-    console.log("=".repeat(65) + "\n");
+    logger.info(`👤 Recipient : ${recipientName} <${toEmail}>`);
+    logger.info(`🔑 OTP Code  : >>> ${otpCode} <<<`);
+    logger.info("=".repeat(65) + "\n");
     return { success: true, mode: "console", error: err?.message };
   }
 }
@@ -429,14 +431,14 @@ export async function sendTestEmail({
       text: `تهانينا! إعدادات البريد الإلكتروني تعمل بنجاح في نظام SUNRISE Resident.\nالسيرفر: ${config?.smtpHost || process.env.SMTP_HOST || "Default"}\nالمنفذ: ${config?.smtpPort || process.env.SMTP_PORT || "587"}\nتاريخ الاختبار: ${new Date().toLocaleString("ar-EG")}`,
     });
 
-    console.log(
+    logger.info(
       `[SMTP TEST] Test email sent successfully to ${toEmail}. Message ID: ${info.messageId}`,
     );
     return { success: true, messageId: info.messageId };
   } catch (err: any) {
-    console.error(
-      `[SMTP TEST ERROR] Failed to send test email to ${toEmail}:`,
-      err?.message || err,
+    logger.error(
+      { err },
+      `[SMTP TEST ERROR] Failed to send test email to ${toEmail}`,
     );
     return { success: false, error: describeSmtpError(err) };
   }

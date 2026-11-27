@@ -1,3 +1,4 @@
+import { logger } from "./logger.js";
 import { safeSchemaName } from "./pg-ident.js";
 import { pool } from "@workspace/db";
 import {
@@ -178,11 +179,11 @@ export async function backfillBilingualProfiles(): Promise<{
       }
     }
 
-    console.log(
+    logger.info(
       `[Bilingual Backfill] Completed: ${totalUpdatedProfiles} profiles updated, ${totalUpdatedLookups} lookup values updated across all tenant schemas.`,
     );
   } catch (err) {
-    console.error("[Bilingual Backfill] Error during execution:", err);
+    logger.error({ err }, "[Bilingual Backfill] Error during execution");
   } finally {
     client.release();
   }

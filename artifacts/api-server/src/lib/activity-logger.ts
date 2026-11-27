@@ -1,3 +1,4 @@
+import { logger } from "./logger.js";
 import { db, withTenant, activityLogsTable } from "@workspace/db";
 import { auditQueue } from "@workspace/queue";
 import type { Request } from "express";
@@ -51,9 +52,9 @@ async function writeLogToDb(
   try {
     await db.insert(activityLogsTable).values(logRecord);
   } catch (pubErr) {
-    console.error(
-      "[ActivityLogger] Failed to write to public master log:",
-      pubErr,
+    logger.error(
+      { err: pubErr },
+      "[ActivityLogger] Failed to write to public master log",
     );
   }
 
@@ -64,9 +65,9 @@ async function writeLogToDb(
         await tenantDb.insert(activityLogsTable).values(logRecord);
       });
     } catch (tenantErr) {
-      console.error(
-        `[ActivityLogger] Failed to write to tenant ${targetPropertyId} log:`,
-        tenantErr,
+      logger.error(
+        { err: tenantErr },
+        `[ActivityLogger] Failed to write to tenant ${targetPropertyId} log`,
       );
     }
   }
@@ -155,7 +156,7 @@ function dispatchLogAsync(
         // Fallback to in-memory write if BullMQ enqueue fails
         setImmediate(() => {
           writeLogToDb(logRecord, targetPropertyId).catch((e) =>
-            console.error("[ActivityLogger] In-memory write error:", e),
+            logger.error({ err: e }, "[ActivityLogger] In-memory write error"),
           );
         });
       });
@@ -163,7 +164,7 @@ function dispatchLogAsync(
     // In-memory non-blocking execution via setImmediate
     setImmediate(() => {
       writeLogToDb(logRecord, targetPropertyId).catch((err) =>
-        console.error("[ActivityLogger] In-memory write error:", err),
+        logger.error({ err }, "[ActivityLogger] In-memory write error"),
       );
     });
   }
@@ -178,7 +179,7 @@ export function queueActivity(opts: ActivityLogOptions): void {
     const { logRecord, targetPropertyId } = prepareLogRecord(opts);
     dispatchLogAsync(logRecord, targetPropertyId);
   } catch (err) {
-    console.error("[ActivityLogger] queueActivity error:", err);
+    logger.error({ err }, "[ActivityLogger] queueActivity error");
   }
 }
 
@@ -201,6 +202,6 @@ export async function logActivity(opts: ActivityLogOptions): Promise<void> {
     dispatchLogAsync(logRecord, targetPropertyId);
   } catch (err) {
     /* never crash system if logging fails */
-    console.error("[ActivityLogger] Activity log failed:", err);
+    logger.error({ err }, "[ActivityLogger] Activity log failed");
   }
 }

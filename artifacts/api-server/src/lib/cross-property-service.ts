@@ -1,3 +1,4 @@
+import { logger } from "./logger.js";
 import {
   db,
   withTenant,
@@ -215,7 +216,7 @@ export async function syncProfileAcrossProperties(options: SyncProfileOptions) {
       });
     }
   } catch (docErr) {
-    console.warn("[cross-property] Document sync warning:", docErr);
+    logger.warn({ err: docErr }, "[cross-property] Document sync warning");
   }
 
   return {
@@ -253,7 +254,7 @@ export async function archiveSourceProfileOnTransfer(
 
     if (!srcProfile) return false;
 
-    console.log(
+    logger.info(
       `[cross-property] 🔄 Preserving room logs & ${archiveProfile ? "archiving profile as TRANSFERRED" : "checking out room stay"} for #${sourceProfileId} (${srcProfile.firstName} ${srcProfile.lastName}) -> ${targetPropertyName} in property #${sourcePropertyId}...`,
     );
 
@@ -348,7 +349,7 @@ export async function archiveSourceProfileOnTransfer(
       action: "sync",
     });
 
-    console.log(
+    logger.info(
       `[cross-property] ✅ Successfully processed profile #${sourceProfileId} in property #${sourcePropertyId} (Archived: ${archiveProfile}).`,
     );
     return true;
@@ -881,9 +882,9 @@ export async function executeCrossPropertyTransfer(
     targetName,
     archiveSourceProfile,
   ).catch((delErr) => {
-    console.warn(
-      "[cross-property] archiveSourceProfileOnTransfer in executeCrossPropertyTransfer warning:",
-      delErr?.message,
+    logger.warn(
+      { err: delErr },
+      "[cross-property] archiveSourceProfileOnTransfer in executeCrossPropertyTransfer warning",
     );
   });
 
@@ -956,9 +957,9 @@ export async function findAssignmentAcrossAllProperties(
       }
     }
   } catch (err: any) {
-    console.error(
-      "[cross-property] Error in findAssignmentAcrossAllProperties:",
-      err?.message || err,
+    logger.error(
+      { err },
+      "[cross-property] Error in findAssignmentAcrossAllProperties",
     );
   }
 
@@ -993,9 +994,9 @@ export async function findRoomAcrossAllProperties(
       }
     }
   } catch (err: any) {
-    console.error(
-      "[cross-property] Error in findRoomAcrossAllProperties:",
-      err?.message || err,
+    logger.error(
+      { err },
+      "[cross-property] Error in findRoomAcrossAllProperties",
     );
   }
 
@@ -1030,9 +1031,9 @@ export async function findReservationAcrossAllProperties(
       }
     }
   } catch (err: any) {
-    console.error(
-      "[cross-property] Error in findReservationAcrossAllProperties:",
-      err?.message || err,
+    logger.error(
+      { err },
+      "[cross-property] Error in findReservationAcrossAllProperties",
     );
   }
 
@@ -1067,9 +1068,9 @@ export async function findHostingAcrossAllProperties(
       }
     }
   } catch (err: any) {
-    console.error(
-      "[cross-property] Error in findHostingAcrossAllProperties:",
-      err?.message || err,
+    logger.error(
+      { err },
+      "[cross-property] Error in findHostingAcrossAllProperties",
     );
   }
 
@@ -1112,7 +1113,7 @@ export async function healOrphanAssignments(): Promise<number> {
 
       for (const orphan of orphanAssignments) {
         if (!orphan.profileId) continue;
-        console.log(
+        logger.info(
           `[auto-heal] Found orphan assignment #${orphan.id} in property ${prop.id} referencing missing profile ID ${orphan.profileId}`,
         );
 
@@ -1120,7 +1121,7 @@ export async function healOrphanAssignments(): Promise<number> {
           orphan.profileId,
         );
         if (foundSource && foundSource.propertyId !== prop.id) {
-          console.log(
+          logger.info(
             `[auto-heal] Located missing profile in source property ${foundSource.propertyId} (${foundSource.profile.firstName} ${foundSource.profile.lastName})`,
           );
 
@@ -1153,14 +1154,14 @@ export async function healOrphanAssignments(): Promise<number> {
             foundSource.profile.id,
             targetName,
           ).catch((e) =>
-            console.warn(
-              `[auto-heal] closeSourceAssignment warning:`,
-              e?.message,
+            logger.warn(
+              { err: e },
+              `[auto-heal] closeSourceAssignment warning`,
             ),
           );
 
           healedCount++;
-          console.log(
+          logger.info(
             `[auto-heal] ✅ Healed assignment #${orphan.id} in property ${prop.id} -> Linked to local profile #${targetProfile.id} (${targetProfile.firstName} ${targetProfile.lastName})`,
           );
         }
@@ -1170,15 +1171,12 @@ export async function healOrphanAssignments(): Promise<number> {
     // Run duplicate cleanup across properties
     const dedupedCount = await cleanupDuplicateTransferredProfiles();
     if (dedupedCount > 0) {
-      console.log(
+      logger.info(
         `[auto-heal] 🧹 Cleaned up ${dedupedCount} duplicate transferred profiles across properties.`,
       );
     }
   } catch (err: any) {
-    console.error(
-      "[auto-heal] Error during healOrphanAssignments:",
-      err?.message || err,
-    );
+    logger.error({ err }, "[auto-heal] Error during healOrphanAssignments");
   }
 
   return healedCount;
@@ -1319,7 +1317,7 @@ export async function cleanupDuplicateTransferredProfiles(): Promise<number> {
         const targetPropName =
           allProperties.find((p) => p.id === primary.propertyId)?.name ||
           "فندق آخر";
-        console.log(
+        logger.info(
           `[dedup] Archiving duplicate profile #${dup.id} in property #${dup.propertyId} (${dup.firstName} ${dup.lastName}, code: ${dup.profileId}) -> Primary is #${primary.id} in property #${primary.propertyId} (${targetPropName})`,
         );
 
@@ -1332,9 +1330,9 @@ export async function cleanupDuplicateTransferredProfiles(): Promise<number> {
       }
     }
   } catch (err: any) {
-    console.error(
-      "[dedup] Error during cleanupDuplicateTransferredProfiles:",
-      err?.message || err,
+    logger.error(
+      { err },
+      "[dedup] Error during cleanupDuplicateTransferredProfiles",
     );
   }
 
