@@ -1,0 +1,78 @@
+name: DB Backup
+
+on:
+  schedule:
+    # 03:00 Africa/Cairo (UTC+2, Egypt has no DST) = 01:00 UTC, nightly
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+    inputs:
+      property_id:
+        description: "Property ID to back up (empty = full backup, every schema)"
+        required: false
+        type: string
+
+permissions: {}
+
+jobs:
+  backup:
+    name: Dump + restore verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: restore-test
+          POSTGRES_DB: restore_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      RESTORE_URL: postgresql://postgres:restore-test@localhost:5432/restore_test
+      PROPERTY_ID: ${{ inputs.property_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL 18 client
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-18
+
+      - name: Dump production database (full, or one property)
+        env:
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          if [ -n "$PROPERTY_ID" ]; then
+            scripts/db/backup.sh --url "$DATABASE_URL" --property "$PROPERTY_ID" --out staff-housing.dump
+          else
+            scripts/db/backup.sh --url "$DATABASE_URL" --out staff-housing.dump
+          fi
+
+      - name: "Verify dump (full backup - live restore test)"
+        if: ${{ github.event_name == 'schedule' || inputs.property_id == '' }}
+        run: |
+          pg_restore --dbname "$RESTORE_URL" --no-owner --no-privileges --exit-on-error staff-housing.dump
+          psql "$RESTORE_URL" -Atc "SELECT count(*) || ' tables restored' FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog','information_schema')"
+
+      - name: "Verify dump (property backup - archive integrity)"
+        if: ${{ github.event_name != 'schedule' && inputs.property_id != '' }}
+        run: |
+          # Tenant tables have FKs into public.*, so a single-schema dump cannot
+          # live-restore into an empty scratch database. Verify the archive
+          # reads back and holds the property schema's objects; the nightly
+          # full backup still live-tests restorability of every schema.
+          pg_restore --list staff-housing.dump | head -40
+          pg_restore --list staff-housing.dump | grep -q "TABLE DATA" && echo "archive integrity OK"
+
+      - name: Upload dump artifact (14-day retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ (github.event_name != 'schedule' && inputs.property_id != '') && format('property-{0}-dump-run{1}', inputs.property_id, github.run_number) || format('staff-housing-dump-run{0}', github.run_number) }}
+          path: staff-housing.dump
+          retention-days: 14
