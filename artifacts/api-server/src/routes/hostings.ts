@@ -36,7 +36,7 @@ import {
   requirePermission,
   requireAnyPermission,
 } from "../middlewares/permissions.js";
-import { getTenantId, su } from "../lib/request-utils.js";
+import { getTenantId, su, assertPropertyAccess } from "../lib/request-utils.js";
 import { findHostingAcrossAllProperties } from "../lib/cross-property-service.js";
 import { roomStatusAfterCheckIn } from "../lib/room-status.js";
 import { validate } from "../middlewares/validate.js";
@@ -503,11 +503,17 @@ router.get(
       });
       if (!exists) {
         const cross = await findHostingAcrossAllProperties(hostingId);
-        if (cross) propertyId = cross.propertyId;
+        if (cross) {
+          propertyId = cross.propertyId;
+          if (!assertPropertyAccess(req, res, propertyId)) return;
+        }
       }
     } else {
       const cross = await findHostingAcrossAllProperties(hostingId);
-      if (cross) propertyId = cross.propertyId;
+      if (cross) {
+        propertyId = cross.propertyId;
+        if (!assertPropertyAccess(req, res, propertyId)) return;
+      }
     }
 
     if (!propertyId) {
@@ -617,11 +623,17 @@ router.patch(
         });
         if (!exists) {
           const cross = await findHostingAcrossAllProperties(params.data.id);
-          if (cross) propertyId = cross.propertyId;
+          if (cross) {
+            propertyId = cross.propertyId;
+            if (!assertPropertyAccess(req, res, propertyId)) return;
+          }
         }
       } else {
         const cross = await findHostingAcrossAllProperties(params.data.id);
-        if (cross) propertyId = cross.propertyId;
+        if (cross) {
+          propertyId = cross.propertyId;
+          if (!assertPropertyAccess(req, res, propertyId)) return;
+        }
       }
 
       if (!propertyId) {
@@ -719,11 +731,17 @@ router.delete(
       });
       if (!exists) {
         const cross = await findHostingAcrossAllProperties(params.data.id);
-        if (cross) propertyId = cross.propertyId;
+        if (cross) {
+          propertyId = cross.propertyId;
+          if (!assertPropertyAccess(req, res, propertyId)) return;
+        }
       }
     } else {
       const cross = await findHostingAcrossAllProperties(params.data.id);
-      if (cross) propertyId = cross.propertyId;
+      if (cross) {
+        propertyId = cross.propertyId;
+        if (!assertPropertyAccess(req, res, propertyId)) return;
+      }
     }
 
     if (!propertyId) {
@@ -786,11 +804,17 @@ router.post(
         });
         if (!exists) {
           const cross = await findHostingAcrossAllProperties(params.data.id);
-          if (cross) propertyId = cross.propertyId;
+          if (cross) {
+            propertyId = cross.propertyId;
+            if (!assertPropertyAccess(req, res, propertyId)) return;
+          }
         }
       } else {
         const cross = await findHostingAcrossAllProperties(params.data.id);
-        if (cross) propertyId = cross.propertyId;
+        if (cross) {
+          propertyId = cross.propertyId;
+          if (!assertPropertyAccess(req, res, propertyId)) return;
+        }
       }
 
       if (!propertyId) {
@@ -890,11 +914,17 @@ router.post(
         });
         if (!exists) {
           const cross = await findHostingAcrossAllProperties(params.data.id);
-          if (cross) propertyId = cross.propertyId;
+          if (cross) {
+            propertyId = cross.propertyId;
+            if (!assertPropertyAccess(req, res, propertyId)) return;
+          }
         }
       } else {
         const cross = await findHostingAcrossAllProperties(params.data.id);
-        if (cross) propertyId = cross.propertyId;
+        if (cross) {
+          propertyId = cross.propertyId;
+          if (!assertPropertyAccess(req, res, propertyId)) return;
+        }
       }
 
       if (!propertyId) {
@@ -1069,11 +1099,17 @@ router.post(
         });
         if (!exists) {
           const cross = await findHostingAcrossAllProperties(params.data.id);
-          if (cross) propertyId = cross.propertyId;
+          if (cross) {
+            propertyId = cross.propertyId;
+            if (!assertPropertyAccess(req, res, propertyId)) return;
+          }
         }
       } else {
         const cross = await findHostingAcrossAllProperties(params.data.id);
-        if (cross) propertyId = cross.propertyId;
+        if (cross) {
+          propertyId = cross.propertyId;
+          if (!assertPropertyAccess(req, res, propertyId)) return;
+        }
       }
 
       if (!propertyId) {

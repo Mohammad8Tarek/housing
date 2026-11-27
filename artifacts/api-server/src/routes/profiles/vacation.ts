@@ -11,6 +11,7 @@ import { logActivity } from "../../lib/activity-logger.js";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { getTenantId, su } from "../../lib/request-utils.js";
 import { resolveProfileTenant } from "./shared.js";
+import { assertPropertyAccess } from "../../lib/request-utils.js";
 import { validate } from "../../middlewares/validate.js";
 import {
   IdParams,
@@ -45,6 +46,7 @@ router.post(
       return;
     }
     propertyId = resolved.propertyId;
+    if (!assertPropertyAccess(req, res, propertyId)) return;
 
     const result = await withTenant(propertyId, async (tenantDb) => {
       const [emp] = await tenantDb
@@ -166,6 +168,7 @@ router.post(
       return;
     }
     propertyId = resolved.propertyId;
+    if (!assertPropertyAccess(req, res, propertyId)) return;
 
     const returnDate =
       req.body.returnDate || new Date().toISOString().split("T")[0];

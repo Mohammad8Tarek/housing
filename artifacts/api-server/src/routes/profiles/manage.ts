@@ -20,7 +20,11 @@ import {
 import { logActivity } from "../../lib/activity-logger.js";
 import { requirePermission } from "../../middlewares/permissions.js";
 import { moveOrEnsureProfilePortalAccount } from "../../lib/portal-accounts.js";
-import { getTenantId, su } from "../../lib/request-utils.js";
+import {
+  getTenantId,
+  su,
+  assertPropertyAccess,
+} from "../../lib/request-utils.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { roomStatusAfterDeparture } from "../../lib/room-status.js";
 import { enrichProfileBilingual } from "../../lib/bilingual-translator.js";
@@ -431,6 +435,7 @@ router.delete(
       return;
     }
     propertyId = resolved.propertyId;
+    if (!assertPropertyAccess(req, res, propertyId)) return;
 
     const result = await withTenant(propertyId, async (tenantDb) => {
       // 1. Fetch employee
@@ -652,6 +657,7 @@ router.patch(
       return;
     }
     propertyId = resolved.propertyId;
+    if (!assertPropertyAccess(req, res, propertyId)) return;
 
     let idImage: string | null;
     try {
