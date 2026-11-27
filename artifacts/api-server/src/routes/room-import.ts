@@ -18,6 +18,7 @@ import {
   SaveImportTemplateBody,
 } from "../validation/schemas.js";
 import { syncRoomFeaturesToInventory } from "./room-inventory.js";
+import { logger } from "../lib/logger.js";
 
 const router = Router();
 
@@ -448,7 +449,7 @@ router.post(
 
       res.json(result);
     } catch (err: any) {
-      console.error("[Room Import] Error during execution:", err);
+      logger.error({ err }, "[Room Import] Error during execution");
       res
         .status(500)
         .json({ error: err.message || "Failed to execute room import" });

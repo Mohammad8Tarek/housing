@@ -25,6 +25,7 @@ import {
 } from "../../validation/schemas.js";
 import { getTenantId } from "../../lib/request-utils.js";
 import { withTableFallback } from "../../lib/with-table-fallback.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -1367,7 +1368,7 @@ router.post(
               };
             });
           } catch (err) {
-            console.error("[POST /api/reports/custom/query error]:", err);
+            logger.error({ err }, "[POST /api/reports/custom/query error]");
             throw err;
           }
         },

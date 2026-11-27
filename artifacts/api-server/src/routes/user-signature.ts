@@ -6,6 +6,7 @@ import { z } from "zod/v4";
 import { loadAuthUser, hasPermission } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -71,7 +72,7 @@ router.get("/users/me/signature", async (req, res): Promise<void> => {
       uploadedAt: rows.rows[0].uploaded_at,
     });
   } catch {
-    console.error("user-signature: database error");
+    logger.error("user-signature: database error");
     res
       .status(500)
       .json({ success: false, message: "Failed to load signature" });
@@ -140,7 +141,7 @@ router.post("/users/me/signature", async (req, res): Promise<void> => {
 
     res.json({ success: true, message: "Signature saved" });
   } catch {
-    console.error("user-signature: database error");
+    logger.error("user-signature: database error");
     res
       .status(500)
       .json({ success: false, message: "Failed to save signature" });
@@ -188,7 +189,7 @@ router.get(
         uploadedAt: rows.rows[0].uploaded_at,
       });
     } catch {
-      console.error("user-signature: database error");
+      logger.error("user-signature: database error");
       res
         .status(500)
         .json({ success: false, message: "Failed to load signature" });
@@ -286,7 +287,7 @@ router.post(
 
       res.json({ success: true, message: "Signature saved" });
     } catch {
-      console.error("user-signature: database error");
+      logger.error("user-signature: database error");
       res
         .status(500)
         .json({ success: false, message: "Failed to save signature" });

@@ -15,6 +15,7 @@ import {
 } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
 import { RequestRefParams } from "../../validation/schemas.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -226,7 +227,7 @@ router.post(
       );
       res.status(201).json({ success: true, data: created });
     } catch (err: unknown) {
-      console.error("ROUTE ERROR:", err);
+      logger.error({ err }, "ROUTE ERROR");
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message });
     }
@@ -385,7 +386,7 @@ router.post(
       }
     } catch (err: unknown) {
       if (res.headersSent) return;
-      console.error("ROUTE ERROR:", err);
+      logger.error({ err }, "ROUTE ERROR");
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ success: false, message });
     }

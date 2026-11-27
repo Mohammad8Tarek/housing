@@ -1,4 +1,5 @@
 import * as net from "net";
+import { logger } from "./logger.js";
 
 const STX = 0x02;
 const ETX = 0x03;
@@ -325,9 +326,9 @@ async function syncStatusToDb(
       }
     }
   } catch (err: any) {
-    console.error(
-      `[PMS-Bridge - Port ${port}] Failed to sync status to DB:`,
-      err.message,
+    logger.error(
+      { err },
+      `[PMS-Bridge - Port ${port}] Failed to sync status to DB`,
     );
   }
 }
@@ -388,10 +389,7 @@ function attachHotekSocketHandlers(
   };
 
   const onError = (err: Error | unknown) => {
-    console.error(
-      `[PMS-Bridge - Port ${port}] Hotek socket error:`,
-      err instanceof Error ? err.message : String(err),
-    );
+    logger.error({ err }, `[PMS-Bridge - Port ${port}] Hotek socket error`);
     if (currentPms.pendingCmd) {
       currentPms.pendingCmd.reject(
         new Error(
@@ -503,7 +501,7 @@ export function startPmsServerForProperty(
   });
 
   server.on("error", (err: Error) =>
-    console.error(`[PMS-Bridge - Port ${port}] Server error:`, err.message),
+    logger.error({ err }, `[PMS-Bridge - Port ${port}] Server error`),
   );
 }
 
@@ -552,18 +550,20 @@ export async function startAllPmsServers(app?: any): Promise<void> {
   if (app) _app = app;
 
   const mainPort = Number(process.env.PORT) || 4000;
-  console.warn(`[PMS-Bridge] Starting PMS servers (mainPort=${mainPort})`);
+  logger.warn(`[PMS-Bridge] Starting PMS servers (mainPort=${mainPort})`);
 
   try {
     const { pool } = await import("@workspace/db");
     const result = await pool.query(
       `SELECT property_id, port FROM public.property_hotek_servers WHERE is_active = true`,
     );
-    console.warn(
-      `[PMS-Bridge] Found ${result.rows.length} active Hotek servers:`,
-      result.rows
-        .map((r: any) => `(property=${r.property_id}, port=${r.port})`)
-        .join(", "),
+    logger.warn(
+      {
+        servers: result.rows
+          .map((r: any) => `(property=${r.property_id}, port=${r.port})`)
+          .join(", "),
+      },
+      `[PMS-Bridge] Found ${result.rows.length} active Hotek servers`,
     );
 
     for (const row of result.rows) {
@@ -572,7 +572,7 @@ export async function startAllPmsServers(app?: any): Promise<void> {
         const targetPmsPort = 10006;
 
         if (row.port !== targetPmsPort) {
-          console.warn(
+          logger.warn(
             `[PMS-Bridge] Property ${row.property_id} has drifted port ${row.port} — resetting back to ${targetPmsPort}`,
           );
           try {
@@ -582,15 +582,13 @@ export async function startAllPmsServers(app?: any): Promise<void> {
             );
             row.port = targetPmsPort;
           } catch (err: any) {
-            console.error(
-              `[PMS-Bridge] Failed to reset drifted port: ${err.message}`,
-            );
+            logger.error({ err }, "[PMS-Bridge] Failed to reset drifted port");
           }
         }
         startPmsServerForProperty(row.property_id, row.port);
       }
     }
   } catch (err: any) {
-    console.error("[PMS-Bridge] Failed to start all PMS servers:", err.message);
+    logger.error({ err }, "[PMS-Bridge] Failed to start all PMS servers");
   }
 }

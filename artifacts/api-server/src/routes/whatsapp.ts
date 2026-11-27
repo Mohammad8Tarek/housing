@@ -30,6 +30,7 @@ import {
   getOptOutCount,
 } from "../lib/whatsapp-engine.js";
 import { sendingPausedUntil } from "../lib/whatsapp/send.js";
+import { logger } from "../lib/logger.js";
 
 const router = Router();
 
@@ -749,10 +750,7 @@ router.post(
         recipients,
       });
     } catch (err: any) {
-      console.error(
-        "[POST /api/whatsapp/broadcast/preview] error:",
-        err.message,
-      );
+      logger.error({ err }, "[POST /api/whatsapp/broadcast/preview] error");
       res.status(500).json({ success: false, error: err.message });
     }
   },
@@ -838,7 +836,7 @@ router.post(
         quota: await getQuotaStatus(propertyId).catch(() => null),
       });
     } catch (err: any) {
-      console.error("[POST /api/whatsapp/broadcast/send] error:", err.message);
+      logger.error({ err }, "[POST /api/whatsapp/broadcast/send] error");
       res.status(500).json({ success: false, error: err.message });
     }
   },

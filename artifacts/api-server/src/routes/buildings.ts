@@ -16,6 +16,7 @@ import {
 } from "../middlewares/permissions.js";
 import { validate } from "../middlewares/validate.js";
 import { CommonListQuery, IdParams } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -123,7 +124,7 @@ router.get(
         },
       });
     } catch (err: any) {
-      console.error("[buildings/list] Error:", err);
+      logger.error({ err }, "[buildings/list] Error");
       res
         .status(500)
         .json({ error: err.message || "Failed to fetch buildings" });
@@ -188,7 +189,7 @@ router.post(
       });
       res.status(201).json({ ...building, propertyId });
     } catch (err: any) {
-      console.error("[buildings/create] Error:", err);
+      logger.error({ err }, "[buildings/create] Error");
       res
         .status(500)
         .json({ error: err.message || "Failed to create building" });
@@ -269,7 +270,7 @@ router.patch(
       });
       res.json(UpdateBuildingResponse.parse({ ...updated, propertyId }));
     } catch (err: any) {
-      console.error("[buildings/update] Error:", err);
+      logger.error({ err }, "[buildings/update] Error");
       res
         .status(500)
         .json({ error: err.message || "Failed to update building" });
@@ -371,7 +372,7 @@ router.delete(
       }
       res.sendStatus(204);
     } catch (err: any) {
-      console.error("[buildings/delete] Error:", err);
+      logger.error({ err }, "[buildings/delete] Error");
       res
         .status(500)
         .json({ error: err.message || "Failed to delete building" });

@@ -30,6 +30,7 @@ import {
   EvaluationRespondBody,
   HousingRatingBody,
 } from "../../validation/schemas.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -157,7 +158,7 @@ router.get("/my-evaluations", async (req, res): Promise<void> => {
       })),
     );
   } catch (err) {
-    console.error("GET /my-evaluations error:", err);
+    logger.error({ err }, "GET /my-evaluations error");
     res
       .status(500)
       .json({ success: false, message: "Failed to fetch evaluations" });
@@ -340,7 +341,7 @@ router.post(
 
       res.json({ success: true, message: "Evaluation response saved" });
     } catch (err) {
-      console.error("POST /my-evaluations/:id/respond error:", err);
+      logger.error({ err }, "POST /my-evaluations/:id/respond error");
       res.status(500).json({
         success: false,
         message: "Failed to submit evaluation response",
@@ -482,7 +483,7 @@ router.get("/housing-rating-status", async (req, res): Promise<void> => {
       });
     }
   } catch (err: any) {
-    console.error("Failed to check housing rating status:", err);
+    logger.error({ err }, "Failed to check housing rating status");
     res.status(500).json({ success: false, message: "Failed to check status" });
   }
 });
@@ -619,7 +620,7 @@ router.post(
           "تم تسجيل تقييمك بنجاح وبسرية تامة! شكراً لمشاركتك في تحسين جودة السكن.",
       });
     } catch (err: any) {
-      console.error("Failed to submit housing rating:", err);
+      logger.error({ err }, "Failed to submit housing rating");
       res.status(500).json({ success: false, message: "فشل إرسال التقييم" });
     }
   },

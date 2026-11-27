@@ -9,6 +9,7 @@ import {
   ActivityCancelBody,
   ActivityAttendanceBody,
 } from "../../validation/schemas.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -237,7 +238,7 @@ router.post(
 
       res.json({ success: true });
     } catch (err: any) {
-      console.error("Attendance update failed:", err);
+      logger.error({ err }, "Attendance update failed");
       res
         .status(500)
         .json({ success: false, message: "Failed to update attendance" });

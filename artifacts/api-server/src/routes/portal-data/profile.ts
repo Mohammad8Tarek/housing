@@ -13,6 +13,7 @@ import { portalSession } from "../portal-auth/shared.js";
 import { logActivity } from "../../lib/activity-logger.js";
 import { validate } from "../../middlewares/validate.js";
 import { MyProfileBody } from "../../validation/schemas.js";
+import { logger } from "../../lib/logger.js";
 
 const router: Router = Router();
 
@@ -358,13 +359,13 @@ router.get("/roommates", async (req, res): Promise<void> => {
 
       if (roommateIds.length === 0) return { roommates: [] };
       // Basic debug logging to help trace portal roommate fetches
-      console.debug(
-        "[portal-data]/roommates: propertyId=",
-        sess.propertyId,
-        "profileDbId=",
-        sess.profileDbId,
-        "roommateCount=",
-        roommateIds.length,
+      logger.debug(
+        {
+          propertyId: sess.propertyId,
+          profileDbId: sess.profileDbId,
+          roommateCount: roommateIds.length,
+        },
+        "[portal-data]/roommates",
       );
 
       const profiles = await tenantDb
@@ -402,12 +403,12 @@ router.get("/roommates", async (req, res): Promise<void> => {
         details: `roommateCount=${(result.roommates || []).length}`,
       });
     } catch (e) {
-      console.warn("Failed to log portal roommates activity:", e);
+      logger.warn({ err: e }, "Failed to log portal roommates activity");
     }
 
     res.json({ success: true, roommates: result.roommates ?? [] });
   } catch (err) {
-    console.error("/roommates error:", err);
+    logger.error({ err }, "/roommates error");
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });

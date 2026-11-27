@@ -24,6 +24,7 @@ async function getSafetyLevel(propertyId: number): Promise<SafetyLevel> {
 import { injectAntiBanFingerprint, normalizePhoneNumber } from "./templates.js";
 import { getWhatsAppSession } from "./session.js";
 import { isOptedOut } from "./opt-out.js";
+import { logger } from "../logger.js";
 
 // Outbox queue processing state per property
 export const isProcessingOutbox = new Map<number, boolean>();
@@ -139,7 +140,7 @@ export async function processOutboxQueue(
           safetyLevel,
         );
         if (!quota.allowed) {
-          console.warn(`[WhatsApp Anti-Ban] 🛡️ ${quota.reason}`);
+          logger.warn(`[WhatsApp Anti-Ban] 🛡️ ${quota.reason}`);
           break;
         }
       }
@@ -173,7 +174,7 @@ export async function processOutboxQueue(
       if (!isHttpProvider) {
         const currentSession = await getWhatsAppSession(propertyId);
         if (currentSession.status !== "connected" || !currentSession.sock) {
-          console.warn(
+          logger.warn(
             `[WhatsApp Outbox] Connection dropped while processing outbox for property ${propertyId}. Halting until reconnect.`,
           );
           break;
@@ -217,7 +218,7 @@ export async function processOutboxQueue(
           const coolDownMs = Math.round(
             (70000 + Math.floor(Math.random() * 40000)) * gapFactor,
           );
-          console.log(
+          logger.info(
             `[WhatsApp Anti-Ban] 🛡️ 8 messages sent for property ${propertyId} (level=${safetyLevel}); pausing ${Math.round(coolDownMs / 1000)}s.`,
           );
           await sleep(coolDownMs);
@@ -286,7 +287,7 @@ export async function processOutboxQueue(
         // WhatsApp throttling / restricting the number: stop for an hour.
         if (!isMetaCloud && RATE_LIMIT_RE.test(String(result.reason || ""))) {
           sendingPausedUntil.set(propertyId, Date.now() + 60 * 60 * 1000);
-          console.error(
+          logger.error(
             `[WhatsApp Anti-Ban] ⛔ Property ${propertyId}: WhatsApp rate-limited or restricted the number (${result.reason}). Sending paused for 1 hour.`,
           );
           await recordWhatsAppAlert(
@@ -326,7 +327,7 @@ export async function recordWhatsAppAlert(
       [propertyId, message, JSON.stringify({ detail: detail ?? null })],
     );
   } catch (err: any) {
-    console.error("[WhatsApp] could not record alert:", err?.message);
+    logger.error({ err }, "[WhatsApp] could not record alert");
   }
 }
 
@@ -340,7 +341,7 @@ export async function recoverStuckOutboxMessages(): Promise<void> {
        WHERE status = 'PROCESSING'`,
     );
     if (res.rowCount) {
-      console.log(
+      logger.info(
         `[WhatsApp Outbox] Recovered ${res.rowCount} message(s) stuck in PROCESSING.`,
       );
     }
@@ -439,9 +440,9 @@ export async function sendMetaCloudMessage(params: {
     if (!response.ok) {
       const errMsg =
         data?.error?.message || `Meta Cloud API error (${response.status})`;
-      console.error(
-        `[WhatsApp Meta Cloud] Send failed to ${cleanPhone}:`,
-        errMsg,
+      logger.error(
+        { cleanPhone, errMsg },
+        "[WhatsApp Meta Cloud] Send failed to",
       );
       await logDelivery(
         propertyId,
@@ -464,12 +465,12 @@ export async function sendMetaCloudMessage(params: {
       text,
       "SENT",
     );
-    console.log(
+    logger.info(
       `[WhatsApp Meta Cloud] ✅ Message successfully sent to ${cleanPhone} via official Meta Cloud API (ID: ${messageId})`,
     );
     return { success: true, messageId };
   } catch (err: any) {
-    console.error(`[WhatsApp Meta Cloud] Network/HTTP error:`, err?.message);
+    logger.error({ err }, "[WhatsApp Meta Cloud] Network/HTTP error");
     await logDelivery(
       propertyId,
       recipientPhone,
@@ -803,9 +804,9 @@ export async function executeSendHumanLike(
       });
     }
   } catch (err: any) {
-    console.warn(
-      `[WhatsApp] Provider check error for property ${propertyId}:`,
-      err?.message,
+    logger.warn(
+      { err, propertyId },
+      "[WhatsApp] Provider check error for property",
     );
   }
 
@@ -850,7 +851,7 @@ export async function executeSendHumanLike(
       const onWaResult = await session.sock.onWhatsApp(jid);
       if (Array.isArray(onWaResult) && onWaResult.length > 0) {
         if (!onWaResult[0]?.exists) {
-          console.warn(
+          logger.warn(
             `[WhatsApp Anti-Ban] Number ${cleanPhone} is NOT registered on WhatsApp. Skipping send to protect number.`,
           );
           await logDelivery(
@@ -869,9 +870,9 @@ export async function executeSendHumanLike(
         }
       }
     } catch (onWaErr: any) {
-      console.warn(
-        `[WhatsApp] onWhatsApp pre-check warning (proceeding directly):`,
-        onWaErr?.message,
+      logger.warn(
+        { err: onWaErr },
+        "[WhatsApp] onWhatsApp pre-check warning (proceeding directly)",
       );
     }
 
@@ -917,12 +918,12 @@ export async function executeSendHumanLike(
       text,
       "SENT",
     );
-    console.log(
+    logger.info(
       `[WhatsApp Anti-Ban] Message successfully sent to ${cleanPhone} with unique fingerprint (Payload length: ${antiBanPayload.length})`,
     );
     return { success: true };
   } catch (err: any) {
-    console.error(`[WhatsApp] Error sending to ${cleanPhone}:`, err.message);
+    logger.error({ err, cleanPhone }, "[WhatsApp] Error sending to");
     const isConnErr =
       err?.message?.includes("Connection") ||
       err?.message?.includes("closed") ||
@@ -1013,15 +1014,15 @@ export async function sendWhatsAppMessageSafe(
       "في طابور الإرسال بانتظار المعالجة",
     );
   } catch (err: any) {
-    console.error(
-      "[WhatsApp Outbox] Error inserting message into outbox queue:",
-      err,
+    logger.error(
+      { err },
+      "[WhatsApp Outbox] Error inserting message into outbox queue",
     );
   }
 
   // 2. Trigger asynchronous queue processing (dispatches immediately if connected, or stays pending if offline)
   processOutboxQueue(propertyId).catch((err) => {
-    console.error("[WhatsApp Outbox] Outbox processor error:", err);
+    logger.error({ err }, "[WhatsApp Outbox] Outbox processor error");
   });
 
   return { success: true, queued: true };
@@ -1074,6 +1075,6 @@ export async function logDelivery(
       ],
     );
   } catch (e: any) {
-    console.error("[WhatsApp] Error logging delivery:", e.message);
+    logger.error({ err: e }, "[WhatsApp] Error logging delivery");
   }
 }

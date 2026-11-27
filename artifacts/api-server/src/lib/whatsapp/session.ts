@@ -23,6 +23,7 @@ import {
   removeOptOut,
 } from "./opt-out.js";
 import { normalizePhoneNumber } from "./templates.js";
+import { logger } from "../logger.js";
 
 // Canonical sessions storage directory
 export function getCanonicalSessionsDir(): string {
@@ -85,9 +86,9 @@ export async function getWhatsAppSession(
         if (raw?.registered && raw?.me) {
           session.isInitializing = true;
           connectPropertyWhatsApp(propertyId, false).catch((err) => {
-            console.warn(
-              `[WhatsApp] Auto-restore connection warning for property ${propertyId}:`,
-              err?.message,
+            logger.warn(
+              { err, propertyId },
+              "[WhatsApp] Auto-restore connection warning for property",
             );
           });
         }
@@ -157,8 +158,9 @@ export async function connectPropertyWhatsApp(
     fs.mkdirSync(sessionFolder, { recursive: true });
   } else if (resetSession || (forceRestart && !hasValidCreds)) {
     // Only purge session directory if explicitly requested to reset, OR if credentials are not registered
-    console.log(
-      `[WhatsApp] Purging unauthenticated session directory for property ${propertyId}`,
+    logger.info(
+      { propertyId },
+      "[WhatsApp] Purging unauthenticated session directory for property",
     );
     try {
       fs.rmSync(sessionFolder, { recursive: true, force: true });
@@ -178,21 +180,18 @@ export async function connectPropertyWhatsApp(
       const v2 = await fetchLatestBaileysVersion();
       if (v2?.version) version = v2.version;
     } catch {}
-    console.warn(
-      "[WhatsApp] fetchLatestWaWebVersion fallback used:",
-      err?.message,
-    );
+    logger.warn({ err }, "[WhatsApp] fetchLatestWaWebVersion fallback used");
   }
 
-  const logger = pino({ level: "silent" });
+  const baileysLogger = pino({ level: "silent" });
 
   const sock = makeWASocket({
     version,
-    logger,
+    logger: baileysLogger,
     printQRInTerminal: false,
     auth: {
       creds: state.creds,
-      keys: makeCacheableSignalKeyStore(state.keys, logger),
+      keys: makeCacheableSignalKeyStore(state.keys, baileysLogger),
     },
     generateHighQualityLinkPreview: false,
     browser: Browsers.windows("Desktop"),
@@ -223,13 +222,13 @@ export async function connectPropertyWhatsApp(
         if (cleanPhone && cleanPhone.length >= 8) {
           const code = await sock.requestPairingCode(cleanPhone);
           session.pairingCode = code;
-          console.log(
-            `[WhatsApp] Pairing Code for property ${propertyId}:`,
-            code,
+          logger.info(
+            { propertyId, code },
+            "[WhatsApp] Pairing Code for property",
           );
         }
       } catch (err: any) {
-        console.error("[WhatsApp] requestPairingCode error:", err?.message);
+        logger.error({ err }, "[WhatsApp] requestPairingCode error");
       }
     }, 2000);
   }
@@ -238,9 +237,9 @@ export async function connectPropertyWhatsApp(
     try {
       await saveCreds();
     } catch (err) {
-      console.error(
-        `[WhatsApp] Error saving creds for property ${propertyId}:`,
-        err,
+      logger.error(
+        { err, propertyId },
+        "[WhatsApp] Error saving creds for property",
       );
     }
   });
@@ -254,9 +253,9 @@ export async function connectPropertyWhatsApp(
       try {
         await handleInboundMessage(propertyId, sock, m);
       } catch (err: any) {
-        console.warn(
-          `[WhatsApp] inbound message handling failed for property ${propertyId}:`,
-          err?.message,
+        logger.warn(
+          { err, propertyId },
+          "[WhatsApp] inbound message handling failed for property",
         );
       }
     }
@@ -266,7 +265,7 @@ export async function connectPropertyWhatsApp(
     const { connection, lastDisconnect, qr } = update;
 
     if (connection === "connecting") {
-      console.log(`[WhatsApp] Property ${propertyId} connecting...`);
+      logger.info(`[WhatsApp] Property ${propertyId} connecting...`);
     }
 
     if (qr) {
@@ -281,8 +280,9 @@ export async function connectPropertyWhatsApp(
           },
         });
         session.qrCode = qrDataUrl;
-        console.log(
-          `[WhatsApp] New QR code generated for property ${propertyId}`,
+        logger.info(
+          { propertyId },
+          "[WhatsApp] New QR code generated for property",
         );
         // Persist fresh QR to DB for frontend polling
         await pool
@@ -295,7 +295,7 @@ export async function connectPropertyWhatsApp(
           )
           .catch(() => {});
       } catch (err) {
-        console.error("[WhatsApp] Error generating QR Data URL:", err);
+        logger.error({ err }, "[WhatsApp] Error generating QR Data URL");
       }
     }
 
@@ -310,7 +310,7 @@ export async function connectPropertyWhatsApp(
       const rawNumber = userJid.split(":")[0]?.split("@")[0] || "";
       session.phoneNumber = rawNumber ? `+${rawNumber}` : undefined;
 
-      console.log(
+      logger.info(
         `[WhatsApp] Property ${propertyId} connected successfully as ${session.phoneNumber}`,
       );
 
@@ -327,9 +327,9 @@ export async function connectPropertyWhatsApp(
 
       // Immediately process any pending messages in outbox queue
       processOutboxQueue(propertyId).catch((err) => {
-        console.error(
-          `[WhatsApp Outbox] Auto-dispatch error on connect for property ${propertyId}:`,
-          err,
+        logger.error(
+          { err, propertyId },
+          "[WhatsApp Outbox] Auto-dispatch error on connect for property",
         );
       });
     }
@@ -360,12 +360,12 @@ export async function connectPropertyWhatsApp(
         statusCode === DisconnectReason.connectionLost ||
         wasPairing;
 
-      console.log(
+      logger.info(
         `[WhatsApp] Property ${propertyId} connection closed (code ${statusCode}), isLoggedOut: ${isLoggedOut}, isRestartRequired: ${isRestartRequired}, wasPairing: ${wasPairing}`,
       );
 
       if (isBanned) {
-        console.error(
+        logger.error(
           `[WhatsApp] ⛔ Property ${propertyId}: connection refused by WhatsApp (403). The number may be banned or restricted. Auto-reconnect stopped.`,
         );
         pool
@@ -383,19 +383,19 @@ export async function connectPropertyWhatsApp(
         ).catch(() => {});
       } else if (isRestartRequired || wasPairing) {
         // Pairing handshake or stream restart requested! WhatsApp requires immediate reconnect with saved credentials
-        console.log(
+        logger.info(
           `[WhatsApp] Pairing handshake / stream restart in progress (code ${statusCode}) for property ${propertyId}. Immediate reconnect with saved credentials...`,
         );
         setTimeout(() => {
           connectPropertyWhatsApp(propertyId, false).catch((err) => {
-            console.error(
-              `[WhatsApp] Reconnect after restartRequired error:`,
-              err,
+            logger.error(
+              { err },
+              "[WhatsApp] Reconnect after restartRequired error",
             );
           });
         }, 500);
       } else if (isLoggedOut) {
-        console.log(
+        logger.info(
           `[WhatsApp] Property ${propertyId} logged out. Resetting session credentials.`,
         );
         recordWhatsAppAlert(
@@ -421,14 +421,14 @@ export async function connectPropertyWhatsApp(
         // Infinite auto-reconnect with exponential backoff!
         session.reconnectAttempts++;
         const delay = Math.min(session.reconnectAttempts * 2000, 15000);
-        console.log(
+        logger.info(
           `[WhatsApp] Auto-reconnecting property ${propertyId} (attempt #${session.reconnectAttempts}) in ${delay}ms...`,
         );
         setTimeout(() => {
           connectPropertyWhatsApp(propertyId, false).catch((err) => {
-            console.warn(
-              `[WhatsApp] Auto-reconnect retry error for property ${propertyId}:`,
-              err?.message,
+            logger.warn(
+              { err, propertyId },
+              "[WhatsApp] Auto-reconnect retry error for property",
             );
           });
         }, delay);
@@ -509,7 +509,7 @@ export function startKeepAliveHeartbeat(): void {
           !session ||
           (session.status !== "connected" && !session.isInitializing)
         ) {
-          console.log(
+          logger.info(
             `[WhatsApp Heartbeat] Self-healing connection for property ${propertyId}...`,
           );
           connectPropertyWhatsApp(propertyId, false).catch(() => {});
@@ -518,7 +518,7 @@ export function startKeepAliveHeartbeat(): void {
           // every 25s kept the number permanently online, a bot signal.
           const ws = (session.sock as any).ws;
           if (ws && ws.isOpen === false && ws.isConnecting !== true) {
-            console.warn(
+            logger.warn(
               `[WhatsApp Heartbeat] Socket closed for property ${propertyId}. Reconnecting...`,
             );
             connectPropertyWhatsApp(propertyId, false).catch(() => {});
@@ -529,10 +529,7 @@ export function startKeepAliveHeartbeat(): void {
         }
       }
     } catch (err: any) {
-      console.warn(
-        "[WhatsApp Heartbeat] Heartbeat check notice:",
-        err?.message,
-      );
+      logger.warn({ err }, "[WhatsApp Heartbeat] Heartbeat check notice");
     }
   }, 25000);
 }
@@ -553,23 +550,20 @@ export async function autoRestoreAllWhatsAppSessions(): Promise<void> {
         const propertyId = parseInt(propIdStr, 10);
         const credsPath = path.join(SESSIONS_DIR, entry, "creds.json");
         if (!isNaN(propertyId) && fs.existsSync(credsPath)) {
-          console.log(
+          logger.info(
             `[WhatsApp] Auto-restoring existing session on boot for property ${propertyId}...`,
           );
           connectPropertyWhatsApp(propertyId).catch((err) => {
-            console.warn(
-              `[WhatsApp] Boot auto-restore failed for property ${propertyId}:`,
-              err?.message,
+            logger.warn(
+              { err, propertyId },
+              "[WhatsApp] Boot auto-restore failed for property",
             );
           });
         }
       }
     }
   } catch (err: any) {
-    console.warn(
-      "[WhatsApp] autoRestoreAllWhatsAppSessions error:",
-      err?.message,
-    );
+    logger.warn({ err }, "[WhatsApp] autoRestoreAllWhatsAppSessions error");
   }
 }
 
@@ -621,7 +615,7 @@ async function handleInboundMessage(
 
   const phone = senderPhone(m);
   if (!phone) {
-    console.warn(
+    logger.warn(
       `[WhatsApp] opt-out reply from ${jid} without a phone number; not recorded.`,
     );
     return;
@@ -636,7 +630,7 @@ async function handleInboundMessage(
     : "تم تفعيل اشتراكك في الرسائل مرة أخرى ✅\nYou are subscribed again.";
   await new Promise((r) => setTimeout(r, 1500 + Math.random() * 2000));
   await sock.sendMessage(jid, { text: reply });
-  console.log(
+  logger.info(
     `[WhatsApp] Property ${propertyId}: ${phone} ${stop ? "opted out" : "opted back in"}.`,
   );
 }

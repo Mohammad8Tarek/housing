@@ -12,6 +12,7 @@ import {
 } from "./templates.js";
 import { getWhatsAppSession } from "./session.js";
 import { sendWhatsAppMessageSafe, logDelivery } from "./send.js";
+import { logger } from "../logger.js";
 
 /**
  * Automatic Check-In WhatsApp Notification Handler
@@ -36,7 +37,7 @@ export async function sendCheckInWhatsAppNotification(params: {
 
     // If auto send explicitly disabled in settings, skip
     if (config && config.is_auto_send_enabled === false) {
-      console.log(
+      logger.info(
         `[WhatsApp Auto-Send] Auto send is disabled for property ${propertyId}, skipping.`,
       );
       return;
@@ -78,16 +79,16 @@ export async function sendCheckInWhatsAppNotification(params: {
     if (profile?.profile_id) {
       ensureProfilePortalAccount(propertyId, profile.profile_id).catch(
         (err) => {
-          console.warn(
-            "[WhatsApp Auto-Send] ensureProfilePortalAccount notice:",
-            err?.message || err,
+          logger.warn(
+            { err },
+            "[WhatsApp Auto-Send] ensureProfilePortalAccount notice",
           );
         },
       );
     }
 
     if (!profile || !profile.phone || !profile.phone.trim()) {
-      console.log(
+      logger.info(
         `[WhatsApp Auto-Send] Profile ${profileId} (${fullName}) has no phone number, skipping.`,
       );
       await logDelivery(
@@ -108,7 +109,7 @@ export async function sendCheckInWhatsAppNotification(params: {
       profile.first_name,
       profile.last_name,
     );
-    console.log(
+    logger.info(
       `[WhatsApp Auto-Send] Profile ${profileId} nationality: "${profile.nationality || "unspecified"}" -> Selected language: ${isArabic ? "Arabic (عربي)" : "English"}`,
     );
 
@@ -183,7 +184,7 @@ export async function sendCheckInWhatsAppNotification(params: {
     const compiledMessage = compileWhatsAppTemplate(template, vars);
 
     // 7. Dispatch through safe queue
-    console.log(
+    logger.info(
       `[WhatsApp Auto-Send] Queuing welcome notification for ${fullName} (${profile.phone}) in ${isArabic ? "Arabic" : "English"}`,
     );
     sendWhatsAppMessageSafe(
@@ -193,10 +194,10 @@ export async function sendCheckInWhatsAppNotification(params: {
       "CHECKIN_WELCOME",
       fullName,
     ).catch((err) => {
-      console.error("[WhatsApp Auto-Send] Failed to queue message:", err);
+      logger.error({ err }, "[WhatsApp Auto-Send] Failed to queue message");
     });
   } catch (err: any) {
-    console.error("[WhatsApp Auto-Send] Error in notification handler:", err);
+    logger.error({ err }, "[WhatsApp Auto-Send] Error in notification handler");
   }
 }
 
@@ -289,7 +290,7 @@ export async function sendReservationConfirmationWhatsApp(params: {
     const config = configRes.rows[0];
 
     if (config && config.is_reservation_send_enabled === false) {
-      console.log(
+      logger.info(
         `[WhatsApp Reservation] Auto send is disabled for property ${propertyId}, skipping.`,
       );
       return {
@@ -379,7 +380,7 @@ export async function sendReservationConfirmationWhatsApp(params: {
       "Guest";
 
     if (!effectivePhone) {
-      console.log(
+      logger.info(
         `[WhatsApp Reservation] Reservation #${reservationId} (${fullName}) has no phone number, skipping.`,
       );
       await logDelivery(
@@ -490,7 +491,7 @@ export async function sendReservationConfirmationWhatsApp(params: {
 
     const compiledMessage = compileWhatsAppTemplate(template, vars);
 
-    console.log(
+    logger.info(
       `[WhatsApp Reservation] Queuing confirmation for ${fullName} (${effectivePhone}) in ${isArabic ? "Arabic" : "English"}`,
     );
     sendWhatsAppMessageSafe(
@@ -500,7 +501,7 @@ export async function sendReservationConfirmationWhatsApp(params: {
       "RESERVATION_CONFIRMATION",
       fullName,
     ).catch((err) => {
-      console.error("[WhatsApp Reservation] Failed to queue message:", err);
+      logger.error({ err }, "[WhatsApp Reservation] Failed to queue message");
     });
 
     return {
@@ -510,7 +511,10 @@ export async function sendReservationConfirmationWhatsApp(params: {
         : "Reservation confirmation queued successfully",
     };
   } catch (err: any) {
-    console.error("[WhatsApp Reservation] Error in confirmation handler:", err);
+    logger.error(
+      { err },
+      "[WhatsApp Reservation] Error in confirmation handler",
+    );
     return { success: false, error: err.message };
   }
 }
@@ -601,7 +605,10 @@ export async function sendWhatsAppBroadcast(params: {
       else if (res.reason === "DUPLICATE") skippedDuplicate++;
       else skippedNoPhone++;
     } catch (err) {
-      console.error(`[WhatsApp Broadcast] Error queuing for ${r.name}:`, err);
+      logger.error(
+        { err, name: r.name },
+        "[WhatsApp Broadcast] Error queuing for",
+      );
     }
   }
 

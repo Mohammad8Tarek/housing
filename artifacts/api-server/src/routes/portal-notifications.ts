@@ -21,6 +21,7 @@ import {
 } from "./push-notifications.js";
 import { validate } from "../middlewares/validate.js";
 import { IdParams } from "../validation/schemas.js";
+import { logger } from "../lib/logger.js";
 
 const router: Router = Router();
 
@@ -267,7 +268,7 @@ router.post(
         url: "/dashboard",
       };
       const onPushError = (err: unknown) =>
-        console.error("[portal-notifications] Push error:", err);
+        logger.error({ err }, "[portal-notifications] Push error");
 
       if (validated.targetAll || !validated.department) {
         sendPushToProperty(propertyId, pushPayload).catch(onPushError);
