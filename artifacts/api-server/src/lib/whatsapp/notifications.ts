@@ -521,6 +521,8 @@ export async function sendReservationConfirmationWhatsApp(params: {
 
 export interface BroadcastRecipient {
   profileId: number;
+  /** The employee/clock code the resident logs into the portal with. */
+  employeeCode?: string;
   name: string;
   phone: string;
   roomNumber?: string;
@@ -588,6 +590,10 @@ export async function sendWhatsAppBroadcast(params: {
       property: propertyName,
       property_name: propertyName,
       portal_url: portalUrl,
+      // Portal login identifier (clock/employee code) for onboarding messages.
+      login_id: r.employeeCode || "",
+      employee_code: r.employeeCode || "",
+      employee_id: r.employeeCode || "",
     };
 
     const textToSend = compileWhatsAppTemplate(messageText, vars);
