@@ -686,6 +686,7 @@ router.post(
       const query = `
       SELECT 
         p.id as profile_id,
+        p.profile_id as employee_code,
         p.first_name,
         p.last_name,
         p.phone,
@@ -728,6 +729,7 @@ router.post(
 
         recipients.push({
           profileId: row.profile_id,
+          employeeCode: row.employee_code || "",
           name:
             `${row.first_name || ""} ${row.last_name || ""}`.trim() ||
             `Employee #${row.profile_id}`,
@@ -793,6 +795,7 @@ router.post(
         )
         .map((r: any) => ({
           profileId: Number(r.profileId),
+          employeeCode: r.employeeCode ? String(r.employeeCode) : undefined,
           name: String(r.name || ""),
           phone: String(r.phone).trim(),
           roomNumber: r.roomNumber ? String(r.roomNumber) : undefined,

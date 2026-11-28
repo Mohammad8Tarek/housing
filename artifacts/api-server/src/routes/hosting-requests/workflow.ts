@@ -326,6 +326,45 @@ router.post(
             ).catch(() => {});
           }
         }
+      } else {
+        // No next step → the request is now fully APPROVED. Tell the person who
+        // submitted it, in-app and (best-effort) over WhatsApp.
+        try {
+          const reqRow = await pool.query(
+            `SELECT u.id, u.username, u.phone, hr.profile_name
+               FROM public.hosting_requests hr
+               LEFT JOIN public.users u ON u.id = hr.requester_user_id
+              WHERE hr.id = $1`,
+            [requestId],
+          );
+          const r = reqRow.rows[0];
+          if (r?.id) {
+            broadcastToProperty(requestPropertyId, {
+              type: "notification",
+              module: "notifications",
+              action: "created",
+              data: {
+                title: "Hosting request approved",
+                message: `Family visit request ${request.request_number} has been fully approved.`,
+                titleAr: "تمت الموافقة على طلب الاستضافة",
+                messageAr: `تمت الموافقة النهائية على طلب الزيارة ${request.request_number}.`,
+                entityId: requestId,
+                targetUserId: r.id,
+              },
+            });
+          }
+          if (r?.phone) {
+            void sendWhatsAppMessageSafe(
+              requestPropertyId,
+              String(r.phone),
+              `تمت الموافقة على طلب استضافتك ${request.request_number} للموظف ${r.profile_name}.\nYour hosting request ${request.request_number} for ${r.profile_name} has been approved.`,
+              "HOSTING_APPROVED",
+              r.username,
+            ).catch(() => {});
+          }
+        } catch {
+          // Notifying the requester must never fail the approval itself.
+        }
       }
 
       // Auto create-guest-hosting when request is fully approved (final step)
@@ -722,6 +761,78 @@ router.post(
         entityId: requestId,
         details: `Step ${stepOrder} (${requiredRole}) rebacked: ${reason}`,
       });
+
+      // Notify whoever the request was handed back to — the requester when it
+      // was returned from step 1, otherwise the previous-step approver who now
+      // has to sign again — in-app and (best-effort) over WhatsApp.
+      try {
+        const rebackPropertyId = request.property_id ?? user.propertyId;
+        const info = await pool.query(
+          `SELECT hr.request_number, u.id AS requester_id, u.username AS requester_name, u.phone AS requester_phone
+             FROM public.hosting_requests hr
+             LEFT JOIN public.users u ON u.id = hr.requester_user_id
+            WHERE hr.id = $1`,
+          [requestId],
+        );
+        const reqNumber = info.rows[0]?.request_number || `#${requestId}`;
+        const targets: { id?: number; username?: string; phone?: string }[] =
+          [];
+
+        if (stepOrder > 1) {
+          // Returned one step back → the previous approver must re-sign.
+          const prevRole = await pool.query(
+            "SELECT role_required FROM public.hosting_request_approval_steps WHERE request_id = $1 AND step_order = $2",
+            [requestId, stepOrder - 1],
+          );
+          const role = prevRole.rows[0]?.role_required;
+          if (role) {
+            const prevUsers = await pool.query(
+              `SELECT id, username, phone FROM public.users
+                WHERE property_id = $1
+                  AND (roles @> ARRAY[$2]::text[] OR LOWER(REPLACE(job_title, ' ', '_')) = $2)`,
+              [rebackPropertyId, role],
+            );
+            for (const u of prevUsers.rows)
+              targets.push({ id: u.id, username: u.username, phone: u.phone });
+          }
+        } else if (info.rows[0]?.requester_id) {
+          // Returned to the requester.
+          targets.push({
+            id: info.rows[0].requester_id,
+            username: info.rows[0].requester_name,
+            phone: info.rows[0].requester_phone,
+          });
+        }
+
+        for (const t of targets) {
+          if (t.id) {
+            broadcastToProperty(rebackPropertyId, {
+              type: "notification",
+              module: "notifications",
+              action: "created",
+              data: {
+                title: "Hosting request returned",
+                message: `Family visit request ${reqNumber} was returned: ${reason}`,
+                titleAr: "تم إرجاع طلب الاستضافة",
+                messageAr: `تم إرجاع طلب الزيارة ${reqNumber}: ${reason}`,
+                entityId: requestId,
+                targetUserId: t.id,
+              },
+            });
+          }
+          if (t.phone) {
+            void sendWhatsAppMessageSafe(
+              rebackPropertyId,
+              String(t.phone),
+              `تم إرجاع طلب الزيارة ${reqNumber} لمراجعته.\nالسبب: ${reason}\nFamily visit request ${reqNumber} was returned. Reason: ${reason}`,
+              "HOSTING_REBACKED",
+              t.username,
+            ).catch(() => {});
+          }
+        }
+      } catch {
+        // Notification failures must never fail the reback itself.
+      }
 
       const updated = await getRequestWithSteps(
         requestId,
