@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { pool } from "@workspace/db";
+import { pool, withTenant, settingsTable } from "@workspace/db";
 import { logActivity } from "../../lib/activity-logger.js";
 import { broadcastToProperty } from "../../lib/websocket.js";
 import { requirePermission } from "../../middlewares/permissions.js";
@@ -16,6 +16,7 @@ import {
 import { validate } from "../../middlewares/validate.js";
 import { RequestRefParams } from "../../validation/schemas.js";
 import { logger } from "../../lib/logger.js";
+import { sendWhatsAppMessageSafe } from "../../lib/whatsapp/send.js";
 
 const router: Router = Router();
 
@@ -103,6 +104,126 @@ router.post(
           message: `يوجد طلب استضافة مكرر للموظف في نفس الفترة الزمنية (طلب رقم ${dup.request_number}) / A duplicate hosting request already exists for this profile in the same date range (Request ${dup.request_number})`,
         });
         return;
+      }
+
+      // ── Visit Room Availability ────────────────────────────────────────────
+      // When a specific visit room is chosen, reject if that room already has an
+      // active hosting whose dates overlap the request's [fromDate, toDate] in
+      // the visit hotel's schema (text ISO dates compare correctly).
+      if (body.assignedRoomId) {
+        const visitPropId = body.visitHotelId || body.hotelId || propId;
+        try {
+          const vpRes = await pool.query(
+            "SELECT schema_name FROM public.properties WHERE id = $1",
+            [visitPropId],
+          );
+          const visitSchema =
+            vpRes.rows[0]?.schema_name || `prop_${visitPropId}`;
+          if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(visitSchema)) {
+            const clashRes = await pool.query(
+              `SELECT id FROM "${visitSchema}".hostings
+                WHERE room_id = $1
+                  AND status NOT IN ('CANCELLED','CANCELED','REJECTED','CHECKED_OUT','COMPLETED','LEFT')
+                  AND expected_from <= $2
+                  AND expected_to   >= $3
+                LIMIT 1`,
+              [body.assignedRoomId, body.toDate, body.fromDate],
+            );
+            if (clashRes.rows.length > 0) {
+              res.status(409).json({
+                success: false,
+                message:
+                  "غرفة الزيارة المختارة محجوزة باستضافة أخرى في نفس الفترة / The selected visit room is already booked by another hosting in this date range",
+              });
+              return;
+            }
+          }
+        } catch {
+          // If the availability lookup fails, do not block creation.
+        }
+      }
+
+      // ── Family-Visit Policy Quota ──────────────────────────────────────────
+      // Enforce the home property's configured limits (0 = unlimited): max
+      // nights per visit, max visits per calendar year, and a cooldown gap
+      // since the employee's previous visit. The settings already exist in the
+      // tenant `settings` row; this is where they are applied.
+      let maxNights = 0;
+      let maxVisitsPerYear = 0;
+      let cooldownDays = 0;
+      try {
+        const s: any = await withTenant(user.propertyId, async (tdb) => {
+          const [row] = await tdb.select().from(settingsTable).limit(1);
+          return row;
+        });
+        if (s) {
+          maxNights = Number(s.visitMaxNights ?? 0) || 0;
+          maxVisitsPerYear = Number(s.visitMaxVisitsPerYear ?? 0) || 0;
+          cooldownDays = Number(s.visitCooldownDays ?? 0) || 0;
+        }
+      } catch {
+        // No settings row / lookup failure → treat as unlimited.
+      }
+
+      const DAY_MS = 86_400_000;
+      const fromMs = new Date(body.fromDate).getTime();
+      const toMs = new Date(body.toDate).getTime();
+      const nights =
+        Number.isFinite(fromMs) && Number.isFinite(toMs)
+          ? Math.max(0, Math.round((toMs - fromMs) / DAY_MS))
+          : 0;
+
+      if (maxNights > 0 && nights > maxNights) {
+        res.status(409).json({
+          success: false,
+          message: `مدة الزيارة (${nights} ليلة) تتجاوز الحد المسموح (${maxNights} ليلة) / The visit length (${nights} nights) exceeds the allowed maximum (${maxNights} nights)`,
+        });
+        return;
+      }
+
+      if (maxVisitsPerYear > 0) {
+        const year = body.fromDate.slice(0, 4);
+        const countRes = await pool.query(
+          `SELECT COUNT(*)::int AS n
+             FROM public.hosting_requests
+            WHERE clock_number = $1
+              AND property_id  = $2
+              AND status IN ('in_signing', 'approved')
+              AND from_date >= $3 AND from_date <= $4`,
+          [clockNumber, user.propertyId, `${year}-01-01`, `${year}-12-31`],
+        );
+        if ((countRes.rows[0]?.n ?? 0) >= maxVisitsPerYear) {
+          res.status(409).json({
+            success: false,
+            message: `تم بلوغ الحد الأقصى لعدد الزيارات في السنة (${maxVisitsPerYear}) لهذا الموظف / This employee has reached the maximum number of visits per year (${maxVisitsPerYear})`,
+          });
+          return;
+        }
+      }
+
+      if (cooldownDays > 0) {
+        const lastRes = await pool.query(
+          `SELECT MAX(to_date) AS last_to
+             FROM public.hosting_requests
+            WHERE clock_number = $1
+              AND property_id  = $2
+              AND status IN ('in_signing', 'approved')
+              AND to_date < $3`,
+          [clockNumber, user.propertyId, body.fromDate],
+        );
+        const lastTo = lastRes.rows[0]?.last_to;
+        if (lastTo) {
+          const gap = Math.round(
+            (fromMs - new Date(lastTo).getTime()) / DAY_MS,
+          );
+          if (gap < cooldownDays) {
+            res.status(409).json({
+              success: false,
+              message: `يجب مرور ${cooldownDays} يوم بين الزيارات (متبقٍ ${cooldownDays - gap} يوم) / A ${cooldownDays}-day gap is required between visits (${cooldownDays - gap} day(s) remaining)`,
+            });
+            return;
+          }
+        }
       }
 
       let requestId = -1;
@@ -201,7 +322,7 @@ router.post(
       const firstRole = firstStepItem?.roleRequired || "housing_manager";
       const firstRoleLabel = firstStepItem?.labelAr || firstRole;
       const firstRoleUsers = await pool.query(
-        `SELECT id, username FROM public.users WHERE property_id = $1 AND (roles @> ARRAY[$2]::text[] OR LOWER(REPLACE(job_title, ' ', '_')) = $2)`,
+        `SELECT id, username, phone FROM public.users WHERE property_id = $1 AND (roles @> ARRAY[$2]::text[] OR LOWER(REPLACE(job_title, ' ', '_')) = $2)`,
         [user.propertyId, firstRole],
       );
       for (const row of firstRoleUsers.rows) {
@@ -218,6 +339,18 @@ router.post(
             targetUserId: row.id,
           },
         });
+
+        // Best-effort WhatsApp ping to the first approver (safe no-op when the
+        // provider is off / number is missing / opted out).
+        if (row.phone) {
+          void sendWhatsAppMessageSafe(
+            user.propertyId,
+            String(row.phone),
+            `طلب زيارة عائلية جديد ${requestNumber} ينتظر موافقتك كـ ${firstRoleLabel}.\nNew family visit request ${requestNumber} awaits your approval as ${firstStepItem?.labelEn || firstRole}.`,
+            "HOSTING_APPROVAL",
+            row.username,
+          ).catch(() => {});
+        }
       }
 
       const created = await getRequestWithSteps(
