@@ -16,6 +16,7 @@ import {
 import { validate } from "../../middlewares/validate.js";
 import { RequestRefParams } from "../../validation/schemas.js";
 import { logger } from "../../lib/logger.js";
+import { sendWhatsAppMessageSafe } from "../../lib/whatsapp/send.js";
 
 const router: Router = Router();
 
@@ -321,7 +322,7 @@ router.post(
       const firstRole = firstStepItem?.roleRequired || "housing_manager";
       const firstRoleLabel = firstStepItem?.labelAr || firstRole;
       const firstRoleUsers = await pool.query(
-        `SELECT id, username FROM public.users WHERE property_id = $1 AND (roles @> ARRAY[$2]::text[] OR LOWER(REPLACE(job_title, ' ', '_')) = $2)`,
+        `SELECT id, username, phone FROM public.users WHERE property_id = $1 AND (roles @> ARRAY[$2]::text[] OR LOWER(REPLACE(job_title, ' ', '_')) = $2)`,
         [user.propertyId, firstRole],
       );
       for (const row of firstRoleUsers.rows) {
@@ -338,6 +339,18 @@ router.post(
             targetUserId: row.id,
           },
         });
+
+        // Best-effort WhatsApp ping to the first approver (safe no-op when the
+        // provider is off / number is missing / opted out).
+        if (row.phone) {
+          void sendWhatsAppMessageSafe(
+            user.propertyId,
+            String(row.phone),
+            `طلب زيارة عائلية جديد ${requestNumber} ينتظر موافقتك كـ ${firstRoleLabel}.\nNew family visit request ${requestNumber} awaits your approval as ${firstStepItem?.labelEn || firstRole}.`,
+            "HOSTING_APPROVAL",
+            row.username,
+          ).catch(() => {});
+        }
       }
 
       const created = await getRequestWithSteps(

@@ -19,6 +19,7 @@ import {
 } from "./shared.js";
 import { validate } from "../../middlewares/validate.js";
 import { RequestRefParams } from "../../validation/schemas.js";
+import { sendWhatsAppMessageSafe } from "../../lib/whatsapp/send.js";
 
 const router: Router = Router();
 
@@ -286,13 +287,13 @@ router.post(
 
         const nextRoleUsers = propertyIdsForQuery
           ? await pool.query(
-              `SELECT id, username FROM public.users
+              `SELECT id, username, phone FROM public.users
                WHERE property_id = ANY($1::int[])
                  AND (roles @> ARRAY[$2]::text[] OR LOWER(REPLACE(job_title, ' ', '_')) = $2)`,
               [propertyIdsForQuery, nextRole],
             )
           : await pool.query(
-              `SELECT id, username FROM public.users
+              `SELECT id, username, phone FROM public.users
                WHERE roles @> ARRAY[$1]::text[] OR LOWER(REPLACE(job_title, ' ', '_')) = $1`,
               [nextRole],
             );
@@ -311,6 +312,19 @@ router.post(
               targetUserId: row.id,
             },
           });
+
+          // Best-effort WhatsApp ping to the next approver. sendWhatsAppMessageSafe
+          // is defensive (no provider / opted-out / duplicate / bad number all
+          // return a reason instead of throwing) and never blocks the response.
+          if (row.phone) {
+            void sendWhatsAppMessageSafe(
+              requestPropertyId,
+              String(row.phone),
+              `طلب زيارة عائلية ${request.request_number} ينتظر توقيعك كـ ${nextRoleLabelAr}.\nFamily visit request ${request.request_number} is awaiting your approval as ${nextRoleLabelEn}.`,
+              "HOSTING_APPROVAL",
+              row.username,
+            ).catch(() => {});
+          }
         }
       }
 
